@@ -25,7 +25,7 @@
             <label>Λίστα:</label>
             <select id="playlistSelect" onchange="filterPlaylist()">
                 <option value="ALL">📂 Όλα τα τραγούδια</option>
-                </select>
+            </select>
         </div>
 
         <div id="playlistContainer" class="playlist">
@@ -61,7 +61,24 @@
                     <input type="text" id="inpKey" placeholder="π.χ. Am">
                 </div>
             </div>
-<div class="field-group full">
+
+            <div class="field-group full">
+                <label>Λίστες (χωρισμένες με κόμμα)</label>
+                <input type="text" id="inpTags" placeholder="π.χ. Λαϊκά, Πρόγραμμα 1, Κραουνάκης">
+            </div>
+
+            <div class="input-grid">
+                <div class="field-group">
+                    <label>Εισαγωγή (Intro)</label>
+                    <input type="text" id="inpIntro" placeholder="π.χ. !Am !G | !F !E7">
+                </div>
+                <div class="field-group">
+                    <label>Ενδιάμεσα (Interlude)</label>
+                    <input type="text" id="inpInter" placeholder="Ακόρντα γέφυρας...">
+                </div>
+            </div>
+
+            <div class="field-group full">
                 <label>Κυρίως Τραγούδι</label>
                 <div class="hint">
                     <strong>ΑΥΤΟΜΑΤΟΣ ΔΙΑΧΩΡΙΣΜΟΣ:</strong> Γράψε τις στροφές αφήνοντας κενή γραμμή ανάμεσά τους.
@@ -69,18 +86,6 @@
                     αυτή και οι επόμενες θα μπουν αυτόματα στο κάτω μέρος (scroll).
                 </div>
                 <textarea id="inpBody" placeholder="Γράψε εδώ... !Am Στίχοι..."></textarea>
-            </div>
-            
-                <label>Κυρίως Τραγούδι</label>
-                <div class="hint">
-                    <strong>ΣΥΜΒΟΥΛΗ:</strong> Χρησιμοποίησε <code>===</code> για να χωρίσεις το τραγούδι. 
-                    Ό,τι είναι ΠΑΝΩ από τη γραμμή θα έχει συγχορδίες (Σταθερό). 
-                    Ό,τι είναι ΚΑΤΩ θα είναι μόνο στίχοι (Scroll).
-                </div>
-                <div class="toolbar">
-                    <button onclick="insertSplit()" class="tool-btn">⸬ Εισαγωγή Διαχωριστικού (===)</button>
-                </div>
-                <textarea id="inpBody" placeholder="Γράψε εδώ... !Am Στίχοι...&#10;===&#10;Υπόλοιποι στίχοι..."></textarea>
             </div>
 
             <div class="editor-actions">

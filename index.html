@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>mNotes</title>
+    <title>mnotes</title>
     <link rel="stylesheet" href="style.css">
     
     <link rel="manifest" href="manifest.json">
@@ -17,15 +17,24 @@
 <div class="app-layout">
     <div class="sidebar">
         <div class="sidebar-header">
-            <h3>Setlist</h3>
+            <h3>Library</h3>
             <span id="songCount" style="font-size:12px; color:#666;">0 songs</span>
         </div>
-        <div id="playlistContainer" class="playlist">
-            <div class="empty-msg">Η λίστα είναι κενή</div>
+        
+        <div class="playlist-filter">
+            <label>Λίστα:</label>
+            <select id="playlistSelect" onchange="filterPlaylist()">
+                <option value="ALL">📂 Όλα τα τραγούδια</option>
+                </select>
         </div>
+
+        <div id="playlistContainer" class="playlist">
+            <div class="empty-msg">Η βιβλιοθήκη είναι κενή</div>
+        </div>
+        
         <div class="sidebar-actions">
-            <button onclick="clearPlaylist()" class="danger-btn">🗑️ Clear</button>
-            <button onclick="exportJSON()">💾 Export List</button>
+            <button onclick="clearLibrary()" class="danger-btn">🗑️ Clear All</button>
+            <button onclick="exportJSON()">💾 Export Library</button>
             <label class="file-btn">
                📂 Import <input type="file" onchange="importJSON(this)" style="display:none;">
             </label>
@@ -34,7 +43,7 @@
 
     <div class="main-area">
         <div class="top-bar">
-            <h1 class="logo">mNotes</h1>
+            <h1 class="logo">mnotes</h1>
             <div class="view-controls">
                 <button onclick="toEditor()" id="btnEdit">✏️ Editor</button>
                 <button onclick="toViewer()" id="btnPlay" class="action">🎵 Play Mode</button>
@@ -52,45 +61,56 @@
                     <input type="text" id="inpKey" placeholder="π.χ. Am">
                 </div>
             </div>
-
-            <div class="input-grid">
-                <div class="field-group">
-                    <label>Εισαγωγή (Intro)</label>
-                    <input type="text" id="inpIntro" placeholder="π.χ. !Am !G | !F !E7">
-                </div>
-                <div class="field-group">
-                    <label>Ενδιάμεσα (Interlude)</label>
-                    <input type="text" id="inpInter" placeholder="Ακόρντα γέφυρας...">
-                </div>
-            </div>
-
-            <div class="field-group full">
+<div class="field-group full">
                 <label>Κυρίως Τραγούδι</label>
                 <div class="hint">
-                    ⚠️ <strong>ΣΥΝΤΑΞΗ:</strong> Γράφουμε <code>!Am</code>. Αν ακολουθεί λατινικός χαρακτήρας, 
-                    αφήνουμε ΥΠΟΧΡΕΩΤΙΚΑ κενό (π.χ. <code>!Am Love</code>). Τα σύμβολα <code>| / x2</code> αναγνωρίζονται αυτόματα.
+                    <strong>ΑΥΤΟΜΑΤΟΣ ΔΙΑΧΩΡΙΣΜΟΣ:</strong> Γράψε τις στροφές αφήνοντας κενή γραμμή ανάμεσά τους.
+                    <br>Μόλις το πρόγραμμα βρει μια στροφή <strong>χωρίς συγχορδίες (χωρίς !)</strong>, 
+                    αυτή και οι επόμενες θα μπουν αυτόματα στο κάτω μέρος (scroll).
                 </div>
-                <textarea id="inpBody" placeholder="Γράψε εδώ τους στίχους..."></textarea>
+                <textarea id="inpBody" placeholder="Γράψε εδώ... !Am Στίχοι..."></textarea>
+            </div>
+            
+                <label>Κυρίως Τραγούδι</label>
+                <div class="hint">
+                    <strong>ΣΥΜΒΟΥΛΗ:</strong> Χρησιμοποίησε <code>===</code> για να χωρίσεις το τραγούδι. 
+                    Ό,τι είναι ΠΑΝΩ από τη γραμμή θα έχει συγχορδίες (Σταθερό). 
+                    Ό,τι είναι ΚΑΤΩ θα είναι μόνο στίχοι (Scroll).
+                </div>
+                <div class="toolbar">
+                    <button onclick="insertSplit()" class="tool-btn">⸬ Εισαγωγή Διαχωριστικού (===)</button>
+                </div>
+                <textarea id="inpBody" placeholder="Γράψε εδώ... !Am Στίχοι...&#10;===&#10;Υπόλοιποι στίχοι..."></textarea>
             </div>
 
             <div class="editor-actions">
-                <button onclick="addSongToPlaylist()" class="save-btn">➕ Προσθήκη στη Λίστα</button>
-                <button onclick="updateCurrentSong()" class="update-btn" style="display:none;" id="btnUpdate">🔄 Ενημέρωση</button>
+                <button onclick="saveSong()" class="save-btn">💾 Αποθήκευση</button>
+                <button onclick="deleteCurrentSong()" class="danger-btn" style="width:auto; display:none;" id="btnDelete">🗑️ Διαγραφή</button>
             </div>
         </div>
 
         <div id="viewer-view">
-            <div class="song-header">
-                <h2 id="displayTitle"></h2>
-                <div id="displayMeta"></div>
-            </div>
-            
-            <div id="structureBox" class="structure-box" style="display:none;">
-                <div id="displayIntro"></div>
-                <div id="displayInter"></div>
+            <div id="pinnedContainer" class="pinned-box">
+                <div class="song-header">
+                    <h2 id="displayTitle"></h2>
+                    <div id="displayMeta"></div>
+                </div>
+                
+                <div id="structureBox" class="structure-box" style="display:none;">
+                    <div id="displayIntro"></div>
+                    <div id="displayInter"></div>
+                </div>
+
+                <div id="outputChords"></div>
+                
+                <div class="split-divider" id="splitDivider" style="display:none;">
+                    <span>▼ Υπόλοιποι Στίχοι ▼</span>
+                </div>
             </div>
 
-            <div id="output"></div>
+            <div id="scrollContainer" class="scroll-box">
+                <div id="outputLyrics"></div>
+            </div>
         </div>
     </div>
 </div>
@@ -101,40 +121,28 @@
         <span class="nav-label">SONG</span>
         <button class="nav-btn" onclick="nextSong()">▼</button>
     </div>
-    
     <hr style="border:0; border-top:1px solid rgba(255,255,255,0.2); width:100%; margin:5px 0;">
-    
     <div class="t-row">
         <span class="t-label">TONE</span> 
         <button class="t-btn" onclick="addTrans(1)">+</button>
         <span id="t-val" class="t-val">0</span> 
         <button class="t-btn" onclick="addTrans(-1)">-</button> 
     </div>
-    
     <div class="t-row" style="margin-top:10px;">
         <span class="t-label">CAPO</span> 
         <button class="t-btn" onclick="addCapo(1)">+</button>
         <span id="c-val" class="t-val">0</span> 
         <button class="t-btn" onclick="addCapo(-1)">-</button> 
     </div>
-
-    <button class="magic-btn" onclick="findSmartCapo()" title="Αυτόματη εύρεση εύκολης θέσης">
-        AUTO
-    </button>
-    
-    <div class="key-display">
-        KEY: <span id="visualKey">-</span>
-    </div>
+    <button class="magic-btn" onclick="findSmartCapo()">AUTO</button>
+    <div class="key-display">KEY: <span id="visualKey">-</span></div>
 </div>
 
 <script src="script.js"></script>
 <script>
-    // Register Service Worker for PWA
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./sw.js')
-                .then(reg => console.log('Service Worker registered!'))
-                .catch(err => console.log('Service Worker failed:', err));
+            navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW failed:', err));
         });
     }
 </script>

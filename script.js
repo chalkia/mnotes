@@ -9,15 +9,32 @@ var currentSongId = null;
 var currentFilter = "ALL";
 var state = { t:0, c:0, parsedChords:[], parsedLyrics:[], meta:{} };
 
-// --- STARTUP ---
+// --- STARTUP (Φόρτωση από Μνήμη) ---
 window.onload = function() {
+    // 1. Προσπάθεια φόρτωσης από LocalStorage
+    var savedData = localStorage.getItem('mnotes_data');
+    if(savedData) {
+        try {
+            library = JSON.parse(savedData);
+            updatePlaylistDropdown();
+            filterPlaylist(); // Ενημέρωση Sidebar
+        } catch(e) {
+            console.error("Error parsing saved data", e);
+        }
+    }
+
+    // 2. Έλεγχος αν υπάρχει περιεχόμενο
     if(library.length > 0) {
-        filterPlaylist();
         toViewer();
     } else {
         toEditor();
     }
 };
+
+// --- HELPER: LOCAL STORAGE SAVE ---
+function saveToLocal() {
+    localStorage.setItem('mnotes_data', JSON.stringify(library));
+}
 
 // --- NAVIGATION ---
 function toEditor(){
@@ -73,6 +90,7 @@ function saveSong() {
         currentSongId = songData.id;
     }
 
+    saveToLocal(); // <--- ΑΠΟΘΗΚΕΥΣΗ ΣΤΗ ΣΥΣΚΕΥΗ
     updatePlaylistDropdown();
     filterPlaylist();
     alert("Αποθηκεύτηκε!");
@@ -83,6 +101,7 @@ function deleteCurrentSong() {
     if(confirm("Διαγραφή τραγουδιού;")) {
         library = library.filter(s => s.id !== currentSongId);
         currentSongId = null;
+        saveToLocal(); // <--- ΑΠΟΘΗΚΕΥΣΗ ΑΛΛΑΓΩΝ
         updatePlaylistDropdown();
         filterPlaylist();
         clearInputs();
@@ -156,7 +175,7 @@ function clearInputs() {
     document.getElementById('btnDelete').style.display = 'none';
 }
 
-// --- AUTOMATIC PARSER (AUTO-SPLIT) ---
+// --- PARSER ---
 function parseAndRender(songData){
   state.parsedChords = [];
   state.parsedLyrics = [];
@@ -164,30 +183,22 @@ function parseAndRender(songData){
   state.t = 0; state.c = 0;
 
   var rawBody = songData.body || "";
+  var blocks = rawBody.split(/\n\s*\n/); // Χωρισμός σε μπλοκ με βάση την κενή γραμμή
   
-  // 1. Χωρίζουμε το κείμενο σε "Μπλοκ" (Στροφές) με βάση τις κενές γραμμές
-  // Το regex /\n\s*\n/ πιάνει 2 enter (κενή γραμμή)
-  var blocks = rawBody.split(/\n\s*\n/);
-  
-  var isScrolling = false; // Flag: Μόλις γίνει true, όλα τα επόμενα πάνε κάτω
+  var isScrolling = false;
 
   blocks.forEach(block => {
       if(!block.trim()) return;
-
       if (!isScrolling) {
-          // Είμαστε ακόμα στο πάνω μέρος. Ελέγχουμε αν αυτό το μπλοκ έχει συγχορδίες.
           if (blockHasChords(block)) {
-              // Έχει συγχορδίες -> Parse & Add to Top
               var parsedBlock = parseBlock(block);
               state.parsedChords.push(...parsedBlock);
-              state.parsedChords.push({type:'br'}); // Κενό ανάμεσα στις στροφές
+              state.parsedChords.push({type:'br'});
           } else {
-              // Δεν έχει συγχορδίες -> Ενεργοποίηση Scrolling Mode
               isScrolling = true;
               state.parsedLyrics.push(block);
           }
       } else {
-          // Είμαστε ήδη στο scrolling mode -> Απλά προσθέτουμε το κείμενο
           state.parsedLyrics.push(block);
       }
   });
@@ -195,10 +206,8 @@ function parseAndRender(songData){
   render();
 }
 
-// Βοηθητική: Ελέγχει αν ένα κείμενο (block) περιέχει συγχορδίες (! ή μουσικά σύμβολα)
 function blockHasChords(text) {
-    if (text.includes('!') || text.includes('|')) return true;
-    return false;
+    return (text.includes('!') || text.includes('|'));
 }
 
 function parseBlock(text) {
@@ -235,13 +244,11 @@ function analyzeToken(chord, text) {
 
 // --- RENDER ---
 function render(){
-  // --- TOP CONTAINER ---
   var divChords = document.getElementById('outputChords');
   divChords.innerHTML = "";
   document.getElementById('displayTitle').innerText = state.meta.title;
   var shift = state.t - state.c;
   
-  // Meta & Intro Render
   var metaText = state.meta.key ? "Key: " + getNote(state.meta.key, shift) : "";
   if(!state.meta.key) document.getElementById('visualKey').innerText = "-";
   else document.getElementById('visualKey').innerText = getNote(state.meta.key, shift);
@@ -272,18 +279,16 @@ function render(){
     divChords.appendChild(row);
   });
 
-  // Toggle visual divider
   var hasLyrics = state.parsedLyrics.length > 0;
   document.getElementById('splitDivider').style.display = hasLyrics ? 'block' : 'none';
 
-  // --- BOTTOM CONTAINER ---
   var divLyrics = document.getElementById('outputLyrics');
   divLyrics.innerHTML = "";
   
   state.parsedLyrics.forEach(function(block){
       var p = document.createElement('div');
       p.className = 'compact-line';
-      p.innerText = block; // The whole block
+      p.innerText = block; 
       divLyrics.appendChild(p);
       var spacer = document.createElement('div');
       spacer.style.height = "15px";
@@ -319,7 +324,7 @@ function findSmartCapo() {
         });
     });
 
-    if(currentSoundingChords.size === 0) { alert("Δεν βρέθηκαν συγχορδίες για Smart Capo!"); return; }
+    if(currentSoundingChords.size === 0) { alert("Δεν βρέθηκαν συγχορδίες!"); return; }
 
     let bestCapo = 0; let minDifficulty = Infinity;
     for (let tryCapo = 0; tryCapo <= 5; tryCapo++) {
@@ -358,7 +363,7 @@ function prevSong() {
     }
 }
 
-// --- IMPORT / EXPORT ---
+// --- IMPORT / EXPORT (ΜΕ SAVE TO LOCAL) ---
 function exportJSON(){
     var blob = new Blob([JSON.stringify(library, null, 2)], {type:'application/json'});
     var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'mnotes_library.json'; a.click();
@@ -369,6 +374,7 @@ function importJSON(el){
         try {
             var data = JSON.parse(e.target.result);
             if(Array.isArray(data)) library = data; 
+            saveToLocal(); // Αποθήκευση μετά από Import
             updatePlaylistDropdown(); filterPlaylist();
             alert("Βιβλιοθήκη φορτώθηκε!");
             if(library.length > 0) toViewer();
@@ -379,6 +385,7 @@ function importJSON(el){
 function clearLibrary() {
     if(confirm("Διαγραφή ΟΛΗΣ της βιβλιοθήκης;")) {
         library = []; visiblePlaylist = []; currentSongId = null;
+        saveToLocal(); // Καθαρισμός μνήμης
         updatePlaylistDropdown(); renderSidebar(); clearInputs();
         toEditor();
     }

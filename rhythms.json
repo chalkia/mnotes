@@ -1,0 +1,77 @@
+{
+  "rhythms": [
+    {
+      "id": "2/4",
+      "label": "2/4 Χασαποσέρβικο",
+      "steps": [
+        { "dur": 1, "strong": true },
+        { "dur": 1, "strong": false }
+      ]
+    },
+    {
+      "id": "3/4",
+      "label": "3/4 Βαλς / Τσάμικος",
+      "steps": [
+        { "dur": 1, "strong": true },
+        { "dur": 1, "strong": false },
+        { "dur": 1, "strong": false }
+      ]
+    },
+    {
+      "id": "4/4",
+      "label": "4/4 Rock / Pop",
+      "steps": [
+        { "dur": 1, "strong": true },
+        { "dur": 1, "strong": false },
+        { "dur": 1, "strong": true },
+        { "dur": 1, "strong": false }
+      ]
+    },
+    {
+      "id": "7/8_KAL",
+      "label": "7/8 Καλαματιανός (3-2-2)",
+      "steps": [
+        { "dur": 1.5, "strong": true },
+        { "dur": 1, "strong": false },
+        { "dur": 1, "strong": false }
+      ]
+    },
+    {
+      "id": "9/8_ZEI",
+      "label": "9/8 Ζεϊμπέκικο (2-2-2-3)",
+      "steps": [
+        { "dur": 1, "strong": true },
+        { "dur": 1, "strong": false },
+        { "dur": 1, "strong": false },
+        { "dur": 1.5, "strong": false }
+      ]
+    },
+    {
+      "id": "9/8_KAR",
+      "label": "9/8 Καρσιλαμάς (2-2-2-3)",
+      "steps": [
+        { "dur": 1, "strong": true },
+        { "dur": 1, "strong": false },
+        { "dur": 1, "strong": false },
+        { "dur": 1.5, "strong": false }
+      ]
+    },
+    {
+      "id": "5/8",
+      "label": "5/8 Τσάκωνικος (3-2)",
+      "steps": [
+        { "dur": 1.5, "strong": true },
+        { "dur": 1, "strong": false }
+      ]
+    },
+    {
+      "id": "8/8_TSI",
+      "label": "Τσιφτετέλι / Ρούμπα (3-3-2)",
+      "steps": [
+        { "dur": 1.5, "strong": true },
+        { "dur": 1.5, "strong": true },
+        { "dur": 1, "strong": false }
+      ]
+    }
+  ]
+}

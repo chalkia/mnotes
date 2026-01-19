@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mΝotes-v3';
+const CACHE_NAME = 'mΝotes-v4';
 const ASSETS = [
   './',
   './index.html',
@@ -30,4 +30,5 @@ self.addEventListener('activate', (event) => {
   );
 
 });
+
 

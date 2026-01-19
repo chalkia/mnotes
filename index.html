@@ -12,21 +12,33 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="icon-192.png">
+
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 </head>
 <body>
 
+<div id="qrModal" class="qr-modal">
+    <div style="background:white; padding:10px; border-radius:8px; width:90%; max-width:400px; text-align:center;">
+        <h3>Scan Song QR</h3>
+        <div id="qr-reader"></div>
+        <div style="margin-top:10px; font-size:12px; color:#666;">Σκάναρε κώδικα JSON</div>
+    </div>
+    <button class="qr-close-btn" onclick="closeQR()">Κλείσιμο Κάμερας</button>
+</div>
+
 <div class="app-layout">
-    <div class="sidebar">
+    <div id="sidebar" class="sidebar">
         <div class="sidebar-header">
             <h3>Library</h3>
-            <span id="songCount" style="font-size:12px; color:#666;">0 songs</span>
+            <button onclick="toggleSidebar()" style="background:transparent; border:none; font-size:20px; cursor:pointer;">✕</button>
         </div>
+        <span id="songCount" style="font-size:12px; color:#666; margin-bottom:10px; display:block;">0 songs</span>
         
         <div class="playlist-filter">
             <label>Λίστα:</label>
             <select id="playlistSelect" onchange="filterPlaylist()">
                 <option value="ALL">📂 Όλα τα τραγούδια</option>
-                </select>
+            </select>
         </div>
 
         <div id="playlistContainer" class="playlist">
@@ -36,15 +48,20 @@
         <div class="sidebar-actions">
             <button onclick="clearLibrary()" class="danger-btn">🗑️ Clear All</button>
             <button onclick="exportJSON()">💾 Export Library</button>
+            <button onclick="startQR()" style="background:#8e44ad; color:white;">📷 Scan QR Import</button>
             <label class="file-btn">
-               📂 Import <input type="file" onchange="importJSON(this)" style="display:none;">
+               📂 Import File <input type="file" onchange="importJSON(this)" style="display:none;">
             </label>
         </div>
     </div>
 
     <div class="main-area">
         <div class="top-bar">
-            <h1 class="logo">mnotes</h1>
+            <div style="display:flex; align-items:center;">
+                <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+                <h1 class="logo">mnotes</h1>
+            </div>
+            
             <div class="view-controls">
                 <button onclick="toEditor()" id="btnEdit">✏️ Editor</button>
                 <button onclick="toViewer()" id="btnPlay" class="action">🎵 Play Mode</button>
@@ -55,7 +72,7 @@
             <div class="input-grid">
                 <div class="field-group">
                     <label>Τίτλος</label>
-                    <input type="text" id="inpTitle" placeholder="π.χ. Σιγανοψιχάλα">
+                    <input type="text" id="inpTitle" placeholder="Τίτλος Τραγουδιού">
                 </div>
                 <div class="field-group small">
                     <label>Κλίμακα</label>
@@ -64,8 +81,8 @@
             </div>
 
             <div class="field-group full">
-                <label>Λίστες (χωρισμένες με κόμμα)</label>
-                <input type="text" id="inpTags" placeholder="π.χ. Λαϊκά, Πρόγραμμα 1, Κραουνάκης">
+                <label>Λίστες (Tags)</label>
+                <input type="text" id="inpTags" placeholder="π.χ. Λαϊκά, Έντεχνα">
             </div>
 
             <div class="input-grid">
@@ -82,9 +99,7 @@
             <div class="field-group full">
                 <label>Κυρίως Τραγούδι</label>
                 <div class="hint">
-                    <strong>ΑΥΤΟΜΑΤΟΣ ΔΙΑΧΩΡΙΣΜΟΣ:</strong> Γράψε τις στροφές αφήνοντας κενή γραμμή ανάμεσά τους.
-                    <br>Μόλις το πρόγραμμα βρει μια στροφή <strong>χωρίς συγχορδίες (χωρίς !)</strong>, 
-                    αυτή και οι επόμενες θα μπουν αυτόματα στο κάτω μέρος (scroll).
+                    <strong>ΑΥΤΟΜΑΤΟ SCROLL:</strong> Άσε μια κενή γραμμή. Όταν το πρόγραμμα βρει στροφή χωρίς συγχορδίες (χωρίς !), την βάζει αυτόματα στο κάτω μέρος.
                 </div>
                 <textarea id="inpBody" placeholder="Γράψε εδώ... !Am Στίχοι..."></textarea>
             </div>
@@ -128,7 +143,7 @@
         <button class="nav-btn" onclick="nextSong()">▼</button>
     </div>
     
-    <hr style="border:0; border-top:1px solid rgba(255,255,255,0.2); width:100%; margin:5px 0;">
+    <hr style="margin:8px 0; border:0; border-top:1px solid rgba(255,255,255,0.2);">
     
     <div class="t-row">
         <span class="t-label">TONE</span> 
@@ -143,14 +158,10 @@
         <span id="c-val" class="t-val">0</span> 
         <button class="t-btn" onclick="addCapo(-1)">-</button> 
     </div>
-
-    <button class="magic-btn" onclick="findSmartCapo()" title="Αυτόματη εύρεση εύκολης θέσης">
-        AUTO
-    </button>
-    
+    <button class="magic-btn" onclick="findSmartCapo()">AUTO</button>
     <div class="key-display">KEY: <span id="visualKey">-</span></div>
 
-    <hr style="border:0; border-top:1px solid rgba(255,255,255,0.2); width:100%; margin:10px 0;">
+    <hr style="margin:8px 0; border:0; border-top:1px solid rgba(255,255,255,0.2);">
 
     <div class="metro-box">
         <div class="metro-header">
@@ -167,7 +178,7 @@
             <button class="t-btn small" onclick="changeBpm(5)">+</button>
         </div>
         
-        <button id="btnMetroToggle" class="magic-btn" onclick="toggleMetronome()" style="background:#e74c3c; color:white; margin-top:8px;">
+        <button id="btnMetroToggle" class="magic-btn" onclick="toggleMetronome()" style="background:#e74c3c; color:white; margin-top:5px;">
             START
         </button>
     </div>
@@ -175,12 +186,12 @@
 
 <script src="script.js"></script>
 <script>
-    // Register Service Worker for PWA Offline capability
+    // Εγγραφή Service Worker για Offline χρήση
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('./sw.js')
-                .then(reg => console.log('Service Worker registered!'))
-                .catch(err => console.log('Service Worker failed:', err));
+                .then(reg => console.log('SW Registered'))
+                .catch(err => console.log('SW Error:', err));
         });
     }
 </script>

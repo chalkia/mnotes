@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mΝotes-v2';
+const CACHE_NAME = 'mΝotes-v3';
 const ASSETS = [
   './',
   './index.html',
@@ -6,8 +6,9 @@ const ASSETS = [
   './script.js',
   './manifest.json',
   './icon-192.png',
-  './icon-512.png'
-];
+  './icon-512.png',
+  './rhythms.json'
+  ];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -29,3 +30,4 @@ self.addEventListener('activate', (event) => {
   );
 
 });
+

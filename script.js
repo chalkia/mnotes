@@ -197,7 +197,6 @@ function parseAndRender(songData){
 
 // Βοηθητική: Ελέγχει αν ένα κείμενο (block) περιέχει συγχορδίες (! ή μουσικά σύμβολα)
 function blockHasChords(text) {
-    // Αν περιέχει '!' ή '|' θεωρούμε ότι είναι μουσικό μέρος
     if (text.includes('!') || text.includes('|')) return true;
     return false;
 }
@@ -207,7 +206,7 @@ function parseBlock(text) {
     var lines = text.split('\n');
     for(var i=0; i<lines.length; i++){
         var l = lines[i].trimEnd();
-        if(!l) continue; // Skip empty lines inside block to avoid double spacing
+        if(!l) continue; 
         
         var rawParts = l.split('!');
         var tokens = [];
@@ -286,7 +285,6 @@ function render(){
       p.className = 'compact-line';
       p.innerText = block; // The whole block
       divLyrics.appendChild(p);
-      // Add spacing between blocks
       var spacer = document.createElement('div');
       spacer.style.height = "15px";
       divLyrics.appendChild(spacer);

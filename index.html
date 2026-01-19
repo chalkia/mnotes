@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>mNotes</title>
+    <link rel="stylesheet" href="style.css">
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2c3e50">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icon-192.png">
+</head>
+<body>
+
+<div class="app-layout">
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h3>Setlist</h3>
+            <span id="songCount" style="font-size:12px; color:#666;">0 songs</span>
+        </div>
+        <div id="playlistContainer" class="playlist">
+            <div class="empty-msg">Η λίστα είναι κενή</div>
+        </div>
+        <div class="sidebar-actions">
+            <button onclick="clearPlaylist()" class="danger-btn">🗑️ Clear</button>
+            <button onclick="exportJSON()">💾 Export List</button>
+            <label class="file-btn">
+               📂 Import <input type="file" onchange="importJSON(this)" style="display:none;">
+            </label>
+        </div>
+    </div>
+
+    <div class="main-area">
+        <div class="top-bar">
+            <h1 class="logo">mNotes</h1>
+            <div class="view-controls">
+                <button onclick="toEditor()" id="btnEdit">✏️ Editor</button>
+                <button onclick="toViewer()" id="btnPlay" class="action">🎵 Play Mode</button>
+            </div>
+        </div>
+
+        <div id="editor-view">
+            <div class="input-grid">
+                <div class="field-group">
+                    <label>Τίτλος</label>
+                    <input type="text" id="inpTitle" placeholder="π.χ. Σιγανοψιχάλα">
+                </div>
+                <div class="field-group small">
+                    <label>Κλίμακα</label>
+                    <input type="text" id="inpKey" placeholder="π.χ. Am">
+                </div>
+            </div>
+
+            <div class="input-grid">
+                <div class="field-group">
+                    <label>Εισαγωγή (Intro)</label>
+                    <input type="text" id="inpIntro" placeholder="π.χ. !Am !G | !F !E7">
+                </div>
+                <div class="field-group">
+                    <label>Ενδιάμεσα (Interlude)</label>
+                    <input type="text" id="inpInter" placeholder="Ακόρντα γέφυρας...">
+                </div>
+            </div>
+
+            <div class="field-group full">
+                <label>Κυρίως Τραγούδι</label>
+                <div class="hint">
+                    ⚠️ <strong>ΣΥΝΤΑΞΗ:</strong> Γράφουμε <code>!Am</code>. Αν ακολουθεί λατινικός χαρακτήρας, 
+                    αφήνουμε ΥΠΟΧΡΕΩΤΙΚΑ κενό (π.χ. <code>!Am Love</code>). Τα σύμβολα <code>| / x2</code> αναγνωρίζονται αυτόματα.
+                </div>
+                <textarea id="inpBody" placeholder="Γράψε εδώ τους στίχους..."></textarea>
+            </div>
+
+            <div class="editor-actions">
+                <button onclick="addSongToPlaylist()" class="save-btn">➕ Προσθήκη στη Λίστα</button>
+                <button onclick="updateCurrentSong()" class="update-btn" style="display:none;" id="btnUpdate">🔄 Ενημέρωση</button>
+            </div>
+        </div>
+
+        <div id="viewer-view">
+            <div class="song-header">
+                <h2 id="displayTitle"></h2>
+                <div id="displayMeta"></div>
+            </div>
+            
+            <div id="structureBox" class="structure-box" style="display:none;">
+                <div id="displayIntro"></div>
+                <div id="displayInter"></div>
+            </div>
+
+            <div id="output"></div>
+        </div>
+    </div>
+</div>
+
+<div id="transUI" class="trans-ui">
+    <div class="nav-row">
+        <button class="nav-btn" onclick="prevSong()">▲</button>
+        <span class="nav-label">SONG</span>
+        <button class="nav-btn" onclick="nextSong()">▼</button>
+    </div>
+    
+    <hr style="border:0; border-top:1px solid rgba(255,255,255,0.2); width:100%; margin:5px 0;">
+    
+    <div class="t-row">
+        <span class="t-label">TONE</span> 
+        <button class="t-btn" onclick="addTrans(1)">+</button>
+        <span id="t-val" class="t-val">0</span> 
+        <button class="t-btn" onclick="addTrans(-1)">-</button> 
+    </div>
+    
+    <div class="t-row" style="margin-top:10px;">
+        <span class="t-label">CAPO</span> 
+        <button class="t-btn" onclick="addCapo(1)">+</button>
+        <span id="c-val" class="t-val">0</span> 
+        <button class="t-btn" onclick="addCapo(-1)">-</button> 
+    </div>
+
+    <button class="magic-btn" onclick="findSmartCapo()" title="Αυτόματη εύρεση εύκολης θέσης">
+        AUTO
+    </button>
+    
+    <div class="key-display">
+        KEY: <span id="visualKey">-</span>
+    </div>
+</div>
+
+<script src="script.js"></script>
+<script>
+    // Register Service Worker for PWA
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js')
+                .then(reg => console.log('Service Worker registered!'))
+                .catch(err => console.log('Service Worker failed:', err));
+        });
+    }
+</script>
+</body>
+</html>

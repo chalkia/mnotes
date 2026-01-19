@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>mnotes</title>
+    
     <link rel="stylesheet" href="style.css">
     
     <link rel="manifest" href="manifest.json">
@@ -25,7 +26,7 @@
             <label>Λίστα:</label>
             <select id="playlistSelect" onchange="filterPlaylist()">
                 <option value="ALL">📂 Όλα τα τραγούδια</option>
-            </select>
+                </select>
         </div>
 
         <div id="playlistContainer" class="playlist">
@@ -126,30 +127,63 @@
         <span class="nav-label">SONG</span>
         <button class="nav-btn" onclick="nextSong()">▼</button>
     </div>
+    
     <hr style="border:0; border-top:1px solid rgba(255,255,255,0.2); width:100%; margin:5px 0;">
+    
     <div class="t-row">
         <span class="t-label">TONE</span> 
         <button class="t-btn" onclick="addTrans(1)">+</button>
         <span id="t-val" class="t-val">0</span> 
         <button class="t-btn" onclick="addTrans(-1)">-</button> 
     </div>
+    
     <div class="t-row" style="margin-top:10px;">
         <span class="t-label">CAPO</span> 
         <button class="t-btn" onclick="addCapo(1)">+</button>
         <span id="c-val" class="t-val">0</span> 
         <button class="t-btn" onclick="addCapo(-1)">-</button> 
     </div>
-    <button class="magic-btn" onclick="findSmartCapo()">AUTO</button>
+
+    <button class="magic-btn" onclick="findSmartCapo()" title="Αυτόματη εύρεση εύκολης θέσης">
+        AUTO
+    </button>
+    
     <div class="key-display">KEY: <span id="visualKey">-</span></div>
+
+    <hr style="border:0; border-top:1px solid rgba(255,255,255,0.2); width:100%; margin:10px 0;">
+
+    <div class="metro-box">
+        <div class="metro-header">
+            <span class="t-label" style="transform:none; writing-mode:horizontal-tb; font-size:10px;">METRO</span>
+            <div id="metroVisual" class="metro-led"></div>
+        </div>
+        
+        <select id="rhythmSelect" onchange="updateRhythm()" class="metro-select">
+            </select>
+
+        <div class="metro-controls">
+            <button class="t-btn small" onclick="changeBpm(-5)">-</button>
+            <span id="bpmDisplay" class="t-val" style="font-size:14px;">100</span>
+            <button class="t-btn small" onclick="changeBpm(5)">+</button>
+        </div>
+        
+        <button id="btnMetroToggle" class="magic-btn" onclick="toggleMetronome()" style="background:#e74c3c; color:white; margin-top:8px;">
+            START
+        </button>
+    </div>
 </div>
 
 <script src="script.js"></script>
 <script>
+    // Register Service Worker for PWA Offline capability
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW failed:', err));
+            navigator.serviceWorker.register('./sw.js')
+                .then(reg => console.log('Service Worker registered!'))
+                .catch(err => console.log('Service Worker failed:', err));
         });
     }
 </script>
+
 </body>
 </html>

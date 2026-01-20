@@ -3,7 +3,7 @@ body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; he
 
 /* LAYOUT */
 .app-layout { display: grid; grid-template-columns: 260px 1fr; height: 100vh; }
-.sidebar { background: var(--sidebar-bg); padding: 15px; border-right: 1px solid #ccc; display: flex; flex-direction: column; }
+.sidebar { background: var(--sidebar-bg); padding: 15px; border-right: 1px solid #ccc; display: flex; flex-direction: column; z-index: 5000; }
 .sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
 .playlist-filter { margin-bottom: 10px; }
 .playlist-filter select { width: 100%; padding: 5px; }
@@ -47,9 +47,23 @@ textarea { height: 300px; font-family: 'Courier New', monospace; resize: vertica
 .mini-chord { font-weight: bold; color: var(--chord); margin-right: 4px; }
 .mini-lyric { color: #555; margin-right: 8px; }
 
-/* LINE RENDERING */
-.line-row { display: flex; flex-wrap: wrap; align-items: flex-end; margin-bottom: 15px; line-height: 1.0; border-bottom: 1px dashed #f0f0f0; padding-bottom: 2px; }
-.token { display: flex; flex-direction: column; margin-right: 0; white-space: nowrap; }
+/* --- TOKEN & CHORD ALIGNMENT FIX --- */
+.line-row { 
+    display: flex; 
+    flex-wrap: wrap; 
+    align-items: flex-end; /* Ευθυγραμμίζει το κάτω μέρος (τους στίχους) */
+    margin-bottom: 15px; 
+    line-height: 1.0; 
+    border-bottom: 1px dashed #f0f0f0; 
+    padding-bottom: 2px; 
+}
+.token { 
+    display: inline-flex;  /* Το κλειδί για να μένουν μαζί */
+    flex-direction: column; /* Κάθετα: Συγχορδία πάνω, στίχος κάτω */
+    justify-content: flex-end;
+    margin-right: 0; 
+    white-space: nowrap; /* Αποτρέπει το σπάσιμο γραμμής μέσα στο token */
+}
 .chord { font-family: 'Courier New', monospace; font-weight: bold; color: var(--chord); font-size: 17px; min-height: 1.2em; margin-bottom: 0; }
 .lyric { font-size: 20px; color: #222; }
 .compact-line { font-size: 18px; line-height: 1.3; color: #444; margin-bottom: 5px; white-space: pre-wrap; font-family: 'Segoe UI', sans-serif; }
@@ -70,7 +84,7 @@ button.action { background: var(--accent); color: white; border: none; }
 .qr-content { background:white; padding:15px; border-radius:8px; width:90%; max-width:350px; text-align:center; }
 .qr-close-btn { margin-top: 15px; background: #e74c3c; color: white; border: none; padding: 10px 20px; border-radius: 5px; width: 100%; }
 
-/* FLOATING UI */
+/* FLOATING UI - FIXED RIGHT BAR */
 .trans-ui { 
     position: fixed; top: 50%; right: 0; transform: translateY(-50%); 
     background: rgba(44, 62, 80, 0.98); color: white; padding: 15px 10px; 
@@ -88,7 +102,6 @@ button.action { background: var(--accent); color: white; border: none; }
 #visualKey { font-weight: bold; font-size: 13px; margin-top: 2px; color: #f1c40f; display: block; }
 
 /* RESPONSIVE */
-/* ΣΗΜΑΝΤΙΚΗ ΔΙΟΡΘΩΣΗ: Default hidden, αλλά στο mobile γίνεται block */
 .menu-btn, .close-menu-btn { display: none; cursor: pointer; border: none; background: none; font-size: 24px; color: var(--primary); }
 
 @media (max-width: 768px) {
@@ -97,7 +110,7 @@ button.action { background: var(--accent); color: white; border: none; }
     .sidebar { display: none; position: fixed; top: 0; left: 0; width: 85%; height: 100%; z-index: 3000; box-shadow: 5px 0 15px rgba(0,0,0,0.5); }
     .sidebar.active { display: flex; }
     
-    /* Εμφάνιση των κουμπιών μενού στο κινητό */
+    /* Ensure hamburger is visible */
     .menu-btn { display: block; margin-right: 15px; }
     .close-menu-btn { display: block; }
 

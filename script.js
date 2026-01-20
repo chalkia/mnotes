@@ -9,7 +9,6 @@ var library = [];
 var visiblePlaylist = [];
 var currentSongId = null;
 var currentFilter = "ALL";
-// State includes new 'notes' field
 var state = { t: 0, c: 0, parsedChords: [], parsedLyrics: [], meta: {} };
 var html5QrcodeScanner = null;
 
@@ -25,7 +24,12 @@ window.onload = function() {
             filterPlaylist();
         } catch(e) { console.error(e); }
     }
-    if(window.innerWidth <= 768 || library.length > 0) toViewer(); else toEditor();
+    // Mobile Check
+    if(window.innerWidth <= 768 || library.length > 0) {
+        toViewer();
+    } else {
+        toEditor();
+    }
 };
 
 /* =========================================
@@ -41,18 +45,61 @@ function startQR() {
         try {
             var data = JSON.parse(decodedText);
             if(Array.isArray(data)) {
-                if(confirm("Import Library (" + data.length + " songs)?")) { library = data; finalizeImport(); }
+                if(confirm("Import Library (" + data.length + " songs)?")) { 
+                    sanitizeAndLoad(data);
+                }
             } else if(data.title && data.body) {
                 if(confirm("Import song: " + data.title + "?")) {
-                    data.id = Date.now().toString(); library.push(data); currentSongId = data.id; finalizeImport();
+                    // Make single song array
+                    sanitizeAndLoad([data], true);
                 }
             } else alert("Invalid QR");
         } catch(e) { console.log("Not JSON"); }
     }).catch(err => console.error(err));
 }
 
-function finalizeImport() { saveToLocal(); updatePlaylistDropdown(); filterPlaylist(); closeQR(); toViewer(); alert("Success!"); }
-function closeQR() { if(html5QrcodeScanner) html5QrcodeScanner.stop().then(() => { html5QrcodeScanner.clear(); document.getElementById('qrModal').style.display = "none"; }); else document.getElementById('qrModal').style.display = "none"; }
+// ΝΕΑ ΣΥΝΑΡΤΗΣΗ: Διορθώνει παλιά JSON που δεν έχουν IDs ή notes
+function sanitizeAndLoad(data, append = false) {
+    // Καθαρισμός και συμπλήρωση κενών πεδίων
+    var cleanData = data.map(song => {
+        return {
+            id: song.id || Date.now().toString() + Math.random().toString().slice(2,5), // Γεννήτρια ID αν λείπει
+            title: song.title || "Untitled",
+            key: song.key || "",
+            notes: song.notes || "",
+            intro: song.intro || "",
+            interlude: song.interlude || "",
+            body: song.body || "",
+            playlists: song.playlists || []
+        };
+    });
+
+    if(append) {
+        // Αν είναι ένα τραγούδι, το προσθέτουμε
+        cleanData.forEach(s => library.push(s));
+        currentSongId = cleanData[0].id;
+    } else {
+        // Αν είναι βιβλιοθήκη, την αντικαθιστούμε
+        library = cleanData;
+        if(library.length > 0) currentSongId = library[0].id;
+    }
+    
+    finalizeImport();
+}
+
+function finalizeImport() { 
+    saveToLocal(); 
+    updatePlaylistDropdown(); 
+    filterPlaylist(); 
+    closeQR(); 
+    toViewer(); 
+    // alert("Success!"); // Αφαίρεσα το alert για πιο γρήγορη ροή
+}
+
+function closeQR() { 
+    if(html5QrcodeScanner) html5QrcodeScanner.stop().then(() => { html5QrcodeScanner.clear(); document.getElementById('qrModal').style.display = "none"; }); 
+    else document.getElementById('qrModal').style.display = "none"; 
+}
 
 /* =========================================
    4. NAVIGATION & NOTES TOGGLE
@@ -62,16 +109,30 @@ function toEditor() {
     document.getElementById('viewer-view').style.display = 'none';
     document.getElementById('transUI').style.display = 'none';
     if(currentSongId === null) clearInputs();
-    else { var s = library.find(x => x.id === currentSongId); if(s) loadInputsFromSong(s); }
+    else { 
+        var s = library.find(x => x.id === currentSongId); 
+        if(s) loadInputsFromSong(s); 
+    }
 }
 
 function toViewer() {
     if(library.length === 0) { toEditor(); return; }
+    
+    // Fallback: Αν το currentSongId δεν υπάρχει πια (π.χ. από λάθος παλιό save), διάλεξε το πρώτο
+    if(!library.find(x => x.id === currentSongId)) {
+        currentSongId = null;
+    }
+
     if(currentSongId === null && visiblePlaylist.length > 0) currentSongId = visiblePlaylist[0].id;
-    if(currentSongId !== null) { var s = library.find(x => x.id === currentSongId); if(s) parseAndRender(s); }
+    
+    if(currentSongId !== null) { 
+        var s = library.find(x => x.id === currentSongId); 
+        if(s) parseAndRender(s); 
+    }
+    
     document.getElementById('editor-view').style.display = 'none';
     document.getElementById('viewer-view').style.display = 'flex';
-    document.getElementById('transUI').style.display = 'flex';
+    document.getElementById('transUI').style.display = 'flex'; // Εδώ ενεργοποιείται η μπάρα
 }
 
 function toggleNotes() {
@@ -100,7 +161,7 @@ function saveSong() {
         id: currentSongId || Date.now().toString(),
         title: t,
         key: document.getElementById('inpKey').value,
-        notes: document.getElementById('inpNotes').value, // Save Notes
+        notes: document.getElementById('inpNotes').value,
         intro: document.getElementById('inpIntro').value,
         interlude: document.getElementById('inpInter').value,
         body: document.getElementById('inpBody').value,
@@ -150,7 +211,7 @@ function renderSidebar() {
 function loadInputsFromSong(s) {
     document.getElementById('inpTitle').value = s.title;
     document.getElementById('inpKey').value = s.key;
-    document.getElementById('inpNotes').value = s.notes || ""; // Load Notes
+    document.getElementById('inpNotes').value = s.notes || "";
     document.getElementById('inpIntro').value = s.intro || "";
     document.getElementById('inpInter').value = s.interlude || "";
     document.getElementById('inpBody').value = s.body;
@@ -185,7 +246,7 @@ function parseAndRender(s) {
             } else { isScrolling = true; state.parsedLyrics.push(b); }
         } else state.parsedLyrics.push(b);
     });
-    render(s); // Pass full song object for QR generation
+    render(s); 
 }
 
 function parseBlock(text) {
@@ -220,7 +281,6 @@ function render(originalSong) {
     document.getElementById('displayMeta').innerText = state.meta.key ? "Key: " + getNote(state.meta.key, sh) : "";
     document.getElementById('visualKey').innerText = state.meta.key ? getNote(state.meta.key, sh) : "-";
     
-    // Notes Logic
     var notesBox = document.getElementById('displayNotes');
     var notesBtn = document.getElementById('btnToggleNotes');
     if(state.meta.notes) {
@@ -247,7 +307,7 @@ function render(originalSong) {
     
     var dc = document.getElementById('outputChords'); dc.innerHTML = "";
     state.parsedChords.forEach(L => {
-        if(L.type === 'br') { var d = document.createElement('div'); d.style.height = "10px"; dc.appendChild(d); return; } // Μείωσα το κενό γραμμής
+        if(L.type === 'br') { var d = document.createElement('div'); d.style.height = "10px"; dc.appendChild(d); return; }
         var r = document.createElement('div'); r.className = 'line-row';
         L.tokens.forEach(tk => {
             var w = document.createElement('div'); w.className = 'token';
@@ -267,13 +327,10 @@ function render(originalSong) {
         var sp = document.createElement('div'); sp.style.height = "15px"; dl.appendChild(sp);
     });
 
-    // 5. Generate QR at the bottom
+    // 5. Generate QR at the bottom (Robustness check)
     var qrDiv = document.getElementById('playerQR');
     qrDiv.innerHTML = "";
-    if(originalSong) {
-        // Χρησιμοποιούμε το originalSong (χωρίς transpose) για διαμοιρασμό
-        // Ή αν θες να στέλνεις το transpose, πρέπει να φτιάξεις νέο object.
-        // Εδώ στέλνουμε το Original.
+    if(originalSong && typeof QRCode !== 'undefined') {
         new QRCode(qrDiv, {
             text: JSON.stringify(originalSong),
             width: 150, height: 150, correctLevel: QRCode.CorrectLevel.L
@@ -293,7 +350,7 @@ function renderSimple(t, s) {
 }
 
 /* =========================================
-   7. UTILS
+   7. UTILS & IMPORT
    ========================================= */
 function getNote(n, s) {
     if(!n || /[|/x(),]/.test(n) && !/[A-G]/.test(n)) return n;
@@ -324,5 +381,20 @@ function showToast(m) { var d = document.createElement('div'); d.innerText = m; 
 function nextSong() { if(visiblePlaylist.length === 0) return; var i = visiblePlaylist.findIndex(s => s.id === currentSongId); if(i < visiblePlaylist.length - 1) { currentSongId = visiblePlaylist[i + 1].id; toViewer(); renderSidebar(); } }
 function prevSong() { if(visiblePlaylist.length === 0) return; var i = visiblePlaylist.findIndex(s => s.id === currentSongId); if(i > 0) { currentSongId = visiblePlaylist[i - 1].id; toViewer(); renderSidebar(); } }
 function exportJSON() { var b = new Blob([JSON.stringify(library, null, 2)], {type:'application/json'}); var a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'mnotes_library.json'; a.click(); }
-function importJSON(el) { var r = new FileReader(); r.onload = e => { try { var d = JSON.parse(e.target.result); if(Array.isArray(d)) library = d; saveToLocal(); updatePlaylistDropdown(); filterPlaylist(); alert("Loaded!"); if(library.length > 0) toViewer(); } catch(er) { alert("Error reading file"); } }; r.readAsText(el.files[0]); }
+
+// ΕΝΙΣΧΥΜΕΝΟ IMPORT JSON ΓΙΑ ΠΑΛΙΑ ΑΡΧΕΙΑ
+function importJSON(el) { 
+    var r = new FileReader(); 
+    r.onload = e => { 
+        try { 
+            var d = JSON.parse(e.target.result); 
+            if(Array.isArray(d)) {
+                sanitizeAndLoad(d);
+            } else {
+                sanitizeAndLoad([d], true);
+            }
+        } catch(er) { alert("Error reading file"); } 
+    }; 
+    r.readAsText(el.files[0]); 
+}
 function clearLibrary() { if(confirm("Delete all songs?")) { library = []; visiblePlaylist = []; currentSongId = null; saveToLocal(); updatePlaylistDropdown(); renderSidebar(); clearInputs(); toEditor(); } }

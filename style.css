@@ -1,283 +1,119 @@
-:root {
-    /* Χρώματα βάσει του Logo (Yellow Note / Dark Blue BG) */
-    --primary: #2c3e50; /* Σκούρο Μπλε */
-    --accent: #f1c40f;  /* Κίτρινο/Χρυσαφί */
-    --danger: #c0392b;  /* Κόκκινο για διαγραφές */
-    
-    --bg: #f4f7f6;
-    --sidebar-bg: #eceff1;
-    --paper: #ffffff;
-    --chord: #c0392b; /* Κόκκινο για τα ακόρντα μέσα στο τραγούδι */
-}
+:root { --primary: #2c3e50; --accent: #2980b9; --success: #27ae60; --bg: #f4f7f6; --sidebar-bg: #dfe6e9; --paper: #ffffff; --chord: #c0392b; }
+body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; height: 100vh; overflow: hidden; }
 
-body { 
-    font-family: 'Segoe UI', sans-serif; 
-    background: var(--bg); 
-    margin: 0; 
-    height: 100vh; 
-    overflow: hidden; 
-    color: var(--primary); 
-}
+/* LAYOUT */
+.app-layout { display: grid; grid-template-columns: 260px 1fr; height: 100vh; }
+.sidebar { background: var(--sidebar-bg); padding: 15px; border-right: 1px solid #ccc; display: flex; flex-direction: column; z-index: 5000; }
+.sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+.playlist-filter { margin-bottom: 10px; }
+.playlist-filter select { width: 100%; padding: 5px; }
+.playlist { flex: 1; overflow-y: auto; background: white; border-radius: 6px; padding: 5px; border: 1px solid #ccc; }
+.playlist-item { padding: 10px; border-bottom: 1px solid #f1f1f1; cursor: pointer; font-size: 14px; color: #333; }
+.playlist-item:hover { background: #f8f9fa; }
+.playlist-item.active { background: var(--accent); color: white; font-weight: bold; border-radius: 4px; }
+.sidebar-actions { margin-top: 15px; display: flex; flex-direction: column; gap: 8px; }
 
-/* =========================================
-   LAYOUT & SIDEBAR
-   ========================================= */
-.app-layout { 
-    display: grid; 
-    grid-template-columns: 260px 1fr; 
-    height: 100vh; 
-}
-
-.sidebar { 
-    background: var(--sidebar-bg); 
-    padding: 20px 15px; 
-    border-right: 1px solid #dce1e6; 
-    display: flex; 
-    flex-direction: column; 
-    z-index: 5000; 
-    box-shadow: 2px 0 5px rgba(0,0,0,0.05); 
-}
-
-.sidebar-header { 
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center; 
-    margin-bottom: 20px; 
-}
-
-.sidebar-header h3 { 
-    margin: 0; 
-    color: var(--primary); 
-    font-weight: 700; 
-    letter-spacing: 0.5px; 
-}
-
-/* SEARCH BOX */
-.search-box { 
-    width: 100%; 
-    padding: 10px; 
-    margin-bottom: 15px; 
-    border: 1px solid #bdc3c7; 
-    border-radius: 6px; 
-    box-sizing: border-box; 
-    font-size: 14px;
-}
-
-/* PLAYLIST FILTER & LIST */
-.playlist-filter { margin-bottom: 15px; }
-.playlist-filter label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 12px; color: #7f8c8d; }
-.playlist-filter select { width: 100%; padding: 8px; border: 2px solid #bdc3c7; border-radius: 6px; background: white; color: var(--primary); font-weight: 600; }
-
-.playlist { 
-    flex: 1; 
-    overflow-y: auto; 
-    background: white; 
-    border-radius: 8px; 
-    padding: 5px; 
-    border: 1px solid #e0e0e0; 
-}
-
-.playlist-item { 
-    padding: 12px 10px; 
-    border-bottom: 1px solid #f1f1f1; 
-    cursor: pointer; 
-    font-size: 14px; 
-    color: var(--primary); 
-    font-weight: 500; 
-    transition: background 0.2s; 
-    border-radius: 4px; 
-    margin-bottom: 2px;
-}
-
-.playlist-item:hover { background: #dce1e6; }
-
-/* Active State: Κίτρινο φόντο, Σκούρα γράμματα */
-.playlist-item.active { 
-    background: var(--accent); 
-    color: var(--primary); 
-    font-weight: bold; 
-    border-left: 4px solid var(--primary); 
-}
-
-/* SIDEBAR ACTIONS (BUTTONS) */
-.sidebar-actions { 
-    margin-top: 20px; 
-    display: flex; 
-    flex-direction: column; 
-    gap: 10px; 
-    border-top: 1px solid #dce1e6; 
-    padding-top: 20px; 
-}
-
-.sidebar-btn, .file-btn {
-    background: transparent;
-    border: 2px solid var(--primary);
-    color: var(--primary);
-    padding: 10px 15px;
-    border-radius: 6px;
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    text-align: center;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-    box-sizing: border-box;
-}
-
-.sidebar-btn:hover, .file-btn:hover {
-    background: var(--primary);
-    color: var(--accent); /* Κίτρινα γράμματα σε μπλε φόντο */
-}
-
-/* Κουμπί Accent (Scan) */
-.sidebar-btn.accent-btn {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: var(--primary);
-}
-.sidebar-btn.accent-btn:hover {
-    background: #d4ac0d;
-    border-color: #d4ac0d;
-}
-
-/* Κουμπί Danger (Clear) */
-.sidebar-btn.danger-alt-btn {
-    border-color: var(--danger);
-    color: var(--danger);
-    font-size: 12px;
-}
-.sidebar-btn.danger-alt-btn:hover {
-    background: var(--danger);
-    color: white;
-}
-
-/* Διόρθωση για το input file */
-.file-btn input { display: none; }
-
-
-/* =========================================
-   MAIN AREA & HEADER
-   ========================================= */
+/* MAIN AREA */
 .main-area { display: flex; flex-direction: column; height: 100vh; overflow: hidden; position: relative; }
-.top-bar { background: white; padding: 5px 15px; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; height: 50px; }
-.left-group { display: flex; align-items: center; gap: 10px; }
-.header-title { font-weight: bold; color: var(--primary); font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 40vw; }
+.top-bar { background: white; padding: 10px 20px; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+.logo { margin: 0; font-size: 20px; color: var(--primary); letter-spacing: 1px; }
 
-/* NAVIGATION BUTTONS (TOP) */
-.nav-arrow { background: #ecf0f1; border: 1px solid #ccc; border-radius: 4px; padding: 5px 12px; font-size: 16px; cursor: pointer; color: #2c3e50; }
-.nav-arrow:active { background: #bdc3c7; }
-.tools-btn { background: var(--accent); border: none; border-radius: 4px; padding: 5px 10px; font-weight: bold; color: var(--primary); cursor: pointer; }
-
-
-/* =========================================
-   TOOLBAR (DROPDOWN)
-   ========================================= */
-.tools-panel { 
-    display: none; 
-    background: #ecf0f1; 
-    border-bottom: 1px solid #ccc; 
-    padding: 10px; 
-    flex-wrap: wrap; 
-    gap: 10px; 
-    align-items: center; 
-    justify-content: center; 
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    z-index: 100;
-}
-.tools-panel.active { display: flex; }
-
-.tool-group { display: flex; align-items: center; gap: 5px; background: white; padding: 4px; border-radius: 4px; border: 1px solid #ddd; }
-.tool-label { font-size: 10px; font-weight: bold; color: #7f8c8d; margin-right: 5px; }
-.tool-btn { width: 30px; height: 30px; border-radius: 50%; background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; }
-.tool-val { font-weight: bold; min-width: 20px; text-align: center; }
-
-.magic-btn { background: var(--accent); color: var(--primary); border: none; padding: 5px 10px; border-radius: 4px; font-weight: bold; font-size: 12px; }
-.key-display { font-weight: bold; color: var(--primary); margin-left: 10px; }
-#visualKey { color: var(--chord); }
-
-
-/* =========================================
-   EDITOR VIEW
-   ========================================= */
+/* EDITOR */
 #editor-view { padding: 20px; overflow-y: auto; flex: 1; }
-
-.input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
-/* Το FIX για Τίτλο/Κλίμακα */
-.input-grid.title-grid { grid-template-columns: 1fr 80px; }
-
+.input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
 .field-group { display: flex; flex-direction: column; margin-bottom: 10px; }
-.field-group.small { flex: 0 0 80px; }
-.field-group label { font-size: 12px; font-weight: bold; color: #7f8c8d; }
-
+.field-group.small { flex: 0 0 100px; }
+.field-group label { font-size: 12px; font-weight: bold; color: #7f8c8d; margin-bottom: 4px; }
 input, textarea { padding: 10px; border: 1px solid #ccc; border-radius: 4px; width: 100%; box-sizing: border-box; }
-textarea { height: 300px; font-family: 'Courier New', monospace; }
+textarea { height: 300px; font-family: 'Courier New', monospace; resize: vertical; }
+.save-btn { background: var(--success); color: white; width: 100%; padding: 10px; }
+.danger-btn { background: #e74c3c; color: white; border:none; padding:10px; width: 100%; }
 
-/* EDITOR ACTIONS */
-.editor-actions { display: flex; gap: 10px; margin-top: 20px; }
-.save-btn { background: var(--success); color: white; flex: 2; padding: 10px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; } /* --success δεν ορίστηκε, ας βάλουμε πράσινο manually ή όρισε το στο root αν θες. Εδώ βάζω το accent για συνέπεια ή ένα πράσινο */
-.save-btn { background: #27ae60; color: white; } 
-
-.cancel-btn { background: #95a5a6; color: white; flex: 1; padding: 10px; border: none; border-radius: 4px; cursor: pointer; }
-.danger-btn { background: var(--danger); color: white; flex: 1; border: none; padding: 10px; border-radius: 4px; cursor: pointer; }
-
-
-/* =========================================
-   VIEWER VIEW
-   ========================================= */
+/* VIEWER */
 #viewer-view { display: flex; flex-direction: column; height: 100%; overflow: hidden; background: var(--paper); }
-
-.pinned-box { padding: 15px 20px; background: #fff; border-bottom: 1px solid #ddd; box-shadow: 0 2px 5px rgba(0,0,0,0.05); z-index: 5; flex-shrink: 0; max-height: 50vh; overflow-y: auto; }
-.scroll-box { padding: 15px 20px 80px 20px; overflow-y: auto; flex-grow: 1; background: #fdfdfd; }
+.pinned-box { padding: 20px 60px 10px 40px; background: #fff; border-bottom: 1px solid #ddd; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); z-index: 5; flex-shrink: 0; max-height: 60vh; overflow-y: auto; }
+.scroll-box { padding: 20px 60px 100px 40px; overflow-y: auto; flex-grow: 1; background: #fdfdfd; }
+.song-header { text-align: center; margin-bottom: 10px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+#displayTitle { margin: 0; color: var(--primary); font-size: 24px; }
+.meta-row { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 5px; }
+#displayMeta { color: #7f8c8d; font-style: italic; font-size: 14px; }
 
 /* NOTES & STRUCTURE */
-.notes-box { background: #fff9c4; color: #5d4037; padding: 8px; margin-bottom: 10px; border-radius: 4px; font-size: 14px; border: 1px solid #fbc02d; }
-.structure-box { background: #f8f9fa; border: 1px solid #e9ecef; border-left: 4px solid var(--accent); padding: 8px; margin-bottom: 10px; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 14px; }
+.icon-btn { background: none; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; font-size: 14px; padding: 2px 6px; }
+.icon-btn.active { background: #f1c40f; border-color: #f39c12; }
+.notes-box { background: #fff9c4; color: #5d4037; padding: 10px; margin-bottom: 15px; border-radius: 4px; font-size: 14px; border: 1px solid #fbc02d; }
+.structure-box { background: #f8f9fa; border: 1px solid #e9ecef; border-left: 5px solid var(--accent); padding: 8px; margin-bottom: 15px; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 14px; }
+.struct-label { font-weight: bold; color: var(--primary); margin-right: 10px; }
 .mini-chord { font-weight: bold; color: var(--chord); margin-right: 4px; }
 .mini-lyric { color: #555; margin-right: 8px; }
 
-/* CHORDS & LYRICS ALIGNMENT */
-.line-row { display: flex; flex-wrap: wrap; align-items: flex-end; margin-bottom: 8px; line-height: 1.0; border-bottom: 1px dashed #f0f0f0; padding-bottom: 2px; }
-.token { display: inline-flex; flex-direction: column; justify-content: flex-end; margin-right: 0; white-space: nowrap; }
-.chord { font-family: 'Courier New', monospace; font-weight: bold; color: var(--chord); font-size: 1.1em; min-height: 1.2em; margin-bottom: 0; }
-.lyric { font-size: 1.3em; color: #222; }
-.compact-line { font-size: 1.2em; line-height: 1.3; color: #444; margin-bottom: 5px; white-space: pre-wrap; font-family: 'Segoe UI', sans-serif; }
+/* --- TOKEN & CHORD ALIGNMENT FIX (CRITICAL) --- */
+.line-row { 
+    display: flex; 
+    flex-wrap: wrap; 
+    align-items: flex-end; 
+    margin-bottom: 15px; 
+    line-height: 1.0; 
+    border-bottom: 1px dashed #f0f0f0; 
+    padding-bottom: 2px; 
+}
+.token { 
+    display: inline-flex; 
+    flex-direction: column; 
+    justify-content: flex-end;
+    margin-right: 0; 
+    white-space: nowrap; /* Αποτρέπει το σπάσιμο γραμμής στο token */
+}
+.chord { font-family: 'Courier New', monospace; font-weight: bold; color: var(--chord); font-size: 17px; min-height: 1.2em; margin-bottom: 0; }
+.lyric { font-size: 20px; color: #222; }
+.compact-line { font-size: 18px; line-height: 1.3; color: #444; margin-bottom: 5px; white-space: pre-wrap; font-family: 'Segoe UI', sans-serif; }
 .split-divider { text-align: center; font-size: 10px; color: #bbb; margin-top: 10px; text-transform: uppercase; letter-spacing: 2px; }
 
-
-/* =========================================
-   QR & MODALS
-   ========================================= */
+/* QR FOOTER */
 .qr-footer { text-align: center; margin-top: 40px; padding-top: 20px; }
 .qr-label { font-size: 12px; color: #999; margin-bottom: 10px; text-transform: uppercase; }
 #playerQR { display: flex; justify-content: center; }
 
-.qr-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 6000; display: none; align-items: center; justify-content: center; }
+/* CONTROLS */
+button { padding: 8px 15px; border: 1px solid #ccc; background: white; border-radius: 4px; cursor: pointer; }
+button.action { background: var(--accent); color: white; border: none; }
+.file-btn { background: #27ae60; color: white; border: none; display: flex; align-items: center; justify-content: center; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 13px; }
+
+/* MODALS */
+.qr-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 3000; display: none; align-items: center; justify-content: center; }
 .qr-content { background:white; padding:15px; border-radius:8px; width:90%; max-width:350px; text-align:center; }
-.qr-close-btn { margin-top: 15px; background: var(--danger); color: white; border: none; padding: 10px 20px; border-radius: 5px; width: 100%; }
+.qr-close-btn { margin-top: 15px; background: #e74c3c; color: white; border: none; padding: 10px 20px; border-radius: 5px; width: 100%; }
 
+/* FLOATING UI */
+.trans-ui { 
+    position: fixed; top: 50%; right: 0; transform: translateY(-50%); 
+    background: rgba(44, 62, 80, 0.98); color: white; padding: 15px 10px; 
+    border-radius: 12px 0 0 12px; display: none; flex-direction: column; 
+    gap: 10px; align-items: center; box-shadow: -4px 0 15px rgba(0,0,0,0.3); 
+    z-index: 2000; width: 60px;
+}
+.nav-row, .t-row { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 100%; }
+.t-label, .nav-label { font-size: 10px; margin: 0; color: #bdc3c7; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; writing-mode: horizontal-tb; transform: none; } 
+.t-btn, .nav-btn { width: 40px; height: 40px; border-radius: 50%; background: var(--accent); color: white; border: none; font-size: 18px; display: flex; align-items: center; justify-content: center; }
+.nav-btn { background: #ecf0f1; color: #2c3e50; }
+.t-val { font-size: 15px; font-weight: bold; margin: 2px 0; }
+.magic-btn { background: #f1c40f; color: #2c3e50; border: none; border-radius: 5px; padding: 8px 4px; font-size: 10px; font-weight: bold; width: 100%; text-align: center; writing-mode: horizontal-tb; transform: none; }
+.key-display { margin-top: 5px; font-size: 10px; text-align: center; writing-mode: horizontal-tb; transform: none; }
+#visualKey { font-weight: bold; font-size: 13px; margin-top: 2px; color: #f1c40f; display: block; }
 
-/* =========================================
-   RESPONSIVE & MOBILE
-   ========================================= */
+/* RESPONSIVE */
 .menu-btn, .close-menu-btn { display: none; cursor: pointer; border: none; background: none; font-size: 24px; color: var(--primary); }
 
 @media (max-width: 768px) {
     .app-layout { grid-template-columns: 1fr; }
-    .sidebar { display: none; position: fixed; top: 0; left: 0; width: 85%; height: 100%; z-index: 5000; box-shadow: 5px 0 15px rgba(0,0,0,0.5); }
+    .sidebar { display: none; position: fixed; top: 0; left: 0; width: 85%; height: 100%; z-index: 3000; box-shadow: 5px 0 15px rgba(0,0,0,0.5); }
     .sidebar.active { display: flex; }
-    .menu-btn { display: block !important; margin-right: 10px; }
+    
+    /* FIX: Εμφάνιση του Hamburger στο κινητό */
+    .menu-btn { display: block !important; margin-right: 15px; }
     .close-menu-btn { display: block; }
-    
-    /* FIX: Το Edit button είναι πλέον ορατό και στα κινητά */
-    
-    .line-row { font-size: 3.8vw; } 
-    .compact-line { font-size: 4.0vw; }
-    
-    .pinned-box { padding: 10px 15px; max-height: 45vh; }
-    .scroll-box { padding: 10px 15px 80px 15px; } 
-    .header-title { font-size: 16px; max-width: 150px; }
+
+    #btnEdit { display: none !important; }
+    .pinned-box { padding: 15px; max-height: 50vh; }
+    .scroll-box { padding: 15px 70px 80px 15px; } 
 }

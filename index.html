@@ -2,7 +2,7 @@
 <html lang="el">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>mnotes</title>
     
     <link rel="stylesheet" href="style.css">
@@ -44,7 +44,7 @@
         
         <div class="sidebar-actions">
             <button onclick="clearLibrary()" class="danger-btn">🗑️ Clear All</button>
-            <button onclick="exportJSON()">💾 Export .mnote</button>
+            <button onclick="exportJSON()">💾 Export Library</button>
             <button onclick="startQR()" style="background:#8e44ad; color:white;">📷 Scan QR Import</button>
             <label class="file-btn">
                📂 Import File <input type="file" onchange="importJSON(this)" accept=".mnote, .json, application/json" style="display:none;">
@@ -54,14 +54,39 @@
 
     <div class="main-area">
         <div class="top-bar">
-            <div style="display:flex; align-items:center;">
+            <div class="left-group">
                 <button class="menu-btn" onclick="toggleSidebar()">☰</button>
-                <h1 class="logo">mnotes</h1>
+                
+                <div class="nav-controls" id="navControls" style="display:none;">
+                    <button class="nav-arrow" onclick="prevSong()">◀</button>
+                    <button class="nav-arrow" onclick="nextSong()">▶</button>
+                </div>
             </div>
+
+            <div id="headerTitle" class="header-title">mnotes</div>
+
             <div class="view-controls">
-                <button onclick="toEditor()" id="btnEdit">✏️ Editor</button>
-                <button onclick="toViewer()" id="btnPlay" class="action">🎵 Play Mode</button>
+                <button onclick="toggleTools()" id="btnTools" style="display:none;" class="tools-btn">⚙️ Key</button>
+                <button onclick="toEditor()" id="btnEdit">✏️ Edit</button>
             </div>
+        </div>
+
+        <div id="toolsPanel" class="tools-panel">
+            <div class="tool-group">
+                <span class="tool-label">TONE</span>
+                <button class="tool-btn" onclick="addTrans(-1)">-</button>
+                <span id="t-val" class="tool-val">0</span>
+                <button class="tool-btn" onclick="addTrans(1)">+</button>
+            </div>
+            <div class="tool-group">
+                <span class="tool-label">CAPO</span>
+                <button class="tool-btn" onclick="addCapo(-1)">-</button>
+                <span id="c-val" class="tool-val">0</span>
+                <button class="tool-btn" onclick="addCapo(1)">+</button>
+            </div>
+            <button class="magic-btn" onclick="findSmartCapo()">AUTO</button>
+            <button class="icon-btn" onclick="toggleNotes()" title="Show Notes" id="btnToggleNotes" style="display:none;">📝 Notes</button>
+            <div class="key-display">KEY: <span id="visualKey">-</span></div>
         </div>
 
         <div id="editor-view">
@@ -70,10 +95,7 @@
                 <div class="field-group small"><label>Κλίμακα</label><input type="text" id="inpKey"></div>
             </div>
             <div class="field-group full"><label>Λίστες (Tags)</label><input type="text" id="inpTags"></div>
-            <div class="field-group full">
-                <label>Παρατηρήσεις (Notes)</label>
-                <input type="text" id="inpNotes" placeholder="π.χ. Ρυθμός 9/8, Καποτάστο...">
-            </div>
+            <div class="field-group full"><label>Παρατηρήσεις</label><input type="text" id="inpNotes"></div>
             <div class="input-grid">
                 <div class="field-group"><label>Intro</label><input type="text" id="inpIntro"></div>
                 <div class="field-group"><label>Interlude</label><input type="text" id="inpInter"></div>
@@ -90,14 +112,6 @@
 
         <div id="viewer-view">
             <div id="pinnedContainer" class="pinned-box">
-                <div class="song-header">
-                    <h2 id="displayTitle"></h2>
-                    <div class="meta-row">
-                        <span id="displayMeta"></span>
-                        <button id="btnToggleNotes" class="icon-btn" onclick="toggleNotes()" title="Show Notes">📝</button>
-                    </div>
-                </div>
-                
                 <div id="displayNotes" class="notes-box" style="display:none;"></div>
 
                 <div id="structureBox" class="structure-box" style="display:none;">
@@ -110,7 +124,6 @@
             
             <div id="scrollContainer" class="scroll-box">
                 <div id="outputLyrics"></div>
-                
                 <div class="qr-footer">
                     <hr>
                     <div class="qr-label">Scan to Share</div>
@@ -119,15 +132,6 @@
             </div>
         </div>
     </div>
-</div>
-
-<div id="transUI" class="trans-ui">
-    <div class="nav-row"><button class="nav-btn" onclick="prevSong()">▲</button><span class="nav-label">SONG</span><button class="nav-btn" onclick="nextSong()">▼</button></div>
-    <hr style="margin:8px 0; border:0; border-top:1px solid rgba(255,255,255,0.2);">
-    <div class="t-row"><span class="t-label">TONE</span><button class="t-btn" onclick="addTrans(1)">+</button><span id="t-val" class="t-val">0</span><button class="t-btn" onclick="addTrans(-1)">-</button></div>
-    <div class="t-row" style="margin-top:10px;"><span class="t-label">CAPO</span><button class="t-btn" onclick="addCapo(1)">+</button><span id="c-val" class="t-val">0</span><button class="t-btn" onclick="addCapo(-1)">-</button></div>
-    <button class="magic-btn" onclick="findSmartCapo()">AUTO</button>
-    <div class="key-display">KEY: <span id="visualKey">-</span></div>
 </div>
 
 <script src="script.js"></script>

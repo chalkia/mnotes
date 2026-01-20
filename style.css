@@ -47,22 +47,22 @@ textarea { height: 300px; font-family: 'Courier New', monospace; resize: vertica
 .mini-chord { font-weight: bold; color: var(--chord); margin-right: 4px; }
 .mini-lyric { color: #555; margin-right: 8px; }
 
-/* --- TOKEN & CHORD ALIGNMENT FIX --- */
+/* --- TOKEN & CHORD ALIGNMENT FIX (CRITICAL) --- */
 .line-row { 
     display: flex; 
     flex-wrap: wrap; 
-    align-items: flex-end; /* Ευθυγραμμίζει το κάτω μέρος (τους στίχους) */
+    align-items: flex-end; 
     margin-bottom: 15px; 
     line-height: 1.0; 
     border-bottom: 1px dashed #f0f0f0; 
     padding-bottom: 2px; 
 }
 .token { 
-    display: inline-flex;  /* Το κλειδί για να μένουν μαζί */
-    flex-direction: column; /* Κάθετα: Συγχορδία πάνω, στίχος κάτω */
+    display: inline-flex; 
+    flex-direction: column; 
     justify-content: flex-end;
     margin-right: 0; 
-    white-space: nowrap; /* Αποτρέπει το σπάσιμο γραμμής μέσα στο token */
+    white-space: nowrap; /* Αποτρέπει το σπάσιμο γραμμής στο token */
 }
 .chord { font-family: 'Courier New', monospace; font-weight: bold; color: var(--chord); font-size: 17px; min-height: 1.2em; margin-bottom: 0; }
 .lyric { font-size: 20px; color: #222; }
@@ -84,12 +84,12 @@ button.action { background: var(--accent); color: white; border: none; }
 .qr-content { background:white; padding:15px; border-radius:8px; width:90%; max-width:350px; text-align:center; }
 .qr-close-btn { margin-top: 15px; background: #e74c3c; color: white; border: none; padding: 10px 20px; border-radius: 5px; width: 100%; }
 
-/* FLOATING UI - FIXED RIGHT BAR */
+/* FLOATING UI */
 .trans-ui { 
     position: fixed; top: 50%; right: 0; transform: translateY(-50%); 
     background: rgba(44, 62, 80, 0.98); color: white; padding: 15px 10px; 
     border-radius: 12px 0 0 12px; display: none; flex-direction: column; 
-    gap: 15px; align-items: center; box-shadow: -4px 0 15px rgba(0,0,0,0.3); 
+    gap: 10px; align-items: center; box-shadow: -4px 0 15px rgba(0,0,0,0.3); 
     z-index: 2000; width: 60px;
 }
 .nav-row, .t-row { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 100%; }
@@ -106,12 +106,11 @@ button.action { background: var(--accent); color: white; border: none; }
 
 @media (max-width: 768px) {
     .app-layout { grid-template-columns: 1fr; }
-    /* Mobile Sidebar styles */
     .sidebar { display: none; position: fixed; top: 0; left: 0; width: 85%; height: 100%; z-index: 3000; box-shadow: 5px 0 15px rgba(0,0,0,0.5); }
     .sidebar.active { display: flex; }
     
-    /* Ensure hamburger is visible */
-    .menu-btn { display: block; margin-right: 15px; }
+    /* FIX: Εμφάνιση του Hamburger στο κινητό */
+    .menu-btn { display: block !important; margin-right: 15px; }
     .close-menu-btn { display: block; }
 
     #btnEdit { display: none !important; }

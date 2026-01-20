@@ -13,6 +13,7 @@ body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; he
 .playlist-item.active { background: var(--accent); color: white; font-weight: bold; border-radius: 4px; }
 .sidebar-actions { margin-top: 15px; display: flex; flex-direction: column; gap: 8px; }
 
+
 /* MAIN AREA */
 .main-area { display: flex; flex-direction: column; height: 100vh; overflow: hidden; position: relative; }
 .top-bar { background: white; padding: 10px 20px; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
@@ -117,3 +118,4 @@ button.action { background: var(--accent); color: white; border: none; }
     .pinned-box { padding: 15px; max-height: 50vh; }
     .scroll-box { padding: 15px 70px 80px 15px; } 
 }
+

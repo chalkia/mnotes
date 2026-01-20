@@ -24,8 +24,10 @@ window.onload = function() {
             filterPlaylist();
         } catch(e) { console.error(e); }
     }
-    // Mobile Check
-    if(window.innerWidth <= 768 || library.length > 0) {
+    // Check if we have songs
+    if(library.length > 0) {
+        // Set first song active if none selected
+        if(!currentSongId) currentSongId = library[0].id;
         toViewer();
     } else {
         toEditor();
@@ -33,76 +35,14 @@ window.onload = function() {
 };
 
 /* =========================================
-   3. MOBILE & QR IMPORT
+   3. MOBILE & UI
    ========================================= */
-function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); }
-
-function startQR() {
-    document.getElementById('qrModal').style.display = "flex";
-    if(window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('active');
-    html5QrcodeScanner = new Html5Qrcode("qr-reader");
-    html5QrcodeScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (decodedText) => {
-        try {
-            var data = JSON.parse(decodedText);
-            if(Array.isArray(data)) {
-                if(confirm("Import Library (" + data.length + " songs)?")) { 
-                    sanitizeAndLoad(data);
-                }
-            } else if(data.title && data.body) {
-                if(confirm("Import song: " + data.title + "?")) {
-                    // Make single song array
-                    sanitizeAndLoad([data], true);
-                }
-            } else alert("Invalid QR");
-        } catch(e) { console.log("Not JSON"); }
-    }).catch(err => console.error(err));
-}
-
-// ΝΕΑ ΣΥΝΑΡΤΗΣΗ: Διορθώνει παλιά JSON που δεν έχουν IDs ή notes
-function sanitizeAndLoad(data, append = false) {
-    // Καθαρισμός και συμπλήρωση κενών πεδίων
-    var cleanData = data.map(song => {
-        return {
-            id: song.id || Date.now().toString() + Math.random().toString().slice(2,5), // Γεννήτρια ID αν λείπει
-            title: song.title || "Untitled",
-            key: song.key || "",
-            notes: song.notes || "",
-            intro: song.intro || "",
-            interlude: song.interlude || "",
-            body: song.body || "",
-            playlists: song.playlists || []
-        };
-    });
-
-    if(append) {
-        // Αν είναι ένα τραγούδι, το προσθέτουμε
-        cleanData.forEach(s => library.push(s));
-        currentSongId = cleanData[0].id;
-    } else {
-        // Αν είναι βιβλιοθήκη, την αντικαθιστούμε
-        library = cleanData;
-        if(library.length > 0) currentSongId = library[0].id;
-    }
-    
-    finalizeImport();
-}
-
-function finalizeImport() { 
-    saveToLocal(); 
-    updatePlaylistDropdown(); 
-    filterPlaylist(); 
-    closeQR(); 
-    toViewer(); 
-    // alert("Success!"); // Αφαίρεσα το alert για πιο γρήγορη ροή
-}
-
-function closeQR() { 
-    if(html5QrcodeScanner) html5QrcodeScanner.stop().then(() => { html5QrcodeScanner.clear(); document.getElementById('qrModal').style.display = "none"; }); 
-    else document.getElementById('qrModal').style.display = "none"; 
+function toggleSidebar() { 
+    document.getElementById('sidebar').classList.toggle('active'); 
 }
 
 /* =========================================
-   4. NAVIGATION & NOTES TOGGLE
+   4. NAVIGATION
    ========================================= */
 function toEditor() {
     document.getElementById('editor-view').style.display = 'block';
@@ -116,23 +56,28 @@ function toEditor() {
 }
 
 function toViewer() {
-    if(library.length === 0) { toEditor(); return; }
-    
-    // Fallback: Αν το currentSongId δεν υπάρχει πια (π.χ. από λάθος παλιό save), διάλεξε το πρώτο
-    if(!library.find(x => x.id === currentSongId)) {
-        currentSongId = null;
-    }
+    try {
+        if(library.length === 0) { toEditor(); return; }
+        
+        // Safety check: Does currentSongId exist?
+        var exists = library.find(x => x.id === currentSongId);
+        if(!exists) {
+            currentSongId = library[0].id; // Fallback to first song
+        }
 
-    if(currentSongId === null && visiblePlaylist.length > 0) currentSongId = visiblePlaylist[0].id;
-    
-    if(currentSongId !== null) { 
-        var s = library.find(x => x.id === currentSongId); 
-        if(s) parseAndRender(s); 
+        if(currentSongId !== null) { 
+            var s = library.find(x => x.id === currentSongId); 
+            if(s) parseAndRender(s); 
+        }
+        
+        document.getElementById('editor-view').style.display = 'none';
+        document.getElementById('viewer-view').style.display = 'flex';
+        document.getElementById('transUI').style.display = 'flex';
+    } catch(e) {
+        console.error("Viewer Crash Prevented:", e);
+        // Fallback to Editor if viewer fails
+        toEditor();
     }
-    
-    document.getElementById('editor-view').style.display = 'none';
-    document.getElementById('viewer-view').style.display = 'flex';
-    document.getElementById('transUI').style.display = 'flex'; // Εδώ ενεργοποιείται η μπάρα
 }
 
 function toggleNotes() {
@@ -148,15 +93,75 @@ function toggleNotes() {
 }
 
 /* =========================================
-   5. LIBRARY LOGIC
+   5. LIBRARY LOGIC (IMPORT FIX)
    ========================================= */
 function saveToLocal() { localStorage.setItem('mnotes_data', JSON.stringify(library)); }
 
+// IMPORT JSON / MNOTE
+function importJSON(el) { 
+    var r = new FileReader(); 
+    r.onload = e => { 
+        try { 
+            var d = JSON.parse(e.target.result); 
+            if(Array.isArray(d)) {
+                sanitizeAndLoad(d, false); // False = Replace Library
+            } else {
+                sanitizeAndLoad([d], true); // True = Append Song
+            }
+        } catch(er) { 
+            alert("Error reading file. Check format."); 
+            console.error(er);
+        } 
+    }; 
+    r.readAsText(el.files[0]); 
+}
+
+function sanitizeAndLoad(data, append) {
+    // Process new songs
+    var cleanData = data.map(song => {
+        return {
+            // ΔΙΟΡΘΩΣΗ: Κρατάμε το υπάρχον ID αν υπάρχει!
+            id: song.id ? song.id : Date.now().toString() + Math.random().toString().slice(2,5),
+            title: song.title || "Untitled",
+            key: song.key || "",
+            notes: song.notes || "",
+            intro: song.intro || "",
+            interlude: song.interlude || "",
+            body: song.body || "",
+            playlists: song.playlists || []
+        };
+    });
+
+    if(append) {
+        cleanData.forEach(s => library.push(s));
+        // Select the newly added song
+        currentSongId = cleanData[cleanData.length - 1].id;
+    } else {
+        library = cleanData;
+        if(library.length > 0) currentSongId = library[0].id;
+    }
+    
+    finalizeImport();
+}
+
+function finalizeImport() { 
+    saveToLocal(); 
+    updatePlaylistDropdown(); 
+    filterPlaylist(); 
+    // Force UI update
+    if(library.length > 0) {
+        toViewer();
+    } else {
+        toEditor();
+    }
+    alert("Loaded successfully!"); 
+}
+
+// REST OF LIBRARY FUNCTIONS
 function saveSong() {
     var t = document.getElementById('inpTitle').value;
     if(!t) { alert("Title is required!"); return; }
     var tags = document.getElementById('inpTags').value.split(',').map(x => x.trim()).filter(x => x.length > 0);
-    
     var s = {
         id: currentSongId || Date.now().toString(),
         title: t,
@@ -167,7 +172,6 @@ function saveSong() {
         body: document.getElementById('inpBody').value,
         playlists: tags
     };
-
     if(currentSongId) { var i = library.findIndex(x => x.id === currentSongId); if(i !== -1) library[i] = s; }
     else { library.push(s); currentSongId = s.id; }
     saveToLocal(); updatePlaylistDropdown(); filterPlaylist(); alert("Saved!");
@@ -276,11 +280,12 @@ function analyzeToken(c, t) {
 function render(originalSong) {
     var sh = state.t - state.c;
     
-    // 1. Meta & Notes
+    // Meta
     document.getElementById('displayTitle').innerText = state.meta.title;
     document.getElementById('displayMeta').innerText = state.meta.key ? "Key: " + getNote(state.meta.key, sh) : "";
     document.getElementById('visualKey').innerText = state.meta.key ? getNote(state.meta.key, sh) : "-";
     
+    // Notes
     var notesBox = document.getElementById('displayNotes');
     var notesBtn = document.getElementById('btnToggleNotes');
     if(state.meta.notes) {
@@ -291,7 +296,7 @@ function render(originalSong) {
         notesBox.style.display = 'none';
     }
 
-    // 2. Intro/Interlude
+    // Structure
     var sb = document.getElementById('structureBox');
     if(state.meta.intro || state.meta.interlude) {
         sb.style.display = 'block';
@@ -301,7 +306,7 @@ function render(originalSong) {
             `<div class="struct-line"><span class="struct-label">INTER:</span> ${renderSimple(state.meta.interlude, sh)}</div>` : "";
     } else sb.style.display = 'none';
 
-    // 3. Pinned Chords
+    // Pinned Chords
     document.getElementById('t-val').innerText = (state.t > 0 ? '+' : '') + state.t;
     document.getElementById('c-val').innerText = state.c;
     
@@ -320,14 +325,14 @@ function render(originalSong) {
 
     document.getElementById('splitDivider').style.display = (state.parsedLyrics.length > 0) ? 'block' : 'none';
 
-    // 4. Scroll Lyrics
+    // Scroll Lyrics
     var dl = document.getElementById('outputLyrics'); dl.innerHTML = "";
     state.parsedLyrics.forEach(b => {
         var p = document.createElement('div'); p.className = 'compact-line'; p.innerText = b; dl.appendChild(p);
         var sp = document.createElement('div'); sp.style.height = "15px"; dl.appendChild(sp);
     });
 
-    // 5. Generate QR at the bottom (Robustness check)
+    // QR Code
     var qrDiv = document.getElementById('playerQR');
     qrDiv.innerHTML = "";
     if(originalSong && typeof QRCode !== 'undefined') {
@@ -350,8 +355,23 @@ function renderSimple(t, s) {
 }
 
 /* =========================================
-   7. UTILS & IMPORT
+   7. UTILS & QR
    ========================================= */
+// QR Import
+function startQR() {
+    document.getElementById('qrModal').style.display = "flex";
+    if(window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('active');
+    html5QrcodeScanner = new Html5Qrcode("qr-reader");
+    html5QrcodeScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (decodedText) => {
+        try {
+            var data = JSON.parse(decodedText);
+            if(Array.isArray(data)) sanitizeAndLoad(data, false);
+            else sanitizeAndLoad([data], true);
+        } catch(e) { console.log("Not JSON"); }
+    }).catch(err => console.error(err));
+}
+function closeQR() { if(html5QrcodeScanner) html5QrcodeScanner.stop().then(() => { html5QrcodeScanner.clear(); document.getElementById('qrModal').style.display = "none"; }); else document.getElementById('qrModal').style.display = "none"; }
+
 function getNote(n, s) {
     if(!n || /[|/x(),]/.test(n) && !/[A-G]/.test(n)) return n;
     return n.replace(/([A-G][#b]?)([a-zA-Z0-9]*)/g, (m, r, sx) => {
@@ -380,21 +400,5 @@ function showToast(m) { var d = document.createElement('div'); d.innerText = m; 
 
 function nextSong() { if(visiblePlaylist.length === 0) return; var i = visiblePlaylist.findIndex(s => s.id === currentSongId); if(i < visiblePlaylist.length - 1) { currentSongId = visiblePlaylist[i + 1].id; toViewer(); renderSidebar(); } }
 function prevSong() { if(visiblePlaylist.length === 0) return; var i = visiblePlaylist.findIndex(s => s.id === currentSongId); if(i > 0) { currentSongId = visiblePlaylist[i - 1].id; toViewer(); renderSidebar(); } }
-function exportJSON() { var b = new Blob([JSON.stringify(library, null, 2)], {type:'application/json'}); var a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'mnotes_library.json'; a.click(); }
-
-// ΕΝΙΣΧΥΜΕΝΟ IMPORT JSON ΓΙΑ ΠΑΛΙΑ ΑΡΧΕΙΑ
-function importJSON(el) { 
-    var r = new FileReader(); 
-    r.onload = e => { 
-        try { 
-            var d = JSON.parse(e.target.result); 
-            if(Array.isArray(d)) {
-                sanitizeAndLoad(d);
-            } else {
-                sanitizeAndLoad([d], true);
-            }
-        } catch(er) { alert("Error reading file"); } 
-    }; 
-    r.readAsText(el.files[0]); 
-}
+function exportJSON() { var b = new Blob([JSON.stringify(library, null, 2)], {type:'application/json'}); var a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'mnotes_library.mnote'; a.click(); }
 function clearLibrary() { if(confirm("Delete all songs?")) { library = []; visiblePlaylist = []; currentSongId = null; saveToLocal(); updatePlaylistDropdown(); renderSidebar(); clearInputs(); toEditor(); } }

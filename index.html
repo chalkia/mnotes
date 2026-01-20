@@ -44,10 +44,10 @@
         
         <div class="sidebar-actions">
             <button onclick="clearLibrary()" class="danger-btn">🗑️ Clear All</button>
-            <button onclick="exportJSON()">💾 Export Library</button>
+            <button onclick="exportJSON()">💾 Export .mnote</button>
             <button onclick="startQR()" style="background:#8e44ad; color:white;">📷 Scan QR Import</button>
             <label class="file-btn">
-               📂 Import File <input type="file" onchange="importJSON(this)" accept=".mnote, .json" style="display:none;">
+               📂 Import File <input type="file" onchange="importJSON(this)" accept=".mnote, .json, application/json" style="display:none;">
             </label>
         </div>
     </div>
@@ -72,7 +72,7 @@
             <div class="field-group full"><label>Λίστες (Tags)</label><input type="text" id="inpTags"></div>
             <div class="field-group full">
                 <label>Παρατηρήσεις (Notes)</label>
-                <input type="text" id="inpNotes" placeholder="Σημειώσεις για το live...">
+                <input type="text" id="inpNotes" placeholder="π.χ. Ρυθμός 9/8, Καποτάστο...">
             </div>
             <div class="input-grid">
                 <div class="field-group"><label>Intro</label><input type="text" id="inpIntro"></div>
@@ -97,7 +97,9 @@
                         <button id="btnToggleNotes" class="icon-btn" onclick="toggleNotes()" title="Show Notes">📝</button>
                     </div>
                 </div>
+                
                 <div id="displayNotes" class="notes-box" style="display:none;"></div>
+
                 <div id="structureBox" class="structure-box" style="display:none;">
                     <div id="displayIntro"></div>
                     <div id="displayInter"></div>
@@ -108,6 +110,7 @@
             
             <div id="scrollContainer" class="scroll-box">
                 <div id="outputLyrics"></div>
+                
                 <div class="qr-footer">
                     <hr>
                     <div class="qr-label">Scan to Share</div>

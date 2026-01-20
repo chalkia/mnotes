@@ -7,8 +7,11 @@
     
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
+    
     <meta name="theme-color" content="#2c3e50">
+    
     <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="icon" type="image/png" href="icon-192.png">
 
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -24,13 +27,17 @@
 </div>
 
 <div class="app-layout">
+    
     <div id="sidebar" class="sidebar">
         <div class="sidebar-header">
             <h3>Library</h3>
             <button onclick="toggleSidebar()" class="close-menu-btn">✕</button>
         </div>
-        <span id="songCount" style="font-size:12px; color:#666; margin-bottom:10px; display:block;">0 songs</span>
         
+        <span id="songCount" style="font-size:12px; color:#7f8c8d; margin-bottom:10px; display:block;">0 songs</span>
+        
+        <input type="text" id="searchInput" oninput="filterPlaylist()" placeholder="🔍 Αναζήτηση..." class="search-box">
+
         <div class="playlist-filter">
             <label>Λίστα:</label>
             <select id="playlistSelect" onchange="filterPlaylist()">
@@ -39,20 +46,24 @@
         </div>
 
         <div id="playlistContainer" class="playlist">
-            <div class="empty-msg">Κενή Βιβλιοθήκη</div>
+            <div class="empty-msg" style="padding:10px; color:#7f8c8d; text-align:center;">Κενή Βιβλιοθήκη</div>
         </div>
         
         <div class="sidebar-actions">
-            <button onclick="clearLibrary()" class="danger-btn">🗑️ Clear All</button>
-            <button onclick="exportJSON()">💾 Export Library</button>
-            <button onclick="startQR()" style="background:#8e44ad; color:white;">📷 Scan QR Import</button>
+            <button onclick="startQR()" class="sidebar-btn accent-btn">📷 Scan QR Import</button>
+            
+            <button onclick="exportJSON()" class="sidebar-btn">💾 Export Library</button>
+            
             <label class="file-btn">
-               📂 Import File <input type="file" onchange="importJSON(this)" accept=".mnote, .json, application/json" style="display:none;">
+               📂 Import File <input type="file" onchange="importJSON(this)" accept=".mnote, .json, application/json">
             </label>
+
+            <button onclick="clearLibrary()" class="sidebar-btn danger-alt-btn" style="margin-top: 10px;">🗑️ Clear All</button>
         </div>
     </div>
 
     <div class="main-area">
+        
         <div class="top-bar">
             <div class="left-group">
                 <button class="menu-btn" onclick="toggleSidebar()">☰</button>
@@ -85,27 +96,32 @@
                 <button class="tool-btn" onclick="addCapo(1)">+</button>
             </div>
             <button class="magic-btn" onclick="findSmartCapo()">AUTO</button>
-            <button class="icon-btn" onclick="toggleNotes()" title="Show Notes" id="btnToggleNotes" style="display:none;">📝 Notes</button>
+            <button class="icon-btn" onclick="toggleNotes()" title="Show Notes" id="btnToggleNotes" style="display:none; border: none; background: transparent; font-size: 20px;">📝</button>
             <div class="key-display">KEY: <span id="visualKey">-</span></div>
         </div>
 
         <div id="editor-view">
-            <div class="input-grid">
+            <div class="input-grid title-grid">
                 <div class="field-group"><label>Τίτλος</label><input type="text" id="inpTitle"></div>
                 <div class="field-group small"><label>Κλίμακα</label><input type="text" id="inpKey"></div>
             </div>
-            <div class="field-group full"><label>Λίστες (Tags)</label><input type="text" id="inpTags"></div>
+            
+            <div class="field-group full"><label>Λίστες (Tags)</label><input type="text" id="inpTags" placeholder="π.χ. Λαϊκά, 2024"></div>
             <div class="field-group full"><label>Παρατηρήσεις</label><input type="text" id="inpNotes"></div>
+            
             <div class="input-grid">
                 <div class="field-group"><label>Intro</label><input type="text" id="inpIntro"></div>
                 <div class="field-group"><label>Interlude</label><input type="text" id="inpInter"></div>
             </div>
+            
             <div class="field-group full">
-                <label>Κυρίως Τραγούδι</label>
+                <label>Κυρίως Τραγούδι (Χρησιμοποίησε !C, !Am μέσα στο κείμενο)</label>
                 <textarea id="inpBody"></textarea>
             </div>
+            
             <div class="editor-actions">
                 <button onclick="saveSong()" class="save-btn">💾 Αποθήκευση</button>
+                <button onclick="cancelEdit()" class="cancel-btn">Ακύρωση</button>
                 <button onclick="deleteCurrentSong()" class="danger-btn" id="btnDelete" style="display:none;">🗑️ Διαγραφή</button>
             </div>
         </div>
@@ -118,14 +134,17 @@
                     <div id="displayIntro"></div>
                     <div id="displayInter"></div>
                 </div>
+                
                 <div id="outputChords"></div>
+                
                 <div class="split-divider" id="splitDivider" style="display:none;"><span>▼ Υπόλοιποι Στίχοι ▼</span></div>
             </div>
             
             <div id="scrollContainer" class="scroll-box">
                 <div id="outputLyrics"></div>
+                
                 <div class="qr-footer">
-                    <hr>
+                    <hr style="border:0; border-top:1px solid #eee; margin-bottom:20px;">
                     <div class="qr-label">Scan to Share</div>
                     <div id="playerQR"></div>
                 </div>
@@ -135,10 +154,12 @@
 </div>
 
 <script src="script.js"></script>
+
 <script>
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js'); });
     }
 </script>
+
 </body>
 </html>

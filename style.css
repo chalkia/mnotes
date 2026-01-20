@@ -1,32 +1,183 @@
-:root { --primary: #2c3e50; --accent: #2980b9; --success: #27ae60; --bg: #f4f7f6; --sidebar-bg: #dfe6e9; --paper: #ffffff; --chord: #c0392b; }
-body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; height: 100vh; overflow: hidden; }
+:root {
+    /* Χρώματα βάσει του Logo (Yellow Note / Dark Blue BG) */
+    --primary: #2c3e50; /* Σκούρο Μπλε */
+    --accent: #f1c40f;  /* Κίτρινο/Χρυσαφί */
+    --danger: #c0392b;  /* Κόκκινο για διαγραφές */
+    
+    --bg: #f4f7f6;
+    --sidebar-bg: #eceff1;
+    --paper: #ffffff;
+    --chord: #c0392b; /* Κόκκινο για τα ακόρντα μέσα στο τραγούδι */
+}
 
-/* LAYOUT */
-.app-layout { display: grid; grid-template-columns: 260px 1fr; height: 100vh; }
-.sidebar { background: var(--sidebar-bg); padding: 15px; border-right: 1px solid #ccc; display: flex; flex-direction: column; z-index: 5000; }
-.sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
-.playlist-filter { margin-bottom: 10px; }
-.playlist-filter select { width: 100%; padding: 5px; }
-.playlist { flex: 1; overflow-y: auto; background: white; border-radius: 6px; padding: 5px; border: 1px solid #ccc; }
-.playlist-item { padding: 10px; border-bottom: 1px solid #f1f1f1; cursor: pointer; font-size: 14px; color: #333; }
-.playlist-item.active { background: var(--accent); color: white; font-weight: bold; border-radius: 4px; }
-.sidebar-actions { margin-top: 15px; display: flex; flex-direction: column; gap: 8px; }
+body { 
+    font-family: 'Segoe UI', sans-serif; 
+    background: var(--bg); 
+    margin: 0; 
+    height: 100vh; 
+    overflow: hidden; 
+    color: var(--primary); 
+}
 
-/* MAIN AREA */
+/* =========================================
+   LAYOUT & SIDEBAR
+   ========================================= */
+.app-layout { 
+    display: grid; 
+    grid-template-columns: 260px 1fr; 
+    height: 100vh; 
+}
+
+.sidebar { 
+    background: var(--sidebar-bg); 
+    padding: 20px 15px; 
+    border-right: 1px solid #dce1e6; 
+    display: flex; 
+    flex-direction: column; 
+    z-index: 5000; 
+    box-shadow: 2px 0 5px rgba(0,0,0,0.05); 
+}
+
+.sidebar-header { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    margin-bottom: 20px; 
+}
+
+.sidebar-header h3 { 
+    margin: 0; 
+    color: var(--primary); 
+    font-weight: 700; 
+    letter-spacing: 0.5px; 
+}
+
+/* SEARCH BOX */
+.search-box { 
+    width: 100%; 
+    padding: 10px; 
+    margin-bottom: 15px; 
+    border: 1px solid #bdc3c7; 
+    border-radius: 6px; 
+    box-sizing: border-box; 
+    font-size: 14px;
+}
+
+/* PLAYLIST FILTER & LIST */
+.playlist-filter { margin-bottom: 15px; }
+.playlist-filter label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 12px; color: #7f8c8d; }
+.playlist-filter select { width: 100%; padding: 8px; border: 2px solid #bdc3c7; border-radius: 6px; background: white; color: var(--primary); font-weight: 600; }
+
+.playlist { 
+    flex: 1; 
+    overflow-y: auto; 
+    background: white; 
+    border-radius: 8px; 
+    padding: 5px; 
+    border: 1px solid #e0e0e0; 
+}
+
+.playlist-item { 
+    padding: 12px 10px; 
+    border-bottom: 1px solid #f1f1f1; 
+    cursor: pointer; 
+    font-size: 14px; 
+    color: var(--primary); 
+    font-weight: 500; 
+    transition: background 0.2s; 
+    border-radius: 4px; 
+    margin-bottom: 2px;
+}
+
+.playlist-item:hover { background: #dce1e6; }
+
+/* Active State: Κίτρινο φόντο, Σκούρα γράμματα */
+.playlist-item.active { 
+    background: var(--accent); 
+    color: var(--primary); 
+    font-weight: bold; 
+    border-left: 4px solid var(--primary); 
+}
+
+/* SIDEBAR ACTIONS (BUTTONS) */
+.sidebar-actions { 
+    margin-top: 20px; 
+    display: flex; 
+    flex-direction: column; 
+    gap: 10px; 
+    border-top: 1px solid #dce1e6; 
+    padding-top: 20px; 
+}
+
+.sidebar-btn, .file-btn {
+    background: transparent;
+    border: 2px solid var(--primary);
+    color: var(--primary);
+    padding: 10px 15px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.sidebar-btn:hover, .file-btn:hover {
+    background: var(--primary);
+    color: var(--accent); /* Κίτρινα γράμματα σε μπλε φόντο */
+}
+
+/* Κουμπί Accent (Scan) */
+.sidebar-btn.accent-btn {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--primary);
+}
+.sidebar-btn.accent-btn:hover {
+    background: #d4ac0d;
+    border-color: #d4ac0d;
+}
+
+/* Κουμπί Danger (Clear) */
+.sidebar-btn.danger-alt-btn {
+    border-color: var(--danger);
+    color: var(--danger);
+    font-size: 12px;
+}
+.sidebar-btn.danger-alt-btn:hover {
+    background: var(--danger);
+    color: white;
+}
+
+/* Διόρθωση για το input file */
+.file-btn input { display: none; }
+
+
+/* =========================================
+   MAIN AREA & HEADER
+   ========================================= */
 .main-area { display: flex; flex-direction: column; height: 100vh; overflow: hidden; position: relative; }
 .top-bar { background: white; padding: 5px 15px; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; height: 50px; }
 .left-group { display: flex; align-items: center; gap: 10px; }
 .header-title { font-weight: bold; color: var(--primary); font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 40vw; }
-.logo { margin: 0; font-size: 20px; color: var(--primary); }
 
 /* NAVIGATION BUTTONS (TOP) */
 .nav-arrow { background: #ecf0f1; border: 1px solid #ccc; border-radius: 4px; padding: 5px 12px; font-size: 16px; cursor: pointer; color: #2c3e50; }
 .nav-arrow:active { background: #bdc3c7; }
-.tools-btn { background: #f1c40f; border: none; border-radius: 4px; padding: 5px 10px; font-weight: bold; color: #2c3e50; cursor: pointer; }
+.tools-btn { background: var(--accent); border: none; border-radius: 4px; padding: 5px 10px; font-weight: bold; color: var(--primary); cursor: pointer; }
 
-/* TOOLBAR (Dropdown) */
+
+/* =========================================
+   TOOLBAR (DROPDOWN)
+   ========================================= */
 .tools-panel { 
-    display: none; /* Toggled by JS */
+    display: none; 
     background: #ecf0f1; 
     border-bottom: 1px solid #ccc; 
     padding: 10px; 
@@ -38,27 +189,47 @@ body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; he
     z-index: 100;
 }
 .tools-panel.active { display: flex; }
+
 .tool-group { display: flex; align-items: center; gap: 5px; background: white; padding: 4px; border-radius: 4px; border: 1px solid #ddd; }
 .tool-label { font-size: 10px; font-weight: bold; color: #7f8c8d; margin-right: 5px; }
-.tool-btn { width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: white; border: none; font-weight: bold; cursor: pointer; }
+.tool-btn { width: 30px; height: 30px; border-radius: 50%; background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; }
 .tool-val { font-weight: bold; min-width: 20px; text-align: center; }
-.magic-btn { background: #f1c40f; color: #2c3e50; border: none; padding: 5px 10px; border-radius: 4px; font-weight: bold; font-size: 12px; }
-.key-display { font-weight: bold; color: var(--primary); margin-left: 10px; }
-#visualKey { color: #c0392b; }
 
-/* EDITOR */
+.magic-btn { background: var(--accent); color: var(--primary); border: none; padding: 5px 10px; border-radius: 4px; font-weight: bold; font-size: 12px; }
+.key-display { font-weight: bold; color: var(--primary); margin-left: 10px; }
+#visualKey { color: var(--chord); }
+
+
+/* =========================================
+   EDITOR VIEW
+   ========================================= */
 #editor-view { padding: 20px; overflow-y: auto; flex: 1; }
+
 .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+/* Το FIX για Τίτλο/Κλίμακα */
+.input-grid.title-grid { grid-template-columns: 1fr 80px; }
+
 .field-group { display: flex; flex-direction: column; margin-bottom: 10px; }
 .field-group.small { flex: 0 0 80px; }
 .field-group label { font-size: 12px; font-weight: bold; color: #7f8c8d; }
+
 input, textarea { padding: 10px; border: 1px solid #ccc; border-radius: 4px; width: 100%; box-sizing: border-box; }
 textarea { height: 300px; font-family: 'Courier New', monospace; }
-.save-btn { background: var(--success); color: white; width: 100%; padding: 10px; border: none; border-radius: 4px; }
-.danger-btn { background: #e74c3c; color: white; border: none; padding: 10px; width: 100%; border-radius: 4px; }
 
-/* VIEWER */
+/* EDITOR ACTIONS */
+.editor-actions { display: flex; gap: 10px; margin-top: 20px; }
+.save-btn { background: var(--success); color: white; flex: 2; padding: 10px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; } /* --success δεν ορίστηκε, ας βάλουμε πράσινο manually ή όρισε το στο root αν θες. Εδώ βάζω το accent για συνέπεια ή ένα πράσινο */
+.save-btn { background: #27ae60; color: white; } 
+
+.cancel-btn { background: #95a5a6; color: white; flex: 1; padding: 10px; border: none; border-radius: 4px; cursor: pointer; }
+.danger-btn { background: var(--danger); color: white; flex: 1; border: none; padding: 10px; border-radius: 4px; cursor: pointer; }
+
+
+/* =========================================
+   VIEWER VIEW
+   ========================================= */
 #viewer-view { display: flex; flex-direction: column; height: 100%; overflow: hidden; background: var(--paper); }
+
 .pinned-box { padding: 15px 20px; background: #fff; border-bottom: 1px solid #ddd; box-shadow: 0 2px 5px rgba(0,0,0,0.05); z-index: 5; flex-shrink: 0; max-height: 50vh; overflow-y: auto; }
 .scroll-box { padding: 15px 20px 80px 20px; overflow-y: auto; flex-grow: 1; background: #fdfdfd; }
 
@@ -76,17 +247,22 @@ textarea { height: 300px; font-family: 'Courier New', monospace; }
 .compact-line { font-size: 1.2em; line-height: 1.3; color: #444; margin-bottom: 5px; white-space: pre-wrap; font-family: 'Segoe UI', sans-serif; }
 .split-divider { text-align: center; font-size: 10px; color: #bbb; margin-top: 10px; text-transform: uppercase; letter-spacing: 2px; }
 
-/* QR FOOTER */
+
+/* =========================================
+   QR & MODALS
+   ========================================= */
 .qr-footer { text-align: center; margin-top: 40px; padding-top: 20px; }
 .qr-label { font-size: 12px; color: #999; margin-bottom: 10px; text-transform: uppercase; }
 #playerQR { display: flex; justify-content: center; }
 
-/* MODALS */
 .qr-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 6000; display: none; align-items: center; justify-content: center; }
 .qr-content { background:white; padding:15px; border-radius:8px; width:90%; max-width:350px; text-align:center; }
-.qr-close-btn { margin-top: 15px; background: #e74c3c; color: white; border: none; padding: 10px 20px; border-radius: 5px; width: 100%; }
+.qr-close-btn { margin-top: 15px; background: var(--danger); color: white; border: none; padding: 10px 20px; border-radius: 5px; width: 100%; }
 
-/* RESPONSIVE & MOBILE */
+
+/* =========================================
+   RESPONSIVE & MOBILE
+   ========================================= */
 .menu-btn, .close-menu-btn { display: none; cursor: pointer; border: none; background: none; font-size: 24px; color: var(--primary); }
 
 @media (max-width: 768px) {
@@ -95,10 +271,10 @@ textarea { height: 300px; font-family: 'Courier New', monospace; }
     .sidebar.active { display: flex; }
     .menu-btn { display: block !important; margin-right: 10px; }
     .close-menu-btn { display: block; }
-    #btnEdit { display: none !important; }
     
-    /* ΑΥΤΟΜΑΤΗ ΠΡΟΣΑΡΜΟΓΗ ΓΡΑΜΜΑΤΟΣΕΙΡΑΣ ΣΤΑ ΚΙΝΗΤΑ */
-    .line-row { font-size: 3.8vw; } /* Μεγαλώνει/μικραίνει με το πλάτος */
+    /* FIX: Το Edit button είναι πλέον ορατό και στα κινητά */
+    
+    .line-row { font-size: 3.8vw; } 
     .compact-line { font-size: 4.0vw; }
     
     .pinned-box { padding: 10px 15px; max-height: 45vh; }

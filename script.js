@@ -20,7 +20,6 @@ window.onload = function() {
     if(savedData) {
         try {
             var parsed = JSON.parse(savedData);
-            // Έλεγχος και διόρθωση παλιών δεδομένων
             library = Array.isArray(parsed) ? parsed.map(ensureSongStructure) : [];
             updatePlaylistDropdown();
             filterPlaylist();
@@ -35,7 +34,6 @@ window.onload = function() {
     }
 };
 
-// Αυτή η συνάρτηση "σώζει" την κατάσταση αν το JSON είναι παλιό ή ελλιπές
 function ensureSongStructure(s) {
     return {
         id: s.id || Date.now().toString() + Math.random().toString().slice(2,5),
@@ -50,50 +48,29 @@ function ensureSongStructure(s) {
 }
 
 /* =========================================
-   3. MOBILE & QR IMPORT
+   3. MOBILE & UI
    ========================================= */
 function toggleSidebar() { 
     document.getElementById('sidebar').classList.toggle('active'); 
 }
 
-function startQR() {
-    document.getElementById('qrModal').style.display = "flex";
-    if(window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('active');
-    
-    html5QrcodeScanner = new Html5Qrcode("qr-reader");
-    html5QrcodeScanner.start(
-        { facingMode: "environment" }, { fps: 10, qrbox: 250 }, 
-        (decodedText) => {
-            try {
-                var data = JSON.parse(decodedText);
-                if(Array.isArray(data)) sanitizeAndLoad(data, false);
-                else sanitizeAndLoad([data], true);
-            } catch(e) { console.log("QR Not JSON"); }
-        }
-    ).catch(err => console.error(err));
-}
-
-function finalizeImport() { 
-    saveToLocal(); 
-    updatePlaylistDropdown(); 
-    filterPlaylist(); 
-    closeQR(); 
-    setTimeout(() => toViewer(), 100); 
-    alert("Επιτυχία!"); 
-}
-
-function closeQR() { 
-    if(html5QrcodeScanner) html5QrcodeScanner.stop().then(() => { html5QrcodeScanner.clear(); document.getElementById('qrModal').style.display = "none"; }); 
-    else document.getElementById('qrModal').style.display = "none"; 
+function toggleTools() {
+    var panel = document.getElementById('toolsPanel');
+    if(panel.style.display === 'flex') panel.style.display = 'none';
+    else panel.style.display = 'flex';
 }
 
 /* =========================================
-   4. NAVIGATION & NOTES
+   4. NAVIGATION
    ========================================= */
 function toEditor() {
     document.getElementById('editor-view').style.display = 'block';
     document.getElementById('viewer-view').style.display = 'none';
-    document.getElementById('transUI').style.display = 'none'; 
+    // Hide Play controls
+    document.getElementById('navControls').style.display = 'none';
+    document.getElementById('btnTools').style.display = 'none';
+    document.getElementById('toolsPanel').style.display = 'none';
+    
     if(currentSongId === null) clearInputs();
     else { 
         var s = library.find(x => x.id === currentSongId); 
@@ -104,25 +81,22 @@ function toEditor() {
 function toViewer() {
     try {
         if(library.length === 0) { toEditor(); return; }
-        
-        // Fallback αν το ID δεν υπάρχει πια
-        if(!library.find(x => x.id === currentSongId)) {
-            currentSongId = library[0].id;
-        }
+        if(!library.find(x => x.id === currentSongId)) currentSongId = library[0].id;
 
         var s = library.find(x => x.id === currentSongId);
         if(s) {
             parseAndRender(s); 
             document.getElementById('editor-view').style.display = 'none';
             document.getElementById('viewer-view').style.display = 'flex';
-            document.getElementById('transUI').style.display = 'flex'; 
-        } else {
-            toEditor();
-        }
-    } catch(e) {
-        console.error("Viewer Error:", e);
-        toEditor(); 
-    }
+            
+            // Show Play controls
+            document.getElementById('navControls').style.display = 'flex';
+            document.getElementById('btnTools').style.display = 'block';
+            
+            // Update Header Title
+            document.getElementById('headerTitle').innerText = s.title;
+        } else { toEditor(); }
+    } catch(e) { console.error("Viewer Error:", e); toEditor(); }
 }
 
 function toggleNotes() {
@@ -138,7 +112,7 @@ function toggleNotes() {
 }
 
 /* =========================================
-   5. LIBRARY LOGIC (ROBUST IMPORT)
+   5. LIBRARY LOGIC & IMPORT
    ========================================= */
 function saveToLocal() { localStorage.setItem('mnotes_data', JSON.stringify(library)); }
 
@@ -148,20 +122,15 @@ function importJSON(el) {
         try { 
             var raw = e.target.result;
             var d = JSON.parse(raw); 
-            if(Array.isArray(d)) sanitizeAndLoad(d, false); // Replace
-            else sanitizeAndLoad([d], true); // Append
-        } catch(er) { 
-            alert("Error reading file."); 
-            console.error(er);
-        } 
+            if(Array.isArray(d)) sanitizeAndLoad(d, false);
+            else sanitizeAndLoad([d], true);
+        } catch(er) { alert("Error reading file."); } 
     }; 
     r.readAsText(el.files[0]); 
 }
 
 function sanitizeAndLoad(data, append) {
-    // Καθαρισμός δεδομένων
     var cleanData = data.map(song => ensureSongStructure(song));
-
     if(append) {
         cleanData.forEach(s => library.push(s));
         currentSongId = cleanData[cleanData.length - 1].id;
@@ -170,6 +139,32 @@ function sanitizeAndLoad(data, append) {
         if(library.length > 0) currentSongId = library[0].id;
     }
     finalizeImport();
+}
+
+function finalizeImport() { 
+    saveToLocal(); updatePlaylistDropdown(); filterPlaylist(); closeQR(); 
+    setTimeout(() => toViewer(), 100); 
+    alert("Επιτυχία!"); 
+}
+
+// QR Stuff
+function startQR() {
+    document.getElementById('qrModal').style.display = "flex";
+    if(window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('active');
+    html5QrcodeScanner = new Html5Qrcode("qr-reader");
+    html5QrcodeScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, 
+        (decodedText) => {
+            try {
+                var data = JSON.parse(decodedText);
+                if(Array.isArray(data)) sanitizeAndLoad(data, false);
+                else sanitizeAndLoad([data], true);
+            } catch(e) { console.log("Not JSON"); }
+        }
+    ).catch(err => console.error(err));
+}
+function closeQR() { 
+    if(html5QrcodeScanner) html5QrcodeScanner.stop().then(() => { html5QrcodeScanner.clear(); document.getElementById('qrModal').style.display = "none"; }); 
+    else document.getElementById('qrModal').style.display = "none"; 
 }
 
 function saveSong() {
@@ -246,7 +241,7 @@ function clearInputs() {
 }
 
 /* =========================================
-   6. PARSING & RENDERING
+   6. RENDER ENGINE
    ========================================= */
 function parseAndRender(s) {
     state.parsedChords = []; state.parsedLyrics = [];
@@ -256,7 +251,6 @@ function parseAndRender(s) {
 
     var blocks = safeBody.split(/\n\s*\n/);
     var isScrolling = false;
-    
     blocks.forEach(b => {
         if(!b.trim()) return;
         if(!isScrolling) {
@@ -296,10 +290,7 @@ function analyzeToken(c, t) {
 function render(originalSong) {
     var sh = state.t - state.c;
     
-    document.getElementById('displayTitle').innerText = state.meta.title;
-    document.getElementById('displayMeta').innerText = state.meta.key ? "Key: " + getNote(state.meta.key, sh) : "";
-    document.getElementById('visualKey').innerText = state.meta.key ? getNote(state.meta.key, sh) : "-";
-    
+    // Notes Visibility
     var notesBox = document.getElementById('displayNotes');
     var notesBtn = document.getElementById('btnToggleNotes');
     if(state.meta.notes && state.meta.notes.trim() !== "") {
@@ -310,6 +301,12 @@ function render(originalSong) {
         notesBox.style.display = 'none';
     }
 
+    // Tools Info
+    document.getElementById('visualKey').innerText = state.meta.key ? getNote(state.meta.key, sh) : "-";
+    document.getElementById('t-val').innerText = (state.t > 0 ? '+' : '') + state.t;
+    document.getElementById('c-val').innerText = state.c;
+
+    // Structure
     var sb = document.getElementById('structureBox');
     if(state.meta.intro || state.meta.interlude) {
         sb.style.display = 'block';
@@ -319,9 +316,7 @@ function render(originalSong) {
             `<div class="struct-line"><span class="struct-label">INTER:</span> ${renderSimple(state.meta.interlude, sh)}</div>` : "";
     } else sb.style.display = 'none';
 
-    document.getElementById('t-val').innerText = (state.t > 0 ? '+' : '') + state.t;
-    document.getElementById('c-val').innerText = state.c;
-    
+    // Pinned Chords
     var dc = document.getElementById('outputChords'); dc.innerHTML = "";
     state.parsedChords.forEach(L => {
         if(L.type === 'br') { var d = document.createElement('div'); d.style.height = "10px"; dc.appendChild(d); return; }
@@ -336,22 +331,20 @@ function render(originalSong) {
     });
     document.getElementById('splitDivider').style.display = (state.parsedLyrics.length > 0) ? 'block' : 'none';
 
+    // Lyrics
     var dl = document.getElementById('outputLyrics'); dl.innerHTML = "";
     state.parsedLyrics.forEach(b => {
         var p = document.createElement('div'); p.className = 'compact-line'; p.innerText = b; dl.appendChild(p);
         var sp = document.createElement('div'); sp.style.height = "15px"; dl.appendChild(sp);
     });
 
-    // QR Generate (Safety Check)
+    // QR
     var qrDiv = document.getElementById('playerQR');
     qrDiv.innerHTML = "";
     if(originalSong && typeof QRCode !== 'undefined') {
         try {
-            new QRCode(qrDiv, {
-                text: JSON.stringify(originalSong),
-                width: 150, height: 150, correctLevel: QRCode.CorrectLevel.L
-            });
-        } catch(e) { console.error("QR Gen Error", e); }
+            new QRCode(qrDiv, { text: JSON.stringify(originalSong), width: 150, height: 150, correctLevel: QRCode.CorrectLevel.L });
+        } catch(e){}
     }
 }
 
@@ -367,7 +360,7 @@ function renderSimple(t, s) {
 }
 
 /* =========================================
-   7. UTILS & HELPERS
+   7. UTILS
    ========================================= */
 function getNote(n, s) {
     if(!n || /[|/x(),]/.test(n) && !/[A-G]/.test(n)) return n;
@@ -393,9 +386,9 @@ function findSmartCapo() {
     }
     if(best === state.c) showToast("👍 Best!"); else { state.c = best; render(library.find(x=>x.id===currentSongId)); showToast("Capo " + best); }
 }
-function showToast(m) { var d = document.createElement('div'); d.innerText = m; d.style.cssText = "position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#000c;color:#fff;padding:10px 20px;border-radius:20px;z-index:2000;"; document.body.appendChild(d); setTimeout(() => d.remove(), 2000); }
+function showToast(m) { var d = document.createElement('div'); d.innerText = m; d.style.cssText = "position:fixed;top:50px;left:50%;transform:translateX(-50%);background:#000c;color:#fff;padding:10px 20px;border-radius:20px;z-index:2000;"; document.body.appendChild(d); setTimeout(() => d.remove(), 2000); }
 
 function nextSong() { if(visiblePlaylist.length === 0) return; var i = visiblePlaylist.findIndex(s => s.id === currentSongId); if(i < visiblePlaylist.length - 1) { currentSongId = visiblePlaylist[i + 1].id; toViewer(); renderSidebar(); } }
 function prevSong() { if(visiblePlaylist.length === 0) return; var i = visiblePlaylist.findIndex(s => s.id === currentSongId); if(i > 0) { currentSongId = visiblePlaylist[i - 1].id; toViewer(); renderSidebar(); } }
 function exportJSON() { var b = new Blob([JSON.stringify(library, null, 2)], {type:'application/json'}); var a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'mnotes_library.mnote'; a.click(); }
-function clearLibrary() { if(confirm("Delete all songs?")) { library = []; visiblePlaylist = []; currentSongId = null; saveToLocal(); updatePlaylistDropdown(); renderSidebar(); clearInputs(); toEditor(); } }
+function clearLibrary() { if(confirm("Delete all?")) { library = []; visiblePlaylist = []; currentSongId = null; saveToLocal(); updatePlaylistDropdown(); renderSidebar(); clearInputs(); toEditor(); } }

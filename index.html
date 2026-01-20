@@ -23,15 +23,6 @@
     </div>
 </div>
 
-<div id="shareModal" class="qr-modal">
-    <div class="qr-content">
-        <h3>Share Song</h3>
-        <div id="qrcode" style="margin:15px auto; padding:10px; background:white;"></div>
-        <button onclick="downloadSingleSong()" class="action-btn" style="background:#2980b9;">💾 Download .json</button>
-        <button onclick="closeShare()" class="qr-close-btn">Κλείσιμο</button>
-    </div>
-</div>
-
 <div class="app-layout">
     <div id="sidebar" class="sidebar">
         <div class="sidebar-header">
@@ -54,7 +45,6 @@
         <div class="sidebar-actions">
             <button onclick="clearLibrary()" class="danger-btn">🗑️ Clear All</button>
             <button onclick="exportJSON()">💾 Export Library</button>
-            <button onclick="shareCurrentSong()" style="background:#f39c12; color:white;">📤 Share Song</button>
             <button onclick="startQR()" style="background:#8e44ad; color:white;">📷 Scan QR Import</button>
             <label class="file-btn">
                📂 Import JSON <input type="file" onchange="importJSON(this)" accept=".json" style="display:none;">
@@ -80,13 +70,18 @@
                 <div class="field-group small"><label>Κλίμακα</label><input type="text" id="inpKey"></div>
             </div>
             <div class="field-group full"><label>Λίστες (Tags)</label><input type="text" id="inpTags"></div>
+            
+            <div class="field-group full">
+                <label>Παρατηρήσεις (Notes)</label>
+                <input type="text" id="inpNotes" placeholder="π.χ. Ρυθμός 9/8, Καποτάστο 2, Προσοχή στο ρεφρέν...">
+            </div>
+
             <div class="input-grid">
                 <div class="field-group"><label>Intro</label><input type="text" id="inpIntro"></div>
                 <div class="field-group"><label>Interlude</label><input type="text" id="inpInter"></div>
             </div>
             <div class="field-group full">
                 <label>Κυρίως Τραγούδι</label>
-                <div class="hint">Αφήστε κενή γραμμή πριν τους στίχους που δεν έχουν ακόρντα για αυτόματο scroll.</div>
                 <textarea id="inpBody"></textarea>
             </div>
             <div class="editor-actions">
@@ -99,8 +94,14 @@
             <div id="pinnedContainer" class="pinned-box">
                 <div class="song-header">
                     <h2 id="displayTitle"></h2>
-                    <div id="displayMeta"></div>
+                    <div class="meta-row">
+                        <span id="displayMeta"></span>
+                        <button id="btnToggleNotes" class="icon-btn" onclick="toggleNotes()" title="Show Notes">📝</button>
+                    </div>
                 </div>
+
+                <div id="displayNotes" class="notes-box" style="display:none;"></div>
+
                 <div id="structureBox" class="structure-box" style="display:none;">
                     <div id="displayIntro"></div>
                     <div id="displayInter"></div>
@@ -108,8 +109,15 @@
                 <div id="outputChords"></div>
                 <div class="split-divider" id="splitDivider" style="display:none;"><span>▼ Υπόλοιποι Στίχοι ▼</span></div>
             </div>
+            
             <div id="scrollContainer" class="scroll-box">
                 <div id="outputLyrics"></div>
+                
+                <div class="qr-footer">
+                    <hr>
+                    <div class="qr-label">Scan to Share</div>
+                    <div id="playerQR"></div>
+                </div>
             </div>
         </div>
     </div>

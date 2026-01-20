@@ -27,7 +27,7 @@
     <div class="qr-content">
         <h3>Share Song</h3>
         <div id="qrcode" style="margin:15px auto; padding:10px; background:white;"></div>
-        <button onclick="downloadSingleSong()" class="action-btn" style="background:#2980b9;">💾 Download .mnote</button>
+        <button onclick="downloadSingleSong()" class="action-btn" style="background:#2980b9;">💾 Download .json</button>
         <button onclick="closeShare()" class="qr-close-btn">Κλείσιμο</button>
     </div>
 </div>
@@ -57,7 +57,7 @@
             <button onclick="shareCurrentSong()" style="background:#f39c12; color:white;">📤 Share Song</button>
             <button onclick="startQR()" style="background:#8e44ad; color:white;">📷 Scan QR Import</button>
             <label class="file-btn">
-               📂 Import File <input type="file" onchange="importJSON(this)" accept=".json, .mnote" style="display:none;">
+               📂 Import JSON <input type="file" onchange="importJSON(this)" accept=".json" style="display:none;">
             </label>
         </div>
     </div>

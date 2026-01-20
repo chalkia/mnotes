@@ -19,17 +19,14 @@ window.onload = function() {
     var savedData = localStorage.getItem('mnotes_data');
     if(savedData) {
         try {
-            library = JSON.parse(savedData);
-            // Διόρθωση αν υπάρχουν παλιά δεδομένα χωρίς σωστή δομή
-            if(Array.isArray(library)) {
-                library = library.map(s => ensureSongStructure(s));
-            }
+            var parsed = JSON.parse(savedData);
+            // Έλεγχος και διόρθωση παλιών δεδομένων
+            library = Array.isArray(parsed) ? parsed.map(ensureSongStructure) : [];
             updatePlaylistDropdown();
             filterPlaylist();
         } catch(e) { console.error("Data Load Error", e); }
     }
     
-    // Έλεγχος εκκίνησης
     if(library.length > 0) {
         if(!currentSongId) currentSongId = library[0].id;
         toViewer(); 
@@ -38,16 +35,16 @@ window.onload = function() {
     }
 };
 
-// Βοηθητική για να μην κρασάρει με παλιά αρχεία
+// Αυτή η συνάρτηση "σώζει" την κατάσταση αν το JSON είναι παλιό ή ελλιπές
 function ensureSongStructure(s) {
     return {
         id: s.id || Date.now().toString() + Math.random().toString().slice(2,5),
-        title: s.title || "Χωρίς Τίτλο",
+        title: s.title || "Untitled",
         key: s.key || "",
         notes: s.notes || "",
         intro: s.intro || "",
         interlude: s.interlude || "",
-        body: s.body || "", // Αν είναι null, γίνεται κενό string
+        body: s.body || "",
         playlists: s.playlists || []
     };
 }
@@ -81,7 +78,6 @@ function finalizeImport() {
     updatePlaylistDropdown(); 
     filterPlaylist(); 
     closeQR(); 
-    // Force UI refresh
     setTimeout(() => toViewer(), 100); 
     alert("Επιτυχία!"); 
 }
@@ -97,7 +93,7 @@ function closeQR() {
 function toEditor() {
     document.getElementById('editor-view').style.display = 'block';
     document.getElementById('viewer-view').style.display = 'none';
-    document.getElementById('transUI').style.display = 'none'; // Κρύψε την μπάρα στον editor
+    document.getElementById('transUI').style.display = 'none'; 
     if(currentSongId === null) clearInputs();
     else { 
         var s = library.find(x => x.id === currentSongId); 
@@ -109,7 +105,7 @@ function toViewer() {
     try {
         if(library.length === 0) { toEditor(); return; }
         
-        // Safety: Αν το currentSongId δεν υπάρχει, πάρε το πρώτο
+        // Fallback αν το ID δεν υπάρχει πια
         if(!library.find(x => x.id === currentSongId)) {
             currentSongId = library[0].id;
         }
@@ -117,16 +113,15 @@ function toViewer() {
         var s = library.find(x => x.id === currentSongId);
         if(s) {
             parseAndRender(s); 
-            // ΕΜΦΑΝΙΣΗ VIEWER
             document.getElementById('editor-view').style.display = 'none';
             document.getElementById('viewer-view').style.display = 'flex';
-            document.getElementById('transUI').style.display = 'flex'; // Εμφάνισε την μπάρα
+            document.getElementById('transUI').style.display = 'flex'; 
         } else {
             toEditor();
         }
     } catch(e) {
         console.error("Viewer Error:", e);
-        toEditor(); // Fallback
+        toEditor(); 
     }
 }
 
@@ -153,10 +148,10 @@ function importJSON(el) {
         try { 
             var raw = e.target.result;
             var d = JSON.parse(raw); 
-            if(Array.isArray(d)) sanitizeAndLoad(d, false);
-            else sanitizeAndLoad([d], true);
+            if(Array.isArray(d)) sanitizeAndLoad(d, false); // Replace
+            else sanitizeAndLoad([d], true); // Append
         } catch(er) { 
-            alert("Σφάλμα αρχείου. Βεβαιώσου ότι είναι έγκυρο .mnote ή .json"); 
+            alert("Error reading file."); 
             console.error(er);
         } 
     }; 
@@ -164,7 +159,7 @@ function importJSON(el) {
 }
 
 function sanitizeAndLoad(data, append) {
-    // Καθαρισμός δεδομένων για να αποφύγουμε κρασαρίσματα
+    // Καθαρισμός δεδομένων
     var cleanData = data.map(song => ensureSongStructure(song));
 
     if(append) {
@@ -177,7 +172,6 @@ function sanitizeAndLoad(data, append) {
     finalizeImport();
 }
 
-// REST OF LIBRARY FUNCTIONS...
 function saveSong() {
     var t = document.getElementById('inpTitle').value;
     if(!t) { alert("Βάλε Τίτλο!"); return; }
@@ -255,17 +249,9 @@ function clearInputs() {
    6. PARSING & RENDERING
    ========================================= */
 function parseAndRender(s) {
-    // Reset
     state.parsedChords = []; state.parsedLyrics = [];
-    // Ensure Safe Strings
     var safeBody = s.body || ""; 
-    state.meta = { 
-        title: s.title || "Untitled", 
-        key: s.key || "", 
-        notes: s.notes || "", 
-        intro: s.intro || "", 
-        interlude: s.interlude || "" 
-    };
+    state.meta = { title: s.title, key: s.key, notes: s.notes, intro: s.intro, interlude: s.interlude };
     state.t = 0; state.c = 0;
 
     var blocks = safeBody.split(/\n\s*\n/);
@@ -310,12 +296,10 @@ function analyzeToken(c, t) {
 function render(originalSong) {
     var sh = state.t - state.c;
     
-    // Header
     document.getElementById('displayTitle').innerText = state.meta.title;
     document.getElementById('displayMeta').innerText = state.meta.key ? "Key: " + getNote(state.meta.key, sh) : "";
     document.getElementById('visualKey').innerText = state.meta.key ? getNote(state.meta.key, sh) : "-";
     
-    // Notes
     var notesBox = document.getElementById('displayNotes');
     var notesBtn = document.getElementById('btnToggleNotes');
     if(state.meta.notes && state.meta.notes.trim() !== "") {
@@ -326,7 +310,6 @@ function render(originalSong) {
         notesBox.style.display = 'none';
     }
 
-    // Intro/Interlude
     var sb = document.getElementById('structureBox');
     if(state.meta.intro || state.meta.interlude) {
         sb.style.display = 'block';
@@ -336,7 +319,6 @@ function render(originalSong) {
             `<div class="struct-line"><span class="struct-label">INTER:</span> ${renderSimple(state.meta.interlude, sh)}</div>` : "";
     } else sb.style.display = 'none';
 
-    // Chords
     document.getElementById('t-val').innerText = (state.t > 0 ? '+' : '') + state.t;
     document.getElementById('c-val').innerText = state.c;
     
@@ -354,21 +336,22 @@ function render(originalSong) {
     });
     document.getElementById('splitDivider').style.display = (state.parsedLyrics.length > 0) ? 'block' : 'none';
 
-    // Lyrics
     var dl = document.getElementById('outputLyrics'); dl.innerHTML = "";
     state.parsedLyrics.forEach(b => {
         var p = document.createElement('div'); p.className = 'compact-line'; p.innerText = b; dl.appendChild(p);
         var sp = document.createElement('div'); sp.style.height = "15px"; dl.appendChild(sp);
     });
 
-    // QR
+    // QR Generate (Safety Check)
     var qrDiv = document.getElementById('playerQR');
     qrDiv.innerHTML = "";
     if(originalSong && typeof QRCode !== 'undefined') {
-        new QRCode(qrDiv, {
-            text: JSON.stringify(originalSong),
-            width: 150, height: 150, correctLevel: QRCode.CorrectLevel.L
-        });
+        try {
+            new QRCode(qrDiv, {
+                text: JSON.stringify(originalSong),
+                width: 150, height: 150, correctLevel: QRCode.CorrectLevel.L
+            });
+        } catch(e) { console.error("QR Gen Error", e); }
     }
 }
 
@@ -410,4 +393,9 @@ function findSmartCapo() {
     }
     if(best === state.c) showToast("👍 Best!"); else { state.c = best; render(library.find(x=>x.id===currentSongId)); showToast("Capo " + best); }
 }
-function showToast(m) { var d = document.createElement('div'); d.innerText = m; d.style.cssText = "position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#000c;color:#
+function showToast(m) { var d = document.createElement('div'); d.innerText = m; d.style.cssText = "position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#000c;color:#fff;padding:10px 20px;border-radius:20px;z-index:2000;"; document.body.appendChild(d); setTimeout(() => d.remove(), 2000); }
+
+function nextSong() { if(visiblePlaylist.length === 0) return; var i = visiblePlaylist.findIndex(s => s.id === currentSongId); if(i < visiblePlaylist.length - 1) { currentSongId = visiblePlaylist[i + 1].id; toViewer(); renderSidebar(); } }
+function prevSong() { if(visiblePlaylist.length === 0) return; var i = visiblePlaylist.findIndex(s => s.id === currentSongId); if(i > 0) { currentSongId = visiblePlaylist[i - 1].id; toViewer(); renderSidebar(); } }
+function exportJSON() { var b = new Blob([JSON.stringify(library, null, 2)], {type:'application/json'}); var a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'mnotes_library.mnote'; a.click(); }
+function clearLibrary() { if(confirm("Delete all songs?")) { library = []; visiblePlaylist = []; currentSongId = null; saveToLocal(); updatePlaylistDropdown(); renderSidebar(); clearInputs(); toEditor(); } }

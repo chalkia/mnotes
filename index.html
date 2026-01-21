@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>mnotes</title>
     
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@300;400;700&display=swap" rel="stylesheet">
+
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2c3e50">
@@ -30,18 +34,13 @@
             <button onclick="toggleSidebar()" class="close-menu-btn">✕</button>
         </div>
         <span id="songCount" style="font-size:12px; color:#666; margin-bottom:10px; display:block;">0 songs</span>
-        
         <div class="playlist-filter">
             <label>Λίστα:</label>
             <select id="playlistSelect" onchange="filterPlaylist()">
                 <option value="ALL">📂 Όλα τα τραγούδια</option>
             </select>
         </div>
-
-        <div id="playlistContainer" class="playlist">
-            <div class="empty-msg">Κενή Βιβλιοθήκη</div>
-        </div>
-        
+        <div id="playlistContainer" class="playlist"><div class="empty-msg">Κενή Βιβλιοθήκη</div></div>
         <div class="sidebar-actions">
             <button onclick="clearLibrary()" class="danger-btn">🗑️ Clear All</button>
             <button onclick="exportJSON()">💾 Export .mnote</button>
@@ -59,8 +58,8 @@
                 <h1 class="logo">mnotes</h1>
             </div>
             <div class="view-controls">
-                <button onclick="toEditor()" id="btnEdit">✏️ Editor</button>
-                <button onclick="toViewer()" id="btnPlay" class="action">🎵 Play Mode</button>
+                <button onclick="toEditor()" id="btnEdit">✏️ Edit</button>
+                <button onclick="toViewer()" id="btnPlay" class="action">🎵 Play</button>
             </div>
         </div>
 
@@ -70,18 +69,12 @@
                 <div class="field-group small"><label>Κλίμακα</label><input type="text" id="inpKey"></div>
             </div>
             <div class="field-group full"><label>Λίστες (Tags)</label><input type="text" id="inpTags"></div>
-            <div class="field-group full">
-                <label>Παρατηρήσεις (Notes)</label>
-                <input type="text" id="inpNotes" placeholder="π.χ. Ρυθμός 9/8, Καποτάστο...">
-            </div>
+            <div class="field-group full"><label>Παρατηρήσεις</label><input type="text" id="inpNotes"></div>
             <div class="input-grid">
                 <div class="field-group"><label>Intro</label><input type="text" id="inpIntro"></div>
-                <div class="field-group"><label>Interlude</label><input type="text" id="inpInter"></div>
+                <div class="field-group"><label>Interlude (Γέφυρα)</label><input type="text" id="inpInter"></div>
             </div>
-            <div class="field-group full">
-                <label>Κυρίως Τραγούδι</label>
-                <textarea id="inpBody"></textarea>
-            </div>
+            <div class="field-group full"><label>Κυρίως Τραγούδι</label><textarea id="inpBody"></textarea></div>
             <div class="editor-actions">
                 <button onclick="saveSong()" class="save-btn">💾 Αποθήκευση</button>
                 <button onclick="deleteCurrentSong()" class="danger-btn" id="btnDelete" style="display:none;">🗑️ Διαγραφή</button>
@@ -90,51 +83,65 @@
 
         <div id="viewer-view">
             <div id="pinnedContainer" class="pinned-box">
-                <div class="song-header">
+                <div class="mini-header-row">
                     <h2 id="displayTitle"></h2>
-                    <div class="meta-row">
-                        <span id="displayMeta"></span>
-                        <button id="btnToggleNotes" class="icon-btn" onclick="toggleNotes()" title="Show Notes">📝</button>
-                    </div>
+                    <span id="visualKey" class="key-badge">-</span>
+                    <button id="btnToggleNotes" class="icon-btn" onclick="toggleNotes()" title="Notes">📝</button>
                 </div>
-                
+                <div id="pinnedInterlude" class="compact-interlude" style="display:none;"></div>
                 <div id="displayNotes" class="notes-box" style="display:none;"></div>
-
-                <div id="structureBox" class="structure-box" style="display:none;">
-                    <div id="displayIntro"></div>
-                    <div id="displayInter"></div>
-                </div>
-                <div id="outputChords"></div>
-                <div class="split-divider" id="splitDivider" style="display:none;"><span>▼ Υπόλοιποι Στίχοι ▼</span></div>
             </div>
             
             <div id="scrollContainer" class="scroll-box">
-                <div id="outputLyrics"></div>
+                <div id="scrollIntro" class="intro-block" style="display:none;"></div>
+
+                <div id="outputContent"></div>
                 
                 <div class="qr-footer">
                     <hr>
-                    <div class="qr-label">Scan to Share</div>
                     <div id="playerQR"></div>
+                </div>
+                <div style="height: 60px;"></div>
+            </div>
+
+            <div id="bottomControlBar" class="bottom-bar">
+                <div class="b-group">
+                    <button class="b-btn" onclick="prevSong()">⏮</button>
+                    <button class="b-btn" onclick="nextSong()">⏭</button>
+                </div>
+                <div class="b-vline"></div>
+                <div class="b-group">
+                    <span class="b-label">TONE</span>
+                    <button class="b-btn" onclick="addTrans(-1)">-</button>
+                    <span id="t-val" class="b-val">0</span>
+                    <button class="b-btn" onclick="addTrans(1)">+</button>
+                </div>
+                <div class="b-vline"></div>
+                <div class="b-group">
+                    <span class="b-label">CAPO</span>
+                    <button class="b-btn" onclick="addCapo(-1)">-</button>
+                    <span id="c-val" class="b-val">0</span>
+                    <button class="b-btn" onclick="addCapo(1)">+</button>
+                </div>
+                <div class="b-group" style="margin-left:auto;">
+                    <button class="b-btn magic" onclick="findSmartCapo()">AUTO</button>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<div id="transUI" class="trans-ui">
-    <div class="nav-row"><button class="nav-btn" onclick="prevSong()">▲</button><span class="nav-label">SONG</span><button class="nav-btn" onclick="nextSong()">▼</button></div>
-    <hr style="margin:8px 0; border:0; border-top:1px solid rgba(255,255,255,0.2);">
-    <div class="t-row"><span class="t-label">TONE</span><button class="t-btn" onclick="addTrans(1)">+</button><span id="t-val" class="t-val">0</span><button class="t-btn" onclick="addTrans(-1)">-</button></div>
-    <div class="t-row" style="margin-top:10px;"><span class="t-label">CAPO</span><button class="t-btn" onclick="addCapo(1)">+</button><span id="c-val" class="t-val">0</span><button class="t-btn" onclick="addCapo(-1)">-</button></div>
-    <button class="magic-btn" onclick="findSmartCapo()">AUTO</button>
-    <div class="key-display">KEY: <span id="visualKey">-</span></div>
-</div>
+<script src="js/data.js"></script>
+<script src="js/logic.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/app.js"></script>
 
-<script src="script.js"></script>
 <script>
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js'); });
     }
 </script>
+
 </body>
 </html>

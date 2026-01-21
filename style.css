@@ -1,7 +1,24 @@
-:root { --primary: #2c3e50; --accent: #2980b9; --success: #27ae60; --bg: #f4f7f6; --sidebar-bg: #dfe6e9; --paper: #ffffff; --chord: #c0392b; }
-body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; height: 100vh; overflow: hidden; }
+:root { 
+    --primary: #2c3e50; 
+    --accent: #2980b9; 
+    --success: #27ae60; 
+    --bg: #f4f7f6; 
+    --sidebar-bg: #dfe6e9; 
+    --paper: #ffffff; 
+    --chord: #c0392b; 
+    --interlude-bg: #e3f2fd;
+    --intro-bg: #fdfefe;
+}
 
-/* LAYOUT */
+body { 
+    font-family: 'Roboto Condensed', sans-serif; 
+    background: var(--bg); 
+    margin: 0; 
+    height: 100vh; 
+    overflow: hidden; 
+}
+
+/* LAYOUT GENERIC */
 .app-layout { display: grid; grid-template-columns: 260px 1fr; height: 100vh; }
 .sidebar { background: var(--sidebar-bg); padding: 15px; border-right: 1px solid #ccc; display: flex; flex-direction: column; z-index: 5000; }
 .sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
@@ -15,105 +32,165 @@ body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; he
 
 /* MAIN AREA */
 .main-area { display: flex; flex-direction: column; height: 100vh; overflow: hidden; position: relative; }
-.top-bar { background: white; padding: 10px 20px; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
-.logo { margin: 0; font-size: 20px; color: var(--primary); letter-spacing: 1px; }
+.top-bar { background: white; padding: 5px 10px; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; height: 45px; box-sizing: border-box; }
+.logo { margin: 0; font-size: 18px; color: var(--primary); letter-spacing: 1px; font-weight: 700; }
+.view-controls button { margin-left: 5px; }
 
 /* EDITOR */
-#editor-view { padding: 20px; overflow-y: auto; flex: 1; }
-.input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+#editor-view { padding: 20px; overflow-y: auto; flex: 1; padding-bottom: 80px; } /* Χώρος για να μην κρύβονται κουμπιά */
+.input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
 .field-group { display: flex; flex-direction: column; margin-bottom: 10px; }
-.field-group.small { flex: 0 0 100px; }
-.field-group label { font-size: 12px; font-weight: bold; color: #7f8c8d; margin-bottom: 4px; }
-input, textarea { padding: 10px; border: 1px solid #ccc; border-radius: 4px; width: 100%; box-sizing: border-box; }
-textarea { height: 300px; font-family: 'Courier New', monospace; resize: vertical; }
+.field-group.small { flex: 0 0 80px; }
+.field-group label { font-size: 11px; font-weight: bold; color: #7f8c8d; margin-bottom: 2px; }
+
+/* Υποχρεωτικά πεδία με αστεράκι */
+.required-label::after { content: " *"; color: #e74c3c; }
+
+input, textarea { padding: 8px; border: 1px solid #ccc; border-radius: 4px; width: 100%; box-sizing: border-box; font-family: 'Roboto Condensed', sans-serif; font-size: 16px; }
+textarea { height: 250px; font-family: 'Courier New', monospace; resize: vertical; }
 .save-btn { background: var(--success); color: white; width: 100%; padding: 10px; }
 .danger-btn { background: #e74c3c; color: white; border:none; padding:10px; width: 100%; }
 
-/* VIEWER */
-#viewer-view { display: flex; flex-direction: column; height: 100%; overflow: hidden; background: var(--paper); }
-.pinned-box { padding: 20px 60px 10px 40px; background: #fff; border-bottom: 1px solid #ddd; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); z-index: 5; flex-shrink: 0; max-height: 60vh; overflow-y: auto; }
-.scroll-box { padding: 20px 60px 100px 40px; overflow-y: auto; flex-grow: 1; background: #fdfdfd; }
-.song-header { text-align: center; margin-bottom: 10px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
-#displayTitle { margin: 0; color: var(--primary); font-size: 24px; }
-.meta-row { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 5px; }
-#displayMeta { color: #7f8c8d; font-style: italic; font-size: 14px; }
+/* --- VIEWER --- */
+#viewer-view { display: flex; flex-direction: column; height: 100%; overflow: hidden; background: var(--paper); position: relative; }
 
-/* NOTES & STRUCTURE */
-.icon-btn { background: none; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; font-size: 14px; padding: 2px 6px; }
+/* PINNED HEADER */
+.pinned-box { 
+    padding: 5px 10px; 
+    background: #fff; 
+    border-bottom: 1px solid #ddd; 
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05); 
+    z-index: 10; 
+    flex-shrink: 0; 
+}
+.mini-header-row { display: flex; align-items: center; gap: 10px; flex-wrap: nowrap; overflow: hidden; }
+#displayTitle { margin: 0; color: var(--primary); font-size: 20px; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+.key-badge { background: #f1c40f; color: #333; font-weight: bold; padding: 2px 8px; border-radius: 4px; font-size: 14px; flex-shrink: 0; }
+.icon-btn { background: none; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; font-size: 14px; padding: 2px 6px; flex-shrink: 0; }
 .icon-btn.active { background: #f1c40f; border-color: #f39c12; }
-.notes-box { background: #fff9c4; color: #5d4037; padding: 10px; margin-bottom: 15px; border-radius: 4px; font-size: 14px; border: 1px solid #fbc02d; }
-.structure-box { background: #f8f9fa; border: 1px solid #e9ecef; border-left: 5px solid var(--accent); padding: 8px; margin-bottom: 15px; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 14px; }
-.struct-label { font-weight: bold; color: var(--primary); margin-right: 10px; }
-.mini-chord { font-weight: bold; color: var(--chord); margin-right: 4px; }
-.mini-lyric { color: #555; margin-right: 8px; }
 
-/* --- TOKEN & CHORD ALIGNMENT FIX (CRITICAL) --- */
+/* Compact Interlude */
+.compact-interlude {
+    margin-top: 4px;
+    background: var(--interlude-bg);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 16px; 
+    font-weight: bold;
+    color: var(--primary);
+    border-left: 4px solid var(--accent);
+    white-space: nowrap;
+    overflow-x: auto; 
+    font-family: 'Courier New', monospace;
+}
+
+/* SCROLL CONTENT */
+.scroll-box { 
+    padding: 10px 4px 60px 4px; 
+    overflow-y: auto; 
+    flex-grow: 1; 
+    background: #fff; 
+}
+
+/* Intro Block */
+.intro-block {
+    margin-bottom: 10px;
+    padding: 5px;
+    background: var(--intro-bg);
+    border: 1px dashed #bdc3c7;
+    color: #444;
+    font-family: 'Courier New', monospace;
+    font-size: 15px;
+    font-weight: bold;
+}
+
+/* LYRICS & CHORDS */
 .line-row { 
     display: flex; 
     flex-wrap: wrap; 
     align-items: flex-end; 
-    margin-bottom: 15px; 
+    margin-bottom: 6px; 
     line-height: 1.0; 
-    border-bottom: 1px dashed #f0f0f0; 
-    padding-bottom: 2px; 
+    border-bottom: 1px dashed #f5f5f5; 
 }
 .token { 
     display: inline-flex; 
     flex-direction: column; 
     justify-content: flex-end;
     margin-right: 0; 
-    white-space: nowrap; /* Αποτρέπει το σπάσιμο γραμμής στο token */
+    white-space: pre; 
 }
-.chord { font-family: 'Courier New', monospace; font-weight: bold; color: var(--chord); font-size: 17px; min-height: 1.2em; margin-bottom: 0; }
-.lyric { font-size: 20px; color: #222; }
-.compact-line { font-size: 18px; line-height: 1.3; color: #444; margin-bottom: 5px; white-space: pre-wrap; font-family: 'Segoe UI', sans-serif; }
-.split-divider { text-align: center; font-size: 10px; color: #bbb; margin-top: 10px; text-transform: uppercase; letter-spacing: 2px; }
+.chord { 
+    font-family: 'Roboto Condensed', sans-serif; 
+    font-weight: 700; 
+    color: var(--chord); 
+    font-size: clamp(14px, 4vw, 17px);
+    min-height: 1.1em; 
+    margin-bottom: -3px; 
+}
+.lyric { 
+    font-family: 'Roboto Condensed', sans-serif;
+    font-weight: 400;
+    font-size: clamp(18px, 5.5vw, 24px); 
+    color: #222; 
+    line-height: 1.1;
+}
+.compact-line { 
+    font-size: clamp(18px, 5.5vw, 24px);
+    line-height: 1.2; 
+    color: #444; 
+    margin-bottom: 6px; 
+    white-space: pre-wrap; 
+}
 
-/* QR FOOTER */
-.qr-footer { text-align: center; margin-top: 40px; padding-top: 20px; }
-.qr-label { font-size: 12px; color: #999; margin-bottom: 10px; text-transform: uppercase; }
+/* BOTTOM BAR (FIXED) - ΕΔΩ ΗΤΑΝ ΤΟ ΠΡΟΒΛΗΜΑ */
+.bottom-bar {
+    position: fixed; /* Άλλαξα σε fixed για σιγουριά */
+    bottom: 0;
+    left: 260px; /* Ξεκινάει μετά το sidebar */
+    width: calc(100% - 260px); /* Πιάνει το υπόλοιπο πλάτος */
+    height: 55px;
+    background: #2c3e50;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 5px;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.2);
+    z-index: 1000;
+    box-sizing: border-box;
+}
+
+.b-group { display: flex; align-items: center; gap: 4px; }
+.b-vline { width: 1px; height: 30px; background: rgba(255,255,255,0.2); margin: 0 4px; }
+.b-label { font-size: 9px; color: #bdc3c7; font-weight: bold; writing-mode: vertical-lr; transform: rotate(180deg); }
+.b-val { color: #f1c40f; font-weight: bold; font-size: 16px; min-width: 20px; text-align: center; }
+.b-btn { 
+    background: #34495e; color: white; border: none; border-radius: 4px; 
+    width: 36px; height: 36px; font-size: 18px; display: flex; align-items: center; justify-content: center; 
+    cursor: pointer;
+}
+.b-btn:active { background: var(--accent); }
+.b-btn.magic { background: #f1c40f; color: #2c3e50; font-size: 12px; font-weight: bold; width: 45px; }
+
+/* MISC */
+.notes-box { background: #fff9c4; padding: 5px; margin-top: 5px; border-radius: 4px; font-size: 13px; border: 1px solid #fbc02d; }
+.qr-footer { text-align: center; margin-top: 20px; padding-top: 10px; }
 #playerQR { display: flex; justify-content: center; }
-
-/* CONTROLS */
-button { padding: 8px 15px; border: 1px solid #ccc; background: white; border-radius: 4px; cursor: pointer; }
-button.action { background: var(--accent); color: white; border: none; }
-.file-btn { background: #27ae60; color: white; border: none; display: flex; align-items: center; justify-content: center; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 13px; }
-
-/* MODALS */
-.qr-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 3000; display: none; align-items: center; justify-content: center; }
-.qr-content { background:white; padding:15px; border-radius:8px; width:90%; max-width:350px; text-align:center; }
-.qr-close-btn { margin-top: 15px; background: #e74c3c; color: white; border: none; padding: 10px 20px; border-radius: 5px; width: 100%; }
-
-/* FLOATING UI */
-.trans-ui { 
-    position: fixed; top: 50%; right: 0; transform: translateY(-50%); 
-    background: rgba(44, 62, 80, 0.98); color: white; padding: 15px 10px; 
-    border-radius: 12px 0 0 12px; display: none; flex-direction: column; 
-    gap: 10px; align-items: center; box-shadow: -4px 0 15px rgba(0,0,0,0.3); 
-    z-index: 2000; width: 60px;
-}
-.nav-row, .t-row { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 100%; }
-.t-label, .nav-label { font-size: 10px; margin: 0; color: #bdc3c7; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; writing-mode: horizontal-tb; transform: none; } 
-.t-btn, .nav-btn { width: 40px; height: 40px; border-radius: 50%; background: var(--accent); color: white; border: none; font-size: 18px; display: flex; align-items: center; justify-content: center; }
-.nav-btn { background: #ecf0f1; color: #2c3e50; }
-.t-val { font-size: 15px; font-weight: bold; margin: 2px 0; }
-.magic-btn { background: #f1c40f; color: #2c3e50; border: none; border-radius: 5px; padding: 8px 4px; font-size: 10px; font-weight: bold; width: 100%; text-align: center; writing-mode: horizontal-tb; transform: none; }
-.key-display { margin-top: 5px; font-size: 10px; text-align: center; writing-mode: horizontal-tb; transform: none; }
-#visualKey { font-weight: bold; font-size: 13px; margin-top: 2px; color: #f1c40f; display: block; }
 
 /* RESPONSIVE */
 .menu-btn, .close-menu-btn { display: none; cursor: pointer; border: none; background: none; font-size: 24px; color: var(--primary); }
 
 @media (max-width: 768px) {
     .app-layout { grid-template-columns: 1fr; }
-    .sidebar { display: none; position: fixed; top: 0; left: 0; width: 85%; height: 100%; z-index: 3000; box-shadow: 5px 0 15px rgba(0,0,0,0.5); }
+    .sidebar { display: none; position: fixed; top: 0; left: 0; width: 85%; height: 100%; z-index: 5000; box-shadow: 5px 0 15px rgba(0,0,0,0.5); }
     .sidebar.active { display: flex; }
-    
-    /* FIX: Εμφάνιση του Hamburger στο κινητό */
     .menu-btn { display: block !important; margin-right: 15px; }
     .close-menu-btn { display: block; }
-
-    #btnEdit { display: none !important; }
-    .pinned-box { padding: 15px; max-height: 50vh; }
-    .scroll-box { padding: 15px 70px 80px 15px; } 
+    #btnEdit { display: none !important; } 
+    
+    /* Responsive Bottom Bar Adjustment */
+    .bottom-bar {
+        left: 0;
+        width: 100%;
+    }
 }

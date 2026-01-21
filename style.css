@@ -93,9 +93,22 @@ input:focus, textarea:focus { border-color: var(--accent); outline: none; }
 .status-badge.capo { background: var(--accent); }
 .status-badge.trans { background: var(--primary-dark); }
 
-.compact-interlude { margin-top: 6px; background: #eaf2f8; border-radius: 4px; padding: 6px 10px; font-size: 16px; font-weight: bold; color: var(--primary-dark); border-left: 4px solid var(--accent); white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; }
 .notes-box { background: #fff9c4; padding: 8px; margin-top: 8px; border-radius: 4px; font-size: 14px; border: 1px solid #fbc02d; color: #5d4037; }
-.intro-block { margin-bottom: 15px; padding: 8px; background: #f8f9f9; border: 1px dashed var(--border-color); color: var(--text-light); font-family: 'Courier New', monospace; font-size: 16px; font-weight: bold; border-radius: 4px; white-space: pre-wrap; word-wrap: break-word; }
+.intro-block, .compact-interlude { 
+    margin: 8px 0;
+    background: #eaf2f8;        /* Γαλάζιο φόντο */
+    border-radius: 4px; 
+    padding: 8px 10px; 
+    font-size: 16px;            /* Ίδιο μέγεθος */
+    font-weight: bold; 
+    color: var(--primary-dark); 
+    border: none;
+    border-left: 4px solid var(--accent); /* Μπλε γραμμή αριστερά */
+    font-family: 'Courier New', monospace;
+    white-space: pre-wrap;      
+    word-wrap: break-word;      
+    overflow-wrap: break-word; 
+}
 
 .scroll-box { padding: 15px 6px 80px 6px; overflow-y: auto; flex-grow: 1; background: var(--bg-paper); }
 .line-row { display: flex; flex-wrap: wrap; align-items: flex-end; margin-bottom: 8px; line-height: 1.0; border-bottom: 1px dotted #eee; padding-bottom: 2px; }
@@ -171,4 +184,5 @@ input:focus, textarea:focus { border-color: var(--accent); outline: none; }
     #btnEdit { display: none !important; } 
     .bottom-nav-bar { left: 0; width: 100%; }
 }
+
 

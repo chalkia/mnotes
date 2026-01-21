@@ -1,72 +1,119 @@
 /* =========================================
-   STORAGE & IO
+   STORAGE & GITHUB SYNC
    ========================================= */
 
-function saveToLocal() { 
-    localStorage.setItem('mnotes_data', JSON.stringify(library)); 
+// Αποθήκευση στο LocalStorage του browser
+function saveToLocal() {
+    localStorage.setItem('mnotes_data', JSON.stringify(library));
 }
 
-function importJSON(el) { 
-    var r = new FileReader(); 
-    r.onload = e => { 
-        try { 
-            var raw = e.target.result;
-            var d = JSON.parse(raw); 
-            if(Array.isArray(d)) sanitizeAndLoad(d, false);
-            else sanitizeAndLoad([d], true);
-        } catch(er) { alert("Error reading file."); } 
-    }; 
-    r.readAsText(el.files[0]); 
-}
-
-function sanitizeAndLoad(data, append) {
-    var cleanData = data.map(song => ensureSongStructure(song));
-    if(append) {
-        cleanData.forEach(s => library.push(s));
-        currentSongId = cleanData[cleanData.length - 1].id;
-    } else {
-        library = cleanData;
-        if(library.length > 0) currentSongId = library[0].id;
-    }
-    finalizeImport();
-}
-
-function finalizeImport() { 
-    saveToLocal(); 
-    updatePlaylistDropdown(); 
-    filterPlaylist(); 
-    closeQR(); 
-    setTimeout(() => toViewer(), 100); 
-    alert("Επιτυχία!"); 
-}
-
-function exportJSON() { 
-    var b = new Blob([JSON.stringify(library, null, 2)], {type:'application/json'}); 
-    var a = document.createElement('a'); 
-    a.href = URL.createObjectURL(b); 
-    a.download = 'mnotes_library.mnote'; 
-    a.click(); 
-}
-
-// QR Logic
-function startQR() {
-    document.getElementById('qrModal').style.display = "flex";
-    if(window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('active');
-    
-    html5QrcodeScanner = new Html5Qrcode("qr-reader");
-    html5QrcodeScanner.start(
-        { facingMode: "environment" }, { fps: 10, qrbox: 250 }, 
-        (decodedText) => {
-            try {
-                var data = JSON.parse(decodedText);
-                if(Array.isArray(data)) sanitizeAndLoad(data, false);
-                else sanitizeAndLoad([data], true);
-            } catch(e) { console.log("QR Not JSON"); }
+// Εισαγωγή από αρχείο (Upload)
+function importJSON(input) {
+    var file = input.files[0];
+    if(!file) return;
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            var imported = JSON.parse(e.target.result);
+            if(Array.isArray(imported)) {
+                // Merge logic: Προσθήκη νέων ή ενημέρωση υπαρχόντων
+                imported.forEach(song => {
+                    var safeSong = ensureSongStructure(song);
+                    var idx = library.findIndex(x => x.id === safeSong.id);
+                    if(idx !== -1) {
+                        library[idx] = safeSong; // Ενημέρωση
+                    } else {
+                        library.push(safeSong); // Προσθήκη
+                    }
+                });
+            } else {
+                // Single song import
+                var safeSong = ensureSongStructure(imported);
+                library.push(safeSong);
+            }
+            saveToLocal();
+            updatePlaylistDropdown();
+            filterPlaylist();
+            alert("Επιτυχής εισαγωγή! ✅");
+        } catch(err) {
+            console.error(err);
+            alert("Σφάλμα στο αρχείο JSON ❌");
         }
-    ).catch(err => console.error(err));
+    };
+    reader.readAsText(file);
+    input.value = ''; // Reset
 }
 
-function closeQR() { 
-    if(html5QrcodeScanner) html5QrcodeScanner.stop().then(() => { html5QrcodeScanner.clear(); document.getElementById('qrModal').style.display = "none"; }); 
-    else document.getElementById('qrModal').style.display = "none"; 
+// Εξαγωγή σε αρχείο (Download)
+function exportJSON() {
+    var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(library, null, 2));
+    var downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", "mnotes_backup_" + new Date().toISOString().slice(0,10) + ".mnote");
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+}
+
+// --- GITHUB SYNC ---
+async function syncWithGitHub() {
+    // Η διεύθυνση RAW του αρχείου στο GitHub
+    // Αν το branch σου λέγεται 'master' αντί για 'main', άλλαξέ το εδώ.
+    const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/chalkia/mnotes/main/library.json';
+
+    try {
+        console.log("Checking GitHub for updates...");
+        const response = await fetch(GITHUB_RAW_URL);
+        
+        if (!response.ok) {
+            console.warn("GitHub file not found or network error.");
+            return;
+        }
+
+        const remoteData = await response.json();
+        
+        if (!Array.isArray(remoteData)) {
+            console.warn("Invalid data format from GitHub");
+            return;
+        }
+
+        var changesCount = 0;
+
+        // Συγχώνευση (Merge)
+        remoteData.forEach(remoteSong => {
+            var safeSong = ensureSongStructure(remoteSong);
+            var idx = library.findIndex(localSong => localSong.id === safeSong.id);
+
+            // Αν υπάρχει ήδη, το ανανεώνουμε ΜΟΝΟ αν είναι διαφορετικό (απλή λογική)
+            // Ή απλά το κάνουμε overwrite για να είμαστε σίγουροι ότι έχουμε την έκδοση του GitHub
+            if (idx !== -1) {
+                // Εδώ επιλέγουμε να ΚΡΑΤΑΜΕ την έκδοση του GitHub ως "Αλήθεια"
+                // Αν θέλεις να μην χάνεις τις τοπικές αλλαγές, χρειάζεται πιο πολύπλοκη λογική (timestamps).
+                // Προς το παρόν: Το GitHub κερδίζει.
+                if (JSON.stringify(library[idx]) !== JSON.stringify(safeSong)) {
+                    library[idx] = safeSong;
+                    changesCount++;
+                }
+            } else {
+                // Αν δεν υπάρχει, το προσθέτουμε
+                library.push(safeSong);
+                changesCount++;
+            }
+        });
+
+        if (changesCount > 0) {
+            saveToLocal(); // Αποθήκευση στο κινητό
+            updatePlaylistDropdown();
+            filterPlaylist();
+            renderSidebar();
+            
+            // Εμφάνιση μηνύματος (Toast)
+            showToast("Συγχρονίστηκαν " + changesCount + " τραγούδια από GitHub! ☁️");
+        } else {
+            console.log("Library is up to date.");
+        }
+
+    } catch (error) {
+        console.error("GitHub Sync Error:", error);
+    }
 }

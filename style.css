@@ -106,9 +106,9 @@ input:focus, textarea:focus { border-color: var(--accent); outline: none; }
 .status-badge.trans { background: var(--primary-dark); }
 
 /* Content Areas */
-.compact-interlude { margin-top: 6px; background: #eaf2f8; border-radius: 4px; padding: 4px 8px; font-size: 16px; font-weight: bold; color: var(--primary-dark); border-left: 4px solid var(--accent); white-space: nowrap; overflow-x: auto; font-family: 'Courier New', monospace; }
+.compact-interlude { margin-top: 6px; background: #eaf2f8; border-radius: 4px; padding: 6px 10px; font-size: 16px; font-weight: bold; color: var(--primary-dark); border-left: 4px solid var(--accent); white-space: nowrap; overflow-x: auto; font-family: 'Courier New', monospace; white-space: pre-wrap;  word-wrap: break-word; overflow-wrap: break-word; }
 .notes-box { background: #fff9c4; padding: 8px; margin-top: 8px; border-radius: 4px; font-size: 14px; border: 1px solid #fbc02d; color: #5d4037; }
-.intro-block { margin-bottom: 15px; padding: 8px; background: #f8f9f9; border: 1px dashed var(--border-color); color: var(--text-light); font-family: 'Courier New', monospace; font-size: 15px; font-weight: bold; border-radius: 4px; }
+.intro-block { margin-bottom: 15px; padding: 8px; background: #f8f9f9; border: 1px dashed var(--border-color); color: var(--text-light); font-family: 'Courier New', monospace; font-size: 15px; font-weight: bold; border-radius: 4px; white-space: pre-wrap; word-wrap: break-word; }
 
 /* Scroll Box & Lyrics */
 .scroll-box { 
@@ -148,7 +148,7 @@ input:focus, textarea:focus { border-color: var(--accent); outline: none; }
 /* QR Code */
 .qr-footer { text-align: center; margin-top: 20px; padding-top: 10px; }
 .qr-label { font-size: 11px; color: #999; margin-bottom: 5px; text-transform: uppercase; }
-#playerQR { display: flex; justify-content: center; margin-top: 5px; min-height: 120px; }
+#playerQR { display: flex; justify-content: center; margin-top: 10px; background:white ; padding:10px;  min-height: 140px; }
 #playerQR img { margin: 0 auto; display: block; }
 
 /* BOTTOM NAV BAR (Fixed) */
@@ -195,3 +195,4 @@ input:focus, textarea:focus { border-color: var(--accent); outline: none; }
     #btnEdit { display: none !important; } 
     .bottom-nav-bar { left: 0; width: 100%; }
 }
+

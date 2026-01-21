@@ -2,12 +2,12 @@
    LOGIC & PARSING
    ========================================= */
 
-// Διασφαλίζει ότι ένα τραγούδι έχει όλα τα πεδία
 function ensureSongStructure(s) {
     return {
         id: s.id || Date.now().toString() + Math.random().toString().slice(2,5),
         title: s.title || "Untitled",
         key: s.key || "",
+        // ΑΦΑΙΡΕΣΗ ΤΟΥ CAPO ΑΠΟ ΤΗΝ ΑΠΟΘΗΚΕΥΣΗ
         notes: s.notes || "",
         intro: s.intro || "",
         interlude: s.interlude || "",
@@ -16,25 +16,19 @@ function ensureSongStructure(s) {
     };
 }
 
-// Κύρια συνάρτηση Parsing: Διαβάζει το κείμενο και γεμίζει το state.parsedChords
 function parseSongLogic(s) {
     state.parsedChords = []; 
     state.meta = { title: s.title, key: s.key, notes: s.notes, intro: s.intro, interlude: s.interlude };
-    state.t = 0; 
-    state.c = 0;
-
+    
     var safeBody = s.body || ""; 
-    var blocks = safeBody.split(/\n\s*\n/); // Χωρισμός σε παραγράφους
+    var blocks = safeBody.split(/\n\s*\n/);
     
     blocks.forEach(b => {
         if(!b.trim()) return;
-        
-        // Αν έχει συγχορδίες (! ή |)
         if(b.includes('!') || b.includes('|')) {
             var p = parseBlock(b);
             state.parsedChords.push(...p); 
         } else { 
-            // Απλοί στίχοι
             var lines = b.split('\n');
             lines.forEach(l => {
                 state.parsedChords.push({type: 'lyricOnly', text: l});
@@ -44,7 +38,6 @@ function parseSongLogic(s) {
     });
 }
 
-// Βοηθητική για Parsing Block
 function parseBlock(text) {
     var out = [], lines = text.split('\n');
     for(var i = 0; i < lines.length; i++) {
@@ -69,9 +62,9 @@ function analyzeToken(c, t) {
     return {c:c, t:t};
 }
 
-// Υπολογισμός Νότας (Transpose logic)
 function getNote(n, s) {
-    if(!n || /[|/x(),]/.test(n) && !/[A-G]/.test(n)) return n;
+    if(!n || (!/[A-G]/.test(n) && /[|/x(),]/.test(n))) return n;
+    // Ειδική διαχείριση για να μην χαλάει η μορφοποίηση
     return n.replace(/([A-G][#b]?)([a-zA-Z0-9]*)/g, (m, r, sx) => {
         var i = NOTES.indexOf(r);
         if(i === -1 && r.includes('b')) i = (NOTES.indexOf(r[0]) - 1 + 12) % 12;
@@ -81,7 +74,42 @@ function getNote(n, s) {
     });
 }
 
-// Smart Capo Logic
+// --- ΝΕΑ ΣΥΝΑΡΤΗΣΗ: ΜΟΝΙΜΗ ΑΛΛΑΓΗ ΣΤΟ ΚΕΙΜΕΝΟ ---
+function transposeSongBody(text, steps) {
+    if(!steps || steps === 0) return text;
+    var lines = text.split('\n');
+    var newLines = lines.map(line => {
+        var trimmed = line.trimEnd();
+        if(!trimmed) return line;
+
+        // Μετατροπή μόνο αν η γραμμή έχει chords (έχει ! ή |)
+        if(trimmed.includes('!') || trimmed.includes('|')) {
+            var parts = trimmed.split('!');
+            var newLine = "";
+            
+            // Το πρώτο κομμάτι (πριν το πρώτο !)
+            if(parts[0]) {
+                 newLine += getNote(parts[0], steps);
+            }
+            
+            // Τα υπόλοιπα κομμάτια
+            for(var k = 1; k < parts.length; k++) {
+                newLine += "!";
+                var m = parts[k].match(/^([A-G][#b]?[a-zA-Z0-9]*)(.*)/);
+                if(m) {
+                    // Μετατροπή της συγχορδίας και κόλλημα του υπόλοιπου κειμένου
+                    newLine += getNote(m[1], steps) + m[2];
+                } else {
+                    newLine += parts[k];
+                }
+            }
+            return newLine;
+        } 
+        return line; // Αν είναι σκέτος στίχος, δεν αλλάζει
+    });
+    return newLines.join('\n');
+}
+
 function calculateSmartCapo() {
     var s = new Set();
     state.parsedChords.forEach(l => { 
@@ -90,16 +118,10 @@ function calculateSmartCapo() {
         }); 
     });
     if(s.size === 0) return { best: 0, msg: "No chords!" };
-
     var best = 0, min = Infinity;
     for(var c = 0; c <= 5; c++) {
         var sc = 0; 
-        s.forEach(ch => { 
-            var v = getNote(ch, -c); 
-            if(EASY_CHORDS.includes(v)) sc += 0; 
-            else if(OK_CHORDS.includes(v)) sc += 1; 
-            else sc += 3; 
-        });
+        s.forEach(ch => { var v = getNote(ch, -c); if(EASY_CHORDS.includes(v)) sc += 0; else if(OK_CHORDS.includes(v)) sc += 1; else sc += 3; });
         if(sc < min) { min = sc; best = c; }
     }
     return { best: best, msg: (best === state.c) ? "👍 Best!" : "Capo " + best };

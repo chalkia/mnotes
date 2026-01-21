@@ -2,7 +2,7 @@
    MAIN APPLICATION LOGIC
    ========================================= */
 
-var hasUnsavedChanges = false; // Flag για αλλαγές
+var hasUnsavedChanges = false;
 
 window.onload = function() {
     var savedData = localStorage.getItem('mnotes_data');
@@ -15,24 +15,20 @@ window.onload = function() {
         } catch(e) { console.error("Data Load Error", e); }
     }
     
-    // Προσθήκη Listeners για ανίχνευση αλλαγών (Dirty Check)
     setupDirtyListeners();
 
     if(library.length > 0) {
         if(!currentSongId) currentSongId = library[0].id;
-        toViewer(true); // true = skip check on first load
+        toViewer(true); 
     } else {
         toEditor();
     }
 };
 
 function setupDirtyListeners() {
-    // Βρίσκουμε όλα τα inputs και textareas στον editor
     var inputs = document.querySelectorAll('#editor-view input, #editor-view textarea');
     inputs.forEach(el => {
-        el.addEventListener('input', () => {
-            hasUnsavedChanges = true;
-        });
+        el.addEventListener('input', () => { hasUnsavedChanges = true; });
     });
 }
 
@@ -43,26 +39,23 @@ function toEditor() {
     
     if(currentSongId === null) {
         clearInputs();
-        hasUnsavedChanges = false; // Νέο τραγούδι, καθαρή κατάσταση
+        hasUnsavedChanges = false;
     } else { 
         var s = library.find(x => x.id === currentSongId); 
         if(s) {
             loadInputsFromSong(s);
-            hasUnsavedChanges = false; // Φορτώθηκε, άρα καθαρό
+            hasUnsavedChanges = false;
         }
     }
 }
 
 function toViewer(skipCheck) {
-    // 1. Έλεγχος για μη αποθηκευμένες αλλαγές
     if(!skipCheck && hasUnsavedChanges) {
-        if(confirm("Έχεις μη αποθηκευμένες αλλαγές. Θέλεις να τις αποθηκεύσεις πριν φύγεις;")) {
-            var saved = saveSong(); // Προσπαθούμε να σώσουμε
-            if(!saved) return; // Αν απέτυχε η αποθήκευση (π.χ. κενά πεδία), μένουμε εδώ
+        if(confirm("Έχεις μη αποθηκευμένες αλλαγές. Θέλεις να τις αποθηκεύσεις;")) {
+            var saved = saveSong(); 
+            if(!saved) return; 
         } else {
-            // Ο χρήστης επέλεξε "Όχι", άρα αγνοούμε τις αλλαγές
             hasUnsavedChanges = false; 
-            // Αν υπάρχει τραγούδι, επαναφέρουμε τα inputs στην αρχική τιμή για να μην μπερδευτεί μετά
             if(currentSongId) {
                  var s = library.find(x => x.id === currentSongId);
                  if(s) loadInputsFromSong(s);
@@ -75,6 +68,14 @@ function toViewer(skipCheck) {
         if(!library.find(x => x.id === currentSongId)) { currentSongId = library[0].id; }
         var s = library.find(x => x.id === currentSongId);
         if(s) {
+            // ΔΙΑΒΑΣΜΑ ΡΥΘΜΙΣΕΩΝ LIVE ΑΠΟ ΤΟΝ EDITOR
+            var liveCapo = parseInt(document.getElementById('inpCapo').value) || 0;
+            var liveTrans = parseInt(document.getElementById('inpTrans').value) || 0;
+
+            // Περνάμε τις τιμές στο State για να φανούν τα badges
+            state.c = liveCapo;
+            state.t = liveTrans;
+
             parseSongLogic(s); 
             render(s);         
             document.getElementById('editor-view').style.display = 'none';
@@ -87,21 +88,47 @@ function toViewer(skipCheck) {
 function saveSong() {
     var t = document.getElementById('inpTitle').value.trim();
     var b = document.getElementById('inpBody').value.trim();
-
-    // 2. Έλεγχος Υποχρεωτικών Πεδίων
+    var currentKey = document.getElementById('inpKey').value.trim();
+    
+    // Έλεγχος Transpose για μόνιμη αποθήκευση
+    var transVal = parseInt(document.getElementById('inpTrans').value) || 0;
+    
     if(!t) { alert("⚠️ Παρακαλώ συμπληρώστε τον Τίτλο!"); return false; }
     if(!b) { alert("⚠️ Παρακαλώ συμπληρώστε τους Στίχους!"); return false; }
+
+    var finalBody = b;
+    var finalKey = currentKey;
+
+    // ΑΝ ΕΧΕΙ ΓΙΝΕΙ TRANSPOSE, ΕΦΑΡΜΟΣΕ ΤΟ ΜΟΝΙΜΑ
+    if(transVal !== 0) {
+        if(confirm("Έχεις αλλάξει τον τόνο (Transpose " + (transVal>0?"+":"") + transVal + ").\nΝα αποθηκευτεί μόνιμα η αλλαγή στο τραγούδι;")) {
+            // 1. Υπολογισμός νέου κλειδιού
+            finalKey = getNote(currentKey, transVal);
+            // 2. Μετατροπή όλου του κειμένου
+            finalBody = transposeSongBody(b, transVal);
+            // 3. Μηδενισμός του Transpose input (αφού ενσωματώθηκε)
+            document.getElementById('inpTrans').value = 0;
+            document.getElementById('inpKey').value = finalKey;
+            document.getElementById('inpBody').value = finalBody;
+        } else {
+            // Αν πει όχι, απλά σώζουμε ως έχει και κρατάμε το transpose ως ρύθμιση UI;
+            // Η οδηγία λέει "αν θέλει αποθηκεύει το τρανσπόρτο". 
+            // Εδώ υποθέτουμε ότι αν πατάει Save, θέλει να σώσει την κατάσταση.
+            // Αν ακυρώσει, απλά δεν εφαρμόζουμε μόνιμη αλλαγή, αλλά σώζουμε τα υπόλοιπα.
+        }
+    }
 
     var tags = document.getElementById('inpTags').value.split(',').map(x => x.trim()).filter(x => x.length > 0);
     
     var s = {
         id: currentSongId || Date.now().toString(),
         title: t,
-        key: document.getElementById('inpKey').value,
+        key: finalKey,
+        // CAPO: Δεν αποθηκεύεται πλέον
         notes: document.getElementById('inpNotes').value,
         intro: document.getElementById('inpIntro').value,
         interlude: document.getElementById('inpInter').value,
-        body: b,
+        body: finalBody,
         playlists: tags
     };
 
@@ -116,17 +143,15 @@ function saveSong() {
     saveToLocal(); 
     updatePlaylistDropdown(); 
     filterPlaylist(); 
-    
-    hasUnsavedChanges = false; // Reset flag μετά την αποθήκευση
+    hasUnsavedChanges = false; 
     alert("Αποθηκεύτηκε! ✅");
-    return true; // Επιστρέφει true για να ξέρει το toViewer ότι πέτυχε
+    return true; 
 }
 
 function deleteCurrentSong() {
     if(currentSongId && confirm("Διαγραφή τραγουδιού;")) {
         library = library.filter(x => x.id !== currentSongId); 
-        currentSongId = null;
-        hasUnsavedChanges = false;
+        currentSongId = null; hasUnsavedChanges = false;
         saveToLocal(); updatePlaylistDropdown(); filterPlaylist(); clearInputs(); toEditor();
     }
 }
@@ -138,7 +163,6 @@ function clearLibrary() {
     } 
 }
 
-// --- FILTERS ---
 function filterPlaylist() {
     var v = document.getElementById('playlistSelect').value; currentFilter = v;
     visiblePlaylist = (v === "ALL") ? library : library.filter(s => s.playlists.includes(v));
@@ -151,17 +175,6 @@ function updatePlaylistDropdown() {
     s.innerHTML = '<option value="ALL">📂 Όλα</option>';
     all.forEach(t => { var op = document.createElement('option'); op.value = t; op.innerText = "💿 " + t; s.appendChild(op); });
     s.value = o; if(s.value !== o) s.value = "ALL";
-}
-
-// --- PLAYBACK CONTROLS ---
-function addTrans(n) { state.t += n; render(library.find(x=>x.id===currentSongId)); }
-function addCapo(n) { if(state.c + n >= 0) { state.c += n; render(library.find(x=>x.id===currentSongId)); } }
-function findSmartCapo() {
-    var result = calculateSmartCapo(); 
-    if(result.msg === "No chords!") { alert(result.msg); return; }
-    state.c = result.best;
-    render(library.find(x=>x.id===currentSongId));
-    showToast(result.msg);
 }
 
 function nextSong() { if(visiblePlaylist.length === 0) return; var i = visiblePlaylist.findIndex(s => s.id === currentSongId); if(i < visiblePlaylist.length - 1) { currentSongId = visiblePlaylist[i + 1].id; toViewer(true); renderSidebar(); } }

@@ -18,6 +18,12 @@ window.onload = function() {
         if(!currentSongId) currentSongId = library[0].id;
         toViewer(true); 
     } else { toEditor(); }
+// --- ΝΕΟ: Κλήση για συγχρονισμό με GitHub ---
+    // Το καλούμε στο τέλος για να μην καθυστερήσει το άνοιγμα της εφαρμογής
+    setTimeout(() => {
+        syncWithGitHub();
+    }, 1000); // Περιμένουμε 1 δευτερόλεπτο να φορτώσει η σελίδα
+
 };
 
 function setupDirtyListeners() {

@@ -88,11 +88,16 @@
         </div>
 
         <div id="viewer-view">
-            <div id="pinnedContainer" class="pinned-box">
+     <div id="pinnedContainer" class="pinned-box">
                 <div class="mini-header-row">
                     <h2 id="displayTitle"></h2>
                     <span id="visualKey" class="key-badge">-</span>
                     <button id="btnToggleNotes" class="icon-btn" onclick="toggleNotes()" title="Notes">📝</button>
+                </div>
+                
+                <div id="liveStatusRow" class="status-row" style="display:none;">
+                    <span id="badgeCapo" class="status-badge capo"></span>
+                    <span id="badgeTrans" class="status-badge trans"></span>
                 </div>
                 <div id="pinnedInterlude" class="compact-interlude" style="display:none;"></div>
                 <div id="displayNotes" class="notes-box" style="display:none;"></div>
@@ -157,3 +162,4 @@
 
 </body>
 </html>
+

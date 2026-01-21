@@ -1,18 +1,26 @@
+/* ΝΕΑ ΧΡΩΜΑΤΙΚΗ ΠΑΛΕΤΑ "Slate & Gold" */
 :root { 
-    --primary: #2c3e50; 
-    --accent: #2980b9; 
-    --success: #27ae60; 
-    --bg: #f4f7f6; 
-    --sidebar-bg: #dfe6e9; 
-    --paper: #ffffff; 
-    --chord: #c0392b; 
-    --interlude-bg: #e3f2fd;
-    --intro-bg: #fdfefe;
+    --primary-dark: #2c3e50;   /* Βασικό σκούρο χρώμα (λογότυπο, μπάρες) */
+    --primary-light: #34495e;  /* Ελαφρώς πιο ανοιχτό για κουμπιά */
+    --accent: #3498db;         /* Έντονο μπλε για επιλογές/links */
+    --highlight: #f1c40f;      /* Χρυσό/Κίτρινο για αντίθεση (τονικότητες) */
+    --success: #27ae60;        /* Πράσινο για αποθήκευση */
+    --danger: #e74c3c;         /* Κόκκινο για διαγραφή */
+    --chord: #c0392b;          /* Το χρώμα των συγχορδιών */
+    
+    --bg-main: #ecf0f1;        /* Γενικό φόντο εφαρμογής (ανοιχτό γκρι) */
+    --bg-paper: #ffffff;       /* Φόντο περιοχής ανάγνωσης (λευκό) */
+    --bg-sidebar: #bdc3c7;     /* Φόντο sidebar */
+
+    --text-main: #2c3e50;      /* Κύριο χρώμα κειμένου */
+    --text-light: #7f8c8d;     /* Βοηθητικό κείμενο (meta info) */
+    --border-color: #bdc3c7;   /* Χρώμα περιγραμμάτων */
 }
 
 body { 
     font-family: 'Roboto Condensed', sans-serif; 
-    background: var(--bg); 
+    background: var(--bg-main);
+    color: var(--text-main);
     margin: 0; 
     height: 100vh; 
     overflow: hidden; 
@@ -20,64 +28,83 @@ body {
 
 /* LAYOUT GENERIC */
 .app-layout { display: grid; grid-template-columns: 260px 1fr; height: 100vh; }
-.sidebar { background: var(--sidebar-bg); padding: 15px; border-right: 1px solid #ccc; display: flex; flex-direction: column; z-index: 5000; }
-.sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+.sidebar { background: var(--bg-sidebar); padding: 15px; border-right: 1px solid var(--border-color); display: flex; flex-direction: column; z-index: 5000; }
+.sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; color: var(--primary-dark); }
 .playlist-filter { margin-bottom: 10px; }
-.playlist-filter select { width: 100%; padding: 5px; }
-.playlist { flex: 1; overflow-y: auto; background: white; border-radius: 6px; padding: 5px; border: 1px solid #ccc; }
-.playlist-item { padding: 10px; border-bottom: 1px solid #f1f1f1; cursor: pointer; font-size: 14px; color: #333; }
-.playlist-item:hover { background: #f8f9fa; }
-.playlist-item.active { background: var(--accent); color: white; font-weight: bold; border-radius: 4px; }
+.playlist-filter select { width: 100%; padding: 5px; border: 1px solid var(--border-color); border-radius: 4px; }
+.playlist { flex: 1; overflow-y: auto; background: var(--bg-paper); border-radius: 6px; padding: 5px; border: 1px solid var(--border-color); }
+.playlist-item { padding: 10px; border-bottom: 1px solid var(--bg-main); cursor: pointer; font-size: 14px; color: var(--text-main); }
+.playlist-item:hover { background: var(--bg-main); }
+.playlist-item.active { background: var(--accent); color: white; font-weight: bold; border-radius: 4px; border-bottom: none; }
 .sidebar-actions { margin-top: 15px; display: flex; flex-direction: column; gap: 8px; }
+
+/* Κουμπιά Sidebar */
+.action-btn, .file-btn, .qr-btn { 
+    padding: 10px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; text-align: center; transition: background 0.2s;
+}
+.action-btn { background: var(--primary-light); color: white; }
+.action-btn:hover { background: var(--primary-dark); }
+.qr-btn { background: #8e44ad; color: white; } /* Μωβ για το QR */
+.qr-btn:hover { background: #6c3483; }
+.file-btn { background: var(--accent); color: white; display: block; }
+.file-btn:hover { background: #2980b9; }
 
 /* MAIN AREA */
 .main-area { display: flex; flex-direction: column; height: 100vh; overflow: hidden; position: relative; }
-.top-bar { background: white; padding: 5px 10px; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; height: 45px; box-sizing: border-box; }
-.logo { margin: 0; font-size: 18px; color: var(--primary); letter-spacing: 1px; font-weight: 700; }
-.view-controls button { margin-left: 5px; }
+.top-bar { background: var(--bg-paper); padding: 5px 10px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; height: 45px; box-sizing: border-box; }
+.logo { margin: 0; font-size: 20px; color: var(--primary-dark); letter-spacing: 1px; font-weight: 800; text-transform: uppercase; }
+.view-controls { display: flex; gap: 5px; }
+
+/* Κουμπιά Πλοήγησης (Edit/Play) */
+.nav-btn { padding: 6px 12px; border: 1px solid var(--primary-light); background: transparent; color: var(--primary-light); border-radius: 4px; cursor: pointer; font-weight: bold; }
+.nav-btn.primary { background: var(--primary-light); color: white; }
+.nav-btn:hover { background: var(--primary-dark); color: white; }
 
 /* EDITOR */
-#editor-view { padding: 20px; overflow-y: auto; flex: 1; padding-bottom: 80px; } /* Χώρος για να μην κρύβονται κουμπιά */
+#editor-view { padding: 20px; overflow-y: auto; flex: 1; padding-bottom: 80px; background: var(--bg-main); }
 .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
 .field-group { display: flex; flex-direction: column; margin-bottom: 10px; }
 .field-group.small { flex: 0 0 80px; }
-.field-group label { font-size: 11px; font-weight: bold; color: #7f8c8d; margin-bottom: 2px; }
+.field-group label { font-size: 11px; font-weight: bold; color: var(--text-light); margin-bottom: 2px; }
+.required-label::after { content: " *"; color: var(--danger); }
 
-/* Υποχρεωτικά πεδία με αστεράκι */
-.required-label::after { content: " *"; color: #e74c3c; }
-
-input, textarea { padding: 8px; border: 1px solid #ccc; border-radius: 4px; width: 100%; box-sizing: border-box; font-family: 'Roboto Condensed', sans-serif; font-size: 16px; }
+input, textarea { padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; width: 100%; box-sizing: border-box; font-family: 'Roboto Condensed', sans-serif; font-size: 16px; background: var(--bg-paper); color: var(--text-main); }
 textarea { height: 250px; font-family: 'Courier New', monospace; resize: vertical; }
-.save-btn { background: var(--success); color: white; width: 100%; padding: 10px; }
-.danger-btn { background: #e74c3c; color: white; border:none; padding:10px; width: 100%; }
+input:focus, textarea:focus { border-color: var(--accent); outline: none; }
+
+.save-btn { background: var(--success); color: white; width: 100%; padding: 10px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 16px; }
+.save-btn:hover { background: #219a52; }
+.danger-btn { background: var(--danger); color: white; border:none; padding:10px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold; }
+.danger-btn:hover { background: #c0392b; }
 
 /* --- VIEWER --- */
-#viewer-view { display: flex; flex-direction: column; height: 100%; overflow: hidden; background: var(--paper); position: relative; }
+#viewer-view { display: flex; flex-direction: column; height: 100%; overflow: hidden; background: var(--bg-paper); position: relative; }
 
 /* PINNED HEADER */
 .pinned-box { 
     padding: 5px 10px; 
-    background: #fff; 
-    border-bottom: 1px solid #ddd; 
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05); 
+    background: var(--bg-paper); 
+    border-bottom: 2px solid var(--border-color); 
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05); 
     z-index: 10; 
     flex-shrink: 0; 
 }
 .mini-header-row { display: flex; align-items: center; gap: 10px; flex-wrap: nowrap; overflow: hidden; }
-#displayTitle { margin: 0; color: var(--primary); font-size: 20px; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
-.key-badge { background: #f1c40f; color: #333; font-weight: bold; padding: 2px 8px; border-radius: 4px; font-size: 14px; flex-shrink: 0; }
-.icon-btn { background: none; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; font-size: 14px; padding: 2px 6px; flex-shrink: 0; }
-.icon-btn.active { background: #f1c40f; border-color: #f39c12; }
+#displayTitle { margin: 0; color: var(--primary-dark); font-size: 22px; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; font-weight: 700; }
+.key-badge { background: var(--highlight); color: var(--primary-dark); font-weight: bold; padding: 2px 8px; border-radius: 4px; font-size: 14px; flex-shrink: 0; box-shadow: 1px 1px 2px rgba(0,0,0,0.1); }
+.icon-btn { background: transparent; border: 1px solid var(--border-color); color: var(--text-light); border-radius: 4px; cursor: pointer; font-size: 16px; padding: 2px 6px; flex-shrink: 0; }
+.icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+.icon-btn.active { background: var(--highlight); border-color: var(--highlight); color: var(--primary-dark); }
 
 /* Compact Interlude */
 .compact-interlude {
-    margin-top: 4px;
-    background: var(--interlude-bg);
+    margin-top: 6px;
+    background: #eaf2f8; /* Πολύ απαλό μπλε */
     border-radius: 4px;
-    padding: 2px 6px;
+    padding: 4px 8px;
     font-size: 16px; 
     font-weight: bold;
-    color: var(--primary);
+    color: var(--primary-dark);
     border-left: 4px solid var(--accent);
     white-space: nowrap;
     overflow-x: auto; 
@@ -86,22 +113,23 @@ textarea { height: 250px; font-family: 'Courier New', monospace; resize: vertica
 
 /* SCROLL CONTENT */
 .scroll-box { 
-    padding: 10px 4px 60px 4px; 
+    padding: 15px 6px 60px 6px; 
     overflow-y: auto; 
     flex-grow: 1; 
-    background: #fff; 
+    background: var(--bg-paper); 
 }
 
 /* Intro Block */
 .intro-block {
-    margin-bottom: 10px;
-    padding: 5px;
-    background: var(--intro-bg);
-    border: 1px dashed #bdc3c7;
-    color: #444;
+    margin-bottom: 15px;
+    padding: 8px;
+    background: #f8f9f9;
+    border: 1px dashed var(--border-color);
+    color: var(--text-light);
     font-family: 'Courier New', monospace;
     font-size: 15px;
     font-weight: bold;
+    border-radius: 4px;
 }
 
 /* LYRICS & CHORDS */
@@ -109,9 +137,10 @@ textarea { height: 250px; font-family: 'Courier New', monospace; resize: vertica
     display: flex; 
     flex-wrap: wrap; 
     align-items: flex-end; 
-    margin-bottom: 6px; 
+    margin-bottom: 8px; 
     line-height: 1.0; 
-    border-bottom: 1px dashed #f5f5f5; 
+    border-bottom: 1px dotted #eee; /* Πιο διακριτικό χώρισμα */
+    padding-bottom: 2px;
 }
 .token { 
     display: inline-flex; 
@@ -122,75 +151,79 @@ textarea { height: 250px; font-family: 'Courier New', monospace; resize: vertica
 }
 .chord { 
     font-family: 'Roboto Condensed', sans-serif; 
-    font-weight: 700; 
+    font-weight: 800; 
     color: var(--chord); 
-    font-size: clamp(14px, 4vw, 17px);
+    font-size: clamp(15px, 4.5vw, 18px); /* Λίγο πιο έντονα */
     min-height: 1.1em; 
-    margin-bottom: -3px; 
+    margin-bottom: -2px; 
+    text-shadow: 1px 1px 0px rgba(255,255,255,1); /* Για να ξεχωρίζουν */
 }
 .lyric { 
     font-family: 'Roboto Condensed', sans-serif;
     font-weight: 400;
     font-size: clamp(18px, 5.5vw, 24px); 
-    color: #222; 
+    color: var(--text-main);
     line-height: 1.1;
 }
 .compact-line { 
     font-size: clamp(18px, 5.5vw, 24px);
     line-height: 1.2; 
-    color: #444; 
-    margin-bottom: 6px; 
+    color: var(--text-main);
+    margin-bottom: 8px; 
     white-space: pre-wrap; 
 }
 
-/* BOTTOM BAR (FIXED) - ΕΔΩ ΗΤΑΝ ΤΟ ΠΡΟΒΛΗΜΑ */
+/* BOTTOM BAR (FIXED) */
 .bottom-bar {
-    position: fixed; /* Άλλαξα σε fixed για σιγουριά */
+    position: fixed;
     bottom: 0;
-    left: 260px; /* Ξεκινάει μετά το sidebar */
-    width: calc(100% - 260px); /* Πιάνει το υπόλοιπο πλάτος */
+    left: 260px;
+    width: calc(100% - 260px);
     height: 55px;
-    background: #2c3e50;
+    background: var(--primary-dark); /* Χρήση του βασικού σκούρου χρώματος */
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 5px;
-    box-shadow: 0 -2px 10px rgba(0,0,0,0.2);
+    padding: 0 8px;
+    box-shadow: 0 -4px 10px rgba(0,0,0,0.15);
     z-index: 1000;
     box-sizing: border-box;
+    border-top: 1px solid rgba(255,255,255,0.1);
 }
 
-.b-group { display: flex; align-items: center; gap: 4px; }
-.b-vline { width: 1px; height: 30px; background: rgba(255,255,255,0.2); margin: 0 4px; }
-.b-label { font-size: 9px; color: #bdc3c7; font-weight: bold; writing-mode: vertical-lr; transform: rotate(180deg); }
-.b-val { color: #f1c40f; font-weight: bold; font-size: 16px; min-width: 20px; text-align: center; }
+.b-group { display: flex; align-items: center; gap: 5px; }
+.b-vline { width: 1px; height: 25px; background: rgba(255,255,255,0.15); margin: 0 5px; }
+.b-label { font-size: 9px; color: var(--text-light); font-weight: bold; writing-mode: vertical-lr; transform: rotate(180deg); opacity: 0.7; }
+.b-val { color: var(--highlight); font-weight: 800; font-size: 17px; min-width: 22px; text-align: center; }
 .b-btn { 
-    background: #34495e; color: white; border: none; border-radius: 4px; 
-    width: 36px; height: 36px; font-size: 18px; display: flex; align-items: center; justify-content: center; 
-    cursor: pointer;
+    background: var(--primary-light); color: #ecf0f1; border: none; border-radius: 4px; 
+    width: 38px; height: 38px; font-size: 18px; display: flex; align-items: center; justify-content: center; 
+    cursor: pointer; transition: background 0.2s;
 }
-.b-btn:active { background: var(--accent); }
-.b-btn.magic { background: #f1c40f; color: #2c3e50; font-size: 12px; font-weight: bold; width: 45px; }
+.b-btn:hover { background: #435c75; }
+.b-btn:active { background: var(--accent); color: white; }
+.b-btn.magic { background: var(--highlight); color: var(--primary-dark); font-size: 13px; font-weight: 800; width: 48px; }
+.b-btn.magic:hover { background: #d4ac0d; }
 
 /* MISC */
-.notes-box { background: #fff9c4; padding: 5px; margin-top: 5px; border-radius: 4px; font-size: 13px; border: 1px solid #fbc02d; }
-.qr-footer { text-align: center; margin-top: 20px; padding-top: 10px; }
-#playerQR { display: flex; justify-content: center; }
+.notes-box { background: #fff9c4; padding: 8px; margin-top: 8px; border-radius: 4px; font-size: 14px; border: 1px solid #fbc02d; color: #5d4037; }
+.qr-footer { text-align: center; margin-top: 30px; padding-top: 15px; border-top: 1px solid #eee; }
+#playerQR { display: flex; justify-content: center; margin-top: 10px; }
+.qr-modal { display: none; position: fixed; z-index: 6000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); align-items: center; justify-content: center; }
+.qr-content { background-color: var(--bg-paper); padding: 20px; border-radius: 8px; width: 90%; max-width: 400px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+.qr-close-btn { margin-top: 15px; padding: 8px 20px; background: var(--danger); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
 
 /* RESPONSIVE */
-.menu-btn, .close-menu-btn { display: none; cursor: pointer; border: none; background: none; font-size: 24px; color: var(--primary); }
+.menu-btn, .close-menu-btn { display: none; cursor: pointer; border: none; background: transparent; font-size: 24px; color: var(--primary-dark); }
 
 @media (max-width: 768px) {
     .app-layout { grid-template-columns: 1fr; }
-    .sidebar { display: none; position: fixed; top: 0; left: 0; width: 85%; height: 100%; z-index: 5000; box-shadow: 5px 0 15px rgba(0,0,0,0.5); }
+    .sidebar { display: none; position: fixed; top: 0; left: 0; width: 85%; height: 100%; z-index: 5000; box-shadow: 5px 0 15px rgba(0,0,0,0.5); background: var(--bg-main); }
     .sidebar.active { display: flex; }
     .menu-btn { display: block !important; margin-right: 15px; }
     .close-menu-btn { display: block; }
     #btnEdit { display: none !important; } 
     
     /* Responsive Bottom Bar Adjustment */
-    .bottom-bar {
-        left: 0;
-        width: 100%;
-    }
+    .bottom-bar { left: 0; width: 100%; }
 }

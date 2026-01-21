@@ -1,6 +1,9 @@
 /* =========================================
-   UI & RENDERING (SPLIT VIEW EDITION)
+   UI & RENDERING (SMART PIN & GESTURES)
    ========================================= */
+
+// Μεταβλητή για το μέγεθος γραμματοσειράς (1.0 = normal)
+var currentFontScale = 1.0;
 
 function render(originalSong) {
     // 1. Υπολογισμός Μετατόπισης
@@ -19,7 +22,7 @@ function render(originalSong) {
         notesBtn.style.display = 'inline-block';
     } else { notesBtn.style.display = 'none'; notesBox.style.display = 'none'; }
 
-    // --- SPLIT VIEW LOGIC ---
+    // --- SETUP CONTAINERS ---
     var pinnedDiv = document.getElementById('pinnedContainer');
     var scrollDiv = document.getElementById('outputContent');
     var scrollIntro = document.getElementById('scrollIntro'); 
@@ -31,19 +34,17 @@ function render(originalSong) {
         dynPinned.id = 'dynamicPinnedContent';
         pinnedDiv.appendChild(dynPinned);
     }
-    dynPinned.innerHTML = ""; // Καθαρισμός Pinned
-    scrollDiv.innerHTML = ""; // Καθαρισμός Scroll
+    dynPinned.innerHTML = ""; 
+    scrollDiv.innerHTML = ""; 
     scrollIntro.style.display = 'none'; 
 
-    // 1. Render INTRO (Στο Pinned)
+    // 1. INTRO & INTERLUDE (Πάντα καρφιτσωμένα)
     if(state.meta.intro) {
         var introDiv = document.createElement('div');
         introDiv.className = 'intro-block';
         introDiv.innerHTML = `<span style="opacity:0.7">INTRO:</span> ` + renderSimple(state.meta.intro, chordShift);
         dynPinned.appendChild(introDiv);
     }
-
-    // 2. Render INTERLUDE (Στο Pinned)
     if(state.meta.interlude) {
         var interDiv = document.createElement('div');
         interDiv.className = 'compact-interlude';
@@ -51,40 +52,66 @@ function render(originalSong) {
         dynPinned.appendChild(interDiv);
     }
 
-    // 3. Render BODY (Split: Verse 1 -> Pinned, Rest -> Scroll)
-    var isFirstVerse = true; 
+    // 2. BLOCK LOGIC: Διαχωρισμός σε Pinned (με συγχορδίες) & Scroll (χωρίς)
+    
+    // Βήμα Α: Ομαδοποίηση γραμμών σε Blocks (χωρίζονται από 'br')
+    var blocks = [];
+    var currentBlock = [];
     
     state.parsedChords.forEach(L => {
         if(L.type === 'br') {
-            if(isFirstVerse) {
-                isFirstVerse = false; 
-                return; 
-            } else {
-                var d = document.createElement('div'); d.style.height = "15px"; 
-                scrollDiv.appendChild(d);
-                return;
+            if(currentBlock.length > 0) {
+                blocks.push(currentBlock);
+                currentBlock = [];
             }
-        }
-
-        var targetContainer = isFirstVerse ? dynPinned : scrollDiv;
-
-        if(L.type === 'lyricOnly') {
-            var p = document.createElement('div');
-            p.className = 'compact-line';
-            p.innerText = L.text;
-            targetContainer.appendChild(p);
         } else {
-            var r = document.createElement('div'); 
-            r.className = 'line-row';
-            L.tokens.forEach(tk => {
-                var w = document.createElement('div'); w.className = 'token';
-                var c = document.createElement('div'); c.className = 'chord'; 
-                c.innerText = getNote(tk.c, chordShift); 
-                var tx = document.createElement('div'); tx.className = 'lyric'; 
-                tx.innerText = tk.t;
-                w.appendChild(c); w.appendChild(tx); r.appendChild(w);
-            });
-            targetContainer.appendChild(r);
+            currentBlock.push(L);
+        }
+    });
+    if(currentBlock.length > 0) blocks.push(currentBlock); // Το τελευταίο
+
+    // Βήμα Β: Έλεγχος κάθε μπλοκ και Render
+    blocks.forEach((block, index) => {
+        // Έλεγχος: Έχει αυτό το μπλοκ συγχορδίες;
+        var hasChords = block.some(line => 
+            line.type === 'mixed' || (line.tokens && line.tokens.some(t => t.c && t.c.trim() !== ""))
+        );
+
+        // Αν έχει συγχορδίες -> Pinned. Αν όχι -> Scroll
+        var targetContainer = hasChords ? dynPinned : scrollDiv;
+
+        // Render τις γραμμές του Block
+        block.forEach(L => {
+            if(L.type === 'lyricOnly') {
+                var p = document.createElement('div');
+                p.className = 'compact-line';
+                p.innerText = L.text;
+                targetContainer.appendChild(p);
+            } else {
+                var r = document.createElement('div'); 
+                r.className = 'line-row';
+                L.tokens.forEach(tk => {
+                    var w = document.createElement('div'); w.className = 'token';
+                    var c = document.createElement('div'); c.className = 'chord'; 
+                    c.innerText = getNote(tk.c, chordShift); 
+                    var tx = document.createElement('div'); tx.className = 'lyric'; 
+                    tx.innerText = tk.t;
+                    w.appendChild(c); w.appendChild(tx); r.appendChild(w);
+                });
+                targetContainer.appendChild(r);
+            }
+        });
+
+        // Προσθήκη κενού μετά από κάθε block (εκτός αν είναι το τελευταίο)
+        if(index < blocks.length - 1) {
+            // Στο pinned δεν βάζουμε μεγάλα κενά
+            if(hasChords) {
+                var sep = document.createElement('div'); sep.style.height = "10px";
+                dynPinned.appendChild(sep);
+            } else {
+                var d = document.createElement('div'); d.style.height = "20px"; 
+                scrollDiv.appendChild(d);
+            }
         }
     });
 
@@ -98,8 +125,63 @@ function render(originalSong) {
     document.getElementById('btnSaveTone').style.display = (state.t !== 0) ? 'block' : 'none';
 
     generateQR(originalSong);
+    
+    // Ενεργοποίηση Gestures (μία φορά)
+    setupGestures();
 }
 
+// --- GESTURE LOGIC (PINCH TO ZOOM) ---
+var gestureInitialized = false;
+function setupGestures() {
+    if(gestureInitialized) return;
+    gestureInitialized = true;
+
+    var viewer = document.getElementById('viewer-view');
+    var startDist = 0;
+    var startScale = 1.0;
+
+    viewer.addEventListener('touchstart', function(e) {
+        if (e.touches.length === 2) {
+            // Υπολογισμός αρχικής απόστασης
+            startDist = Math.hypot(
+                e.touches[0].pageX - e.touches[1].pageX,
+                e.touches[0].pageY - e.touches[1].pageY
+            );
+            startScale = currentFontScale;
+        }
+    }, {passive: true});
+
+    viewer.addEventListener('touchmove', function(e) {
+        if (e.touches.length === 2) {
+            // e.preventDefault(); // (Προαιρετικό: Αν θες να μπλοκάρεις το scroll όσο ζουμάρεις)
+            
+            var dist = Math.hypot(
+                e.touches[0].pageX - e.touches[1].pageX,
+                e.touches[0].pageY - e.touches[1].pageY
+            );
+            
+            // Πόσο μεγάλωσε η απόσταση;
+            var scaleChange = dist / startDist;
+            var newScale = startScale * scaleChange;
+            
+            // Όρια Zoom (0.5x έως 3.0x)
+            if(newScale < 0.5) newScale = 0.5;
+            if(newScale > 3.0) newScale = 3.0;
+            
+            // Εφαρμογή στη μεταβλητή CSS
+            document.documentElement.style.setProperty('--font-scale', newScale);
+            currentFontScale = newScale;
+        }
+    }, {passive: false});
+
+    viewer.addEventListener('touchend', function(e) {
+        if (e.touches.length < 2) {
+            startScale = currentFontScale;
+        }
+    });
+}
+
+// Render για Intro/Interlude
 function renderSimple(t, s) {
     var parts = t.split('!'), h = "";
     if(parts[0]) h += `<span class="mini-lyric">${parts[0]}</span>`;

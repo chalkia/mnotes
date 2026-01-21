@@ -11,10 +11,8 @@
 
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
-    
     <link rel="icon" type="image/png" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-192.png">
-    
     <meta name="theme-color" content="#2c3e50">
 
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
@@ -69,8 +67,34 @@
         <div id="editor-view">
             <div class="input-grid">
                 <div class="field-group"><label class="required-label">Τίτλος</label><input type="text" id="inpTitle"></div>
-                <div class="field-group small"><label>Κλίμακα</label><input type="text" id="inpKey"></div>
+                <div class="field-group small"><label>Κλίμακα (Key)</label><input type="text" id="inpKey"></div>
             </div>
+            
+            <div class="live-settings-box">
+                <span class="live-label">ΡΥΘΜΙΣΕΙΣ LIVE (Προβολή)</span>
+                <div class="input-grid" style="margin-bottom:0;">
+                    <div class="field-group">
+                        <label>Capo (Προσωρινό)</label>
+                        <div class="stepper">
+                            <button onclick="adjVal('inpCapo', -1)">-</button>
+                            <input type="number" id="inpCapo" value="0" readonly>
+                            <button onclick="adjVal('inpCapo', 1)">+</button>
+                        </div>
+                    </div>
+                    <div class="field-group">
+                        <label>Transpose (Save=Μόνιμο)</label>
+                        <div class="stepper">
+                            <button onclick="adjVal('inpTrans', -1)">-</button>
+                            <input type="number" id="inpTrans" value="0" readonly>
+                            <button onclick="adjVal('inpTrans', 1)">+</button>
+                        </div>
+                    </div>
+                </div>
+                <div style="font-size:11px; color:#7f8c8d; margin-top:5px; font-style:italic;">
+                    * Το Capo δεν αποθηκεύεται. Αν κάνετε Save με Transpose, αλλάζει μόνιμα ο τόνος του τραγουδιού.
+                </div>
+            </div>
+
             <div class="field-group full"><label>Λίστες (Tags)</label><input type="text" id="inpTags"></div>
             <div class="field-group full"><label>Παρατηρήσεις</label><input type="text" id="inpNotes"></div>
             <div class="input-grid">
@@ -91,46 +115,28 @@
                     <span id="visualKey" class="key-badge">-</span>
                     <button id="btnToggleNotes" class="icon-btn" onclick="toggleNotes()" title="Notes">📝</button>
                 </div>
+
+                <div id="liveStatusRow" class="status-row" style="display:none;">
+                    <span id="badgeCapo" class="status-badge capo">CAPO: 0</span>
+                    <span id="badgeTrans" class="status-badge trans">TRANS: 0</span>
+                </div>
+
                 <div id="pinnedInterlude" class="compact-interlude" style="display:none;"></div>
                 <div id="displayNotes" class="notes-box" style="display:none;"></div>
             </div>
             
             <div id="scrollContainer" class="scroll-box">
                 <div id="scrollIntro" class="intro-block" style="display:none;"></div>
-
                 <div id="outputContent"></div>
                 
                 <div class="qr-footer">
                     <hr>
+                    <div class="qr-label">Scan to Share</div>
                     <div id="playerQR"></div>
                 </div>
-                <div style="height: 60px;"></div>
+                <div style="height: 40px;"></div>
             </div>
-
-            <div id="bottomControlBar" class="bottom-bar">
-                <div class="b-group">
-                    <button class="b-btn" onclick="prevSong()">⏮</button>
-                    <button class="b-btn" onclick="nextSong()">⏭</button>
-                </div>
-                <div class="b-vline"></div>
-                <div class="b-group">
-                    <span class="b-label">TONE</span>
-                    <button class="b-btn" onclick="addTrans(-1)">-</button>
-                    <span id="t-val" class="b-val">0</span>
-                    <button class="b-btn" onclick="addTrans(1)">+</button>
-                </div>
-                <div class="b-vline"></div>
-                <div class="b-group">
-                    <span class="b-label">CAPO</span>
-                    <button class="b-btn" onclick="addCapo(-1)">-</button>
-                    <span id="c-val" class="b-val">0</span>
-                    <button class="b-btn" onclick="addCapo(1)">+</button>
-                </div>
-                <div class="b-group" style="margin-left:auto;">
-                    <button class="b-btn magic" onclick="findSmartCapo()">AUTO</button>
-                </div>
             </div>
-        </div>
     </div>
 </div>
 
@@ -141,6 +147,15 @@
 <script src="js/app.js"></script>
 
 <script>
+    // Βοηθητική συνάρτηση για τα κουμπιά +/- στον editor
+    function adjVal(id, n) {
+        var el = document.getElementById(id);
+        var v = parseInt(el.value) || 0;
+        el.value = v + n;
+        // Ειδοποίηση ότι άλλαξε η τιμή
+        el.dispatchEvent(new Event('input'));
+    }
+
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js'); });
     }

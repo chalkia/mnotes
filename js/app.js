@@ -125,3 +125,5 @@ function addCapo(n) { if(state.c + n >= 0) { state.c += n; render(library.find(x
 function findSmartCapo() { var result = calculateSmartCapo(); if(result.msg === "No chords!") { alert(result.msg); return; } state.c = result.best; render(library.find(x=>x.id===currentSongId)); showToast(result.msg); }
 function nextSong() { if(visiblePlaylist.length === 0) return; var i = visiblePlaylist.findIndex(s => s.id === currentSongId); if(i < visiblePlaylist.length - 1) { currentSongId = visiblePlaylist[i + 1].id; toViewer(true); renderSidebar(); } }
 function prevSong() { if(visiblePlaylist.length === 0) return; var i = visiblePlaylist.findIndex(s => s.id === currentSongId); if(i > 0) { currentSongId = visiblePlaylist[i - 1].id; toViewer(true); renderSidebar(); } }
+// Καθαρίζει τα πεδία για να γράψουμε νέο τραγούδι
+function startNewSong() {if(hasUnsavedChanges && !confirm("Έχεις μη αποθηκευμένες αλλαγές. Θέλεις να ξεκινήσεις νέο τραγούδι;")) { return;} currentSongId = null; clearInputs(); hasUnsavedChanges = false;document.getElementById('editor-view').scrollTop = 0;}

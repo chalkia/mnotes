@@ -1,128 +1,121 @@
 /* =========================================
-   LOGIC & PARSING
+   CORE LOGIC & PARSING
    ========================================= */
 
-function ensureSongStructure(s) {
-    return {
-        id: s.id || Date.now().toString() + Math.random().toString().slice(2,5),
-        title: s.title || "Untitled",
-        key: s.key || "",
-        // ΑΦΑΙΡΕΣΗ ΤΟΥ CAPO ΑΠΟ ΤΗΝ ΑΠΟΘΗΚΕΥΣΗ
-        notes: s.notes || "",
-        intro: s.intro || "",
-        interlude: s.interlude || "",
-        body: s.body || "",
-        playlists: s.playlists || []
-    };
-}
+// Κύρια συνάρτηση που "διαβάζει" το τραγούδι
+function parseSongLogic(song) {
+    state.meta = song;
+    state.parsedChords = [];
 
-function parseSongLogic(s) {
-    state.parsedChords = []; 
-    state.meta = { title: s.title, key: s.key, notes: s.notes, intro: s.intro, interlude: s.interlude };
-    
-    var safeBody = s.body || ""; 
-    var blocks = safeBody.split(/\n\s*\n/);
-    
-    blocks.forEach(b => {
-        if(!b.trim()) return;
-        if(b.includes('!') || b.includes('|')) {
-            var p = parseBlock(b);
-            state.parsedChords.push(...p); 
-        } else { 
-            var lines = b.split('\n');
-            lines.forEach(l => {
-                state.parsedChords.push({type: 'lyricOnly', text: l});
-            });
-             state.parsedChords.push({type:'br'}); 
-        }
-    });
-}
+    if (!song.body) return;
 
-function parseBlock(text) {
-    var out = [], lines = text.split('\n');
-    for(var i = 0; i < lines.length; i++) {
-        var l = lines[i].trimEnd();
-        if(!l) continue;
-        var parts = l.split('!'), tokens = [];
-        if(parts[0]) tokens.push(analyzeToken("", parts[0]));
-        for(var k = 1; k < parts.length; k++) {
-            var m = parts[k].match(/^([A-G][#b]?[a-zA-Z0-9]*)(.*)/);
-            if(m) tokens.push(analyzeToken(m[1], m[2]));
-            else tokens.push(analyzeToken("", "!" + parts[k]));
-        }
-        out.push({type:'line', tokens:tokens});
-    }
-    return out;
-}
-
-function analyzeToken(c, t) {
-    var isStruct = /^[\s|/(),x0-9]+$/.test(t);
-    if(isStruct && c === "") return {c:t, t:""};
-    if(isStruct && c !== "") return {c:c+" "+t, t:""};
-    return {c:c, t:t};
-}
-
-function getNote(n, s) {
-    if(!n || (!/[A-G]/.test(n) && /[|/x(),]/.test(n))) return n;
-    // Ειδική διαχείριση για να μην χαλάει η μορφοποίηση
-    return n.replace(/([A-G][#b]?)([a-zA-Z0-9]*)/g, (m, r, sx) => {
-        var i = NOTES.indexOf(r);
-        if(i === -1 && r.includes('b')) i = (NOTES.indexOf(r[0]) - 1 + 12) % 12;
-        if(i === -1) return m;
-        var ni = (i + s) % 12; if(ni < 0) ni += 12;
-        return NOTES[ni] + sx;
-    });
-}
-
-// --- ΝΕΑ ΣΥΝΑΡΤΗΣΗ: ΜΟΝΙΜΗ ΑΛΛΑΓΗ ΣΤΟ ΚΕΙΜΕΝΟ ---
-function transposeSongBody(text, steps) {
-    if(!steps || steps === 0) return text;
-    var lines = text.split('\n');
-    var newLines = lines.map(line => {
-        var trimmed = line.trimEnd();
-        if(!trimmed) return line;
-
-        // Μετατροπή μόνο αν η γραμμή έχει chords (έχει ! ή |)
-        if(trimmed.includes('!') || trimmed.includes('|')) {
-            var parts = trimmed.split('!');
-            var newLine = "";
+    var blocks = song.body.split('\n');
+    blocks.forEach(line => {
+        line = line.trimEnd(); // Καθαρισμός κενών στο τέλος
+        if (line.trim() === "") {
+            state.parsedChords.push({ type: 'br' });
+        } else if (line.indexOf('!') === -1) {
+            // Στίχος χωρίς συγχορδίες
+            state.parsedChords.push({ type: 'lyricOnly', text: line });
+        } else {
+            // Γραμμή με συγχορδίες
+            var parts = line.split('!');
+            var tokens = [];
             
-            // Το πρώτο κομμάτι (πριν το πρώτο !)
-            if(parts[0]) {
-                 newLine += getNote(parts[0], steps);
+            // Κείμενο πριν την πρώτη συγχορδία
+            if (parts[0].length > 0) {
+                tokens.push({ c: "", t: parts[0] });
             }
-            
-            // Τα υπόλοιπα κομμάτια
-            for(var k = 1; k < parts.length; k++) {
-                newLine += "!";
-                var m = parts[k].match(/^([A-G][#b]?[a-zA-Z0-9]*)(.*)/);
-                if(m) {
-                    // Μετατροπή της συγχορδίας και κόλλημα του υπόλοιπου κειμένου
-                    newLine += getNote(m[1], steps) + m[2];
+
+            for (var i = 1; i < parts.length; i++) {
+                var p = parts[i];
+                var m = p.match(/^([A-G][#b]?[a-zA-Z0-9/]*)(.*)/);
+                if (m) {
+                    tokens.push({ c: m[1], t: m[2] || "" });
                 } else {
-                    newLine += parts[k];
+                    tokens.push({ c: "", t: "!" + p }); // Ασφάλεια
                 }
             }
-            return newLine;
-        } 
-        return line; // Αν είναι σκέτος στίχος, δεν αλλάζει
+            state.parsedChords.push({ type: 'mixed', tokens: tokens });
+        }
     });
-    return newLines.join('\n');
 }
 
+// Υπολογισμός Νέας Νότας (Transpose)
+function getNote(note, semitones) {
+    if (!note) return "";
+    var match = note.match(/^([A-G][#b]?)(.*)$/);
+    if (!match) return note;
+
+    var root = match[1];
+    var suffix = match[2];
+
+    var idx = NOTES.indexOf(root);
+    if (idx === -1) idx = NOTES_FLAT.indexOf(root);
+    if (idx === -1) return note;
+
+    var newIdx = (idx + semitones + 12000) % 12;
+    return NOTES[newIdx] + suffix;
+}
+
+// Smart Capo Logic
 function calculateSmartCapo() {
-    var s = new Set();
-    state.parsedChords.forEach(l => { 
-        if(l.tokens) l.tokens.forEach(t => { 
-            if(t.c && /[A-G]/.test(t.c)) s.add(getNote(t.c, state.t).split('/')[0].replace(/m|dim|aug|sus|7|9/g,"") + (t.c.includes('m') ? 'm' : '')); 
-        }); 
+    var allChords = [];
+    // Μαζεύουμε όλες τις συγχορδίες
+    state.parsedChords.forEach(line => {
+        if(line.tokens) {
+            line.tokens.forEach(tk => { if(tk.c) allChords.push(tk.c); });
+        }
     });
-    if(s.size === 0) return { best: 0, msg: "No chords!" };
-    var best = 0, min = Infinity;
-    for(var c = 0; c <= 5; c++) {
-        var sc = 0; 
-        s.forEach(ch => { var v = getNote(ch, -c); if(EASY_CHORDS.includes(v)) sc += 0; else if(OK_CHORDS.includes(v)) sc += 1; else sc += 3; });
-        if(sc < min) { min = sc; best = c; }
+    
+    if(state.meta.intro) extractChordsFromStr(state.meta.intro, allChords);
+    if(state.meta.interlude) extractChordsFromStr(state.meta.interlude, allChords);
+
+    if (allChords.length === 0) return { best: 0, msg: "No chords!" };
+
+    var bestCapo = 0;
+    var maxOpenChords = -1;
+
+    for (var capo = 0; capo < 10; capo++) {
+        var openCount = 0;
+        for (var i = 0; i < allChords.length; i++) {
+            var playedChord = getNote(allChords[i], -capo);
+            if (isOpenChord(playedChord)) openCount++;
+        }
+        if (openCount > maxOpenChords) {
+            maxOpenChords = openCount;
+            bestCapo = capo;
+        }
     }
-    return { best: best, msg: (best === state.c) ? "👍 Best!" : "Capo " + best };
+    return { best: bestCapo, msg: "Best Capo: " + bestCapo };
+}
+
+function extractChordsFromStr(str, arr) {
+    var parts = str.split('!');
+    parts.forEach(p => {
+        var m = p.match(/^([A-G][#b]?[a-zA-Z0-9]*)/);
+        if(m) arr.push(m[1]);
+    });
+}
+
+function isOpenChord(c) {
+    var root = c.split('/')[0];
+    return OPEN_CHORDS.includes(root);
+}
+
+// Μετατροπή κειμένου (Save Tone)
+function transposeSongBody(body, semitones) {
+    if (!body) return "";
+    var lines = body.split('\n');
+    return lines.map(line => {
+        if (line.indexOf('!') === -1) return line;
+        var parts = line.split('!');
+        var newLine = parts[0];
+        for (var i = 1; i < parts.length; i++) {
+            var m = parts[i].match(/^([A-G][#b]?[a-zA-Z0-9/]*)(.*)/);
+            if (m) newLine += "!" + getNote(m[1], semitones) + m[2];
+            else newLine += "!" + parts[i];
+        }
+        return newLine;
+    }).join('\n');
 }

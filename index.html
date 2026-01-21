@@ -65,7 +65,7 @@
 
         <div id="editor-view">
             <div class="input-grid">
-                <div class="field-group"><label>Τίτλος</label><input type="text" id="inpTitle"></div>
+                <div class="field-group"><label class="required-label">Τίτλος</label><input type="text" id="inpTitle"></div>
                 <div class="field-group small"><label>Κλίμακα</label><input type="text" id="inpKey"></div>
             </div>
             <div class="field-group full"><label>Λίστες (Tags)</label><input type="text" id="inpTags"></div>
@@ -74,7 +74,7 @@
                 <div class="field-group"><label>Intro</label><input type="text" id="inpIntro"></div>
                 <div class="field-group"><label>Interlude (Γέφυρα)</label><input type="text" id="inpInter"></div>
             </div>
-            <div class="field-group full"><label>Κυρίως Τραγούδι</label><textarea id="inpBody"></textarea></div>
+            <div class="field-group full"><label class="required-label">Κυρίως Τραγούδι</label><textarea id="inpBody"></textarea></div>
             <div class="editor-actions">
                 <button onclick="saveSong()" class="save-btn">💾 Αποθήκευση</button>
                 <button onclick="deleteCurrentSong()" class="danger-btn" id="btnDelete" style="display:none;">🗑️ Διαγραφή</button>
@@ -145,3 +145,4 @@
 
 </body>
 </html>
+

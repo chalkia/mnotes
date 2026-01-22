@@ -5,6 +5,7 @@ var hasUnsavedChanges = false;
 
 window.onload = function() {
     loadSavedTheme();
+    setupSidebarSwipe();
     var savedData = localStorage.getItem('mnotes_data');
     if(savedData) {
         try {

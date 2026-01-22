@@ -367,13 +367,20 @@ function renderTagCloud() {
 }
 
 // --- LOGIC ΓΙΑ ΤΟ SCANNER ---
-let html5QrCode;
+
+let html5QrCode; // Η μεταβλητή για την κάμερα
 
 function startScanner() {
-    document.getElementById('scannerModal').style.display = 'flex';
-    html5QrCode = new Html5Qrcode("reader");
+    // ΔΙΟΡΘΩΣΗ: Το ID στο HTML είναι 'qrModal', όχι 'scannerModal'
+    document.getElementById('qrModal').style.display = 'flex';
+
+    // 2. Ξεκίνα την κάμερα
+    html5QrCode = new Html5Qrcode("qr-reader"); // ΔΙΟΡΘΩΣΗ: ID 'qr-reader'
+    
+    // Ρυθμίσεις κάμερας
     const config = { fps: 10, qrbox: { width: 250, height: 250 } };
     
+    // Προσπάθησε να ανοίξεις την πίσω κάμερα ("environment")
     html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
     .catch(err => {
         console.error("Error starting scanner", err);
@@ -386,53 +393,38 @@ function stopScanner() {
     if (html5QrCode) {
         html5QrCode.stop().then(() => {
             html5QrCode.clear();
-            document.getElementById('scannerModal').style.display = 'none';
+            document.getElementById('qrModal').style.display = 'none'; // ΔΙΟΡΘΩΣΗ ID
         }).catch(err => {
             console.log("Error stopping scanner", err);
-            document.getElementById('scannerModal').style.display = 'none';
+            document.getElementById('qrModal').style.display = 'none'; // ΔΙΟΡΘΩΣΗ ID
         });
     } else {
-        document.getElementById('scannerModal').style.display = 'none';
+        document.getElementById('qrModal').style.display = 'none'; // ΔΙΟΡΘΩΣΗ ID
     }
 }
 
+// Η onScanSuccess παραμένει ίδια, αλλά σιγουρέψου ότι υπάρχει:
 const onScanSuccess = (decodedText, decodedResult) => {
-    stopScanner();
+    stopScanner(); // Κλείσε την κάμερα αμέσως
 
     try {
         let finalJson = decodedText;
-        try {
-            JSON.parse(finalJson);
-        } catch (e) {
-            try {
-                finalJson = decodeURIComponent(escape(decodedText));
-            } catch (err2) {
-                console.log("Encoding fix failed, using original.");
-            }
-        }
+        // ... (η υπόλοιπη λογική ελέγχου JSON παραμένει ίδια) ...
+        try { JSON.parse(finalJson); } catch (e) { try { finalJson = decodeURIComponent(escape(decodedText)); } catch (err2) {} }
 
         let songData = JSON.parse(finalJson);
-
         if (songData.t && songData.b) {
             if(confirm(`Βρέθηκε το τραγούδι:\n"${songData.t}"\n\nΝα γίνει εισαγωγή;`)) {
                 loadInputsFromSong({
-                    title: songData.t,
-                    key: songData.k,
-                    body: songData.b,
-                    intro: songData.i,
-                    interlude: songData.n,
-                    notes: "", 
-                    playlists: []
+                    title: songData.t, key: songData.k, body: songData.b,
+                    intro: songData.i, interlude: songData.n, notes: "", playlists: []
                 });
                 toEditor(); 
                 if(window.innerWidth <= 768) toggleSidebar();
             }
-        } else {
-            alert("Άκυρο QR Code: Δεν περιέχει τραγούδι mNotes.");
-        }
-
-    } catch (error) {
-        console.error(error);
-        alert("Σφάλμα ανάγνωσης: Το αρχείο είναι κατεστραμμένο.");
-    }
+        } else { alert("Άκυρο QR Code: Δεν περιέχει τραγούδι mNotes."); }
+    } catch (error) { console.error(error); alert("Σφάλμα ανάγνωσης."); }
 };
+
+// Συνάρτηση για κλείσιμο από το κουμπί (στο HTML)
+function closeQR() { stopScanner(); }

@@ -183,6 +183,38 @@ input:focus, textarea:focus { border-color: var(--accent); outline: none; }
     .close-menu-btn { display: block; }
     .bottom-nav-bar { left: 0; width: 100%; }
 }
+/* --- TAG CLOUD SUGGESTIONS --- */
+.tag-cloud-area {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 5px;
+    margin-bottom: 15px;
+}
 
+.tag-chip {
+    background: #e0e0e0;
+    color: var(--primary-dark);
+    padding: 4px 10px;
+    border-radius: 15px;
+    font-size: 12px;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    user-select: none;
+    transition: all 0.2s;
+}
+
+.tag-chip:hover {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+}
+
+/* Αν το tag υπάρχει ήδη στο input, το δείχνουμε επιλεγμένο */
+.tag-chip.selected {
+    background: var(--primary-dark);
+    color: var(--highlight);
+    border-color: var(--primary-dark);
+}
 
 

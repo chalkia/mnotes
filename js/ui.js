@@ -457,4 +457,35 @@ const onScanSuccess = (decodedText, decodedResult) => {
         console.error(error); 
         alert("Σφάλμα ανάγνωσης QR."); 
     }
-};
+}
+// --- THEME LOGIC ---
+const THEMES = ['theme-dark', 'theme-cream', 'theme-slate'];
+let currentThemeIndex = 0;
+
+function cycleTheme() {
+    // Αφαίρεση του τρέχοντος theme
+    document.body.classList.remove(THEMES[currentThemeIndex]);
+    
+    // Επόμενο theme
+    currentThemeIndex = (currentThemeIndex + 1) % THEMES.length;
+    
+    // Προσθήκη νέου
+    let newTheme = THEMES[currentThemeIndex];
+    document.body.classList.add(newTheme);
+    
+    // Αποθήκευση στη μνήμη
+    localStorage.setItem('mnotes_theme', newTheme);
+}
+
+// Συνάρτηση για να φορτώσει το σωστό theme κατά την εκκίνηση
+function loadSavedTheme() {
+    let saved = localStorage.getItem('mnotes_theme');
+    // Default είναι το Dark (index 0)
+    if(saved && THEMES.includes(saved)) {
+        document.body.classList.remove('theme-dark'); // Καθαρισμός default
+        document.body.classList.add(saved);
+        currentThemeIndex = THEMES.indexOf(saved);
+    } else {
+        document.body.classList.add('theme-dark'); // Default
+    }
+}

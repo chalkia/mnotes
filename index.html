@@ -3,71 +3,90 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>mnotes</title>
+    <title>mNotes Pro</title>
     
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@300;400;700&display=swap" rel="stylesheet">
-
-    <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="fa/css/all.min.css">
+    
+    <link rel="stylesheet" href="style.css">
+    
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-192.png">
-    <meta name="theme-color" content="#2c3e50">  
+    
+    <meta name="theme-color" content="#121212">
 </head>
-<body>
-
-<div id="qrModal" class="qr-modal">
+<body class="theme-dark"> <div id="qrModal" class="qr-modal">
     <div class="qr-content">
-        <h3>Scan Song QR</h3>
+        <h3><i class="fas fa-qrcode"></i> Scan Song</h3>
         <div id="qr-reader" style="width: 100%;"></div>
-        <button class="qr-close-btn" onclick="closeQR()">Κλείσιμο</button>
+        <button class="qr-close-btn" onclick="closeQR()">
+            <i class="fas fa-times"></i> Κλείσιμο
+        </button>
     </div>
 </div>
 
 <div id="importChoiceModal" class="qr-modal" style="z-index: 7000;">
     <div class="qr-content" style="max-width: 300px;">
-        <h3>📥 Εισαγωγή</h3>
-        <p style="margin-bottom:20px; color:#666; font-size:14px;">Επίλεξε τρόπο εισαγωγής:</p>
+        <h3><i class="fas fa-file-import"></i> Εισαγωγή</h3>
+        <p style="margin-bottom:20px; color:var(--text-light); font-size:14px;">Επίλεξε τρόπο εισαγωγής:</p>
         
         <button class="action-btn" onclick="selectImport('qr')" style="width:100%; margin-bottom:12px; background:#8e44ad; padding:12px;">
-            📷 Σάρωση QR Code
+            <i class="fas fa-qrcode"></i> Σάρωση QR Code
         </button>
         
         <button class="action-btn" onclick="selectImport('file')" style="width:100%; margin-bottom:12px; background:#2980b9; padding:12px;">
-            📂 Αρχείο (.mnote)
+            <i class="fas fa-folder-open"></i> Αρχείο (.mnote)
         </button>
 
-        <button class="qr-close-btn" onclick="closeImportChoice()" style="background:#95a5a6; margin-top:5px; width:100%;">
+        <button class="qr-close-btn" onclick="closeImportChoice()" style="background:var(--text-light); margin-top:5px; width:100%;">
             Ακύρωση
         </button>
     </div>
 </div>
 
 <div class="app-layout">
+    
     <div id="sidebar" class="sidebar">
         <div class="sidebar-header">
             <h3>Library</h3>
-            <button onclick="toggleSidebar()" class="close-menu-btn">✕</button>
+            <button onclick="toggleSidebar()" class="close-menu-btn">
+                <i class="fas fa-times"></i> </button>
         </div>
-        <span id="songCount" style="font-size:12px; color:var(--text-light); margin-bottom:10px; display:block;">0 songs</span>
+        <span id="songCount" style="font-size:12px; margin-bottom:10px; display:block;">0 songs</span>
         
-        <input type="text" id="searchInput" placeholder="🔍 Αναζήτηση..." oninput="filterPlaylist()" 
-               style="width:100%; padding:8px; margin-bottom:10px; border:1px solid var(--border-color); border-radius:4px; box-sizing:border-box;">
+        <div style="position: relative; margin-bottom: 10px;">
+            <i class="fas fa-search search-icon" style="position: absolute; left: 10px; top: 10px;"></i>
+            <input type="text" id="searchInput" placeholder="Αναζήτηση..." oninput="filterPlaylist()" 
+                   style="width:100%; padding:8px 8px 8px 35px; border:1px solid var(--border-color); border-radius:4px; box-sizing:border-box;">
+        </div>
 
         <div class="playlist-filter">
-            <label>Λίστα:</label>
             <select id="playlistSelect" onchange="filterPlaylist()">
                 <option value="ALL">📂 Όλα τα τραγούδια</option>
             </select>
         </div>
-        <div id="playlistContainer" class="playlist"><div class="empty-msg">Κενή Βιβλιοθήκη</div></div>
+        
+        <div id="playlistContainer" class="playlist">
+            <div class="empty-msg">Κενή Βιβλιοθήκη</div>
+        </div>
         
         <div class="sidebar-actions">
-            <button onclick="cycleTheme()" class="action-btn" style="background: var(--accent);"><i class="fas fa-palette"></i> Θέμα / Theme</button>
-            <button onclick="exportJSON()" class="action-btn">💾 Export .mnote</button>
-            <button onclick="showImportMenu()" class="qr-btn" style="background:#2980b9;">📥 Import (QR / File)</button>
+            <button onclick="cycleTheme()" class="action-btn" style="background: var(--accent);">
+                <i class="fas fa-palette"></i> Θέμα / Theme
+            </button>
+            
+            <button onclick="exportJSON()" class="action-btn">
+                <i class="fas fa-file-export"></i> Export .mnote
+            </button>
+            
+            <button onclick="showImportMenu()" class="qr-btn" style="background:#2980b9;">
+                <i class="fas fa-file-import"></i> Import
+            </button>
+            
+            <button onclick="exitApp()" class="action-btn" style="background:#7f8c8d; margin-top:10px;">
+                <i class="fas fa-sign-out-alt"></i> Έξοδος
+            </button>
+            
             <input type="file" id="hiddenFileInput" onchange="importJSON(this)" accept=".mnote, .json, application/json" style="display:none;">
         </div>
     </div>
@@ -75,12 +94,17 @@
     <div class="main-area">
         <div class="top-bar">
             <div style="display:flex; align-items:center;">
-                <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+                <button class="menu-btn" onclick="toggleSidebar()">
+                    <i class="fas fa-bars"></i> </button>
                 <h1 class="logo">mnotes</h1>
             </div>
             <div class="view-controls">
-                <button onclick="toEditor()" id="btnEdit" class="nav-btn">✏️ Edit</button>
-                <button onclick="toViewer()" id="btnPlay" class="nav-btn primary">🎵 Play</button>
+                <button onclick="toEditor()" id="btnEdit" class="nav-btn">
+                    <i class="fas fa-pen"></i> Edit
+                </button>
+                <button onclick="toViewer()" id="btnPlay" class="nav-btn primary">
+                    <i class="fas fa-play"></i> Play
+                </button>
             </div>
         </div>
 
@@ -92,23 +116,32 @@
             
             <div class="field-group full"><label>Λίστες (Tags)</label><input type="text" id="inpTags"></div>
             <div id="tagSuggestions" class="tag-cloud-area"></div>
+            
             <div class="field-group full"><label>Παρατηρήσεις</label><input type="text" id="inpNotes"></div>
+            
             <div class="input-grid">
                 <div class="field-group"><label>Intro</label><input type="text" id="inpIntro"></div>
                 <div class="field-group"><label>Interlude (Γέφυρα)</label><input type="text" id="inpInter"></div>
             </div>
+            
             <div class="field-group full"><label class="required-label">Κυρίως Τραγούδι</label><textarea id="inpBody"></textarea></div>
             
             <div class="editor-actions">
-                <button onclick="startNewSong()" class="nav-btn" style="width:100%; margin-bottom:10px; background:#f39c12; color:white; border:none;">✨ Νέο Τραγούδι</button>
-                <button onclick="saveSong()" class="save-btn">💾 Αποθήκευση</button>
-                <button onclick="deleteCurrentSong()" class="danger-btn" id="btnDelete" style="display:none;">🗑️ Διαγραφή Τραγουδιού</button>
+                <button onclick="startNewSong()" class="nav-btn" style="width:100%; margin-bottom:10px; background:#f39c12; color:white; border:none;">
+                    <i class="fas fa-plus"></i> Νέο Τραγούδι
+                </button>
+                <button onclick="saveSong()" class="save-btn">
+                    <i class="fas fa-save"></i> Αποθήκευση
+                </button>
+                <button onclick="deleteCurrentSong()" class="danger-btn" id="btnDelete" style="display:none;">
+                    <i class="fas fa-trash-alt"></i> Διαγραφή
+                </button>
             </div>
 
             <div style="margin-top: 40px; border-top: 1px dashed #bdc3c7; padding-top: 20px; text-align: center;">
                 <label style="color: #e74c3c; font-size: 10px; font-weight: bold; text-transform: uppercase;">Danger Zone</label><br>
                 <button onclick="clearLibrary()" class="danger-btn" style="background-color: #c0392b; margin-top: 5px; font-size: 12px; width: auto; padding: 8px 15px;">
-                    ☢️ ΔΙΑΓΡΑΦΗ ΟΛΗΣ ΤΗΣ ΒΙΒΛΙΟΘΗΚΗΣ
+                    <i class="fas fa-radiation"></i> DELETE ALL SONGS
                 </button>
             </div>
         </div>
@@ -118,14 +151,18 @@
                 <div class="mini-header-row">
                     <h2 id="displayTitle"></h2>
                     <span id="visualKey" class="key-badge">-</span>
-                    <button id="btnToggleNotes" class="icon-btn" onclick="toggleNotes()" title="Notes">📝</button>
+                    <button id="btnToggleNotes" class="icon-btn icon-only" onclick="toggleNotes()" title="Notes">
+                        <i class="fas fa-sticky-note"></i>
+                    </button>
                 </div>
                 
                 <div id="liveStatusRow" class="status-row" style="display:none;">
                     <span id="badgeCapo" class="status-badge capo"></span>
                     <span id="badgeTrans" class="status-badge trans"></span>
                 </div>
-                <div id="pinnedInterlude" class="compact-interlude" style="display:none;"></div>
+                
+                <div id="dynamicPinnedContent"></div> 
+                
                 <div id="displayNotes" class="notes-box" style="display:none;"></div>
             </div>
             
@@ -134,25 +171,30 @@
                 <div id="outputContent"></div>
                 
                 <div class="live-controls-area">
-                    <hr style="border:0; border-top:1px solid #ddd; margin: 20px 0;">
+                    <hr style="border:0; border-top:1px solid var(--border-color); margin: 20px 0;">
+                    
                     <div class="control-row">
                         <span class="ctrl-label">TONE</span>
                         <div class="stepper">
-                            <button class="step-btn" onclick="addTrans(-1)">-</button>
+                            <button class="step-btn" onclick="addTrans(-1)"><i class="fas fa-minus"></i></button>
                             <span id="t-val" class="step-val">0</span>
-                            <button class="step-btn" onclick="addTrans(1)">+</button>
+                            <button class="step-btn" onclick="addTrans(1)"><i class="fas fa-plus"></i></button>
                         </div>
-                        <button id="btnSaveTone" class="save-tone-btn" onclick="saveToneChange()" style="display:none;">💾 Save Key</button>
+                        <button id="btnSaveTone" class="save-tone-btn" onclick="saveToneChange()" style="display:none;">
+                            <i class="fas fa-check"></i> Save
+                        </button>
                     </div>
 
                     <div class="control-row">
                         <span class="ctrl-label">CAPO</span>
                         <div class="stepper">
-                            <button class="step-btn" onclick="addCapo(-1)">-</button>
+                            <button class="step-btn" onclick="addCapo(-1)"><i class="fas fa-minus"></i></button>
                             <span id="c-val" class="step-val">0</span>
-                            <button class="step-btn" onclick="addCapo(1)">+</button>
+                            <button class="step-btn" onclick="addCapo(1)"><i class="fas fa-plus"></i></button>
                         </div>
-                        <button class="magic-btn" onclick="findSmartCapo()">🪄 AUTO</button>
+                        <button class="magic-btn" onclick="findSmartCapo()">
+                            <i class="fas fa-wand-magic-sparkles"></i> AUTO
+                        </button>
                     </div>
                 </div>
 
@@ -165,16 +207,22 @@
             </div>
             
             <div class="bottom-nav-bar">
-                <button class="nav-arrow" onclick="prevSong()">⏮ PREV</button>
+                <button class="nav-arrow" onclick="prevSong()">
+                    <i class="fas fa-chevron-left"></i> PREV
+                </button>
                 <div style="flex:1;"></div>
-                <button class="nav-arrow" onclick="nextSong()">NEXT ⏭</button>
+                <button class="nav-arrow" onclick="nextSong()">
+                    NEXT <i class="fas fa-chevron-right"></i>
+                </button>
             </div>
         </div>
     </div>
 </div>
 
 <script src="js/html5-qrcode.min.js"></script>  
-<script src="js/qrcodegen.js"></script> <script src="js/sortable.min.js"></script>
+<script src="js/qrcodegen.js"></script> 
+<script src="js/sortable.min.js"></script>
+
 <script src="js/data.js"></script>
 <script src="js/logic.js"></script>
 <script src="js/storage.js"></script>
@@ -189,15 +237,3 @@
 
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-

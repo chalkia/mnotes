@@ -195,56 +195,65 @@ function renderSimple(t, s) {
     }
     return h;
 }
-
 function generateQR(songData) {
     var qrContainer = document.getElementById('playerQR');
     if(!qrContainer) return;
-    
-    // Καθαρισμός του container και εμφάνιση μηνύματος "Loading..."
     qrContainer.innerHTML = ""; 
-    
-    // Έλεγχος αν φορτώθηκε η βιβλιοθήκη
-    if(typeof QRCode === 'undefined') {
+
+    // Έλεγχος αν φορτώθηκε η νέα βιβλιοθήκη (λέγεται qrcode στο window)
+    if(typeof qrcode === 'undefined') {
         qrContainer.innerHTML = "<span style='color:red; font-size:10px;'>QR Lib missing</span>";
         return;
     }
 
-    // Δημιουργία του μικρού αντικειμένου
-    var minSong = {
-        t: songData.title,
-        k: songData.key,
-        b: songData.body,
-        i: songData.intro,
-        n: songData.interlude
-    };
+    try {
+        // 1. Δημιουργία του αντικειμένου δεδομένων
+        var minSong = {
+            t: songData.title,
+            k: songData.key,
+            b: songData.body,
+            i: songData.intro,
+            n: songData.interlude
+        };
+        
+        // 2. Μετατροπή σε JSON
+        var jsonText = JSON.stringify(minSong);
 
-    // 1. Μετατροπή σε JSON string
-    var jsonText = JSON.stringify(minSong);
-    
-    // 2. ΤΟ ΣΗΜΑΝΤΙΚΟΤΕΡΟ ΒΗΜΑ (Fix για Ελληνικά)
-    // Αυτό συμπιέζει τα ελληνικά χαρακτήρες σε UTF-8 bytes που καταλαβαίνει το QR
-    var safeText = unescape(encodeURIComponent(jsonText));
+        // 3. ΡΥΘΜΙΣΗ ΝΕΑΣ ΒΙΒΛΙΟΘΗΚΗΣ
+        // TypeNumber 0 = Αυτόματη ανίχνευση μεγέθους (θα μεγαλώνει όσο χρειάζεται)
+        // ErrorCorrection 'L' = Low (για να χωράει περισσότερα δεδομένα)
+        var qr = qrcode(0, 'L');
+        
+        // Προσθήκη δεδομένων (τα Ελληνικά παίζουν αυτόματα εδώ!)
+        qr.addData(jsonText);
+        
+        // Δημιουργία
+        qr.make();
 
-    console.log("Original Size:", jsonText.length, "Safe Size:", safeText.length);
+        // 4. Εμφάνιση στο HTML
+        // Το createImgTag(4) σημαίνει μέγεθος pixel 4 (περίπου 200px εικόνα)
+        qrContainer.innerHTML = qr.createImgTag(4, 0); // 4=cell size, 0=margin
 
-    setTimeout(() => {
-        try {
-            qrContainer.innerHTML = ""; // Καθαρισμός ξανά για σιγουριά
-            
-            new QRCode(qrContainer, {
-                text: safeText,     // Χρησιμοποιούμε το safeText ΟΧΙ το jsonText
-                width: 128,
-                height: 128,
-                colorDark : "#2c3e50",
-                colorLight : "#ffffff",
-                correctLevel : QRCode.CorrectLevel.L // Low correction για να χωράει περισσότερα
-            });
-        } catch(e) { 
-            console.error("QR Fail:", e);
-            qrContainer.innerHTML = "<span style='color:red; font-size:10px;'>QR Error<br>(Too Big)</span>";
+        // Στυλ για να φαίνεται ωραία η εικόνα (κεντραρισμένη)
+        var img = qrContainer.querySelector('img');
+        if(img) {
+            img.style.display = "block";
+            img.style.margin = "0 auto";
+            img.style.maxWidth = "100%";
+            img.style.height = "auto";
         }
-    }, 50);
+
+    } catch(e) {
+        console.error("QR Gen Error:", e);
+        // Αν αποτύχει κι αυτό (σπάνιο), σημαίνει ότι ξεπέρασε τα 3kb
+        qrContainer.innerHTML = `
+            <div style="color:#e67e22; font-size:11px; text-align:center; padding:10px; border:1px dashed #e67e22;">
+                ⚠️ <b>Πολύ μεγάλο τραγούδι</b><br>
+                (${jsonText.length} χαρακτήρες)
+            </div>`;
+    }
 }
+
 function renderSidebar() {
     var c = document.getElementById('playlistContainer'); c.innerHTML = "";
     document.getElementById('songCount').innerText = visiblePlaylist.length + " songs";

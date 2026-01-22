@@ -267,3 +267,24 @@ input:focus, textarea:focus { border-color: var(--accent); outline: none; }
     .close-menu-btn { display: block; color: var(--sidebar-text); }
     .bottom-nav-bar { left: 0; width: 100%; }
 }
+/* --- FONTAWESOME ICON STYLES --- */
+
+/* Γενικό στυλ για εικονίδια μέσα σε κουμπιά */
+button i {
+    margin-right: 8px; /* Αέρας δεξιά */
+    font-size: 1.1em;
+}
+
+/* Ειδική περίπτωση: Κουμπιά που έχουν ΜΟΝΟ εικονίδιο (χωρίς κείμενο) */
+.icon-only i {
+    margin-right: 0;
+}
+
+/* Το εικονίδιο αναζήτησης να παίρνει το "απαλό" χρώμα κειμένου του θέματος */
+.search-icon {
+    color: var(--text-light); 
+    pointer-events: none; /* Κλικ "μέσα" από το εικονίδιο */
+}
+
+/* Το Hamburger Menu */
+.menu-btn { font-size: 20px; }

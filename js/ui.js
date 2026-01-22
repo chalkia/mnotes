@@ -345,3 +345,92 @@ function renderTagCloud() {
         container.appendChild(chip);
     });
 }
+// --- LOGIC ΓΙΑ ΤΟ SCANNER ---
+let html5QrCode; // Η μεταβλητή για την κάμερα
+
+function startScanner() {
+    // 1. Εμφάνισε το παράθυρο (Modal)
+    document.getElementById('scannerModal').style.display = 'flex';
+
+    // 2. Ξεκίνα την κάμερα
+    html5QrCode = new Html5Qrcode("reader");
+    
+    // Ρυθμίσεις κάμερας
+    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+    
+    // Προσπάθησε να ανοίξεις την πίσω κάμερα ("environment")
+    html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
+    .catch(err => {
+        console.error("Error starting scanner", err);
+        alert("Δεν βρέθηκε κάμερα ή δεν δόθηκε άδεια!");
+        stopScanner();
+    });
+}
+
+function stopScanner() {
+    if (html5QrCode) {
+        html5QrCode.stop().then(() => {
+            html5QrCode.clear();
+            document.getElementById('scannerModal').style.display = 'none';
+        }).catch(err => {
+            console.log("Error stopping scanner", err);
+            document.getElementById('scannerModal').style.display = 'none';
+        });
+    } else {
+        document.getElementById('scannerModal').style.display = 'none';
+    }
+}
+
+// Τι συμβαίνει όταν διαβάσει επιτυχώς ένα QR
+const onScanSuccess = (decodedText, decodedResult) => {
+    // 1. Σταμάτα την κάμερα αμέσως
+    stopScanner();
+
+    try {
+        let finalJson = decodedText;
+
+        // --- ΔΙΟΡΘΩΣΗ ΓΙΑ ΕΛΛΗΝΙΚΑ ---
+        // Δοκιμάζουμε να δούμε αν είναι σωστό JSON. Αν όχι, κάνουμε decode.
+        try {
+            JSON.parse(finalJson);
+        } catch (e) {
+            try {
+                // Το "κόλπο" για να φτιάξουν τα ελληνικά
+                finalJson = decodeURIComponent(escape(decodedText));
+            } catch (err2) {
+                console.log("Encoding fix failed, using original.");
+            }
+        }
+
+        // 2. Μετατροπή σε αντικείμενο
+        let songData = JSON.parse(finalJson);
+
+        // 3. Έλεγχος & Εισαγωγή
+        if (songData.t && songData.b) {
+            if(confirm(`Βρέθηκε το τραγούδι:\n"${songData.t}"\n\nΝα γίνει εισαγωγή;`)) {
+                // Φόρτωσε τα δεδομένα στα πεδία
+                loadInputsFromSong({
+                    title: songData.t,
+                    key: songData.k,
+                    body: songData.b,
+                    intro: songData.i,
+                    interlude: songData.n,
+                    notes: "", 
+                    playlists: []
+                });
+                
+                // Πήγαινε στην οθόνη επεξεργασίας
+                toEditor(); 
+                
+                // Κλείσε το μενού αν είσαι σε κινητό
+                if(window.innerWidth <= 768) toggleSidebar();
+            }
+        } else {
+            alert("Άκυρο QR Code: Δεν περιέχει τραγούδι mNotes.");
+        }
+
+    } catch (error) {
+        console.error(error);
+        alert("Σφάλμα ανάγνωσης: Το αρχείο είναι κατεστραμμένο.");
+    }
+};

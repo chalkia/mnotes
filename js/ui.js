@@ -491,4 +491,31 @@ const onScanSuccess = (decodedText, decodedResult) => {
         console.error(error); 
         alert("Σφάλμα ανάγνωσης QR.\nΒεβαιώσου ότι είναι QR από το mNotes."); 
     }
-};
+}
+
+// --- SIDEBAR SWIPE GESTURE (SWIPE LEFT TO CLOSE) ---
+function setupSidebarSwipe() {
+    const sidebar = document.getElementById('sidebar');
+    let touchStartX = 0;
+    let touchEndX = 0;
+
+    // Όταν ακουμπάς την οθόνη
+    sidebar.addEventListener('touchstart', e => {
+        touchStartX = e.changedTouches[0].screenX;
+    }, {passive: true});
+
+    // Όταν αφήνεις την οθόνη
+    sidebar.addEventListener('touchend', e => {
+        touchEndX = e.changedTouches[0].screenX;
+        handleSwipe();
+    }, {passive: true});
+
+    function handleSwipe() {
+        // Υπολογισμός διαφοράς (Αρχή - Τέλος)
+        // Αν σύρεις προς τα αριστερά, το StartX είναι μεγαλύτερο από το EndX
+        if (touchStartX - touchEndX > 70) { // 70px όριο για να μην πιάνει τυχαία αγγίγματα
+            // Κλείσε το μενού
+            sidebar.classList.remove('active');
+        }
+    }
+}

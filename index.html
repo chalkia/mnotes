@@ -43,13 +43,10 @@
             </select>
         </div>
         <div id="playlistContainer" class="playlist"><div class="empty-msg">Κενή Βιβλιοθήκη</div></div>
-        <div class="sidebar-actions">
-            <button onclick="clearLibrary()" class="danger-btn">🗑️ Clear All</button>
-            <button onclick="exportJSON()" class="action-btn">💾 Export .mnote</button>
-            <button onclick="startQR()" class="qr-btn">📷 Scan QR Import</button>
-            <label class="file-btn">
-               📂 Import File <input type="file" onchange="importJSON(this)" accept=".mnote, .json, application/json" style="display:none;">
-            </label>
+       <div class="sidebar-actions">
+          <button onclick="exportJSON()" class="action-btn">💾 Export .mnote</button>
+          <button onclick="chooseImportMethod()" class="qr-btn" style="background:#2980b9;">📥 Import (QR / File)</button>
+          <input type="file" id="hiddenFileInput" onchange="importJSON(this)" accept=".mnote, .json, application/json" style="display:none;">
         </div>
     </div>
 
@@ -70,7 +67,6 @@
                 <div class="field-group"><label class="required-label">Τίτλος</label><input type="text" id="inpTitle"></div>
                 <div class="field-group small"><label>Κλίμακα (Key)</label><input type="text" id="inpKey"></div>
             </div>
-            
             <div class="field-group full"><label>Λίστες (Tags)</label><input type="text" id="inpTags"></div>
             <div id="tagSuggestions" class="tag-cloud-area"></div>
             <div class="field-group full"><label>Παρατηρήσεις</label><input type="text" id="inpNotes"></div>
@@ -84,6 +80,18 @@
                 <button onclick="saveSong()" class="save-btn">💾 Αποθήκευση</button>
                 <button onclick="deleteCurrentSong()" class="danger-btn" id="btnDelete" style="display:none;">🗑️ Διαγραφή</button>
             </div>
+            <div class="editor-actions">
+            <button onclick="startNewSong()" class="nav-btn" style="width:100%; margin-bottom:10px; background:#f39c12; color:white; border:none;">✨ Νέο Τραγούδι</button>
+            <button onclick="saveSong()" class="save-btn">💾 Αποθήκευση</button>
+            <button onclick="deleteCurrentSong()" class="danger-btn" id="btnDelete" style="display:none;">🗑️ Διαγραφή Τραγουδιού</button>
+        </div>
+         <div style="margin-top: 40px; border-top: 1px dashed #bdc3c7; padding-top: 20px; text-align: center;">
+            <label style="color: #e74c3c; font-size: 10px; font-weight: bold; text-transform: uppercase;">Danger Zone</label><br>
+            <button onclick="clearLibrary()" class="danger-btn" style="background-color: #c0392b; margin-top: 5px; font-size: 12px; width: auto; padding: 8px 15px;">
+                ☢️ ΔΙΑΓΡΑΦΗ ΟΛΗΣ ΤΗΣ ΒΙΒΛΙΟΘΗΚΗΣ
+            </button>
+         </div>
+        </div> 
         </div>
 
         <div id="viewer-view">
@@ -163,6 +171,7 @@
 
 </body>
 </html>
+
 
 
 

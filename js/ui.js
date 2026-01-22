@@ -365,8 +365,7 @@ function renderTagCloud() {
         container.appendChild(chip);
     });
 }
-
-// --- IMPORT MENU LOGIC (ΝΕΟ) ---
+// --- IMPORT MENU LOGIC ---
 function showImportMenu() {
     document.getElementById('importChoiceModal').style.display = 'flex';
 }
@@ -376,35 +375,31 @@ function closeImportChoice() {
 }
 
 function selectImport(type) {
-    closeImportChoice(); // Κλείνουμε πρώτα το μενού
-    
+    closeImportChoice(); // Κλείσιμο μενού
     if (type === 'qr') {
-        // Μικρή καθυστέρηση για να προλάβει να φύγει το προηγούμενο παράθυρο
         setTimeout(() => { startScanner(); }, 200); 
     } else {
-        // Προσομοίωση κλικ στο κρυφό input
         var fileInput = document.getElementById('hiddenFileInput');
         if(fileInput) fileInput.click();
     }
 }
 
-
-// --- SCANNER LOGIC (ΒΕΛΤΙΩΜΕΝΟ) ---
+// --- SCANNER LOGIC (ΔΙΟΡΘΩΜΕΝΑ IDs) ---
 let html5QrCode; 
 
 function startScanner() {
-    // 1. Εμφάνιση παραθύρου QR
+    // 1. Εμφάνισε το σωστό παράθυρο (qrModal)
     var qrModal = document.getElementById('qrModal');
-    if(!qrModal) return; 
+    if(!qrModal) { console.error("QR Modal not found in HTML"); return; }
     qrModal.style.display = 'flex';
 
-    // 2. Καθαρισμός προηγούμενης instance αν υπάρχει (για να μην κολλάει)
+    // 2. Καθαρισμός αν έχει μείνει κάτι παλιό
     if(html5QrCode) {
         try { html5QrCode.clear(); } catch(e) {}
     }
 
-    // 3. Εκκίνηση
-    html5QrCode = new Html5Qrcode("qr-reader"); // Σιγουρέψου ότι στο HTML το div λέγεται id="qr-reader"
+    // 3. Σύνδεση με το σωστό div (qr-reader)
+    html5QrCode = new Html5Qrcode("qr-reader"); 
     
     const config = { fps: 10, qrbox: { width: 250, height: 250 } };
     
@@ -412,7 +407,7 @@ function startScanner() {
     .catch(err => {
         console.error("Scanner Error:", err);
         alert("Δεν βρέθηκε κάμερα ή δεν δόθηκε άδεια!");
-        stopScanner(); // Κλείσιμο για να μην μείνει "κολλημένο"
+        stopScanner();
     });
 }
 
@@ -424,10 +419,9 @@ function stopScanner() {
             html5QrCode.clear();
             if(qrModal) qrModal.style.display = 'none';
         }).catch(err => {
-            console.warn("Stop failed (ignore):", err);
-            // Ακόμα κι αν αποτύχει το stop, εμείς κλείνουμε το παράθυρο
+            console.warn("Stop failed:", err);
             if(qrModal) qrModal.style.display = 'none';
-            // Και κάνουμε reload τη σελίδα αν χρειαστεί "ξεκόλλημα"
+            // Force reload αν κολλήσει
             if(document.querySelector('#qr-reader').innerHTML !== "") {
                window.location.reload(); 
             }
@@ -436,11 +430,11 @@ function stopScanner() {
         if(qrModal) qrModal.style.display = 'none';
     }
 }
-// Λειτουργία κλεισίματος από το κουμπί
+
 function closeQR() { stopScanner(); }
 
 const onScanSuccess = (decodedText, decodedResult) => {
-    stopScanner(); // Άμεσο σταμάτημα
+    stopScanner(); 
 
     try {
         let finalJson = decodedText;
@@ -448,7 +442,6 @@ const onScanSuccess = (decodedText, decodedResult) => {
 
         let songData = JSON.parse(finalJson);
         if (songData.t && songData.b) {
-            // Χρήση setTimeout για να αφήσουμε τον browser να "ανασάνει" πριν το confirm
             setTimeout(() => {
                 if(confirm(`Βρέθηκε: "${songData.t}"\nΕισαγωγή;`)) {
                     loadInputsFromSong({

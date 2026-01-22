@@ -5,12 +5,35 @@
 // Μεταβλητή για το μέγεθος γραμματοσειράς (1.0 = normal)
 var currentFontScale = 1.0;
 
+// --- THEME LOGIC ---
+const THEMES = ['theme-dark', 'theme-cream', 'theme-slate'];
+let currentThemeIndex = 0;
+
+function cycleTheme() {
+    document.body.classList.remove(THEMES[currentThemeIndex]);
+    currentThemeIndex = (currentThemeIndex + 1) % THEMES.length;
+    let newTheme = THEMES[currentThemeIndex];
+    document.body.classList.add(newTheme);
+    localStorage.setItem('mnotes_theme', newTheme);
+}
+
+function loadSavedTheme() {
+    let saved = localStorage.getItem('mnotes_theme');
+    if(saved && THEMES.includes(saved)) {
+        document.body.classList.remove('theme-dark'); 
+        document.body.classList.add(saved);
+        currentThemeIndex = THEMES.indexOf(saved);
+    } else {
+        document.body.classList.add('theme-dark'); 
+    }
+}
+
+// --- RENDER FUNCTION ---
 function render(originalSong) {
-    // 1. Υπολογισμός Μετατόπισης
     var keyShift = state.t; 
     var chordShift = state.t - state.c;
 
-    // Ενημέρωση Header
+    // Header
     document.getElementById('displayTitle').innerText = state.meta.title;
     document.getElementById('visualKey').innerText = state.meta.key ? getNote(state.meta.key, keyShift) : "-";
     
@@ -22,12 +45,11 @@ function render(originalSong) {
         notesBtn.style.display = 'inline-block';
     } else { notesBtn.style.display = 'none'; notesBox.style.display = 'none'; }
 
-    // --- SETUP CONTAINERS ---
+    // Setup Containers
     var pinnedDiv = document.getElementById('pinnedContainer');
     var scrollDiv = document.getElementById('outputContent');
     var scrollIntro = document.getElementById('scrollIntro'); 
     
-    // Δημιουργία ή Καθαρισμός του δυναμικού pinned container
     let dynPinned = document.getElementById('dynamicPinnedContent');
     if(!dynPinned) {
         dynPinned = document.createElement('div');
@@ -38,7 +60,7 @@ function render(originalSong) {
     scrollDiv.innerHTML = ""; 
     scrollIntro.style.display = 'none'; 
 
-    // 1. INTRO & INTERLUDE (Πάντα καρφιτσωμένα)
+    // Intro & Interlude Pinned
     if(state.meta.intro) {
         var introDiv = document.createElement('div');
         introDiv.className = 'intro-block';
@@ -52,7 +74,7 @@ function render(originalSong) {
         dynPinned.appendChild(interDiv);
     }
 
-    // 2. BLOCK LOGIC
+    // Block Logic
     var blocks = [];
     var currentBlock = [];
     
@@ -68,7 +90,6 @@ function render(originalSong) {
     });
     if(currentBlock.length > 0) blocks.push(currentBlock); 
 
-    // Render Blocks
     blocks.forEach((block, index) => {
         var hasChords = block.some(line => 
             line.type === 'mixed' || (line.tokens && line.tokens.some(t => t.c && t.c.trim() !== ""))
@@ -108,7 +129,7 @@ function render(originalSong) {
         }
     });
 
-    // UPDATE CONTROLS
+    // Update Controls
     document.getElementById('t-val').innerText = (state.t > 0 ? '+' : '') + state.t;
     document.getElementById('c-val').innerText = state.c;
     document.getElementById('badgeCapo').innerText = "CAPO: " + state.c;
@@ -121,7 +142,7 @@ function render(originalSong) {
     setupGestures();
 }
 
-// --- GESTURE LOGIC ---
+// --- GESTURES ---
 var gestureInitialized = false;
 function setupGestures() {
     if(gestureInitialized) return;
@@ -196,16 +217,11 @@ function generateQR(songData) {
             i: songData.intro,
             n: songData.interlude
         };
-        
         var jsonText = JSON.stringify(minSong);
-
-        // Χρήση της νέας βιβλιοθήκης (Kazuhiko Arase)
         var qr = qrcode(0, 'L');
         qr.addData(jsonText);
         qr.make();
-
         qrContainer.innerHTML = qr.createImgTag(4, 0); 
-
         var img = qrContainer.querySelector('img');
         if(img) {
             img.style.display = "block";
@@ -213,12 +229,13 @@ function generateQR(songData) {
             img.style.maxWidth = "100%";
             img.style.height = "auto";
         }
-
     } catch(e) {
         console.error("QR Gen Error:", e);
         qrContainer.innerHTML = `<div style="color:#e67e22; font-size:11px;">⚠️ Error: Too Big</div>`;
     }
 }
+
+// --- SIDEBAR & LIST ---
 function renderSidebar() {
     var c = document.getElementById('playlistContainer'); 
     c.innerHTML = "";
@@ -236,20 +253,14 @@ function renderSidebar() {
         
         if(s.id === currentSongId) d.classList.add('active');
         
-        // --- ΑΛΛΑΓΗ 1: Προσθήκη κλάσης 'drag-handle' και λίγο styling για μεγαλύτερο στόχο αφής
+        // Drag Handle
         var handle = "<span class='drag-handle' style='color:var(--text-light); margin-right:12px; cursor:grab; padding: 5px 5px 5px 0; font-size:1.2em;'>☰</span>";
-        
-        // Το κείμενο μπαίνει σε δικό του span για να μην επηρεάζεται
         var titleText = "<span>" + (i + 1) + ". " + s.title + "</span>";
         
         d.innerHTML = handle + titleText;
         
-        // Προσοχή: Το click event δεν πρέπει να ενεργοποιείται όταν πατάμε το handle
-        // Αλλά το SortableJS συνήθως το διαχειρίζεται.
         d.onclick = (e) => { 
-            // Αν πατήσαμε το handle, μην αλλάζεις τραγούδι (προαιρετικό, αλλά βοηθάει)
             if(e.target.classList.contains('drag-handle')) return;
-
             currentSongId = s.id; 
             toViewer(true); 
             renderSidebar(); 
@@ -265,42 +276,13 @@ function renderSidebar() {
         window.playlistSortable = Sortable.create(c, {
             animation: 150,
             ghostClass: 'sortable-ghost',
-            handle: '.drag-handle', // <--- ΑΛΛΑΓΗ 2: ΜΟΝΟ από το εικονίδιο!
+            handle: '.drag-handle', // <--- ΜΟΝΟ από το εικονίδιο!
             onEnd: function (evt) {
                 var newIndex = evt.newIndex;
                 var oldIndex = evt.oldIndex;
                 if(newIndex !== oldIndex) {
                     var movedItem = visiblePlaylist.splice(oldIndex, 1)[0];
                     visiblePlaylist.splice(newIndex, 0, movedItem);
-                    renderSidebar();
-                }
-            }
-        });
-    }
-}
-
-
-    // --- ΕΝΕΡΓΟΠΟΙΗΣΗ DRAG & DROP (SortableJS) ---
-    if(typeof Sortable !== 'undefined') {
-        // Αν υπάρχει ήδη instance, το καταστρέφουμε για να μην έχουμε διπλότυπα
-        if(window.playlistSortable) window.playlistSortable.destroy();
-
-        window.playlistSortable = Sortable.create(c, {
-            animation: 150, // Ομαλή κίνηση (ms)
-            ghostClass: 'sortable-ghost', // Κλάση για το αντικείμενο που σέρνεται
-            onEnd: function (evt) {
-                // Όταν τελειώσει το σύρσιμο, πρέπει να αλλάξουμε τη σειρά
-                // και στον πίνακα visiblePlaylist για να δουλεύουν τα Next/Prev
-                var itemEl = evt.item;
-                var newIndex = evt.newIndex;
-                var oldIndex = evt.oldIndex;
-
-                if(newIndex !== oldIndex) {
-                    // Μετακίνηση στο Array (στη μνήμη μόνο!)
-                    var movedItem = visiblePlaylist.splice(oldIndex, 1)[0];
-                    visiblePlaylist.splice(newIndex, 0, movedItem);
-                    
-                    // Ξανα-ζωγραφίζουμε τη λίστα για να φτιάξουν τα νούμερα (1. 2. 3...)
                     renderSidebar();
                 }
             }
@@ -317,8 +299,6 @@ function loadInputsFromSong(s) {
     document.getElementById('inpBody').value = s.body;
     document.getElementById('inpTags').value = (s.playlists || []).join(", ");
     document.getElementById('btnDelete').style.display = 'inline-block';
-    
-    // --- ΠΡΟΣΘΗΚΗ: Εμφάνιση των Tags ---
     renderTagCloud(); 
 }
 
@@ -328,8 +308,6 @@ function clearInputs() {
     document.getElementById('inpInter').value = ""; document.getElementById('inpBody').value = "";
     document.getElementById('inpTags').value = ""; currentSongId = null;
     document.getElementById('btnDelete').style.display = 'none';
-    
-    // --- ΠΡΟΣΘΗΚΗ: Εμφάνιση των Tags (Κενό) ---
     renderTagCloud();
 }
 
@@ -340,14 +318,13 @@ function toggleNotes() {
 }
 function showToast(m) { var d = document.createElement('div'); d.innerText = m; d.style.cssText = "position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:#000c;color:#fff;padding:8px 16px;border-radius:20px;z-index:2000;font-size:12px;"; document.body.appendChild(d); setTimeout(() => d.remove(), 2000); }
 
-// --- TAG CLOUD LOGIC ---
+// --- TAG CLOUD ---
 function renderTagCloud() {
     var container = document.getElementById('tagSuggestions');
     var input = document.getElementById('inpTags');
     if(!container || !input) return;
 
     container.innerHTML = "";
-
     var allTags = new Set();
     library.forEach(song => {
         if(song.playlists && Array.isArray(song.playlists)) {
@@ -390,11 +367,11 @@ function renderTagCloud() {
             input.value = tagsNow.join(", ");
             hasUnsavedChanges = true;
         };
-
         container.appendChild(chip);
     });
 }
-// --- IMPORT MENU LOGIC ---
+
+// --- IMPORT MENU ---
 function showImportMenu() {
     document.getElementById('importChoiceModal').style.display = 'flex';
 }
@@ -404,7 +381,7 @@ function closeImportChoice() {
 }
 
 function selectImport(type) {
-    closeImportChoice(); // Κλείσιμο μενού
+    closeImportChoice(); 
     if (type === 'qr') {
         setTimeout(() => { startScanner(); }, 200); 
     } else {
@@ -413,23 +390,19 @@ function selectImport(type) {
     }
 }
 
-// --- SCANNER LOGIC (ΔΙΟΡΘΩΜΕΝΑ IDs) ---
+// --- SCANNER ---
 let html5QrCode; 
 
 function startScanner() {
-    // 1. Εμφάνισε το σωστό παράθυρο (qrModal)
     var qrModal = document.getElementById('qrModal');
     if(!qrModal) { console.error("QR Modal not found in HTML"); return; }
     qrModal.style.display = 'flex';
 
-    // 2. Καθαρισμός αν έχει μείνει κάτι παλιό
     if(html5QrCode) {
         try { html5QrCode.clear(); } catch(e) {}
     }
 
-    // 3. Σύνδεση με το σωστό div (qr-reader)
     html5QrCode = new Html5Qrcode("qr-reader"); 
-    
     const config = { fps: 10, qrbox: { width: 250, height: 250 } };
     
     html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
@@ -442,7 +415,6 @@ function startScanner() {
 
 function stopScanner() {
     var qrModal = document.getElementById('qrModal');
-    
     if (html5QrCode) {
         html5QrCode.stop().then(() => {
             html5QrCode.clear();
@@ -450,7 +422,6 @@ function stopScanner() {
         }).catch(err => {
             console.warn("Stop failed:", err);
             if(qrModal) qrModal.style.display = 'none';
-            // Force reload αν κολλήσει
             if(document.querySelector('#qr-reader').innerHTML !== "") {
                window.location.reload(); 
             }
@@ -486,35 +457,4 @@ const onScanSuccess = (decodedText, decodedResult) => {
         console.error(error); 
         alert("Σφάλμα ανάγνωσης QR."); 
     }
-}
-// --- THEME LOGIC ---
-const THEMES = ['theme-dark', 'theme-cream', 'theme-slate'];
-let currentThemeIndex = 0;
-
-function cycleTheme() {
-    // Αφαίρεση του τρέχοντος theme
-    document.body.classList.remove(THEMES[currentThemeIndex]);
-    
-    // Επόμενο theme
-    currentThemeIndex = (currentThemeIndex + 1) % THEMES.length;
-    
-    // Προσθήκη νέου
-    let newTheme = THEMES[currentThemeIndex];
-    document.body.classList.add(newTheme);
-    
-    // Αποθήκευση στη μνήμη
-    localStorage.setItem('mnotes_theme', newTheme);
-}
-
-// Συνάρτηση για να φορτώσει το σωστό theme κατά την εκκίνηση
-function loadSavedTheme() {
-    let saved = localStorage.getItem('mnotes_theme');
-    // Default είναι το Dark (index 0)
-    if(saved && THEMES.includes(saved)) {
-        document.body.classList.remove('theme-dark'); // Καθαρισμός default
-        document.body.classList.add(saved);
-        currentThemeIndex = THEMES.indexOf(saved);
-    } else {
-        document.body.classList.add('theme-dark'); // Default
-    }
-}
+};

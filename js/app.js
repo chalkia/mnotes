@@ -4,6 +4,7 @@
 var hasUnsavedChanges = false;
 
 window.onload = function() {
+    loadSavedTheme();
     var savedData = localStorage.getItem('mnotes_data');
     if(savedData) {
         try {

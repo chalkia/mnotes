@@ -197,8 +197,10 @@ function renderSimple(t, s) {
 }
 
 function generateQR(songData) {
-var qrContainer = document.getElementById('playerQR');
+    var qrContainer = document.getElementById('playerQR');
     if(!qrContainer) return;
+    
+    // Καθαρισμός του container και εμφάνιση μηνύματος "Loading..."
     qrContainer.innerHTML = ""; 
     
     // Έλεγχος αν φορτώθηκε η βιβλιοθήκη
@@ -216,32 +218,33 @@ var qrContainer = document.getElementById('playerQR');
         n: songData.interlude
     };
 
+    // 1. Μετατροπή σε JSON string
     var jsonText = JSON.stringify(minSong);
     
-    // --- ΤΟ ΚΟΛΠΟ ΓΙΑ ΤΑ ΕΛΛΗΝΙΚΑ ---
-    // Μετατρέπουμε τα ελληνικά σε format που το QR καταλαβαίνει ως binary data
-    // Αυτό μειώνει δραματικά το μέγεθος που "νομίζει" η βιβλιοθήκη ότι έχει το κείμενο.
+    // 2. ΤΟ ΣΗΜΑΝΤΙΚΟΤΕΡΟ ΒΗΜΑ (Fix για Ελληνικά)
+    // Αυτό συμπιέζει τα ελληνικά χαρακτήρες σε UTF-8 bytes που καταλαβαίνει το QR
     var safeText = unescape(encodeURIComponent(jsonText));
+
+    console.log("Original Size:", jsonText.length, "Safe Size:", safeText.length);
 
     setTimeout(() => {
         try {
-            // Καθαρισμός προηγούμενου (αν υπάρχει)
-            qrContainer.innerHTML = "";
+            qrContainer.innerHTML = ""; // Καθαρισμός ξανά για σιγουριά
             
             new QRCode(qrContainer, {
-                text: safeText,     // Χρησιμοποιούμε το safeText
+                text: safeText,     // Χρησιμοποιούμε το safeText ΟΧΙ το jsonText
                 width: 128,
                 height: 128,
                 colorDark : "#2c3e50",
                 colorLight : "#ffffff",
-                correctLevel : QRCode.CorrectLevel.L
+                correctLevel : QRCode.CorrectLevel.L // Low correction για να χωράει περισσότερα
             });
         } catch(e) { 
             console.error("QR Fail:", e);
-            qrContainer.innerHTML = "<span style='color:red; font-size:10px;'>Error</span>";
+            qrContainer.innerHTML = "<span style='color:red; font-size:10px;'>QR Error<br>(Too Big)</span>";
         }
-    }, 100);}
-
+    }, 50);
+}
 function renderSidebar() {
     var c = document.getElementById('playlistContainer'); c.innerHTML = "";
     document.getElementById('songCount').innerText = visiblePlaylist.length + " songs";

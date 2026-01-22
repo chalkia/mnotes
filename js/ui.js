@@ -1,4 +1,4 @@
-/* =========================================
+φ/* =========================================
    UI & RENDERING (SMART PIN & GESTURES)
    ========================================= */
 
@@ -197,15 +197,17 @@ function renderSimple(t, s) {
 }
 
 function generateQR(songData) {
-    var qrContainer = document.getElementById('playerQR');
+var qrContainer = document.getElementById('playerQR');
     if(!qrContainer) return;
     qrContainer.innerHTML = ""; 
     
+    // Έλεγχος αν φορτώθηκε η βιβλιοθήκη
     if(typeof QRCode === 'undefined') {
         qrContainer.innerHTML = "<span style='color:red; font-size:10px;'>QR Lib missing</span>";
         return;
     }
 
+    // Δημιουργία του μικρού αντικειμένου
     var minSong = {
         t: songData.title,
         k: songData.key,
@@ -214,19 +216,31 @@ function generateQR(songData) {
         n: songData.interlude
     };
 
+    var jsonText = JSON.stringify(minSong);
+    
+    // --- ΤΟ ΚΟΛΠΟ ΓΙΑ ΤΑ ΕΛΛΗΝΙΚΑ ---
+    // Μετατρέπουμε τα ελληνικά σε format που το QR καταλαβαίνει ως binary data
+    // Αυτό μειώνει δραματικά το μέγεθος που "νομίζει" η βιβλιοθήκη ότι έχει το κείμενο.
+    var safeText = unescape(encodeURIComponent(jsonText));
+
     setTimeout(() => {
         try {
+            // Καθαρισμός προηγούμενου (αν υπάρχει)
+            qrContainer.innerHTML = "";
+            
             new QRCode(qrContainer, {
-                text: JSON.stringify(minSong),
+                text: safeText,     // Χρησιμοποιούμε το safeText
                 width: 128,
                 height: 128,
                 colorDark : "#2c3e50",
                 colorLight : "#ffffff",
                 correctLevel : QRCode.CorrectLevel.L
             });
-        } catch(e) { console.error("QR Fail:", e); }
-    }, 100);
-}
+        } catch(e) { 
+            console.error("QR Fail:", e);
+            qrContainer.innerHTML = "<span style='color:red; font-size:10px;'>Error</span>";
+        }
+    }, 100);}
 
 function renderSidebar() {
     var c = document.getElementById('playlistContainer'); c.innerHTML = "";

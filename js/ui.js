@@ -52,9 +52,7 @@ function render(originalSong) {
         dynPinned.appendChild(interDiv);
     }
 
-    // 2. BLOCK LOGIC: Διαχωρισμός σε Pinned (με συγχορδίες) & Scroll (χωρίς)
-    
-    // Βήμα Α: Ομαδοποίηση γραμμών σε Blocks (χωρίζονται από 'br')
+    // 2. BLOCK LOGIC
     var blocks = [];
     var currentBlock = [];
     
@@ -68,19 +66,16 @@ function render(originalSong) {
             currentBlock.push(L);
         }
     });
-    if(currentBlock.length > 0) blocks.push(currentBlock); // Το τελευταίο
+    if(currentBlock.length > 0) blocks.push(currentBlock); 
 
-    // Βήμα Β: Έλεγχος κάθε μπλοκ και Render
+    // Render Blocks
     blocks.forEach((block, index) => {
-        // Έλεγχος: Έχει αυτό το μπλοκ συγχορδίες;
         var hasChords = block.some(line => 
             line.type === 'mixed' || (line.tokens && line.tokens.some(t => t.c && t.c.trim() !== ""))
         );
 
-        // Αν έχει συγχορδίες -> Pinned. Αν όχι -> Scroll
         var targetContainer = hasChords ? dynPinned : scrollDiv;
 
-        // Render τις γραμμές του Block
         block.forEach(L => {
             if(L.type === 'lyricOnly') {
                 var p = document.createElement('div');
@@ -102,9 +97,7 @@ function render(originalSong) {
             }
         });
 
-        // Προσθήκη κενού μετά από κάθε block (εκτός αν είναι το τελευταίο)
         if(index < blocks.length - 1) {
-            // Στο pinned δεν βάζουμε μεγάλα κενά
             if(hasChords) {
                 var sep = document.createElement('div'); sep.style.height = "10px";
                 dynPinned.appendChild(sep);
@@ -125,12 +118,10 @@ function render(originalSong) {
     document.getElementById('btnSaveTone').style.display = (state.t !== 0) ? 'block' : 'none';
 
     generateQR(originalSong);
-    
-    // Ενεργοποίηση Gestures (μία φορά)
     setupGestures();
 }
 
-// --- GESTURE LOGIC (PINCH TO ZOOM) ---
+// --- GESTURE LOGIC ---
 var gestureInitialized = false;
 function setupGestures() {
     if(gestureInitialized) return;
@@ -142,7 +133,6 @@ function setupGestures() {
 
     viewer.addEventListener('touchstart', function(e) {
         if (e.touches.length === 2) {
-            // Υπολογισμός αρχικής απόστασης
             startDist = Math.hypot(
                 e.touches[0].pageX - e.touches[1].pageX,
                 e.touches[0].pageY - e.touches[1].pageY
@@ -153,22 +143,14 @@ function setupGestures() {
 
     viewer.addEventListener('touchmove', function(e) {
         if (e.touches.length === 2) {
-            // e.preventDefault(); // (Προαιρετικό: Αν θες να μπλοκάρεις το scroll όσο ζουμάρεις)
-            
             var dist = Math.hypot(
                 e.touches[0].pageX - e.touches[1].pageX,
                 e.touches[0].pageY - e.touches[1].pageY
             );
-            
-            // Πόσο μεγάλωσε η απόσταση;
             var scaleChange = dist / startDist;
             var newScale = startScale * scaleChange;
-            
-            // Όρια Zoom (0.5x έως 3.0x)
             if(newScale < 0.5) newScale = 0.5;
             if(newScale > 3.0) newScale = 3.0;
-            
-            // Εφαρμογή στη μεταβλητή CSS
             document.documentElement.style.setProperty('--font-scale', newScale);
             currentFontScale = newScale;
         }
@@ -181,7 +163,6 @@ function setupGestures() {
     });
 }
 
-// Render για Intro/Interlude
 function renderSimple(t, s) {
     var parts = t.split('!'), h = "";
     if(parts[0]) h += `<span class="mini-lyric">${parts[0]}</span>`;
@@ -195,19 +176,19 @@ function renderSimple(t, s) {
     }
     return h;
 }
+
+// --- QR CODE GENERATION ---
 function generateQR(songData) {
     var qrContainer = document.getElementById('playerQR');
     if(!qrContainer) return;
     qrContainer.innerHTML = ""; 
 
-    // Έλεγχος αν φορτώθηκε η νέα βιβλιοθήκη (λέγεται qrcode στο window)
     if(typeof qrcode === 'undefined') {
         qrContainer.innerHTML = "<span style='color:red; font-size:10px;'>QR Lib missing</span>";
         return;
     }
 
     try {
-        // 1. Δημιουργία του αντικειμένου δεδομένων
         var minSong = {
             t: songData.title,
             k: songData.key,
@@ -216,25 +197,15 @@ function generateQR(songData) {
             n: songData.interlude
         };
         
-        // 2. Μετατροπή σε JSON
         var jsonText = JSON.stringify(minSong);
 
-        // 3. ΡΥΘΜΙΣΗ ΝΕΑΣ ΒΙΒΛΙΟΘΗΚΗΣ
-        // TypeNumber 0 = Αυτόματη ανίχνευση μεγέθους (θα μεγαλώνει όσο χρειάζεται)
-        // ErrorCorrection 'L' = Low (για να χωράει περισσότερα δεδομένα)
+        // Χρήση της νέας βιβλιοθήκης (Kazuhiko Arase)
         var qr = qrcode(0, 'L');
-        
-        // Προσθήκη δεδομένων (τα Ελληνικά παίζουν αυτόματα εδώ!)
         qr.addData(jsonText);
-        
-        // Δημιουργία
         qr.make();
 
-        // 4. Εμφάνιση στο HTML
-        // Το createImgTag(4) σημαίνει μέγεθος pixel 4 (περίπου 200px εικόνα)
-        qrContainer.innerHTML = qr.createImgTag(4, 0); // 4=cell size, 0=margin
+        qrContainer.innerHTML = qr.createImgTag(4, 0); 
 
-        // Στυλ για να φαίνεται ωραία η εικόνα (κεντραρισμένη)
         var img = qrContainer.querySelector('img');
         if(img) {
             img.style.display = "block";
@@ -245,12 +216,7 @@ function generateQR(songData) {
 
     } catch(e) {
         console.error("QR Gen Error:", e);
-        // Αν αποτύχει κι αυτό (σπάνιο), σημαίνει ότι ξεπέρασε τα 3kb
-        qrContainer.innerHTML = `
-            <div style="color:#e67e22; font-size:11px; text-align:center; padding:10px; border:1px dashed #e67e22;">
-                ⚠️ <b>Πολύ μεγάλο τραγούδι</b><br>
-                (${jsonText.length} χαρακτήρες)
-            </div>`;
+        qrContainer.innerHTML = `<div style="color:#e67e22; font-size:11px;">⚠️ Error: Too Big</div>`;
     }
 }
 
@@ -266,6 +232,7 @@ function renderSidebar() {
         c.appendChild(d);
     });
 }
+
 function loadInputsFromSong(s) {
     document.getElementById('inpTitle').value = s.title;
     document.getElementById('inpKey').value = s.key;
@@ -275,20 +242,29 @@ function loadInputsFromSong(s) {
     document.getElementById('inpBody').value = s.body;
     document.getElementById('inpTags').value = (s.playlists || []).join(", ");
     document.getElementById('btnDelete').style.display = 'inline-block';
+    
+    // --- ΠΡΟΣΘΗΚΗ: Εμφάνιση των Tags ---
+    renderTagCloud(); 
 }
+
 function clearInputs() {
     document.getElementById('inpTitle').value = ""; document.getElementById('inpKey').value = "";
     document.getElementById('inpNotes').value = ""; document.getElementById('inpIntro').value = "";
     document.getElementById('inpInter').value = ""; document.getElementById('inpBody').value = "";
     document.getElementById('inpTags').value = ""; currentSongId = null;
     document.getElementById('btnDelete').style.display = 'none';
+    
+    // --- ΠΡΟΣΘΗΚΗ: Εμφάνιση των Tags (Κενό) ---
+    renderTagCloud();
 }
+
 function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); }
 function toggleNotes() {
     var box = document.getElementById('displayNotes'); var btn = document.getElementById('btnToggleNotes');
     if(box.style.display === 'none') { box.style.display = 'block'; btn.classList.add('active'); } else { box.style.display = 'none'; btn.classList.remove('active'); }
 }
 function showToast(m) { var d = document.createElement('div'); d.innerText = m; d.style.cssText = "position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:#000c;color:#fff;padding:8px 16px;border-radius:20px;z-index:2000;font-size:12px;"; document.body.appendChild(d); setTimeout(() => d.remove(), 2000); }
+
 // --- TAG CLOUD LOGIC ---
 function renderTagCloud() {
     var container = document.getElementById('tagSuggestions');
@@ -297,7 +273,6 @@ function renderTagCloud() {
 
     container.innerHTML = "";
 
-    // 1. Βρες όλα τα μοναδικά tags από τη βιβλιοθήκη
     var allTags = new Set();
     library.forEach(song => {
         if(song.playlists && Array.isArray(song.playlists)) {
@@ -307,67 +282,52 @@ function renderTagCloud() {
         }
     });
 
-    // Αν δεν υπάρχουν tags, κρύψε το
     if(allTags.size === 0) {
         container.style.display = 'none';
         return;
     }
     container.style.display = 'flex';
 
-    // 2. Ταξινόμηση αλφαβητικά
     var sortedTags = Array.from(allTags).sort();
-    
-    // Ποια tags έχει ήδη το τραγούδι που επεξεργαζόμαστε;
     var currentTags = input.value.split(',').map(t => t.trim()).filter(t => t !== "");
 
-    // 3. Δημιουργία buttons
     sortedTags.forEach(tag => {
         var chip = document.createElement('div');
         chip.className = 'tag-chip';
         chip.innerText = tag;
         
-        // Αν το τραγούδι έχει ήδη αυτό το tag, χρωμάτισέ το
         if(currentTags.includes(tag)) {
             chip.classList.add('selected');
         }
 
-        // Click Event: Πρόσθεση ή Αφαίρεση
         chip.onclick = function() {
             var val = input.value;
             var tagsNow = val.split(',').map(t => t.trim()).filter(t => t !== "");
             
             if(tagsNow.includes(tag)) {
-                // Αφαίρεση (Toggle Off)
                 tagsNow = tagsNow.filter(t => t !== tag);
                 chip.classList.remove('selected');
             } else {
-                // Πρόσθεση (Toggle On)
                 tagsNow.push(tag);
                 chip.classList.add('selected');
             }
             
             input.value = tagsNow.join(", ");
-            // Ενημέρωσε το σύστημα ότι έγιναν αλλαγές (για το unsaved warning)
             hasUnsavedChanges = true;
         };
 
         container.appendChild(chip);
     });
 }
+
 // --- LOGIC ΓΙΑ ΤΟ SCANNER ---
-let html5QrCode; // Η μεταβλητή για την κάμερα
+let html5QrCode;
 
 function startScanner() {
-    // 1. Εμφάνισε το παράθυρο (Modal)
     document.getElementById('scannerModal').style.display = 'flex';
-
-    // 2. Ξεκίνα την κάμερα
     html5QrCode = new Html5Qrcode("reader");
-    
-    // Ρυθμίσεις κάμερας
     const config = { fps: 10, qrbox: { width: 250, height: 250 } };
     
-    // Προσπάθησε να ανοίξεις την πίσω κάμερα ("environment")
     html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
     .catch(err => {
         console.error("Error starting scanner", err);
@@ -390,34 +350,25 @@ function stopScanner() {
     }
 }
 
-// Τι συμβαίνει όταν διαβάσει επιτυχώς ένα QR
 const onScanSuccess = (decodedText, decodedResult) => {
-    // 1. Σταμάτα την κάμερα αμέσως
     stopScanner();
 
     try {
         let finalJson = decodedText;
-
-        // --- ΔΙΟΡΘΩΣΗ ΓΙΑ ΕΛΛΗΝΙΚΑ ---
-        // Δοκιμάζουμε να δούμε αν είναι σωστό JSON. Αν όχι, κάνουμε decode.
         try {
             JSON.parse(finalJson);
         } catch (e) {
             try {
-                // Το "κόλπο" για να φτιάξουν τα ελληνικά
                 finalJson = decodeURIComponent(escape(decodedText));
             } catch (err2) {
                 console.log("Encoding fix failed, using original.");
             }
         }
 
-        // 2. Μετατροπή σε αντικείμενο
         let songData = JSON.parse(finalJson);
 
-        // 3. Έλεγχος & Εισαγωγή
         if (songData.t && songData.b) {
             if(confirm(`Βρέθηκε το τραγούδι:\n"${songData.t}"\n\nΝα γίνει εισαγωγή;`)) {
-                // Φόρτωσε τα δεδομένα στα πεδία
                 loadInputsFromSong({
                     title: songData.t,
                     key: songData.k,
@@ -427,11 +378,7 @@ const onScanSuccess = (decodedText, decodedResult) => {
                     notes: "", 
                     playlists: []
                 });
-                
-                // Πήγαινε στην οθόνη επεξεργασίας
                 toEditor(); 
-                
-                // Κλείσε το μενού αν είσαι σε κινητό
                 if(window.innerWidth <= 768) toggleSidebar();
             }
         } else {

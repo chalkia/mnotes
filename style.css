@@ -111,8 +111,25 @@ input:focus, textarea:focus { border-color: var(--accent); outline: none; }
 }
 
 .scroll-box { padding: 15px 6px 80px 6px; overflow-y: auto; flex-grow: 1; background: var(--bg-paper); }
-.line-row { display: flex; flex-wrap: wrap; align-items: flex-end; margin-bottom: 8px; line-height: 1.0; border-bottom: 1px dotted #eee; padding-bottom: 2px; }
-.token { display: inline-flex; flex-direction: column; justify-content: flex-end; margin-right: 0; white-space: pre; }
+
+/* --- ΣΗΜΑΝΤΙΚΗ ΔΙΟΡΘΩΣΗ ΓΙΑ ΣΤΟΙΧΙΣΗ (Flexbox) --- */
+.line-row { 
+    display: flex; 
+    flex-wrap: wrap; 
+    align-items: flex-end; /* Ευθυγράμμιση όλων στη βάση */
+    margin-bottom: 8px; 
+    line-height: 1.0; 
+    border-bottom: 1px dotted #eee; 
+    padding-bottom: 2px; 
+}
+
+.token { 
+    display: inline-flex; 
+    flex-direction: column; 
+    justify-content: flex-end; 
+    margin-right: 0; 
+    white-space: pre; 
+}
 
 /* --- DYNAMIC FONT SIZES --- */
 /* Mobile First: Roboto Condensed (Συμπιεσμένη) */
@@ -124,6 +141,7 @@ input:focus, textarea:focus { border-color: var(--accent); outline: none; }
     min-height: 1.1em; 
     margin-bottom: -2px; 
     text-shadow: 1px 1px 0px rgba(255,255,255,1); 
+    white-space: pre; /* Σημαντικό για να κρατάει τα κενά */
 }
 
 .lyric { 
@@ -131,7 +149,13 @@ input:focus, textarea:focus { border-color: var(--accent); outline: none; }
     font-weight: 400; 
     font-size: calc(22px * var(--font-scale)); 
     color: var(--text-main); 
-    line-height: 1.1; 
+    line-height: 1.1;
+    
+    /* --- Η ΔΙΟΡΘΩΣΗ ΓΙΑ ΤΑ ΚΕΝΑ --- */
+    min-height: 1.2em; /* Κρατάει ανοιχτό το χώρο ακόμα κι αν είναι κενό */
+    white-space: pre;  /* Σέβεται τα κενά αν υπάρχουν */
+    display: flex;
+    align-items: flex-end;
 }
 
 .compact-line { 
@@ -216,5 +240,3 @@ input:focus, textarea:focus { border-color: var(--accent); outline: none; }
     color: var(--highlight);
     border-color: var(--primary-dark);
 }
-
-

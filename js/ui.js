@@ -221,16 +221,62 @@ function generateQR(songData) {
 }
 
 function renderSidebar() {
-    var c = document.getElementById('playlistContainer'); c.innerHTML = "";
+    var c = document.getElementById('playlistContainer'); 
+    c.innerHTML = "";
     document.getElementById('songCount').innerText = visiblePlaylist.length + " songs";
-    if(visiblePlaylist.length === 0) { c.innerHTML = '<div class="empty-msg">Κενή Βιβλιοθήκη</div>'; return; }
+    
+    if(visiblePlaylist.length === 0) { 
+        c.innerHTML = '<div class="empty-msg">Κενή Βιβλιοθήκη</div>'; 
+        return; 
+    }
+
     visiblePlaylist.forEach((s, i) => {
-        var d = document.createElement('div'); d.className = 'playlist-item';
+        var d = document.createElement('div'); 
+        d.className = 'playlist-item';
+        // Προσθήκη data-id για να ξέρουμε ποιο τραγούδι είναι ποιο στο sorting
+        d.setAttribute('data-id', s.id); 
+        
         if(s.id === currentSongId) d.classList.add('active');
-        d.innerText = (i + 1) + ". " + s.title;
-        d.onclick = () => { currentSongId = s.id; toViewer(true); renderSidebar(); if(window.innerWidth <= 768) toggleSidebar(); };
+        
+        // Προσθήκη εικονιδίου "λαβής" (προαιρετικό, βοηθάει οπτικά)
+        var handle = "<span style='color:#ccc; margin-right:8px; cursor:grab;'>☰</span>";
+        d.innerHTML = handle + (i + 1) + ". " + s.title;
+        
+        d.onclick = () => { 
+            currentSongId = s.id; 
+            toViewer(true); 
+            renderSidebar(); 
+            if(window.innerWidth <= 768) toggleSidebar(); 
+        };
         c.appendChild(d);
     });
+
+    // --- ΕΝΕΡΓΟΠΟΙΗΣΗ DRAG & DROP (SortableJS) ---
+    if(typeof Sortable !== 'undefined') {
+        // Αν υπάρχει ήδη instance, το καταστρέφουμε για να μην έχουμε διπλότυπα
+        if(window.playlistSortable) window.playlistSortable.destroy();
+
+        window.playlistSortable = Sortable.create(c, {
+            animation: 150, // Ομαλή κίνηση (ms)
+            ghostClass: 'sortable-ghost', // Κλάση για το αντικείμενο που σέρνεται
+            onEnd: function (evt) {
+                // Όταν τελειώσει το σύρσιμο, πρέπει να αλλάξουμε τη σειρά
+                // και στον πίνακα visiblePlaylist για να δουλεύουν τα Next/Prev
+                var itemEl = evt.item;
+                var newIndex = evt.newIndex;
+                var oldIndex = evt.oldIndex;
+
+                if(newIndex !== oldIndex) {
+                    // Μετακίνηση στο Array (στη μνήμη μόνο!)
+                    var movedItem = visiblePlaylist.splice(oldIndex, 1)[0];
+                    visiblePlaylist.splice(newIndex, 0, movedItem);
+                    
+                    // Ξανα-ζωγραφίζουμε τη λίστα για να φτιάξουν τα νούμερα (1. 2. 3...)
+                    renderSidebar();
+                }
+            }
+        });
+    }
 }
 
 function loadInputsFromSong(s) {

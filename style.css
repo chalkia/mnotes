@@ -240,3 +240,14 @@ input:focus, textarea:focus { border-color: var(--accent); outline: none; }
     color: var(--highlight);
     border-color: var(--primary-dark);
 }
+
+/* Drag & Drop Styles */
+.sortable-ghost {
+    background-color: #f1c40f; /* Κίτρινο χρώμα εκεί που θα πέσει */
+    opacity: 0.4;
+}
+.playlist-item {
+    display: flex;       /* Για να στοιχιστεί το ☰ με το κείμενο */
+    align-items: center;
+    user-select: none;   /* Να μην επιλέγεται το κείμενο όταν σέρνεις */
+}

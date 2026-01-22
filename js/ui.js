@@ -219,7 +219,6 @@ function generateQR(songData) {
         qrContainer.innerHTML = `<div style="color:#e67e22; font-size:11px;">⚠️ Error: Too Big</div>`;
     }
 }
-
 function renderSidebar() {
     var c = document.getElementById('playlistContainer'); 
     c.innerHTML = "";
@@ -233,16 +232,24 @@ function renderSidebar() {
     visiblePlaylist.forEach((s, i) => {
         var d = document.createElement('div'); 
         d.className = 'playlist-item';
-        // Προσθήκη data-id για να ξέρουμε ποιο τραγούδι είναι ποιο στο sorting
         d.setAttribute('data-id', s.id); 
         
         if(s.id === currentSongId) d.classList.add('active');
         
-        // Προσθήκη εικονιδίου "λαβής" (προαιρετικό, βοηθάει οπτικά)
-        var handle = "<span style='color:#ccc; margin-right:8px; cursor:grab;'>☰</span>";
-        d.innerHTML = handle + (i + 1) + ". " + s.title;
+        // --- ΑΛΛΑΓΗ 1: Προσθήκη κλάσης 'drag-handle' και λίγο styling για μεγαλύτερο στόχο αφής
+        var handle = "<span class='drag-handle' style='color:var(--text-light); margin-right:12px; cursor:grab; padding: 5px 5px 5px 0; font-size:1.2em;'>☰</span>";
         
-        d.onclick = () => { 
+        // Το κείμενο μπαίνει σε δικό του span για να μην επηρεάζεται
+        var titleText = "<span>" + (i + 1) + ". " + s.title + "</span>";
+        
+        d.innerHTML = handle + titleText;
+        
+        // Προσοχή: Το click event δεν πρέπει να ενεργοποιείται όταν πατάμε το handle
+        // Αλλά το SortableJS συνήθως το διαχειρίζεται.
+        d.onclick = (e) => { 
+            // Αν πατήσαμε το handle, μην αλλάζεις τραγούδι (προαιρετικό, αλλά βοηθάει)
+            if(e.target.classList.contains('drag-handle')) return;
+
             currentSongId = s.id; 
             toViewer(true); 
             renderSidebar(); 
@@ -250,6 +257,28 @@ function renderSidebar() {
         };
         c.appendChild(d);
     });
+
+    // --- SORTABLE JS ME HANDLE ---
+    if(typeof Sortable !== 'undefined') {
+        if(window.playlistSortable) window.playlistSortable.destroy();
+
+        window.playlistSortable = Sortable.create(c, {
+            animation: 150,
+            ghostClass: 'sortable-ghost',
+            handle: '.drag-handle', // <--- ΑΛΛΑΓΗ 2: ΜΟΝΟ από το εικονίδιο!
+            onEnd: function (evt) {
+                var newIndex = evt.newIndex;
+                var oldIndex = evt.oldIndex;
+                if(newIndex !== oldIndex) {
+                    var movedItem = visiblePlaylist.splice(oldIndex, 1)[0];
+                    visiblePlaylist.splice(newIndex, 0, movedItem);
+                    renderSidebar();
+                }
+            }
+        });
+    }
+}
+
 
     // --- ΕΝΕΡΓΟΠΟΙΗΣΗ DRAG & DROP (SortableJS) ---
     if(typeof Sortable !== 'undefined') {

@@ -15,7 +15,9 @@
     
     <meta name="theme-color" content="#121212">
 </head>
-<body class="theme-dark"> <div id="qrModal" class="qr-modal">
+<body class="theme-dark">
+
+<div id="qrModal" class="qr-modal">
     <div class="qr-content">
         <h3><i class="fas fa-qrcode"></i> Scan Song</h3>
         <div id="qr-reader" style="width: 100%;"></div>
@@ -30,15 +32,15 @@
         <h3><i class="fas fa-file-import"></i> Εισαγωγή</h3>
         <p style="margin-bottom:20px; color:var(--text-light); font-size:14px;">Επίλεξε τρόπο εισαγωγής:</p>
         
-        <button class="action-btn" onclick="selectImport('qr')" style="width:100%; margin-bottom:12px; background:#8e44ad; padding:12px;">
+        <button class="btn btn-primary" onclick="selectImport('qr')">
             <i class="fas fa-qrcode"></i> Σάρωση QR Code
         </button>
         
-        <button class="action-btn" onclick="selectImport('file')" style="width:100%; margin-bottom:12px; background:#2980b9; padding:12px;">
+        <button class="btn btn-secondary" onclick="selectImport('file')">
             <i class="fas fa-folder-open"></i> Αρχείο (.mnote)
         </button>
 
-        <button class="qr-close-btn" onclick="closeImportChoice()" style="background:var(--text-light); margin-top:5px; width:100%;">
+        <button class="btn btn-outline" onclick="closeImportChoice()">
             Ακύρωση
         </button>
     </div>
@@ -50,7 +52,8 @@
         <div class="sidebar-header">
             <h3>Library</h3>
             <button onclick="toggleSidebar()" class="close-menu-btn">
-                <i class="fas fa-times"></i> </button>
+                <i class="fas fa-times"></i>
+            </button>
         </div>
         <span id="songCount" style="font-size:12px; margin-bottom:10px; display:block;">0 songs</span>
         
@@ -71,22 +74,18 @@
         </div>
         
         <div class="sidebar-actions">
-            <button onclick="cycleTheme()" class="action-btn" style="background: var(--accent);">
+            <button onclick="cycleTheme()" class="btn btn-secondary sidebar-btn">
                 <i class="fas fa-palette"></i> Θέμα / Theme
             </button>
-            
-            <button onclick="exportJSON()" class="action-btn">
+            <button onclick="exportJSON()" class="btn btn-secondary sidebar-btn">
                 <i class="fas fa-file-export"></i> Export .mnote
             </button>
-            
-            <button onclick="showImportMenu()" class="qr-btn" style="background:#2980b9;">
+            <button onclick="showImportMenu()" class="btn btn-primary sidebar-btn">
                 <i class="fas fa-file-import"></i> Import
             </button>
-            
-            <button onclick="exitApp()" class="action-btn" style="background:#7f8c8d; margin-top:10px;">
+            <button onclick="exitApp()" class="btn btn-outline sidebar-btn" style="margin-top:10px;">
                 <i class="fas fa-sign-out-alt"></i> Έξοδος
             </button>
-            
             <input type="file" id="hiddenFileInput" onchange="importJSON(this)" accept=".mnote, .json, application/json" style="display:none;">
         </div>
     </div>
@@ -95,14 +94,15 @@
         <div class="top-bar">
             <div style="display:flex; align-items:center;">
                 <button class="menu-btn" onclick="toggleSidebar()">
-                    <i class="fas fa-bars"></i> </button>
+                    <i class="fas fa-bars"></i>
+                </button>
                 <h1 class="logo">mnotes</h1>
             </div>
             <div class="view-controls">
-                <button onclick="toEditor()" id="btnEdit" class="nav-btn">
+                <button onclick="toEditor()" id="btnEdit" class="btn btn-outline nav-btn">
                     <i class="fas fa-pen"></i> Edit
                 </button>
-                <button onclick="toViewer()" id="btnPlay" class="nav-btn primary">
+                <button onclick="toViewer()" id="btnPlay" class="btn btn-primary nav-btn">
                     <i class="fas fa-play"></i> Play
                 </button>
             </div>
@@ -127,20 +127,20 @@
             <div class="field-group full"><label class="required-label">Κυρίως Τραγούδι</label><textarea id="inpBody"></textarea></div>
             
             <div class="editor-actions">
-                <button onclick="startNewSong()" class="nav-btn" style="width:100%; margin-bottom:10px; background:#f39c12; color:white; border:none;">
+                <button onclick="startNewSong()" class="btn btn-secondary">
                     <i class="fas fa-plus"></i> Νέο Τραγούδι
                 </button>
-                <button onclick="saveSong()" class="save-btn">
+                <button onclick="saveSong()" class="btn btn-success">
                     <i class="fas fa-save"></i> Αποθήκευση
                 </button>
-                <button onclick="deleteCurrentSong()" class="danger-btn" id="btnDelete" style="display:none;">
+                <button onclick="deleteCurrentSong()" class="btn btn-danger" id="btnDelete" style="display:none;">
                     <i class="fas fa-trash-alt"></i> Διαγραφή
                 </button>
             </div>
 
-            <div style="margin-top: 40px; border-top: 1px dashed #bdc3c7; padding-top: 20px; text-align: center;">
-                <label style="color: #e74c3c; font-size: 10px; font-weight: bold; text-transform: uppercase;">Danger Zone</label><br>
-                <button onclick="clearLibrary()" class="danger-btn" style="background-color: #c0392b; margin-top: 5px; font-size: 12px; width: auto; padding: 8px 15px;">
+            <div style="margin-top: 40px; border-top: 1px dashed var(--border-color); padding-top: 20px; text-align: center;">
+                <label style="color: var(--danger); font-size: 10px; font-weight: bold; text-transform: uppercase;">Danger Zone</label><br>
+                <button onclick="clearLibrary()" class="btn btn-danger" style="margin-top: 10px; font-size: 12px; width: auto; padding: 8px 15px;">
                     <i class="fas fa-radiation"></i> DELETE ALL SONGS
                 </button>
             </div>

@@ -24,7 +24,24 @@
         <button class="qr-close-btn" onclick="closeQR()">Κλείσιμο</button>
     </div>
 </div>
+<div id="importChoiceModal" class="qr-modal" style="z-index: 7000;">
+    <div class="qr-content" style="max-width: 300px;">
+        <h3>📥 Εισαγωγή</h3>
+        <p style="margin-bottom:20px; color:#666; font-size:14px;">Επίλεξε τρόπο εισαγωγής:</p>
+        
+        <button class="action-btn" onclick="selectImport('qr')" style="width:100%; margin-bottom:12px; background:#8e44ad; padding:12px;">
+            📷 Σάρωση QR Code
+        </button>
+        
+        <button class="action-btn" onclick="selectImport('file')" style="width:100%; margin-bottom:12px; background:#2980b9; padding:12px;">
+            📂 Αρχείο (.mnote)
+        </button>
 
+        <button class="qr-close-btn" onclick="closeImportChoice()" style="background:#95a5a6; margin-top:5px; width:100%;">
+            Ακύρωση
+        </button>
+    </div>
+</div>
 <div class="app-layout">
     <div id="sidebar" class="sidebar">
         <div class="sidebar-header">
@@ -45,7 +62,7 @@
         <div id="playlistContainer" class="playlist"><div class="empty-msg">Κενή Βιβλιοθήκη</div></div>
        <div class="sidebar-actions">
           <button onclick="exportJSON()" class="action-btn">💾 Export .mnote</button>
-          <button onclick="chooseImportMethod()" class="qr-btn" style="background:#2980b9;">📥 Import (QR / File)</button>
+          <button onclick="showImportMenu()" class="qr-btn" style="background:#2980b9;">📥 Import (QR / File)</button>
           <input type="file" id="hiddenFileInput" onchange="importJSON(this)" accept=".mnote, .json, application/json" style="display:none;">
         </div>
     </div>
@@ -171,6 +188,7 @@
 
 </body>
 </html>
+
 
 
 

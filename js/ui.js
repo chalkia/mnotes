@@ -390,15 +390,15 @@ function selectImport(type) {
         if(fileInput) fileInput.click();
     }
 }
-
-// --- SCANNER ---
+// --- SCANNER LOGIC ---
 let html5QrCode; 
 
 function startScanner() {
     var qrModal = document.getElementById('qrModal');
-    if(!qrModal) { console.error("QR Modal not found in HTML"); return; }
+    if(!qrModal) return;
     qrModal.style.display = 'flex';
 
+    // Καθαρισμός αν είχε μείνει ανοιχτό
     if(html5QrCode) {
         try { html5QrCode.clear(); } catch(e) {}
     }
@@ -406,10 +406,11 @@ function startScanner() {
     html5QrCode = new Html5Qrcode("qr-reader"); 
     const config = { fps: 10, qrbox: { width: 250, height: 250 } };
     
+    // Ξεκινάει την πίσω κάμερα
     html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
     .catch(err => {
         console.error("Scanner Error:", err);
-        alert("Δεν βρέθηκε κάμερα ή δεν δόθηκε άδεια!");
+        alert("Δεν βρέθηκε κάμερα. Βεβαιώσου ότι έδωσες άδεια στον browser.");
         stopScanner();
     });
 }
@@ -423,6 +424,7 @@ function stopScanner() {
         }).catch(err => {
             console.warn("Stop failed:", err);
             if(qrModal) qrModal.style.display = 'none';
+            // Αν κολλήσει, κάνε reload τη σελίδα
             if(document.querySelector('#qr-reader').innerHTML !== "") {
                window.location.reload(); 
             }
@@ -434,28 +436,59 @@ function stopScanner() {
 
 function closeQR() { stopScanner(); }
 
+// --- Η ΔΙΟΡΘΩΜΕΝΗ ΣΥΝΑΡΤΗΣΗ ΕΠΙΤΥΧΙΑΣ ---
 const onScanSuccess = (decodedText, decodedResult) => {
+    // 1. Σταματάμε αμέσως την κάμερα
     stopScanner(); 
 
     try {
-        let finalJson = decodedText;
-        try { JSON.parse(finalJson); } catch (e) { try { finalJson = decodeURIComponent(escape(decodedText)); } catch (err2) {} }
+        // 2. ΔΙΟΡΘΩΣΗ ΕΛΛΗΝΙΚΩΝ (UTF-8 FIX)
+        // Αυτό το τρικ διορθώνει τα 
+        let fixedText = decodedText;
+        try {
+            fixedText = decodeURIComponent(escape(decodedText));
+        } catch (e) {
+            console.warn("UTF-8 Fix didn't work, using original text");
+        }
 
-        let songData = JSON.parse(finalJson);
+        // 3. Μετατροπή από κείμενο σε JSON Αντικείμενο
+        let songData = JSON.parse(fixedText);
+
+        // 4. Έλεγχος αν είναι έγκυρο τραγούδι (πρέπει να έχει t=Title και b=Body)
         if (songData.t && songData.b) {
+            
+            // Καθυστέρηση για να προλάβει να κλείσει το modal
             setTimeout(() => {
-                if(confirm(`Βρέθηκε: "${songData.t}"\nΕισαγωγή;`)) {
+                // Εμφάνιση του τίτλου σωστά πλέον
+                if(confirm(`Βρέθηκε: "${songData.t}"\nΝα γίνει εισαγωγή στον Editor;`)) {
+                    
+                    // 5. Φόρτωση στον Editor (Αντιστοίχιση των μικρών QR keys στα κανονικά)
                     loadInputsFromSong({
-                        title: songData.t, key: songData.k, body: songData.b,
-                        intro: songData.i, interlude: songData.n, notes: "", tab: songData.tab || "", playlists: []
+                        title: songData.t,
+                        key: songData.k || "",
+                        body: songData.b,
+                        intro: songData.i || "",
+                        interlude: songData.n || "",
+                        notes: "", // Τα notes συνήθως δεν τα βάζουμε στο QR για χώρο
+                        playlists: []
                     });
+                    
+                    // 6. Πήγαινε στον Editor για να το δει ο χρήστης (ΔΕΝ αποθηκεύεται αυτόματα)
                     toEditor(); 
-                    if(window.innerWidth <= 768) toggleSidebar();
+                    
+                    // Αν είναι σε κινητό, κλείσε το μενού
+                    if(window.innerWidth <= 768) {
+                        document.getElementById('sidebar').classList.remove('active');
+                    }
                 }
-            }, 100);
-        } else { alert("Άκυρο QR Code."); }
+            }, 200);
+
+        } else { 
+            alert("Το QR Code δεν περιέχει έγκυρο τραγούδι mNotes."); 
+        }
+
     } catch (error) { 
         console.error(error); 
-        alert("Σφάλμα ανάγνωσης QR."); 
+        alert("Σφάλμα ανάγνωσης QR.\nΒεβαιώσου ότι είναι QR από το mNotes."); 
     }
 };

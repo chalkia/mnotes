@@ -277,3 +277,68 @@ function toggleNotes() {
     if(box.style.display === 'none') { box.style.display = 'block'; btn.classList.add('active'); } else { box.style.display = 'none'; btn.classList.remove('active'); }
 }
 function showToast(m) { var d = document.createElement('div'); d.innerText = m; d.style.cssText = "position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:#000c;color:#fff;padding:8px 16px;border-radius:20px;z-index:2000;font-size:12px;"; document.body.appendChild(d); setTimeout(() => d.remove(), 2000); }
+// --- TAG CLOUD LOGIC ---
+function renderTagCloud() {
+    var container = document.getElementById('tagSuggestions');
+    var input = document.getElementById('inpTags');
+    if(!container || !input) return;
+
+    container.innerHTML = "";
+
+    // 1. Βρες όλα τα μοναδικά tags από τη βιβλιοθήκη
+    var allTags = new Set();
+    library.forEach(song => {
+        if(song.playlists && Array.isArray(song.playlists)) {
+            song.playlists.forEach(tag => {
+                if(tag.trim()) allTags.add(tag.trim());
+            });
+        }
+    });
+
+    // Αν δεν υπάρχουν tags, κρύψε το
+    if(allTags.size === 0) {
+        container.style.display = 'none';
+        return;
+    }
+    container.style.display = 'flex';
+
+    // 2. Ταξινόμηση αλφαβητικά
+    var sortedTags = Array.from(allTags).sort();
+    
+    // Ποια tags έχει ήδη το τραγούδι που επεξεργαζόμαστε;
+    var currentTags = input.value.split(',').map(t => t.trim()).filter(t => t !== "");
+
+    // 3. Δημιουργία buttons
+    sortedTags.forEach(tag => {
+        var chip = document.createElement('div');
+        chip.className = 'tag-chip';
+        chip.innerText = tag;
+        
+        // Αν το τραγούδι έχει ήδη αυτό το tag, χρωμάτισέ το
+        if(currentTags.includes(tag)) {
+            chip.classList.add('selected');
+        }
+
+        // Click Event: Πρόσθεση ή Αφαίρεση
+        chip.onclick = function() {
+            var val = input.value;
+            var tagsNow = val.split(',').map(t => t.trim()).filter(t => t !== "");
+            
+            if(tagsNow.includes(tag)) {
+                // Αφαίρεση (Toggle Off)
+                tagsNow = tagsNow.filter(t => t !== tag);
+                chip.classList.remove('selected');
+            } else {
+                // Πρόσθεση (Toggle On)
+                tagsNow.push(tag);
+                chip.classList.add('selected');
+            }
+            
+            input.value = tagsNow.join(", ");
+            // Ενημέρωσε το σύστημα ότι έγιναν αλλαγές (για το unsaved warning)
+            hasUnsavedChanges = true;
+        };
+
+        container.appendChild(chip);
+    });
+}

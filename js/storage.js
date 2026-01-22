@@ -43,7 +43,18 @@ function importJSON(input) {
     reader.readAsText(file);
     input.value = ''; // Reset
 }
-
+// ΝΕΑ ΣΥΝΑΡΤΗΣΗ: Επιλογή τρόπου εισαγωγής
+function chooseImportMethod() {
+    // Χρησιμοποιούμε ένα απλό dialog για ταχύτητα και συμβατότητα
+    // Αν θέλεις πιο ωραίο, φτιάχνουμε custom modal, αλλά αυτό είναι universal.
+    if (confirm("Πατήστε 'ΟΚ' για Σάρωση QR Κάμερας 📷\n\nΠατήστε 'ΑΚΥΡΟ' για Άνοιγμα Αρχείου 📂")) {
+        // Επιλογή: Κάμερα
+        startScanner();
+    } else {
+        // Επιλογή: Αρχείο (κλικάρουμε το κρυφό input)
+        document.getElementById('hiddenFileInput').click();
+    }
+}
 // Εξαγωγή σε αρχείο (Download)
 function exportJSON() {
     var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(library, null, 2));

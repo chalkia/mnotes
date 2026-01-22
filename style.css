@@ -366,7 +366,7 @@ input:focus, textarea:focus { border-color: var(--accent); outline: none; }
 .tag-chip:hover { background: var(--accent); color: white; border-color: var(--accent); }
 .tag-chip.selected { background: var(--primary-dark); color: var(--highlight); border-color: var(--primary-dark); }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
     .app-layout { grid-template-columns: 1fr; }
     .sidebar { display: none; position: fixed; top: 0; left: 0; width: 85%; height: 100dvh; /* Mobile Height Fix */ z-index: 5000; box-shadow: 5px 0 15px rgba(0,0,0,0.5); }
     .sidebar.active { display: flex; }
@@ -395,5 +395,6 @@ button i {
 
 /* Το Hamburger Menu */
 .menu-btn { font-size: 20px; }
+
 
 

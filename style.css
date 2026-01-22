@@ -181,8 +181,8 @@ input:focus, textarea:focus { border-color: var(--accent); outline: none; }
     .sidebar.active { display: flex; }
     .menu-btn { display: block !important; margin-right: 15px; }
     .close-menu-btn { display: block; }
-    #btnEdit { display: none !important; } 
     .bottom-nav-bar { left: 0; width: 100%; }
 }
+
 
 

@@ -254,7 +254,8 @@ function renderSidebar() {
         if(s.id === currentSongId) d.classList.add('active');
         
         // Drag Handle
-        var handle = "<span class='drag-handle' style='color:var(--text-light); margin-right:12px; cursor:grab; padding: 5px 5px 5px 0; font-size:1.2em;'>☰</span>";
+       // Χρήση FontAwesome Grip Vertical (Κάθετες τελίτσες)
+        var handle = "<span class='drag-handle' style='color:var(--text-light); margin-right:10px; cursor:grab; padding: 5px;'><i class='fas fa-grip-vertical'></i></span>";
         var titleText = "<span>" + (i + 1) + ". " + s.title + "</span>";
         
         d.innerHTML = handle + titleText;

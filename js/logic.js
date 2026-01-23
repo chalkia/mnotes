@@ -125,6 +125,84 @@ function isOpenChord(c) {
     return OPEN_CHORDS.includes(root);
 }
 
+// --- SAVING LOGIC (WITH FREE/PREMIUM LIMITS) ---
+function saveSong() {
+    // 1. Διάβασμα τιμών από τα πεδία
+    var title = document.getElementById('inpTitle').value;
+    var key = document.getElementById('inpKey').value;
+    var notes = document.getElementById('inpNotes').value;
+    var intro = document.getElementById('inpIntro').value;
+    var interlude = document.getElementById('inpInter').value;
+    var body = document.getElementById('inpBody').value;
+    var tags = document.getElementById('inpTags').value;
+
+    // Έλεγχος υποχρεωτικών πεδίων
+    if(!title || !body) { 
+        alert("Ο τίτλος και το κυρίως τραγούδι είναι υποχρεωτικά!"); 
+        return; 
+    }
+
+    // Καθαρισμός Tags (χωρισμένα με κόμμα)
+    var playlists = tags.split(',').map(t => t.trim()).filter(t => t !== "");
+
+    if (!currentSongId) {
+        // --- ΔΗΜΙΟΥΡΓΙΑ ΝΕΟΥ ΤΡΑΓΟΥΔΙΟΥ (NEW) ---
+        
+        // Α. Υπολογισμός αν πρέπει να κλειδωθεί (Born Locked)
+        // Μετράμε πόσα "καθαρά" (ξεκλείδωτα) τραγούδια υπάρχουν ήδη
+        const unlockedCount = library.filter(s => !s.isLocked).length;
+
+        // Αν ο χρήστης είναι FREE και έχει φτάσει το όριο (5), το επόμενο κλειδώνει
+        const shouldLock = (typeof USER_STATUS !== 'undefined' && !USER_STATUS.isPremium) 
+                           && (unlockedCount >= USER_STATUS.freeLimit);
+
+        var newSong = {
+            id: Date.now().toString(),
+            title: title,
+            key: key,
+            body: body,
+            intro: intro,
+            interlude: interlude,
+            notes: notes,
+            playlists: playlists,
+            isLocked: shouldLock // <--- ΕΔΩ ΜΠΑΙΝΕΙ Η "ΣΦΡΑΓΙΔΑ"
+        };
+
+        // Β. Αποθήκευση
+        library.push(newSong);
+        currentSongId = newSong.id;
+
+        // Μήνυμα στον χρήστη
+        if(shouldLock) {
+            alert("Το τραγούδι αποθηκεύτηκε σε Mic Mode (Όριο Free Πακέτου).");
+        } else {
+            showToast("Το τραγούδι δημιουργήθηκε!");
+        }
+
+    } else {
+        // --- ΕΝΗΜΕΡΩΣΗ ΥΠΑΡΧΟΝΤΟΣ (UPDATE) ---
+        var song = getSongById(currentSongId);
+        if(song) {
+            song.title = title;
+            song.key = key;
+            song.body = body;
+            song.intro = intro;
+            song.interlude = interlude;
+            song.notes = notes;
+            song.playlists = playlists;
+            
+            // ΣΗΜΑΝΤΙΚΟ: Δεν πειράζουμε το isLocked εδώ!
+            // Αν ήταν κλειδωμένο, παραμένει. Αν ήταν ανοιχτό, παραμένει.
+            
+            showToast("Οι αλλαγές αποθηκεύτηκαν!");
+        }
+    }
+
+    // Γενική Αποθήκευση & Ανανέωση UI
+    saveData();      // Αποθήκευση στο localStorage
+    renderSidebar(); // Ενημέρωση της λίστας
+    hasUnsavedChanges = false;
+}
 // Μετατροπή κειμένου (Save Tone) - ΔΙΟΡΘΩΜΕΝΟ ΓΙΑ !Asus!
 function transposeSongBody(body, semitones) {
     if (!body) return "";

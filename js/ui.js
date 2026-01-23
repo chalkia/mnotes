@@ -452,62 +452,77 @@ function stopScanner() {
 
 function closeQR() { stopScanner(); }
 
-// --- Η ΔΙΟΡΘΩΜΕΝΗ ΣΥΝΑΡΤΗΣΗ ΕΠΙΤΥΧΙΑΣ ---
+// --- Η ΔΙΟΡΘΩΜΕΝΗ ΣΥΝΑΡΤΗΣΗ (AUTO-SAVE & FOCUS) ---
 const onScanSuccess = (decodedText, decodedResult) => {
-    // 1. Σταματάμε αμέσως την κάμερα
-    stopScanner(); 
+    stopScanner(); // Σταματάμε την κάμερα
 
     try {
-        // 2. ΔΙΟΡΘΩΣΗ ΕΛΛΗΝΙΚΩΝ (UTF-8 FIX)
-        // Αυτό το τρικ διορθώνει τα 
+        // 1. Διόρθωση Ελληνικών (UTF-8 Fix)
         let fixedText = decodedText;
         try {
             fixedText = decodeURIComponent(escape(decodedText));
         } catch (e) {
-            console.warn("UTF-8 Fix didn't work, using original text");
+            console.warn("UTF-8 Fix ignored");
         }
 
-        // 3. Μετατροπή από κείμενο σε JSON Αντικείμενο
+        // 2. Ανάγνωση δεδομένων
         let songData = JSON.parse(fixedText);
 
-        // 4. Έλεγχος αν είναι έγκυρο τραγούδι (πρέπει να έχει t=Title και b=Body)
         if (songData.t && songData.b) {
             
-            // Καθυστέρηση για να προλάβει να κλείσει το modal
             setTimeout(() => {
-                // Εμφάνιση του τίτλου σωστά πλέον
-                if(confirm(`Βρέθηκε: "${songData.t}"\nΝα γίνει εισαγωγή στον Editor;`)) {
+                // Ερώτηση στον χρήστη
+                if(confirm(`Βρέθηκε: "${songData.t}"\nΝα αποθηκευτεί στη βιβλιοθήκη;`)) {
                     
-                    // 5. Φόρτωση στον Editor (Αντιστοίχιση των μικρών QR keys στα κανονικά)
-                    loadInputsFromSong({
+                    // 3. ΔΗΜΙΟΥΡΓΙΑ ΝΕΟΥ ΤΡΑΓΟΥΔΙΟΥ
+                    var newSong = {
+                        id: Date.now().toString(), // Μοναδικό ID
                         title: songData.t,
                         key: songData.k || "",
                         body: songData.b,
                         intro: songData.i || "",
                         interlude: songData.n || "",
-                        notes: "", // Τα notes συνήθως δεν τα βάζουμε στο QR για χώρο
+                        notes: "",
                         playlists: []
-                    });
+                    };
+
+                    // 4. ΕΙΣΑΓΩΓΗ ΣΤΗ ΛΙΣΤΑ
+                    if (typeof library === 'undefined') library = [];
+                    library.push(newSong);
+
+                    // 5. ΑΠΟΘΗΚΕΥΣΗ ΣΤΗ ΜΝΗΜΗ (Απαραίτητο!)
+                    localStorage.setItem('mnotes_data', JSON.stringify(library));
+
+                    // 6. ΚΡΙΣΙΜΟ ΒΗΜΑ: Ενημέρωση του "Δείκτη"
+                    // Λέμε στην εφαρμογή ότι "Τώρα κοιτάμε αυτό το τραγούδι"
+                    currentSongId = newSong.id;
                     
-                    // 6. Πήγαινε στον Editor για να το δει ο χρήστης (ΔΕΝ αποθηκεύεται αυτόματα)
-                    toEditor(); 
+                    // Ανανέωση της λίστας για να φανεί το νέο τραγούδι
+                    filterPlaylist(); // (Αν υπάρχει στο logic.js) ή απλά renderSidebar()
+                    renderSidebar(); 
                     
-                    // Αν είναι σε κινητό, κλείσε το μενού
+                    // 7. ΠΡΟΒΟΛΗ (Πάμε στο Play για επιβεβαίωση)
+                    toViewer(); 
+                    
+                    // Κλείσιμο μενού (για κινητά)
                     if(window.innerWidth <= 768) {
                         document.getElementById('sidebar').classList.remove('active');
                     }
+
+                    // Ενημέρωση (Toast ή Alert)
+                    // alert("Αποθηκεύτηκε!"); 
                 }
             }, 200);
 
         } else { 
-            alert("Το QR Code δεν περιέχει έγκυρο τραγούδι mNotes."); 
+            alert("Μη έγκυρο QR Code."); 
         }
 
     } catch (error) { 
         console.error(error); 
-        alert("Σφάλμα ανάγνωσης QR.\nΒεβαιώσου ότι είναι QR από το mNotes."); 
+        alert("Σφάλμα ανάγνωσης δεδομένων."); 
     }
-}
+};
 
 // --- SIDEBAR SWIPE GESTURE (SWIPE LEFT TO CLOSE) ---
 function setupSidebarSwipe() {

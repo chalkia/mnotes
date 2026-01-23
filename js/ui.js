@@ -28,6 +28,62 @@ function loadSavedTheme() {
     }
 }
 
+// --- VIEW NAVIGATION (PLAYER ENFORCEMENT) ---
+function toViewer(forceRender = false) {
+    let song = getSongById(currentSongId);
+    if (!song) return;
+
+    // ΕΛΕΓΧΟΣ: Είναι κλειδωμένο (Mic Mode Only);
+    // Χρησιμοποιούμε τη συνάρτηση από το storage.js
+    const locked = (typeof isSongLocked === 'function') ? isSongLocked(song) : false;
+    
+    if (locked) {
+        // Force Karaoke Mode
+        document.body.classList.add('lyrics-only');
+        
+        // Κρύψε το κουμπί εξόδου από Karaoke (για να μην το βγάλει ο χρήστης)
+        var exitBtn = document.getElementById('exitKaraokeBtn');
+        if(exitBtn) exitBtn.style.display = 'none';
+        
+        // Κρύψε το κουμπί Edit
+        var editBtn = document.getElementById('btnEdit');
+        if(editBtn) editBtn.style.display = 'none';
+
+    } else {
+        // Αν είναι ξεκλείδωτο
+        document.getElementById('btnEdit').style.display = 'inline-flex';
+        var exitBtn = document.getElementById('exitKaraokeBtn');
+        if(exitBtn) exitBtn.style.display = 'flex'; 
+        
+        // Καθαρισμός του lyrics-only (εκτός αν το είχε πατήσει μόνος του - εδώ το κάνουμε reset)
+        document.body.classList.remove('lyrics-only');
+    }
+
+    // Αλλαγή οθόνης
+    document.getElementById('editor-view').style.display = 'none';
+    document.getElementById('viewer-view').style.display = 'flex';
+    document.getElementById('sidebar').classList.remove('active');
+    
+    // Render
+    render(song);
+}
+
+function toEditor() {
+    // Αν είναι κλειδωμένο το τραγούδι, απαγορεύεται το Edit
+    let song = getSongById(currentSongId);
+    if(song && typeof isSongLocked === 'function' && isSongLocked(song)) {
+        alert("🔒 Το τραγούδι είναι σε Mic Mode. Απαιτείται Premium για επεξεργασία.");
+        return;
+    }
+
+    document.getElementById('viewer-view').style.display = 'none';
+    document.getElementById('editor-view').style.display = 'block';
+    document.getElementById('sidebar').classList.remove('active');
+    
+    if(song) loadInputsFromSong(song);
+    else clearInputs();
+}
+
 // --- RENDER FUNCTION ---
 function render(originalSong) {
     var keyShift = state.t; 
@@ -142,7 +198,7 @@ function render(originalSong) {
     setupGestures();
 }
 
-// --- GESTURES ---
+// --- GESTURES (PINCH ZOOM) ---
 var gestureInitialized = false;
 function setupGestures() {
     if(gestureInitialized) return;
@@ -197,11 +253,22 @@ function renderSimple(t, s) {
     }
     return h;
 }
-// --- QR CODE GENERATION (SENDER SIDE FIX) ---
+
+// --- QR CODE GENERATION (SECURE & UTF-8 FIX) ---
 function generateQR(songData) {
     var qrContainer = document.getElementById('playerQR');
     if(!qrContainer) return;
     qrContainer.innerHTML = ""; 
+
+    // --- BLOCK FREE USER ---
+    // Αν δεν είναι Premium, δεν δείχνει QR
+    if (typeof USER_STATUS !== 'undefined' && !USER_STATUS.isPremium) {
+        qrContainer.innerHTML = `<div style="text-align:center; padding:10px; opacity:0.6;">
+            <i class="fas fa-lock" style="font-size:20px; margin-bottom:5px;"></i><br>
+            <span style="font-size:12px;">Sharing is Premium Only</span>
+        </div>`;
+        return;
+    }
 
     if(typeof qrcode === 'undefined') {
         qrContainer.innerHTML = "<span style='color:red; font-size:10px;'>QR Lib missing</span>";
@@ -209,7 +276,6 @@ function generateQR(songData) {
     }
 
     try {
-        // 1. Δημιουργία του ελαφρύ αντικειμένου
         var minSong = {
             t: songData.title,
             k: songData.key,
@@ -218,25 +284,15 @@ function generateQR(songData) {
             n: songData.interlude || ""
         };
 
-        // 2. Μετατροπή σε κείμενο JSON
         var jsonText = JSON.stringify(minSong);
-
-        // 3. --- Η ΔΙΟΡΘΩΣΗ ΓΙΑ ΤΑ ΕΛΛΗΝΙΚΑ ---
-        // Μετατρέπουμε το Unicode string σε UTF-8 bytes.
-        // Χωρίς αυτό, η βιβλιοθήκη QR καταστρέφει τα ελληνικά.
+        // UTF-8 FIX για Ελληνικά
         var utf8Json = unescape(encodeURIComponent(jsonText));
 
-        // 4. Ρύθμιση του QR Code
-        // Χρησιμοποιούμε typeNumber 0 (Auto) και Correction Level 'L' (Low) για να χωρέσει περισσότερα δεδομένα
         var qr = qrcode(0, 'L');
-        
-        qr.addData(utf8Json); // Βάζουμε το διορθωμένο UTF-8 κείμενο
+        qr.addData(utf8Json);
         qr.make();
-
-        // 5. Εμφάνιση
         qrContainer.innerHTML = qr.createImgTag(4, 0); 
         
-        // Στυλ εικόνας
         var img = qrContainer.querySelector('img');
         if(img) {
             img.style.display = "block";
@@ -244,14 +300,13 @@ function generateQR(songData) {
             img.style.maxWidth = "100%";
             img.style.height = "auto";
         }
-
     } catch(e) {
         console.error("QR Gen Error:", e);
         qrContainer.innerHTML = `<div style="color:#e67e22; font-size:11px;">⚠️ Το τραγούδι είναι πολύ μεγάλο για QR.</div>`;
     }
 }
 
-// --- SIDEBAR & LIST ---
+// --- SIDEBAR & LIST (WITH LOCK ICONS) ---
 function renderSidebar() {
     var c = document.getElementById('playlistContainer'); 
     c.innerHTML = "";
@@ -259,6 +314,7 @@ function renderSidebar() {
     
     if(visiblePlaylist.length === 0) { 
         c.innerHTML = '<div class="empty-msg">Κενή Βιβλιοθήκη</div>'; 
+        checkPremiumUI(); 
         return; 
     }
 
@@ -269,10 +325,14 @@ function renderSidebar() {
         
         if(s.id === currentSongId) d.classList.add('active');
         
-        // Drag Handle
-       // Χρήση FontAwesome Grip Vertical (Κάθετες τελίτσες)
+        // Handle
         var handle = "<span class='drag-handle' style='color:var(--text-light); margin-right:10px; cursor:grab; padding: 5px;'><i class='fas fa-grip-vertical'></i></span>";
-        var titleText = "<span>" + (i + 1) + ". " + s.title + "</span>";
+        
+        // Lock Icon (Αν είναι κλειδωμένο)
+        var isLocked = (typeof isSongLocked === 'function') ? isSongLocked(s) : false;
+        var lockIcon = isLocked ? "<i class='fas fa-microphone' style='color:var(--accent); margin-left:5px; font-size:0.8em;' title='Mic Mode Only'></i>" : "";
+
+        var titleText = "<span>" + (i + 1) + ". " + s.title + lockIcon + "</span>";
         
         d.innerHTML = handle + titleText;
         
@@ -286,14 +346,13 @@ function renderSidebar() {
         c.appendChild(d);
     });
 
-    // --- SORTABLE JS ME HANDLE ---
+    // Sortable
     if(typeof Sortable !== 'undefined') {
         if(window.playlistSortable) window.playlistSortable.destroy();
-
         window.playlistSortable = Sortable.create(c, {
             animation: 150,
             ghostClass: 'sortable-ghost',
-            handle: '.drag-handle', // <--- ΜΟΝΟ από το εικονίδιο!
+            handle: '.drag-handle', 
             onEnd: function (evt) {
                 var newIndex = evt.newIndex;
                 var oldIndex = evt.oldIndex;
@@ -305,6 +364,9 @@ function renderSidebar() {
             }
         });
     }
+
+    // Ενημέρωση UI για το κουμπί Export
+    checkPremiumUI();
 }
 
 function loadInputsFromSong(s) {
@@ -329,11 +391,18 @@ function clearInputs() {
 }
 
 function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); }
+
 function toggleNotes() {
     var box = document.getElementById('displayNotes'); var btn = document.getElementById('btnToggleNotes');
     if(box.style.display === 'none') { box.style.display = 'block'; btn.classList.add('active'); } else { box.style.display = 'none'; btn.classList.remove('active'); }
 }
-function showToast(m) { var d = document.createElement('div'); d.innerText = m; d.style.cssText = "position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:#000c;color:#fff;padding:8px 16px;border-radius:20px;z-index:2000;font-size:12px;"; document.body.appendChild(d); setTimeout(() => d.remove(), 2000); }
+
+function showToast(m) { 
+    var d = document.createElement('div'); d.innerText = m; 
+    d.style.cssText = "position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:#000c;color:#fff;padding:8px 16px;border-radius:20px;z-index:2000;font-size:12px;"; 
+    document.body.appendChild(d); 
+    setTimeout(() => d.remove(), 2000); 
+}
 
 // --- TAG CLOUD ---
 function renderTagCloud() {
@@ -351,10 +420,7 @@ function renderTagCloud() {
         }
     });
 
-    if(allTags.size === 0) {
-        container.style.display = 'none';
-        return;
-    }
+    if(allTags.size === 0) { container.style.display = 'none'; return; }
     container.style.display = 'flex';
 
     var sortedTags = Array.from(allTags).sort();
@@ -364,15 +430,11 @@ function renderTagCloud() {
         var chip = document.createElement('div');
         chip.className = 'tag-chip';
         chip.innerText = tag;
-        
-        if(currentTags.includes(tag)) {
-            chip.classList.add('selected');
-        }
+        if(currentTags.includes(tag)) chip.classList.add('selected');
 
         chip.onclick = function() {
             var val = input.value;
             var tagsNow = val.split(',').map(t => t.trim()).filter(t => t !== "");
-            
             if(tagsNow.includes(tag)) {
                 tagsNow = tagsNow.filter(t => t !== tag);
                 chip.classList.remove('selected');
@@ -380,7 +442,6 @@ function renderTagCloud() {
                 tagsNow.push(tag);
                 chip.classList.add('selected');
             }
-            
             input.value = tagsNow.join(", ");
             hasUnsavedChanges = true;
         };
@@ -389,13 +450,8 @@ function renderTagCloud() {
 }
 
 // --- IMPORT MENU ---
-function showImportMenu() {
-    document.getElementById('importChoiceModal').style.display = 'flex';
-}
-
-function closeImportChoice() {
-    document.getElementById('importChoiceModal').style.display = 'none';
-}
+function showImportMenu() { document.getElementById('importChoiceModal').style.display = 'flex'; }
+function closeImportChoice() { document.getElementById('importChoiceModal').style.display = 'none'; }
 
 function selectImport(type) {
     closeImportChoice(); 
@@ -406,6 +462,7 @@ function selectImport(type) {
         if(fileInput) fileInput.click();
     }
 }
+
 // --- SCANNER LOGIC ---
 let html5QrCode; 
 
@@ -413,20 +470,15 @@ function startScanner() {
     var qrModal = document.getElementById('qrModal');
     if(!qrModal) return;
     qrModal.style.display = 'flex';
-
-    // Καθαρισμός αν είχε μείνει ανοιχτό
-    if(html5QrCode) {
-        try { html5QrCode.clear(); } catch(e) {}
-    }
+    if(html5QrCode) { try { html5QrCode.clear(); } catch(e) {} }
 
     html5QrCode = new Html5Qrcode("qr-reader"); 
     const config = { fps: 10, qrbox: { width: 250, height: 250 } };
     
-    // Ξεκινάει την πίσω κάμερα
     html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
     .catch(err => {
         console.error("Scanner Error:", err);
-        alert("Δεν βρέθηκε κάμερα. Βεβαιώσου ότι έδωσες άδεια στον browser.");
+        alert("Δεν βρέθηκε κάμερα. Βεβαιώσου ότι έδωσες άδεια.");
         stopScanner();
     });
 }
@@ -438,115 +490,124 @@ function stopScanner() {
             html5QrCode.clear();
             if(qrModal) qrModal.style.display = 'none';
         }).catch(err => {
-            console.warn("Stop failed:", err);
             if(qrModal) qrModal.style.display = 'none';
-            // Αν κολλήσει, κάνε reload τη σελίδα
-            if(document.querySelector('#qr-reader').innerHTML !== "") {
-               window.location.reload(); 
-            }
+            if(document.querySelector('#qr-reader').innerHTML !== "") window.location.reload(); 
         });
     } else {
         if(qrModal) qrModal.style.display = 'none';
     }
 }
-
 function closeQR() { stopScanner(); }
 
-// --- Η ΔΙΟΡΘΩΜΕΝΗ ΣΥΝΑΡΤΗΣΗ (AUTO-SAVE & FOCUS) ---
+// --- SCAN SUCCESS (AUTO SAVE & LOCK LOGIC) ---
 const onScanSuccess = (decodedText, decodedResult) => {
-    stopScanner(); // Σταματάμε την κάμερα
+    stopScanner(); 
 
     try {
-        // 1. Διόρθωση Ελληνικών (UTF-8 Fix)
         let fixedText = decodedText;
-        try {
-            fixedText = decodeURIComponent(escape(decodedText));
-        } catch (e) {
-            console.warn("UTF-8 Fix ignored");
-        }
-
-        // 2. Ανάγνωση δεδομένων
+        try { fixedText = decodeURIComponent(escape(decodedText)); } catch (e) {}
         let songData = JSON.parse(fixedText);
 
         if (songData.t && songData.b) {
-            
             setTimeout(() => {
-                // Ερώτηση στον χρήστη
-                if(confirm(`Βρέθηκε: "${songData.t}"\nΝα αποθηκευτεί στη βιβλιοθήκη;`)) {
+                if(confirm(`Βρέθηκε: "${songData.t}"\nΝα αποθηκευτεί;`)) {
                     
-                    // 3. ΔΗΜΙΟΥΡΓΙΑ ΝΕΟΥ ΤΡΑΓΟΥΔΙΟΥ
+                    // ΥΠΟΛΟΓΙΣΜΟΣ ΚΛΕΙΔΩΜΑΤΟΣ (BORN LOCKED)
+                    const unlockedCount = library.filter(s => !s.isLocked).length;
+                    const shouldLock = (typeof USER_STATUS !== 'undefined' && !USER_STATUS.isPremium) 
+                                      && (unlockedCount >= USER_STATUS.freeLimit);
+
                     var newSong = {
-                        id: Date.now().toString(), // Μοναδικό ID
+                        id: Date.now().toString(),
                         title: songData.t,
                         key: songData.k || "",
                         body: songData.b,
                         intro: songData.i || "",
                         interlude: songData.n || "",
                         notes: "",
-                        playlists: []
+                        playlists: [],
+                        isLocked: shouldLock // <--- ΕΔΩ ΕΦΑΡΜΟΖΕΤΑΙ Η ΣΦΡΑΓΙΔΑ
                     };
 
-                    // 4. ΕΙΣΑΓΩΓΗ ΣΤΗ ΛΙΣΤΑ
                     if (typeof library === 'undefined') library = [];
                     library.push(newSong);
-
-                    // 5. ΑΠΟΘΗΚΕΥΣΗ ΣΤΗ ΜΝΗΜΗ (Απαραίτητο!)
                     localStorage.setItem('mnotes_data', JSON.stringify(library));
 
-                    // 6. ΚΡΙΣΙΜΟ ΒΗΜΑ: Ενημέρωση του "Δείκτη"
-                    // Λέμε στην εφαρμογή ότι "Τώρα κοιτάμε αυτό το τραγούδι"
                     currentSongId = newSong.id;
-                    
-                    // Ανανέωση της λίστας για να φανεί το νέο τραγούδι
-                    filterPlaylist(); // (Αν υπάρχει στο logic.js) ή απλά renderSidebar()
+                    if(typeof filterPlaylist === 'function') filterPlaylist();
                     renderSidebar(); 
+                    toViewer(true); 
                     
-                    // 7. ΠΡΟΒΟΛΗ (Πάμε στο Play για επιβεβαίωση)
-                    toViewer(); 
+                    if(window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('active');
                     
-                    // Κλείσιμο μενού (για κινητά)
-                    if(window.innerWidth <= 768) {
-                        document.getElementById('sidebar').classList.remove('active');
-                    }
-
-                    // Ενημέρωση (Toast ή Alert)
-                    // alert("Αποθηκεύτηκε!"); 
+                    if(shouldLock) alert("Το τραγούδι αποθηκεύτηκε σε Mic Mode (Όριο Free).");
                 }
             }, 200);
-
-        } else { 
-            alert("Μη έγκυρο QR Code."); 
-        }
-
-    } catch (error) { 
-        console.error(error); 
-        alert("Σφάλμα ανάγνωσης δεδομένων."); 
-    }
+        } else { alert("Μη έγκυρο QR Code."); }
+    } catch (error) { alert("Σφάλμα ανάγνωσης δεδομένων."); }
 };
 
-// --- SIDEBAR SWIPE GESTURE (SWIPE LEFT TO CLOSE) ---
+// --- SIDEBAR SWIPE GESTURE ---
 function setupSidebarSwipe() {
     const sidebar = document.getElementById('sidebar');
     let touchStartX = 0;
     let touchEndX = 0;
 
-    // Όταν ακουμπάς την οθόνη
-    sidebar.addEventListener('touchstart', e => {
-        touchStartX = e.changedTouches[0].screenX;
-    }, {passive: true});
-
-    // Όταν αφήνεις την οθόνη
+    sidebar.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, {passive: true});
     sidebar.addEventListener('touchend', e => {
         touchEndX = e.changedTouches[0].screenX;
-        handleSwipe();
+        if (touchStartX - touchEndX > 70) sidebar.classList.remove('active');
     }, {passive: true});
+}
 
-    function handleSwipe() {
-        // Υπολογισμός διαφοράς (Αρχή - Τέλος)
-        // Αν σύρεις προς τα αριστερά, το StartX είναι μεγαλύτερο από το EndX
-        if (touchStartX - touchEndX > 70) { // 70px όριο για να μην πιάνει τυχαία αγγίγματα
-            // Κλείσε το μενού
-            sidebar.classList.remove('active');
-        }
+// --- ADMIN SWITCH & UI UTILS ---
+
+// 1. ADMIN SWITCH (5 Clicks + Password)
+function setupAdminSwitch() {
+    const logo = document.getElementById('appLogo');
+    const badge = document.getElementById('statusBadge');
+    if(!logo || !badge) return;
+
+    if (USER_STATUS.isPremium) {
+        badge.innerText = "PRO";
+        badge.style.background = "linear-gradient(45deg, #f1c40f, #d35400)";
+        badge.style.color = "#000";
+        badge.style.fontWeight = "bold";
+    } else {
+        badge.innerText = "FREE";
+        badge.style.background = "#7f8c8d";
+        badge.style.color = "#fff";
     }
+
+    let tapCount = 0;
+    let tapTimer = null;
+
+    logo.addEventListener('click', () => {
+        tapCount++;
+        if (tapCount === 1) {
+            tapTimer = setTimeout(() => { tapCount = 0; }, 2000);
+        }
+        if (tapCount === 5) {
+            clearTimeout(tapTimer);
+            tapCount = 0;
+            const pass = prompt("ADMIN MODE:\nΕισάγετε κωδικό:");
+            if (pass === "1234") { 
+                setPremiumStatus(!USER_STATUS.isPremium);
+            } else if (pass !== null) alert("⛔ Λάθος κωδικός!");
+        }
+    });
+}
+
+// 2. TOGGLE KARAOKE (Χειροκίνητο)
+function toggleKaraoke() {
+    document.body.classList.toggle('lyrics-only');
+    if (document.body.classList.contains('lyrics-only')) {
+        document.getElementById('sidebar').classList.remove('active');
+    }
+}
+
+// 3. ΕΛΕΓΧΟΣ UI (Κρύψιμο Export για Free)
+function checkPremiumUI() {
+    var btnExport = document.getElementById('btnExport');
+    if(btnExport) btnExport.style.display = USER_STATUS.isPremium ? 'flex' : 'none';
 }

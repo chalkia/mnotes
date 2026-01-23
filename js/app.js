@@ -87,8 +87,6 @@ function saveToneChange() {
         alert("Ο νέος τόνος αποθηκεύτηκε!");
     }
 }
-
-function deleteCurrentSong() { if(currentSongId && confirm("Διαγραφή τραγουδιού;")) { library = library.filter(x => x.id !== currentSongId); currentSongId = null; hasUnsavedChanges = false; saveToLocal(); updatePlaylistDropdown(); filterPlaylist(); clearInputs(); toEditor(); } }
 function clearLibrary() { if(confirm("Προσοχή! Διαγραφή ΟΛΩΝ των τραγουδιών;")) { library = []; visiblePlaylist = []; currentSongId = null; hasUnsavedChanges = false; saveToLocal(); updatePlaylistDropdown(); renderSidebar(); clearInputs(); toEditor(); } }
 function filterPlaylist() {
     var cat = document.getElementById('playlistSelect').value;

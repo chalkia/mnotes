@@ -1,8 +1,8 @@
 /* =========================================
-   UI & RENDERING (SMART PIN & GESTURES)
+   UI & RENDERING (ENGLISH VERSION)
    ========================================= */
 
-// Μεταβλητή για το μέγεθος γραμματοσειράς (1.0 = normal)
+// Font Scale State
 var currentFontScale = 1.0;
 
 // --- THEME LOGIC ---
@@ -28,33 +28,32 @@ function loadSavedTheme() {
     }
 }
 
-// --- VIEW NAVIGATION (PLAYER ENFORCEMENT & AUTO CURTAIN) ---
+// --- VIEW NAVIGATION & READ ONLY LOGIC ---
+
 function toViewer(forceRender = false) {
     let song = getSongById(currentSongId);
     if (!song) return;
 
-    // ΕΛΕΓΧΟΣ: Είναι κλειδωμένο (Mic Mode Only);
+    // CHECK: Is it Locked? (Mic Mode Only)
     const locked = (typeof isSongLocked === 'function') ? isSongLocked(song) : false;
     
     if (locked) {
-        // --- ΚΛΕΙΔΩΜΕΝΟ ---
-        // 1. Ρίχνουμε την κουρτίνα (Full Screen Lyrics)
+        // --- LOCKED: Force Mic Mode ---
         document.body.classList.add('lyrics-only');
         
-        // 2. Κρύβουμε το Edit
+        // Hide Edit Button (Security)
         var editBtn = document.getElementById('btnEdit');
         if(editBtn) editBtn.style.display = 'none';
 
-        // 3. Εμφανίζουμε το κουμπί εξόδου (X) για να μπορεί να φύγει
+        // Show Exit Button
         var exitBtn = document.getElementById('exitKaraokeBtn');
         if(exitBtn) exitBtn.style.display = 'flex';
 
     } else {
-        // --- ΞΕΚΛΕΙΔΩΤΟ ---
-        // 1. Σηκώνουμε την κουρτίνα (Normal Player)
+        // --- UNLOCKED: Normal Player ---
         document.body.classList.remove('lyrics-only');
 
-        // 2. Επαναφορά κουμπιών
+        // Restore Buttons
         var editBtn = document.getElementById('btnEdit');
         if(editBtn) editBtn.style.display = 'inline-flex';
         
@@ -62,32 +61,68 @@ function toViewer(forceRender = false) {
         if(exitBtn) exitBtn.style.display = 'flex'; 
     }
 
-    // Αλλαγή οθόνης
+    // Switch Views
     document.getElementById('editor-view').style.display = 'none';
     document.getElementById('viewer-view').style.display = 'flex';
-    
-    // Κλείσιμο Sidebar (πάντα, για να δει το περιεχόμενο)
     document.getElementById('sidebar').classList.remove('active');
     
-    // Render
     render(song);
 }
 
 function toEditor() {
     let song = getSongById(currentSongId);
     
-    // ΑΥΣΤΗΡΟΣ ΕΛΕΓΧΟΣ: Αν είναι κλειδωμένο, STOP.
-    if(song && typeof isSongLocked === 'function' && isSongLocked(song)) {
-        alert("⛔ ΠΡΟΣΒΑΣΗ ΑΡΝΗΘΗΚΕ\n\nΑυτό το τραγούδι είναι διαθέσιμο μόνο για στίχους (Mic Mode).");
-        return;
-    }
+    // Check Lock Status
+    const isLocked = (song && typeof isSongLocked === 'function') ? isSongLocked(song) : false;
 
+    // Switch Views
     document.getElementById('viewer-view').style.display = 'none';
     document.getElementById('editor-view').style.display = 'block';
     document.getElementById('sidebar').classList.remove('active');
     
-    if(song) loadInputsFromSong(song);
-    else clearInputs();
+    if(song) {
+        loadInputsFromSong(song);
+        
+        // --- READ ONLY MODE LOGIC ---
+        // If locked, disable inputs but allow DELETE
+        if (isLocked) {
+            setEditorReadOnly(true);
+            showToast("Restricted Mode: Read & Delete Only");
+        } else {
+            setEditorReadOnly(false);
+        }
+    } else {
+        clearInputs();
+        setEditorReadOnly(false); // New songs are editable
+    }
+}
+
+// Helper to freeze/unfreeze editor
+function setEditorReadOnly(locked) {
+    const inputs = [
+        'inpTitle', 'inpKey', 'inpNotes', 'inpIntro', 
+        'inpInter', 'inpBody', 'inpTags'
+    ];
+    
+    inputs.forEach(id => {
+        let el = document.getElementById(id);
+        if(el) {
+            el.disabled = locked; 
+            el.style.opacity = locked ? "0.6" : "1";
+            el.style.cursor = locked ? "not-allowed" : "text";
+        }
+    });
+
+    // Handle Buttons
+    const btnSave = document.getElementById('btnSave'); 
+    const btnDelete = document.getElementById('btnDelete');
+    
+    // Hide Save if locked
+    if(btnSave) btnSave.style.display = locked ? 'none' : 'inline-block';
+    
+    // Always show Delete (so they can free up space)
+    // BUT protect the Demo song (logic.js handles that check)
+    if(btnDelete) btnDelete.style.display = 'inline-block'; 
 }
 
 // --- RENDER FUNCTION ---
@@ -306,7 +341,7 @@ function generateQR(songData) {
         }
     } catch(e) {
         console.error("QR Gen Error:", e);
-        qrContainer.innerHTML = `<div style="color:#e67e22; font-size:11px;">⚠️ Το τραγούδι είναι πολύ μεγάλο για QR.</div>`;
+        qrContainer.innerHTML = `<div style="color:#e67e22; font-size:11px;">⚠️ Song too large for QR.</div>`;
     }
 }
 
@@ -317,7 +352,7 @@ function renderSidebar() {
     document.getElementById('songCount').innerText = visiblePlaylist.length + " songs";
     
     if(visiblePlaylist.length === 0) { 
-        c.innerHTML = '<div class="empty-msg">Κενή Βιβλιοθήκη</div>'; 
+        c.innerHTML = '<div class="empty-msg">Library Empty</div>'; 
         checkPremiumUI(); 
         return; 
     }
@@ -331,11 +366,17 @@ function renderSidebar() {
         
         var handle = "<span class='drag-handle' style='color:var(--text-light); margin-right:10px; cursor:grab; padding: 5px;'><i class='fas fa-grip-vertical'></i></span>";
         
-        // Lock Icon
+        // Lock Icon & Demo Icon
         var isLocked = (typeof isSongLocked === 'function') ? isSongLocked(s) : false;
-        var lockIcon = isLocked ? "<i class='fas fa-microphone' style='color:var(--accent); margin-left:5px; font-size:0.8em;' title='Mic Mode Only'></i>" : "";
+        var icon = "";
+        
+        if (s.id === "demo_fixed_001") {
+             icon = "<i class='fas fa-star' style='color:#f1c40f; margin-left:5px; font-size:0.8em;' title='Demo'></i>";
+        } else if (isLocked) {
+             icon = "<i class='fas fa-microphone' style='color:var(--accent); margin-left:5px; font-size:0.8em;' title='Mic Mode Only'></i>";
+        }
 
-        var titleText = "<span>" + (i + 1) + ". " + s.title + lockIcon + "</span>";
+        var titleText = "<span>" + (i + 1) + ". " + s.title + icon + "</span>";
         
         d.innerHTML = handle + titleText;
         
@@ -377,7 +418,14 @@ function loadInputsFromSong(s) {
     document.getElementById('inpInter').value = s.interlude || "";
     document.getElementById('inpBody').value = s.body;
     document.getElementById('inpTags').value = (s.playlists || []).join(", ");
-    document.getElementById('btnDelete').style.display = 'inline-block';
+    
+    // DEMO: Hide delete for Demo Song
+    if (s.id === "demo_fixed_001") {
+        document.getElementById('btnDelete').style.display = 'none';
+    } else {
+        document.getElementById('btnDelete').style.display = 'inline-block';
+    }
+
     renderTagCloud(); 
 }
 
@@ -478,7 +526,7 @@ function startScanner() {
     html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
     .catch(err => {
         console.error("Scanner Error:", err);
-        alert("Δεν βρέθηκε κάμερα. Βεβαιώσου ότι έδωσες άδεια.");
+        alert("Camera not found or permission denied.");
         stopScanner();
     });
 }
@@ -499,7 +547,7 @@ function stopScanner() {
 }
 function closeQR() { stopScanner(); }
 
-// --- SCAN SUCCESS (AUTO SAVE & LOCK LOGIC) ---
+// --- SCAN SUCCESS ---
 const onScanSuccess = (decodedText, decodedResult) => {
     stopScanner(); 
 
@@ -510,7 +558,7 @@ const onScanSuccess = (decodedText, decodedResult) => {
 
         if (songData.t && songData.b) {
             setTimeout(() => {
-                if(confirm(`Βρέθηκε: "${songData.t}"\nΝα αποθηκευτεί;`)) {
+                if(confirm(`Found: "${songData.t}"\nSave to library?`)) {
                     
                     const unlockedCount = library.filter(s => !s.isLocked).length;
                     const shouldLock = (typeof USER_STATUS !== 'undefined' && !USER_STATUS.isPremium) 
@@ -539,11 +587,11 @@ const onScanSuccess = (decodedText, decodedResult) => {
                     
                     if(window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('active');
                     
-                    if(shouldLock) alert("Το τραγούδι αποθηκεύτηκε σε Mic Mode (Όριο Free).");
+                    if(shouldLock) alert("Song saved in Mic Mode (Free Limit).");
                 }
             }, 200);
-        } else { alert("Μη έγκυρο QR Code."); }
-    } catch (error) { alert("Σφάλμα ανάγνωσης δεδομένων."); }
+        } else { alert("Invalid QR Code."); }
+    } catch (error) { alert("Data read error."); }
 };
 
 // --- SIDEBAR SWIPE GESTURE ---
@@ -559,7 +607,7 @@ function setupSidebarSwipe() {
     }, {passive: true});
 }
 
-// --- ADMIN SWITCH & SHARE & KARAOKE LOGIC ---
+// --- ADMIN & SHARE & KARAOKE (CONTROLS) ---
 
 // 1. ADMIN SWITCH (2204)
 function setupAdminSwitch() {
@@ -589,44 +637,35 @@ function setupAdminSwitch() {
         if (tapCount === 5) {
             clearTimeout(tapTimer);
             tapCount = 0;
-            const pass = prompt("ADMIN MODE:\nΕισάγετε κωδικό:");
+            const pass = prompt("ADMIN MODE:\nEnter Password:");
             if (pass === "2204") { 
                 setPremiumStatus(!USER_STATUS.isPremium);
-            } else if (pass !== null) alert("⛔ Λάθος κωδικός!");
+            } else if (pass !== null) alert("⛔ Wrong Password!");
         }
     });
 }
 
-// 2. TOGGLE KARAOKE (SMART EXIT)
+// 2. TOGGLE KARAOKE (SMART EXIT for Locked Songs)
 function toggleKaraoke() {
     let song = getSongById(currentSongId);
     
-    // Έλεγχος αν το τρέχον τραγούδι είναι κλειδωμένο
+    // Check if song is locked
     const isLocked = (song && typeof isSongLocked === 'function') ? isSongLocked(song) : false;
 
-    // ΠΕΡΙΠΤΩΣΗ A: Είμαστε σε ΚΛΕΙΔΩΜΕΝΟ τραγούδι (Free User)
-    // Πρέπει να φύγουμε από εδώ και να πάμε σε "ασφαλές έδαφος"
+    // CASE A: Locked Song Exit -> Go to Read Only Editor to allow Delete/Nav
     if (isLocked) {
-        // Ψάχνουμε το τελευταίο ξεκλείδωτο
-        let safeSong = [...library].reverse().find(s => !s.isLocked) || library[0];
-
-        if (safeSong) {
-            currentSongId = safeSong.id;
-            
-            // Κλείνουμε το Mic Mode
-            document.body.classList.remove('lyrics-only');
-            
-            // Ανοίγουμε το Sidebar
-            document.getElementById('sidebar').classList.add('active'); 
-            
-            toViewer();
-            renderSidebar(); 
-            showToast("Επιστροφή στα διαθέσιμα τραγούδια");
-        }
+        // We do NOT toggle class. We force Exit to Editor (Read Only)
+        // This allows user to see the "Delete" button or use sidebar
+        document.body.classList.remove('lyrics-only');
+        toEditor(); 
+        
+        // Open sidebar to help navigation
+        document.getElementById('sidebar').classList.add('active'); 
+        showToast("Exit Mic Mode");
         return;
     }
 
-    // ΠΕΡΙΠΤΩΣΗ B: Κανονικό Toggle
+    // CASE B: Normal Toggle
     document.body.classList.toggle('lyrics-only');
     
     if (document.body.classList.contains('lyrics-only')) {
@@ -637,12 +676,12 @@ function toggleKaraoke() {
 // 3. SMART SHARE BUTTON (Mobile Share / Desktop Export)
 async function shareSetlist() {
     if (!visiblePlaylist || visiblePlaylist.length === 0) {
-        showToast("Η λίστα είναι κενή!");
+        showToast("Library is empty!");
         return;
     }
 
     if (typeof USER_STATUS !== 'undefined' && !USER_STATUS.isPremium) {
-        alert("🔒 Το Social Sharing είναι Premium λειτουργία.");
+        alert("🔒 Social Sharing is a Premium Feature.");
         return;
     }
 
@@ -654,10 +693,10 @@ async function shareSetlist() {
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
             await navigator.share({
                 title: 'mNotes Setlist',
-                text: '🎹 Πρόγραμμα Πρόβας (mNotes)',
+                text: 'Rehearsal Setlist (mNotes)',
                 files: [file]
             });
-            showToast("Στάλθηκε!");
+            showToast("Shared!");
             return; 
         }
     } catch (e) {
@@ -665,16 +704,16 @@ async function shareSetlist() {
         console.warn("Share failed, falling back to download.");
     }
 
-    // Fallback σε απλό Download (αν υπάρχει η συνάρτηση exportJSON στο logic/global)
+    // Fallback to Download
     if(typeof exportJSON === 'function') {
         exportJSON(); 
-        showToast("Το αρχείο κατέβηκε (Export).");
+        showToast("File downloaded (Manual Share).");
     } else {
         alert("Export function missing.");
     }
 }
 
-// 4. ΕΛΕΓΧΟΣ UI (Κρύψιμο Export για Free)
+// 4. UI CHECK (Hide Export for Free)
 function checkPremiumUI() {
     var btnExport = document.getElementById('btnExport');
     if(btnExport) btnExport.style.display = USER_STATUS.isPremium ? 'flex' : 'none';

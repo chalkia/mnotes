@@ -197,8 +197,7 @@ function renderSimple(t, s) {
     }
     return h;
 }
-
-// --- QR CODE GENERATION ---
+// --- QR CODE GENERATION (SENDER SIDE FIX) ---
 function generateQR(songData) {
     var qrContainer = document.getElementById('playerQR');
     if(!qrContainer) return;
@@ -210,18 +209,34 @@ function generateQR(songData) {
     }
 
     try {
+        // 1. Δημιουργία του ελαφρύ αντικειμένου
         var minSong = {
             t: songData.title,
             k: songData.key,
             b: songData.body,
-            i: songData.intro,
-            n: songData.interlude
+            i: songData.intro || "",
+            n: songData.interlude || ""
         };
+
+        // 2. Μετατροπή σε κείμενο JSON
         var jsonText = JSON.stringify(minSong);
+
+        // 3. --- Η ΔΙΟΡΘΩΣΗ ΓΙΑ ΤΑ ΕΛΛΗΝΙΚΑ ---
+        // Μετατρέπουμε το Unicode string σε UTF-8 bytes.
+        // Χωρίς αυτό, η βιβλιοθήκη QR καταστρέφει τα ελληνικά.
+        var utf8Json = unescape(encodeURIComponent(jsonText));
+
+        // 4. Ρύθμιση του QR Code
+        // Χρησιμοποιούμε typeNumber 0 (Auto) και Correction Level 'L' (Low) για να χωρέσει περισσότερα δεδομένα
         var qr = qrcode(0, 'L');
-        qr.addData(jsonText);
+        
+        qr.addData(utf8Json); // Βάζουμε το διορθωμένο UTF-8 κείμενο
         qr.make();
+
+        // 5. Εμφάνιση
         qrContainer.innerHTML = qr.createImgTag(4, 0); 
+        
+        // Στυλ εικόνας
         var img = qrContainer.querySelector('img');
         if(img) {
             img.style.display = "block";
@@ -229,9 +244,10 @@ function generateQR(songData) {
             img.style.maxWidth = "100%";
             img.style.height = "auto";
         }
+
     } catch(e) {
         console.error("QR Gen Error:", e);
-        qrContainer.innerHTML = `<div style="color:#e67e22; font-size:11px;">⚠️ Error: Too Big</div>`;
+        qrContainer.innerHTML = `<div style="color:#e67e22; font-size:11px;">⚠️ Το τραγούδι είναι πολύ μεγάλο για QR.</div>`;
     }
 }
 

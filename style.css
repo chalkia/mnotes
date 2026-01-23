@@ -396,5 +396,68 @@ button i {
 /* Το Hamburger Menu */
 .menu-btn { font-size: 20px; }
 
+/* --- KARAOKE / LYRICS MODE --- */
+body.lyrics-only .chord {
+    display: none !important; /* Κρύψε τα ακόρντα */
+}
+
+body.lyrics-only .lyric {
+    font-size: 28px !important; /* Μεγάλα γράμματα */
+    line-height: 1.6;
+    color: var(--text-main);
+    font-weight: bold;
+}
+
+body.lyrics-only .token {
+    margin-right: 5px; 
+    display: inline-block;
+}
+
+body.lyrics-only .line-row {
+    display: block; 
+    border-bottom: none; 
+    margin-bottom: 20px;
+}
+
+/* Κρύψε τα περιττά στο Karaoke Mode */
+body.lyrics-only .sidebar,
+body.lyrics-only .live-controls-area, 
+body.lyrics-only .mini-header-row .key-badge,
+body.lyrics-only .mini-header-row .icon-btn,
+body.lyrics-only .view-controls,
+body.lyrics-only .qr-footer,
+body.lyrics-only .top-bar { /* Κρύβουμε και την πάνω μπάρα για full focus */
+    display: none !important;
+}
+
+body.lyrics-only #viewer-view {
+    text-align: center;
+    padding-top: 20px;
+}
+
+/* Κουμπί Εξόδου (μόνο για Karaoke) */
+#exitKaraokeBtn {
+    display: none;
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background: var(--danger);
+    color: white;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+    z-index: 9999;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+body.lyrics-only #exitKaraokeBtn {
+    display: flex; /* Εμφάνιση μόνο όταν είμαστε σε mode στίχων */
+    align-items: center;
+    justify-content: center;
+}
+
 
 

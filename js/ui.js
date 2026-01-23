@@ -591,7 +591,7 @@ function setupAdminSwitch() {
             clearTimeout(tapTimer);
             tapCount = 0;
             const pass = prompt("ADMIN MODE:\nΕισάγετε κωδικό:");
-            if (pass === "1234") { 
+            if (pass === "2204") { 
                 setPremiumStatus(!USER_STATUS.isPremium);
             } else if (pass !== null) alert("⛔ Λάθος κωδικός!");
         }

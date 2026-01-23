@@ -16,7 +16,7 @@
     
     <script src="js/qrcodegen.js"></script>
     <script src="js/html5-qrcode.min.js"></script>
-    <script src="js/Sortable.min.js"></script>
+    <script src="js/sortable.min.js"></script>
 </head>
 <body class="theme-dark">
 
@@ -28,9 +28,6 @@
                     <i class="fas fa-music" id="appLogo"></i> mNotes 
                     <span class="badge" id="statusBadge">FREE</span>
                 </div>
-                <button onclick="toggleSidebar()" class="btn-text" style="margin-left:auto; display:none;">
-                    <i class="fas fa-times"></i>
-                </button>
             </div>
 
             <div class="sidebar-actions">
@@ -40,6 +37,10 @@
                 
                 <button onclick="showImportMenu()" class="btn btn-secondary sidebar-btn">
                     <i class="fas fa-file-import"></i> Import / Scan
+                </button>
+
+                <button onclick="syncWithGitHub()" class="btn btn-outline sidebar-btn" style="margin-top:5px;">
+                    <i class="fas fa-sync-alt"></i> Sync GitHub
                 </button>
                 
                 <button onclick="shareSetlist()" id="btnExport" class="btn btn-secondary sidebar-btn" style="display:none;">
@@ -112,7 +113,6 @@
                 </div>
 
                 <div id="pinnedContainer"></div>
-                
                 <div id="scrollIntro" class="intro-box" style="display:none;"></div>
                 
                 <div id="outputContent">
@@ -141,7 +141,6 @@
                 </div>
                 
                 <div id="displayNotes" class="notes-overlay" style="display:none;"></div>
-
             </div>
 
             <div id="editor-view" class="view-section" style="display:none;">
@@ -158,12 +157,10 @@
 
                 <div class="editor-form">
                     <input type="text" id="inpTitle" placeholder="Song Title" class="full-width">
-                    
                     <div class="row-2">
                         <input type="text" id="inpKey" placeholder="Key (e.g. Am)">
                         <input type="text" id="inpTags" placeholder="Tags (e.g. Rock, 90s)">
                     </div>
-
                     <div id="tagSuggestions" class="tag-cloud" style="display:none;"></div>
 
                     <div class="accordion">
@@ -179,14 +176,13 @@
                     </div>
 
                     <textarea id="inpBody" placeholder="Paste lyrics and chords here..." class="main-editor"></textarea>
-                    
-                    <div class="helper-text">
-                        Tip: Place chords above lyrics. Use standard format (Am, G7, F#m).
-                    </div>
                 </div>
             </div>
 
-        </div> </div> <button id="exitKaraokeBtn" onclick="toggleKaraoke()">
+        </div> 
+    </div> 
+
+    <button id="exitKaraokeBtn" onclick="toggleKaraoke()">
         <i class="fas fa-times"></i>
     </button>
 

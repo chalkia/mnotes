@@ -246,3 +246,35 @@ function transposeSongBody(body, semitones) {
         return newLine;
     }).join('\n');
 }
+// --- SAFE DELETE FUNCTION ---
+function deleteCurrentSong() {
+    // 1. ΠΡΟΣΤΑΣΙΑ: Απαγορεύεται να μείνει η λίστα κενή
+    if (library.length <= 1) {
+        alert("⚠️ Δεν μπορείτε να διαγράψετε το τελευταίο τραγούδι.\nΗ λίστα πρέπει να περιέχει τουλάχιστον ένα τραγούδι.");
+        return;
+    }
+
+    if(confirm("Είστε σίγουροι για τη διαγραφή;")) {
+        // Βρίσκουμε τη θέση του τραγουδιού
+        var index = library.findIndex(s => s.id === currentSongId);
+        
+        if(index > -1) {
+            library.splice(index, 1); // Διαγραφή
+            saveData(); // Αποθήκευση
+            
+            // Μετά τη διαγραφή, πάμε στο προηγούμενο ή στο πρώτο
+            var newIndex = index > 0 ? index - 1 : 0;
+            currentSongId = library[newIndex].id;
+            
+            // Ενημέρωση UI
+            renderSidebar();
+            
+            // Ανάλογα με το που θέλουμε να μας πηγαίνει (συνήθως στον Viewer)
+            if(typeof toViewer === 'function') {
+                toViewer(); 
+            }
+            
+            showToast("Διαγράφηκε.");
+        }
+    }
+}

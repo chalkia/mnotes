@@ -6,6 +6,8 @@ var hasUnsavedChanges = false;
 window.onload = function() {
     loadSavedTheme();
     setupSidebarSwipe();
+   setupAdminSwitch();
+    checkPremiumUI();
     var savedData = localStorage.getItem('mnotes_data');
     if(savedData) {
         try {

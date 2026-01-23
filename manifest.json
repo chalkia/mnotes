@@ -1,11 +1,11 @@
 {
-  "name": "mNotes",
+  "name": "mNotes Pro",
   "short_name": "mNotes",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#f4f7f6",
-  "theme_color": "#2c3e50",
-  "orientation": "portrait",
+  "background_color": "#121212",
+  "theme_color": "#121212",
+  "orientation": "portrait-primary",
   "icons": [
     {
       "src": "icon-192.png",

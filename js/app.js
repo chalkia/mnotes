@@ -67,28 +67,6 @@ function toViewer(skipCheck) {
     } catch(e) { console.error("Viewer Error:", e); toEditor(); }
 }
 
-function saveSong() {
-    var t = document.getElementById('inpTitle').value.trim();
-    var b = document.getElementById('inpBody').value.trim();
-    if(!t) { alert("⚠️ Παρακαλώ συμπληρώστε τον Τίτλο!"); return false; }
-    if(!b) { alert("⚠️ Παρακαλώ συμπληρώστε τους Στίχους!"); return false; }
-    var tags = document.getElementById('inpTags').value.split(',').map(x => x.trim()).filter(x => x.length > 0);
-    var s = {
-        id: currentSongId || Date.now().toString(),
-        title: t,
-        key: document.getElementById('inpKey').value,
-        notes: document.getElementById('inpNotes').value,
-        intro: document.getElementById('inpIntro').value,
-        interlude: document.getElementById('inpInter').value,
-        body: b,
-        playlists: tags
-    };
-    if(currentSongId) { var i = library.findIndex(x => x.id === currentSongId); if(i !== -1) library[i] = s; } 
-    else { library.push(s); currentSongId = s.id; }
-    saveToLocal(); updatePlaylistDropdown(); filterPlaylist(); hasUnsavedChanges = false; 
-    alert("Αποθηκεύτηκε! ✅"); return true; 
-}
-
 // ΝΕΑ ΣΥΝΑΡΤΗΣΗ: ΑΠΟΘΗΚΕΥΣΗ ΑΛΛΑΓΗΣ ΤΟΝΟΥ ΑΠΟ TON VIEWER
 function saveToneChange() {
     if(state.t === 0) return;

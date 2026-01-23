@@ -1,116 +1,133 @@
 /* =========================================
-   LOGIC & DATA MANAGEMENT
+   CORE LOGIC & PARSING
    ========================================= */
 
-// --- DEMO SONG DATA ---
-const DEMO_SONG = {
-    id: "demo_fixed_001",
-    title: "Welcome to mNotes (Demo)",
-    key: "C",
-    intro: "C!G!Am!F!c!g", 
-    interlude: "",
-    body: "C G Am F\nWelcome to mNotes!\nC G Am F\nThis is a template song.\n\n[Chorus]\nAm G F C\nIt cannot be deleted.\nAm G F G\nIt is always here for you!",
-    notes: "This song is an example. Press Edit to see how chords are written.",
-    playlists: ["Demo"],
-    isLocked: false,     
-    isImmutable: true    
-};
+// Κύρια συνάρτηση που "διαβάζει" το τραγούδι
+function parseSongLogic(song) {
+    state.meta = song;
+    state.parsedChords = [];
 
-// --- LOAD & SAVE ---
-function loadData() {
-    var stored = localStorage.getItem('mnotes_data');
-    if (stored) {
-        try { library = JSON.parse(stored); } catch(e) { library = []; }
-    } else { library = []; }
-    
-    ensureDemoSong();
-
-    // --- FIX: INITIALIZE VIEW ---
-    // 1. Γεμίζουμε τη λίστα που βλέπει ο χρήστης
-    visiblePlaylist = library;
-
-    // 2. Αν δεν υπάρχει επιλεγμένο τραγούδι, επιλέγουμε το πρώτο (Demo)
-    if (!currentSongId && library.length > 0) {
-        currentSongId = library[0].id;
-    }
-}
-
-function saveData() {
-    localStorage.setItem('mnotes_data', JSON.stringify(library));
-}
-
-function ensureDemoSong() {
-    const demoExists = library.some(s => s.id === DEMO_SONG.id);
-    if (!demoExists) {
-        library.unshift(JSON.parse(JSON.stringify(DEMO_SONG)));
-        saveData();
-    }
-}
-
-function getSongById(id) {
-    return library.find(s => s.id === id);
-}
-
-// --- MUSIC ENGINE (Notes & Parser) ---
-const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-const FLATS = {"Db":"C#", "Eb":"D#", "Gb":"F#", "Ab":"G#", "Bb":"A#", "db":"c#", "eb":"d#", "gb":"f#", "ab":"g#", "bb":"a#"};
-
-function getNote(note, shift) {
-    if (!note) return "";
-    let n = note.trim();
-    let isLower = (n[0] === n[0].toLowerCase());
-    let root = n.toUpperCase();
-    if (FLATS[root]) root = FLATS[root]; 
-    let idx = NOTES.indexOf(root);
-    if (idx === -1) return note; 
-    let newIdx = (idx + shift) % 12;
-    if (newIdx < 0) newIdx += 12;
-    let out = NOTES[newIdx];
-    return isLower ? out.toLowerCase() : out;
-}
-
-function parseSong(song) {
-    state.t = 0; state.c = 0; state.meta = song; state.parsedChords = [];
     if (!song.body) return;
-    let lines = song.body.split('\n');
-    lines.forEach(line => {
-        if (isChordLine(line)) {
-            state.parsedChords.push({ type: 'mixed', tokens: parseChordLine(line) });
-        } else {
+
+    var blocks = song.body.split('\n');
+    blocks.forEach(line => {
+        line = line.trimEnd(); // Καθαρισμός κενών στο τέλος
+        
+        if (line.trim() === "") {
+            state.parsedChords.push({ type: 'br' });
+        } else if (line.indexOf('!') === -1) {
+            // Στίχος χωρίς συγχορδίες
             state.parsedChords.push({ type: 'lyricOnly', text: line });
-        }
-    });
-}
-
-function isChordLine(line) {
-    const clean = line.trim();
-    if(clean.length === 0) return false;
-    const tokens = line.split(/\s+/);
-    const chordPattern = /^[a-gA-G][#b]?(?:m|maj|dim|aug|sus|add|7|9|11|13)*$/; 
-    let chordCount = 0;
-    tokens.forEach(t => { if(chordPattern.test(t)) chordCount++; });
-    return (chordCount > 0 && chordCount >= tokens.length / 2); 
-}
-
-function parseChordLine(line) {
-    let tokens = [];
-    let parts = line.split(/(\s+)/); 
-    parts.forEach(p => {
-        if (!p) return;
-        const noteRegex = /^([a-gA-G][#b]?)(.*)/;
-        let m = p.match(noteRegex);
-        if(m && isChordLine(p)) { 
-            tokens.push({ c: m[1], t: m[2] });
         } else {
-            tokens.push({ c: "", t: p });
+            // Γραμμή με συγχορδίες (Mixed)
+            var parts = line.split('!');
+            var tokens = [];
+            
+            // 1. Κείμενο πριν την πρώτη συγχορδία (π.χ. "Hello " στο "Hello !Am")
+            if (parts[0].length > 0) {
+                tokens.push({ c: "", t: parts[0] });
+            }
+
+            // Flag για να ξέρουμε αν η προηγούμενη συγχορδία "έκλεισε" με !
+            // Π.χ. στο !Am! text -> το parts[1] είναι "Am" (pure).
+            var previousWasPureChord = false;
+
+            for (var i = 1; i < parts.length; i++) {
+                var p = parts[i];
+                
+                // Regex: Ψάχνει αν ξεκινάει με συγχορδία (A-G...)
+                var m = p.match(/^([A-G][#b]?[a-zA-Z0-9/]*)(.*)/);
+                
+                if (m) {
+                    // ΒΡΕΘΗΚΕ ΣΥΓΧΟΡΔΙΑ
+                    tokens.push({ c: m[1], t: m[2] || "" });
+                    
+                    // Αν το m[2] είναι κενό, σημαίνει ότι το part ήταν ΜΟΝΟ συγχορδία.
+                    // Άρα το ! που προκάλεσε το split ήταν "κλεισίματος".
+                    previousWasPureChord = (m[2] === ""); 
+                } else {
+                    // ΔΕΝ ΕΙΝΑΙ ΣΥΓΧΟΡΔΙΑ (είναι κείμενο ή σκέτο !)
+                    if (previousWasPureChord) {
+                        // Αν η προηγούμενη ήταν "Pure" (π.χ. !Am!), τότε αυτό το κομμάτι 
+                        // είναι απλά η συνέχεια του κειμένου. Δεν βάζουμε ! μπροστά.
+                        tokens.push({ c: "", t: p });
+                    } else {
+                        // Αν η προηγούμενη ΔΕΝ ήταν pure, τότε το ! ήταν του κειμένου (π.χ. "Run!")
+                        // ή απλά δεν ήταν συγχορδία, οπότε επαναφέρουμε το !
+                        tokens.push({ c: "", t: "!" + p });
+                    }
+                    previousWasPureChord = false;
+                }
+            }
+            state.parsedChords.push({ type: 'mixed', tokens: tokens });
         }
     });
-    return tokens;
 }
 
-// --- SAVE / DELETE / IMPORT UTILS ---
+// Υπολογισμός Νέας Νότας (Transpose)
+function getNote(note, semitones) {
+    if (!note) return "";
+    var match = note.match(/^([A-G][#b]?)(.*)$/);
+    if (!match) return note;
 
+    var root = match[1];
+    var suffix = match[2];
+
+    var idx = NOTES.indexOf(root);
+    if (idx === -1) idx = NOTES_FLAT.indexOf(root);
+    if (idx === -1) return note;
+
+    var newIdx = (idx + semitones + 12000) % 12;
+    return NOTES[newIdx] + suffix;
+}
+
+// Smart Capo Logic
+function calculateSmartCapo() {
+    var allChords = [];
+    state.parsedChords.forEach(line => {
+        if(line.tokens) {
+            line.tokens.forEach(tk => { if(tk.c) allChords.push(tk.c); });
+        }
+    });
+    
+    if(state.meta.intro) extractChordsFromStr(state.meta.intro, allChords);
+    if(state.meta.interlude) extractChordsFromStr(state.meta.interlude, allChords);
+
+    if (allChords.length === 0) return { best: 0, msg: "No chords!" };
+
+    var bestCapo = 0;
+    var maxOpenChords = -1;
+
+    for (var capo = 0; capo < 10; capo++) {
+        var openCount = 0;
+        for (var i = 0; i < allChords.length; i++) {
+            var playedChord = getNote(allChords[i], -capo);
+            if (isOpenChord(playedChord)) openCount++;
+        }
+        if (openCount > maxOpenChords) {
+            maxOpenChords = openCount;
+            bestCapo = capo;
+        }
+    }
+    return { best: bestCapo, msg: "Best Capo: " + bestCapo };
+}
+
+function extractChordsFromStr(str, arr) {
+    var parts = str.split('!');
+    parts.forEach(p => {
+        var m = p.match(/^([A-G][#b]?[a-zA-Z0-9]*)/);
+        if(m) arr.push(m[1]);
+    });
+}
+
+function isOpenChord(c) {
+    var root = c.split('/')[0];
+    return OPEN_CHORDS.includes(root);
+}
+
+// --- SAVING LOGIC (WITH FREE/PREMIUM LIMITS) ---
 function saveSong() {
+    // 1. Διάβασμα τιμών από τα πεδία
     var title = document.getElementById('inpTitle').value;
     var key = document.getElementById('inpKey').value;
     var notes = document.getElementById('inpNotes').value;
@@ -119,151 +136,145 @@ function saveSong() {
     var body = document.getElementById('inpBody').value;
     var tags = document.getElementById('inpTags').value;
 
-    if(!title || !body) { alert("Title and Lyrics are required!"); return; }
+    // Έλεγχος υποχρεωτικών πεδίων
+    if(!title || !body) { 
+        alert("Ο τίτλος και το κυρίως τραγούδι είναι υποχρεωτικά!"); 
+        return; 
+    }
 
+    // Καθαρισμός Tags (χωρισμένα με κόμμα)
     var playlists = tags.split(',').map(t => t.trim()).filter(t => t !== "");
-    let isEditingDemo = (currentSongId === DEMO_SONG.id);
-    
-    if (!currentSongId || isEditingDemo) {
-        const userUnlocked = library.filter(s => !s.isLocked && s.id !== DEMO_SONG.id).length;
-        const shouldLock = (!USER_STATUS.isPremium) && (userUnlocked >= USER_STATUS.freeLimit);
+
+    if (!currentSongId) {
+        // --- ΔΗΜΙΟΥΡΓΙΑ ΝΕΟΥ ΤΡΑΓΟΥΔΙΟΥ (NEW) ---
+        
+        // Α. Υπολογισμός αν πρέπει να κλειδωθεί (Born Locked)
+        // Μετράμε πόσα "καθαρά" (ξεκλείδωτα) τραγούδια υπάρχουν ήδη
+        const unlockedCount = library.filter(s => !s.isLocked).length;
+
+        // Αν ο χρήστης είναι FREE και έχει φτάσει το όριο (5), το επόμενο κλειδώνει
+        const shouldLock = (typeof USER_STATUS !== 'undefined' && !USER_STATUS.isPremium) 
+                           && (unlockedCount >= USER_STATUS.freeLimit);
 
         var newSong = {
             id: Date.now().toString(),
-            title: title, key: key, body: body,
-            intro: intro, interlude: interlude, notes: notes, playlists: playlists,
-            isLocked: shouldLock, isImmutable: false
+            title: title,
+            key: key,
+            body: body,
+            intro: intro,
+            interlude: interlude,
+            notes: notes,
+            playlists: playlists,
+            isLocked: shouldLock // <--- ΕΔΩ ΜΠΑΙΝΕΙ Η "ΣΦΡΑΓΙΔΑ"
         };
+
+        // Β. Αποθήκευση
         library.push(newSong);
         currentSongId = newSong.id;
-        
-        if (isEditingDemo) showToast("Demo saved as copy!");
-        else if (shouldLock) alert("Free Limit Reached. Saved in Mic Mode.");
-        else showToast("Saved!");
+
+        // Μήνυμα στον χρήστη
+        if(shouldLock) {
+            alert("Το τραγούδι αποθηκεύτηκε σε Mic Mode (Όριο Free Πακέτου).");
+        } else {
+            showToast("Το τραγούδι δημιουργήθηκε!");
+        }
+
     } else {
+        // --- ΕΝΗΜΕΡΩΣΗ ΥΠΑΡΧΟΝΤΟΣ (UPDATE) ---
         var song = getSongById(currentSongId);
         if(song) {
-            if (song.isImmutable) { alert("Error: Demo is Read-Only."); return; }
-            song.title = title; song.key = key; song.body = body;
-            song.intro = intro; song.interlude = interlude;
-            song.notes = notes; song.playlists = playlists;
-            showToast("Updated!");
+            song.title = title;
+            song.key = key;
+            song.body = body;
+            song.intro = intro;
+            song.interlude = interlude;
+            song.notes = notes;
+            song.playlists = playlists;
+            
+            // ΣΗΜΑΝΤΙΚΟ: Δεν πειράζουμε το isLocked εδώ!
+            // Αν ήταν κλειδωμένο, παραμένει. Αν ήταν ανοιχτό, παραμένει.
+            
+            showToast("Οι αλλαγές αποθηκεύτηκαν!");
         }
     }
-    saveData();
-    renderSidebar();
-    if(typeof toViewer === 'function') toViewer();
-}
 
+    // Γενική Αποθήκευση & Ανανέωση UI
+    saveData();      // Αποθήκευση στο localStorage
+    renderSidebar(); // Ενημέρωση της λίστας
+    hasUnsavedChanges = false;
+}
+// Μετατροπή κειμένου (Save Tone) - ΔΙΟΡΘΩΜΕΝΟ ΓΙΑ !Asus!
+function transposeSongBody(body, semitones) {
+    if (!body) return "";
+    var lines = body.split('\n');
+    return lines.map(line => {
+        if (line.indexOf('!') === -1) return line;
+        
+        var parts = line.split('!');
+        var newLine = parts[0];
+        
+        // Flag για να ξέρουμε αν το προηγούμενο ήταν συγχορδία που "έκλεισε"
+        var previousWasPure = false;
+
+        for (var i = 1; i < parts.length; i++) {
+            var p = parts[i];
+            var m = p.match(/^([A-G][#b]?[a-zA-Z0-9/]*)(.*)/);
+            
+            if (m) {
+                // Είναι συγχορδία -> Την αλλάζουμε τόνο
+                var newChord = getNote(m[1], semitones);
+                var suffix = m[2];
+                
+                // Ξαναφτιάχνουμε το κομμάτι
+                newLine += "!" + newChord + suffix;
+                
+                // Αν δεν έχει suffix (είναι π.χ. "Am" σκέτο), άρα το επόμενο ! είναι κλεισίματος
+                previousWasPure = (suffix === "");
+            } else {
+                // Δεν είναι συγχορδία
+                if(previousWasPure) {
+                    // Αν η προηγούμενη ήταν !Am!, τότε αυτό το ! είναι το κλείσιμο.
+                    // Το προσθέτουμε στο κείμενο (ώστε να διατηρηθεί η δομή !Am!)
+                    newLine += "!" + p;
+                } else {
+                    // Είναι απλό κείμενο με θαυμαστικό (π.χ. Run!)
+                    newLine += "!" + p;
+                }
+                previousWasPure = false;
+            }
+        }
+        return newLine;
+    }).join('\n');
+}
+// --- SAFE DELETE FUNCTION ---
 function deleteCurrentSong() {
-    if (currentSongId === DEMO_SONG.id) { alert("⛔ Cannot delete Demo."); return; }
-    if(confirm("Delete this song?")) {
+    // 1. ΠΡΟΣΤΑΣΙΑ: Απαγορεύεται να μείνει η λίστα κενή
+    if (library.length <= 1) {
+        alert("⚠️ Δεν μπορείτε να διαγράψετε το τελευταίο τραγούδι.\nΗ λίστα πρέπει να περιέχει τουλάχιστον ένα τραγούδι.");
+        return;
+    }
+
+    if(confirm("Είστε σίγουροι για τη διαγραφή;")) {
+        // Βρίσκουμε τη θέση του τραγουδιού
         var index = library.findIndex(s => s.id === currentSongId);
+        
         if(index > -1) {
-            library.splice(index, 1);
-            saveData();
-            ensureDemoSong(); 
-            let demo = library.find(s => s.id === DEMO_SONG.id);
-            currentSongId = demo ? demo.id : library[0].id;
+            library.splice(index, 1); // Διαγραφή
+            saveData(); // Αποθήκευση
+            
+            // Μετά τη διαγραφή, πάμε στο προηγούμενο ή στο πρώτο
+            var newIndex = index > 0 ? index - 1 : 0;
+            currentSongId = library[newIndex].id;
+            
+            // Ενημέρωση UI
             renderSidebar();
-            if(typeof toViewer === 'function') toViewer();
-            showToast("Deleted.");
+            
+            // Ανάλογα με το που θέλουμε να μας πηγαίνει (συνήθως στον Viewer)
+            if(typeof toViewer === 'function') {
+                toViewer(); 
+            }
+            
+            showToast("Διαγράφηκε.");
         }
     }
-}
-
-function clearLibrary() {
-    if (library.length === 1 && library[0].id === DEMO_SONG.id) { showToast("Already empty."); return; }
-    if (confirm("Delete ALL custom songs?")) {
-        library = [JSON.parse(JSON.stringify(DEMO_SONG))];
-        currentSongId = DEMO_SONG.id;
-        saveData();
-        renderSidebar();
-        if(typeof toViewer === 'function') toViewer();
-        showToast("Reset complete!");
-    }
-}
-
-function filterPlaylist() {
-    var txt = document.getElementById('searchBox').value.toLowerCase();
-    visiblePlaylist = library.filter(s => s.title.toLowerCase().includes(txt));
-    renderSidebar();
-}
-
-function exportJSON() {
-    const dataStr = JSON.stringify(visiblePlaylist, null, 2);
-    const fileName = `mNotes_Backup_${new Date().toISOString().slice(0,10)}.mnote`;
-    const blob = new Blob([dataStr], {type: "application/json"});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = fileName; a.click();
-    URL.revokeObjectURL(url);
-}
-
-function importJSON() {
-    var input = document.createElement('input');
-    input.type = 'file'; input.accept = '.mnote, .json';
-    input.onchange = e => { 
-        var file = e.target.files[0];
-        if (!file) return;
-        var reader = new FileReader();
-        reader.onload = function(e) {
-            try {
-                var content = e.target.result;
-                var data = JSON.parse(content);
-                if (!Array.isArray(data)) data = [data]; 
-                processImportedSongs(data);
-            } catch (err) { alert("File error."); }
-        };
-        reader.readAsText(file);
-    };
-    input.click();
-}
-
-async function syncWithGitHub() {
-    const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/chalkia/mnotes/main/library.json';
-    try {
-        showToast("Checking GitHub...");
-        const response = await fetch(GITHUB_RAW_URL);
-        if (!response.ok) { alert("GitHub file not found."); return; }
-        const remoteData = await response.json();
-        if (!Array.isArray(remoteData)) { alert("Invalid data."); return; }
-        let added = processImportedSongs(remoteData, true); 
-        if(added > 0) showToast(`Synced ${added} songs!`);
-        else showToast("Up to date.");
-    } catch (error) { alert("Sync Error."); }
-}
-
-function processImportedSongs(dataList, silent = false) {
-    var importedCount = 0;
-    var lockedCount = 0;
-    dataList.forEach(s => {
-        if (s.id === DEMO_SONG.id) return;
-        var existingIndex = library.findIndex(ex => ex.id === s.id);
-        const userUnlocked = library.filter(x => !x.isLocked && x.id !== DEMO_SONG.id).length;
-        const shouldLock = (!USER_STATUS.isPremium) && (userUnlocked >= USER_STATUS.freeLimit);
-        var songToSave = {
-            ...s,
-            id: s.id || Date.now().toString() + Math.random().toString().slice(2,5),
-            isLocked: s.isLocked || shouldLock,
-            isImmutable: false 
-        };
-        if (existingIndex > -1) {
-            songToSave.isLocked = library[existingIndex].isLocked || songToSave.isLocked;
-            library[existingIndex] = songToSave;
-        } else {
-            library.push(songToSave);
-            importedCount++;
-            if(songToSave.isLocked) lockedCount++;
-        }
-    });
-    ensureDemoSong(); 
-    saveData();
-    renderSidebar(); 
-    if (!silent) {
-        let msg = `Imported ${importedCount} songs.`;
-        if (lockedCount > 0) msg += `\n🔒 ${lockedCount} locked due to Free limit.`;
-        alert(msg);
-    }
-    return importedCount;
 }

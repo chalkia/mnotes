@@ -1,402 +1,205 @@
 /* =========================================
-   MAIN APPLICATION LOGIC & UI RENDERING
+   UI & APP LOGIC (js/ui.js)
    ========================================= */
-var hasUnsavedChanges = false;
-var library = []; 
-var currentSongId = null;
-var visiblePlaylist = [];
-var currentFilter = "ALL";
 
-// Global State (αν δεν υπάρχει στο data.js)
-var state = {
-    t: 0, // Transpose
-    c: 0, // Capo
-    meta: {},
-    parsedChords: []
-};
+// Global Init
+if(typeof library === 'undefined') var library = [];
+if(typeof state === 'undefined') var state = { t: 0, c: 0, meta: {}, parsedChords: [] };
+if(typeof currentSongId === 'undefined') var currentSongId = null;
+var visiblePlaylist = [];
+var html5QrCode; 
 
 window.onload = function() {
-    // Φόρτωση ρυθμίσεων
-    var savedTheme = localStorage.getItem('mnotes_theme') || 'theme-dark';
-    document.body.className = savedTheme;
-    
-    // Φόρτωση Δεδομένων
-    var savedData = localStorage.getItem('mnotes_data');
-    if(savedData) {
-        try {
-            var parsed = JSON.parse(savedData);
-            // Χρήση της ensureSongStructure αν υπάρχει, αλλιώς raw
-            library = Array.isArray(parsed) ? parsed : [];
-            visiblePlaylist = [...library]; // Αρχικό γέμισμα
-            updatePlaylistDropdown();
-            renderSidebar();
-        } catch(e) { console.error("Data Load Error", e); }
-    }
-
-    setupDirtyListeners();
-    setupSidebarEvents(); // Swipe κλπ
-
-    // Έλεγχος URL ή τελευταίου τραγουδιού
-    if(library.length > 0) {
-        if(!currentSongId) currentSongId = library[0].id;
-        toViewer(true); 
-    } else { 
-        toEditor(); 
-    }
+    loadLibrary();
+    setupEvents();
 };
 
-function setupDirtyListeners() {
-    var inputs = document.querySelectorAll('#editor-view input, #editor-view textarea');
-    inputs.forEach(el => { el.addEventListener('input', () => { hasUnsavedChanges = true; }); });
-}
-
-/* --- NAVIGATION --- */
-
-function toEditor() {
-    document.getElementById('editor-view').style.display = 'block';
-    document.getElementById('viewer-view').style.display = 'none';
+function loadLibrary() {
+    var saved = localStorage.getItem('mnotes_data');
     
-    // Toggle active state in sidebar buttons (optional styling)
-    document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
-
-    if(currentSongId === null) { 
-        clearInputs(); 
-        hasUnsavedChanges = false; 
-    } else { 
-        var s = library.find(x => x.id === currentSongId); 
-        if(s) { 
-            loadInputsFromSong(s); 
-            hasUnsavedChanges = false; 
-        } 
+    if (saved) {
+        // Περίπτωση 1: Υπάρχουν δεδομένα στη μνήμη
+        try { library = JSON.parse(saved); } catch(e) { library = []; }
+        finalizeInit();
+    } else {
+        // Περίπτωση 2: Πρώτη φορά -> Φόρτωσε το library.json από το root
+        console.log("Fetching library.json...");
+        fetch('./library.json')
+            .then(response => {
+                if (!response.ok) throw new Error("JSON not found");
+                return response.json();
+            })
+            .then(data => {
+                // Έλεγχος αν είναι array ή single object
+                library = Array.isArray(data) ? data : [data];
+                saveData(); // Αποθήκευση για την επόμενη φορά
+                finalizeInit();
+            })
+            .catch(err => {
+                console.error("Load Error:", err);
+                // Αν αποτύχει, ξεκίνα με άδεια λίστα
+                library = [];
+                finalizeInit();
+            });
     }
 }
 
-function toViewer(skipCheck) {
-    if(!skipCheck && hasUnsavedChanges) {
-        if(confirm("Έχεις μη αποθηκευμένες αλλαγές. Θέλεις να τις αποθηκεύσεις;")) {
-            saveSong(); 
-            return; 
+function finalizeInit() {
+    // Βεβαιώσου ότι όλα τα τραγούδια έχουν τη σωστή δομή
+    library = library.map(ensureSongStructure);
+    visiblePlaylist = [...library];
+    
+    renderSidebar();
+
+    // Άνοιγμα του πρώτου τραγουδιού
+    if (library.length > 0) {
+        loadSong(library[0].id);
+    } else {
+        switchToEditor();
+    }
+}
+
+/* --- RENDER FUNCTIONS --- */
+function renderSidebar() {
+    var list = document.getElementById('songList');
+    list.innerHTML = "";
+    document.getElementById('songCount').innerText = visiblePlaylist.length;
+
+    visiblePlaylist.forEach(s => {
+        var li = document.createElement('li');
+        li.className = `song-item ${currentSongId === s.id ? 'active' : ''}`;
+        li.onclick = () => loadSong(s.id);
+        
+        li.innerHTML = `
+            <div class="song-title">${s.title}</div>
+            <div class="song-meta">${s.artist || "Unknown Artist"} • ${s.key}</div>
+        `;
+        list.appendChild(li);
+    });
+}
+
+function loadSong(id) {
+    currentSongId = id;
+    var s = library.find(x => x.id === id);
+    if(!s) return;
+
+    state.t = 0; state.c = 0; // Reset Transpose
+    parseSongLogic(s); // logic.js
+    renderPlayer(s);
+    
+    document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active-view'));
+    document.getElementById('view-player').classList.add('active-view');
+    
+    renderSidebar(); 
+    document.getElementById('sidebar').classList.remove('open');
+}
+
+function renderPlayer(s) {
+    document.getElementById('p-title').innerText = s.title;
+    
+    var visualKey = getNote(s.key, state.t); 
+    document.getElementById('p-key').innerText = visualKey;
+
+    document.getElementById('p-intro').innerHTML = renderChordsLine(s.intro);
+    document.getElementById('p-inter').innerHTML = renderChordsLine(s.interlude);
+
+    document.getElementById('val-t').innerText = (state.t > 0 ? "+" : "") + state.t;
+    document.getElementById('val-c').innerText = state.c;
+
+    // Split Body
+    var parts = (s.body || "").split(/\n\s*\n/);
+    var fixedTxt = parts[0] || "";
+    var scrollTxt = parts.slice(1).join("\n\n");
+
+    renderArea('fixed-container', fixedTxt);
+    renderArea('scroll-container', scrollTxt);
+}
+
+function renderArea(elemId, text) {
+    var container = document.getElementById(elemId);
+    container.innerHTML = "";
+    var lines = text.split('\n');
+    
+    lines.forEach(line => {
+        var row = document.createElement('div');
+        row.className = 'line-row';
+        
+        if (line.indexOf('!') === -1) {
+            row.innerHTML = `<span class="lyric">${line}</span>`;
         } else {
-            hasUnsavedChanges = false; 
-            // Επαναφορά δεδομένων αν ακύρωσε τις αλλαγές
-            if(currentSongId) { 
-                var s = library.find(x => x.id === currentSongId); 
-                if(s) loadInputsFromSong(s); 
+            var parts = line.split('!');
+            if(parts[0]) row.appendChild(createToken("", parts[0]));
+            
+            for(var i=1; i<parts.length; i++) {
+                var p = parts[i];
+                var m = p.match(/^([A-G][#b]?[a-zA-Z0-9/]*)(.*)/);
+                if(m) {
+                    var chord = getNote(m[1], state.t - state.c);
+                    row.appendChild(createToken(chord, m[2]));
+                } else {
+                    row.appendChild(createToken("", "!" + p));
+                }
             }
         }
-    }
-
-    try {
-        if(library.length === 0) { toEditor(); return; }
-        
-        // Αν το ID δεν υπάρχει πια, πάρε το πρώτο
-        if(!library.find(x => x.id === currentSongId)) { 
-            currentSongId = library[0].id; 
-        }
-        
-        var s = library.find(x => x.id === currentSongId);
-        
-        if(s) {
-            // Reset Transpose/Capo όταν μπαίνουμε στο τραγούδι
-            state.t = 0;
-            state.c = 0; 
-            
-            // ΚΛΗΣΗ ΛΟΓΙΚΗΣ (Από logic.js)
-            if(typeof parseSongLogic === 'function') {
-                parseSongLogic(s); 
-            }
-            
-            // RENDER (Η συνάρτηση που έλειπε!)
-            render(s);         
-            
-            document.getElementById('editor-view').style.display = 'none';
-            document.getElementById('viewer-view').style.display = 'flex';
-            
-            // Κλείσιμο Sidebar σε κινητά
-            if(window.innerWidth < 768) {
-                document.getElementById('sidebar').classList.remove('active');
-            }
-        } else { 
-            toEditor(); 
-        }
-    } catch(e) { 
-        console.error("Viewer Error:", e); 
-        toEditor(); 
-    }
+        container.appendChild(row);
+    });
 }
 
-/* --- RENDERING (ΤΟ ΚΟΜΜΑΤΙ ΠΟΥ ΕΛΕΙΠΕ) --- */
+function createToken(chord, lyric) {
+    var div = document.createElement('div');
+    div.className = 'token';
+    div.innerHTML = `<span class="chord">${chord}</span><span class="lyric">${lyric}</span>`;
+    return div;
+}
 
-function render(song) {
-    // 1. Header Info
-    document.getElementById('displayTitle').innerText = song.title;
-    
-    // Υπολογισμός οπτικού κλειδιού (Key + Transpose)
-    var visualKey = song.key;
-    if(state.t !== 0 && typeof getNote === 'function') {
-        visualKey = getNote(song.key, state.t);
-    }
-    document.getElementById('visualKey').innerText = visualKey;
+function renderChordsLine(str) {
+    if(!str) return "";
+    return str.replace(/!([A-G][#b]?[a-zA-Z0-9/]*)/g, function(match, c) {
+        return `<span class="info-chord">${getNote(c, state.t - state.c)}</span>`;
+    });
+}
 
-    // Ενημέρωση αριθμών στα κουμπιά
-    document.getElementById('t-val').innerText = (state.t > 0 ? "+" : "") + state.t;
-    document.getElementById('c-val').innerText = state.c;
+/* --- ACTIONS --- */
+function changeTranspose(n) { state.t += n; renderPlayer(library.find(s=>s.id===currentSongId)); }
+function changeCapo(n) { state.c += n; if(state.c<0) state.c=0; renderPlayer(library.find(s=>s.id===currentSongId)); }
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
 
-    // 2. Intro / Pinned Info
-    var pinnedHTML = "";
-    if(song.intro) {
-        pinnedHTML += `<div class="intro-block"><strong>INTRO:</strong> ${renderChordsLine(song.intro)}</div>`;
-    }
-    if(song.interlude) {
-        pinnedHTML += `<div class="compact-interlude"><strong>INTER:</strong> ${renderChordsLine(song.interlude)}</div>`;
-    }
-    if(song.notes) {
-        pinnedHTML += `<div style="font-size:0.8em; color:var(--text-light); margin-top:5px;">📝 ${song.notes}</div>`;
-    }
-    document.getElementById('pinnedContainer').innerHTML = pinnedHTML;
+function switchToEditor() {
+    document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active-view'));
+    document.getElementById('view-editor').classList.add('active-view');
+    // Clear inputs logic here if needed
+}
 
-    // 3. Main Body Rendering
-    var container = document.getElementById('outputContent');
-    container.innerHTML = ""; // Καθαρισμός
+function cancelEdit() { loadSong(currentSongId); }
+function saveEdit() { saveSong(); } // logic.js handles DOM reading
 
-    if(state.parsedChords && state.parsedChords.length > 0) {
-        state.parsedChords.forEach(line => {
-            if(line.type === 'br') {
-                container.appendChild(document.createElement('br'));
-            } 
-            else if (line.type === 'lyricOnly') {
-                var div = document.createElement('div');
-                div.className = 'line-row';
-                div.innerHTML = `<span class="lyric">${line.text}</span>`;
-                container.appendChild(div);
-            }
-            else if (line.type === 'mixed') {
-                var rowDiv = document.createElement('div');
-                rowDiv.className = 'line-row';
-                
-                line.tokens.forEach(token => {
-                    var tokenDiv = document.createElement('div');
-                    tokenDiv.className = 'token';
-                    
-                    // Υπολογισμός Συγχορδίας (Transpose - Capo)
-                    var finalChord = token.c;
-                    if(finalChord && typeof getNote === 'function') {
-                        // Visual Chord = Key + Transpose - Capo
-                        finalChord = getNote(finalChord, state.t - state.c);
-                    }
-
-                    var chordSpan = document.createElement('span');
-                    chordSpan.className = 'chord';
-                    chordSpan.innerText = finalChord || ""; // Αν είναι κενό, κρατάει τον χώρο
-                    
-                    var lyricSpan = document.createElement('span');
-                    lyricSpan.className = 'lyric';
-                    lyricSpan.innerText = token.t;
-
-                    tokenDiv.appendChild(chordSpan);
-                    tokenDiv.appendChild(lyricSpan);
-                    rowDiv.appendChild(tokenDiv);
-                });
-                container.appendChild(rowDiv);
-            }
+function setupEvents() {
+    document.getElementById('btnMenu').onclick = toggleSidebar;
+    // Import Listener
+    const fileInput = document.getElementById('hiddenFileInput');
+    if(fileInput) {
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    const newSongs = Array.isArray(imported) ? imported : [imported];
+                    newSongs.forEach(s => library.push(ensureSongStructure(s)));
+                    saveData();
+                    finalizeInit();
+                    alert(`Imported ${newSongs.length} songs!`);
+                } catch(err) { alert("Error reading file"); }
+            };
+            reader.readAsText(file);
         });
     }
 }
 
-// Βοηθητική για render Intro/Interlude (που είναι string)
-function renderChordsLine(str) {
-    if(!str) return "";
-    // Απλή αντικατάσταση των !Am με spans, λαμβάνοντας υπόψη το transpose
-    // Σημείωση: Εδώ κάνουμε μια απλή προσέγγιση.
-    var parts = str.split('!');
-    var html = "";
-    parts.forEach((p, index) => {
-        if(index === 0 && p === "") return; // Skip empty start
-        
-        // Έλεγχος αν είναι συγχορδία
-        var m = p.match(/^([A-G][#b]?[a-zA-Z0-9/]*)(.*)/);
-        if(m) {
-            var ch = m[1];
-            var rest = m[2];
-            if(typeof getNote === 'function') ch = getNote(ch, state.t - state.c);
-            html += `<span class="chord" style="display:inline; margin-right:5px;">${ch}</span>${rest}`;
-        } else {
-            html += p;
-        }
-    });
-    return html;
-}
-
-/* --- SIDEBAR & LISTS --- */
-
-function renderSidebar() {
-    var listEl = document.getElementById('playlistContainer');
-    listEl.innerHTML = "";
-    
-    // Ανανέωση μετρητή
-    document.getElementById('songCount').innerText = visiblePlaylist.length + " songs";
-
-    visiblePlaylist.forEach(song => {
-        var div = document.createElement('div');
-        div.className = `playlist-item ${song.id === currentSongId ? 'active' : ''}`;
-        div.onclick = function() {
-            currentSongId = song.id;
-            toViewer(true);
-            renderSidebar(); // Για να αλλάξει το active class
-        };
-        
-        div.innerHTML = `
-            <div style="flex:1">
-                <div style="font-weight:600;">${song.title}</div>
-                <div style="font-size:0.8em; opacity:0.7;">${song.key}</div>
-            </div>
-            ${song.isLocked ? '<i class="fas fa-lock" style="font-size:10px; opacity:0.5;"></i>' : ''}
-        `;
-        listEl.appendChild(div);
-    });
-}
-
-function updatePlaylistDropdown() { 
-    // Αν έχεις dropdown φίλτρων (δεν υπήρχε στο HTML που έστειλες, αλλά υπήρχε στον παλιό κώδικα)
-    // Εδώ απλά το αφήνουμε κενό ή το προσαρμόζεις αν προσθέσεις <select>
-}
-
-function filterPlaylist() {
-    var txt = document.getElementById('searchBox').value.toLowerCase().trim();
-    
-    visiblePlaylist = library.filter(s => {
-        var matchTxt = (txt === "") || s.title.toLowerCase().includes(txt) || (s.tags && s.tags.join(' ').toLowerCase().includes(txt));
-        return matchTxt;
-    });
-    renderSidebar();
-}
-
-function clearLibrary() { 
-    if(confirm("Προσοχή! Διαγραφή ΟΛΩΝ των τραγουδιών;")) { 
-        library = []; 
-        visiblePlaylist = []; 
-        currentSongId = null; 
-        hasUnsavedChanges = false; 
-        saveData(); // Πρέπει να υπάρχει στο logic.js ή storage.js
-        renderSidebar(); 
-        clearInputs(); 
-        toEditor(); 
-    } 
-}
-
-/* --- EDITOR HELPERS --- */
-
-function clearInputs() {
-    document.getElementById('inpTitle').value = "";
-    document.getElementById('inpKey').value = "";
-    document.getElementById('inpTags').value = "";
-    document.getElementById('inpIntro').value = "";
-    document.getElementById('inpInter').value = "";
-    document.getElementById('inpNotes').value = "";
-    document.getElementById('inpBody').value = "";
-}
-
-function loadInputsFromSong(s) {
-    document.getElementById('inpTitle').value = s.title || "";
-    document.getElementById('inpKey').value = s.key || "";
-    document.getElementById('inpTags').value = s.playlists ? s.playlists.join(', ') : ""; // Tags -> Playlists στον παλιό κώδικα
-    document.getElementById('inpIntro').value = s.intro || "";
-    document.getElementById('inpInter').value = s.interlude || "";
-    document.getElementById('inpNotes').value = s.notes || "";
-    document.getElementById('inpBody').value = s.body || "";
-}
-
-/* --- CONTROLS & UTILS --- */
-
-function changeKey(delta) {
-    state.t += delta;
-    render(library.find(s => s.id === currentSongId));
-}
-
-function changeCapo(delta) {
-    state.c += delta;
-    if(state.c < 0) state.c = 0;
-    render(library.find(s => s.id === currentSongId));
-}
-
-function toggleSidebar() {
-    document.getElementById('sidebar').classList.toggle('active');
-}
-
-function cycleTheme() {
-    var body = document.body;
-    if(body.classList.contains('theme-dark')) {
-        body.className = 'theme-cream';
-    } else if(body.classList.contains('theme-cream')) {
-        body.className = 'theme-slate';
-    } else {
-        body.className = 'theme-dark';
-    }
-    localStorage.setItem('mnotes_theme', body.className);
-}
-
-function toggleKaraoke() {
-    document.body.classList.toggle('lyrics-only');
-}
-
-function showImportMenu() {
-    document.getElementById('importChoiceModal').style.display = 'flex';
-}
-function closeImportChoice() {
+function selectImport(type) {
     document.getElementById('importChoiceModal').style.display = 'none';
+    if(type==='file') document.getElementById('hiddenFileInput').click();
+    // QR Logic...
 }
-function closeQR() {
-    document.getElementById('qrModal').style.display = 'none';
-    if(window.html5QrCode) {
-        window.html5QrCode.stop().catch(err => console.error(err));
-    }
-}
-
-// Αποθήκευση LocalStorage (Σε περίπτωση που λείπει από το storage.js)
-function saveData() {
-    localStorage.setItem('mnotes_data', JSON.stringify(library));
-}
-
-// Event Listeners for Sidebar Swipe (Simple version)
-function setupSidebarEvents() {
-    // Μπορείς να προσθέσεις touch events εδώ αν θες
-}
-
-// Η συνάρτηση που καλείται από το logic.js όταν σώζεις
-function getSongById(id) {
-    return library.find(s => s.id === id);
-}
-
-function showToast(msg) {
-    // Απλό alert ή custom toast
-    // alert(msg); 
-    // Προτιμότερο: Ένα μικρό div που εμφανίζεται και εξαφανίζεται
-    var toast = document.createElement('div');
-    toast.innerText = msg;
-    toast.style.position = 'fixed';
-    toast.style.bottom = '20px';
-    toast.style.left = '50%';
-    toast.style.transform = 'translateX(-50%)';
-    toast.style.background = 'var(--accent)';
-    toast.style.color = '#000';
-    toast.style.padding = '10px 20px';
-    toast.style.borderRadius = '20px';
-    toast.style.zIndex = '3000';
-    document.body.appendChild(toast);
-    setTimeout(() => { toast.remove(); }, 2000);
-}
-
-// Σύνδεση με το Save Tone του παλιού κώδικα
-function saveTone() {
-    if(typeof saveToneChange === 'function') {
-        saveToneChange();
-    } else {
-        // Fallback logic αν δεν υπάρχει στο logic.js
-        if(state.t === 0) return;
-        var s = library.find(x => x.id === currentSongId);
-        if(confirm("Αποθήκευση νέου τόνου;")) {
-            // Logic handled usually in logic.js or here
-            alert("Λειτουργία υπό κατασκευή στο logic.js");
-        }
-    }
-}
+function saveData() { localStorage.setItem('mnotes_data', JSON.stringify(library)); }

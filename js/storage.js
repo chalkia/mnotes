@@ -1,7 +1,36 @@
 /* =========================================
    STORAGE & GITHUB SYNC
    ========================================= */
+// --- SUBSCRIPTION STATUS ---
 
+// Προσπάθεια ανάγνωσης από τη μνήμη. Αν δεν υπάρχει, είναι false (Free).
+const savedStatus = localStorage.getItem('mnotes_premium_status');
+
+var USER_STATUS = {
+    isPremium: savedStatus === 'true', // Μετατροπή string σε boolean
+    freeLimit: 5 
+};
+
+// Συνάρτηση για αλλαγή κατάστασης (Admin only)
+function setPremiumStatus(isPremium) {
+    USER_STATUS.isPremium = isPremium;
+    localStorage.setItem('mnotes_premium_status', isPremium);
+    window.location.reload(); // Reload για να εφαρμοστούν οι αλλαγές
+}
+
+// Συνάρτηση Ελέγχου Κλειδώματος
+function isSongLocked(song) {
+    // 1. Αν είναι Premium, όλα ξεκλείδωτα
+    if (USER_STATUS.isPremium) return false;
+
+    // 2. Αν το τραγούδι έχει ήδη τη "σφραγίδα", την τιμούμε
+    if (typeof song.isLocked !== 'undefined') {
+        return song.isLocked;
+    }
+
+    // 3. Για παλιά τραγούδια (πριν την αναβάθμιση), θεωρούμε ότι είναι Free
+    return false; 
+}
 // Αποθήκευση στο LocalStorage του browser
 function saveToLocal() {
     localStorage.setItem('mnotes_data', JSON.stringify(library));

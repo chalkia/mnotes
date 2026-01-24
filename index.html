@@ -4,13 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>mNotes Pro</title>
+    
+    <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="icon-192.png">
+    <meta name="theme-color" content="#121212">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    
     <link rel="stylesheet" href="fa/css/all.min.css">
     <link rel="stylesheet" href="style.css">
     
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
-    <script src="js/qrcodegen.js"></script>
+    <script src="js/sortable.min.js"></script> <script src="js/qrcodegen.js"></script>
     <script src="js/html5-qrcode.min.js"></script>
+
     <script src="js/data.js"></script>
     <script src="js/logic.js"></script>
     <script src="js/ui.js"></script>
@@ -146,5 +151,17 @@
         </div>
     </div>
     <input type="file" id="hiddenFileInput" style="display:none" accept=".json,.mnote">
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('sw.js').then(function(registration) {
+                    console.log('ServiceWorker registration successful');
+                }, function(err) {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
+    </script>
 </body>
 </html>

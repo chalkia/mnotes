@@ -53,20 +53,11 @@ function splitSongBody(body) {
     var cleanBody = body.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
     var blocks = cleanBody.split(/\n\s*\n/);
     var lastBlockWithChordIndex = -1;
-    blocks.forEach((block, index) => {
-        if (block.includes('!')) {
-            lastBlockWithChordIndex = index;
-        }
-    });
-    if (lastBlockWithChordIndex === -1) {
-        return { fixed: "", scroll: cleanBody };
-    }
+    blocks.forEach((block, index) => { if (block.includes('!')) lastBlockWithChordIndex = index; });
+    if (lastBlockWithChordIndex === -1) return { fixed: "", scroll: cleanBody };
     var fixedBlocks = blocks.slice(0, lastBlockWithChordIndex + 1);
     var scrollBlocks = blocks.slice(lastBlockWithChordIndex + 1);
-    return { 
-        fixed: fixedBlocks.join("\n\n"), 
-        scroll: scrollBlocks.join("\n\n") 
-    };
+    return { fixed: fixedBlocks.join("\n\n"), scroll: scrollBlocks.join("\n\n") };
 }
 
 function getNote(note, semitones) {
@@ -92,7 +83,6 @@ function saveSong() {
     var notes = document.getElementById('inpNotes').value;
     var body = document.getElementById('inpBody').value;
 
-    // Use translation for alert
     if(!title || !body) { alert(t('msg_title_body_req')); return; }
     var tagsArray = tagsInput.split(',').map(t => t.trim()).filter(t => t !== "");
 
@@ -103,8 +93,7 @@ function saveSong() {
 
     if (!currentSongId) {
         var s = ensureSongStructure(newSongObj);
-        library.push(s);
-        currentSongId = s.id;
+        library.push(s); currentSongId = s.id;
     } else {
         var oldIdx = library.findIndex(s => s.id === currentSongId);
         var existingExtras = {};
@@ -114,11 +103,8 @@ function saveSong() {
         }
         var finalSong = ensureSongStructure(newSongObj);
         finalSong.id = "s_" + Date.now(); 
-        for (var k in existingExtras) {
-            if (!finalSong.hasOwnProperty(k)) finalSong[k] = existingExtras[k];
-        }
-        library.push(finalSong);
-        currentSongId = finalSong.id;
+        for (var k in existingExtras) { if (!finalSong.hasOwnProperty(k)) finalSong[k] = existingExtras[k]; }
+        library.push(finalSong); currentSongId = finalSong.id;
     }
 
     if(typeof saveData === 'function') saveData();
@@ -129,7 +115,6 @@ function saveSong() {
 function deleteCurrentSong() {
     if (!currentSongId) return;
     if (currentSongId.includes("demo")) { alert(t('msg_demo_delete')); return; }
-    
     if(confirm(t('msg_delete_confirm'))) {
         var idx = library.findIndex(s => s.id === currentSongId);
         if(idx > -1) {
@@ -140,5 +125,45 @@ function deleteCurrentSong() {
             else if (typeof createNewSong === 'function') createNewSong();
             if(typeof renderSidebar === 'function') renderSidebar();
         }
+    }
+}
+
+// --- QR LOGIC (SAFE UTF-8) ---
+
+function generateQRForSong(song) {
+    try {
+        // 1. Convert to JSON
+        var json = JSON.stringify(song);
+        
+        // 2. Safe Encode for Greek Characters (UTF-8 workaround)
+        // unescape(encodeURIComponent(str)) turns multibyte chars into UTF-8 byte string
+        var safeStr = unescape(encodeURIComponent(json));
+        
+        // 3. Generate QR (Type 0 = Auto, 'M' = Medium Error Correction)
+        var qr = qrcode(0, 'M');
+        qr.addData(safeStr);
+        qr.make();
+        
+        // 4. Return HTML Image Tag
+        return qr.createImgTag(5, 10); // cell size 5, margin 10
+    } catch (e) {
+        console.error(e);
+        return null;
+    }
+}
+
+function processQRScan(scannedText) {
+    try {
+        // 1. Safe Decode (Reverse of Generate)
+        var jsonStr = decodeURIComponent(escape(scannedText));
+        
+        // 2. Parse JSON
+        var songData = JSON.parse(jsonStr);
+        
+        // 3. Ensure Structure
+        return ensureSongStructure(songData);
+    } catch (e) {
+        console.error("QR Parse Error", e);
+        return null;
     }
 }

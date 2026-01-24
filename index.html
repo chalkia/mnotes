@@ -107,36 +107,50 @@
                 </div>
             </div>
 
-            <div id="view-editor" class="view-section">
-                <div class="editor-toolbar">
-                    <button onclick="cancelEdit()" style="color:var(--text-muted); background:none; border:none;" data-i18n="lbl_cancel">Cancel</button>
-                    <div>
-                        <button onclick="deleteCurrentSong()" style="color:var(--danger); background:none; border:none; font-size:1.2rem; margin-right:15px;"><i class="fas fa-trash-alt"></i></button>
-                        <button onclick="showQR()" style="color:var(--text-main); background:none; border:none; font-size:1.2rem;"><i class="fas fa-qrcode"></i></button>
-                    </div>
-                    <button onclick="saveEdit()" style="color:var(--accent); background:none; border:none; font-weight:bold;" data-i18n="lbl_save">Save</button>
-                </div>
-                <div class="editor-body">
-                    <input id="inpTitle" class="inp" data-i18n-ph="ph_title" placeholder="Song Title">
-                    <input id="inpArtist" class="inp" data-i18n-ph="ph_artist" placeholder="Artist">
-                    <div style="display:flex; gap:10px;">
-                        <input id="inpKey" class="inp" data-i18n-ph="ph_key" placeholder="Key" style="width:100px;">
-                        
-                        <div style="flex:1; position:relative;">
-                            <div class="tag-wrapper" onclick="document.getElementById('tagInput').focus()">
-                                <div id="tagChips" style="display:contents;"></div>
-                                <input id="tagInput" class="tag-input-area" data-i18n-ph="ph_tags" placeholder="Add tag..." oninput="handleTagInput(this)" onkeydown="handleTagKey(event)">
-                            </div>
-                            <div id="tagSuggestions" class="tag-suggestions"></div>
-                            <input id="inpTags" type="hidden"> 
-                        </div>
-                    </div>
-                    <input id="inpIntro" class="inp" data-i18n-ph="ph_intro" placeholder="Intro">
-                    <input id="inpInter" class="inp" data-i18n-ph="ph_inter" placeholder="Interlude">
-                    <textarea id="inpNotes" class="inp" data-i18n-ph="ph_notes" placeholder="Notes" style="height:60px;"></textarea>
-                    <textarea id="inpBody" class="inp txt-area" data-i18n-ph="ph_body" placeholder="Lyrics & Chords..."></textarea>
-                </div>
+          <div id="view-editor" class="view-section">
+    <div class="editor-toolbar">
+        <button onclick="exitEditor()" style="color:var(--text-muted); background:none; border:none; display:flex; align-items:center; gap:5px;">
+            <i class="fas fa-times"></i> <span data-i18n="lbl_cancel">Cancel</span>
+        </button>
+        
+        <div>
+            <button onclick="deleteCurrentSong()" style="color:var(--danger); background:none; border:none; font-size:1.2rem; margin-right:15px;"><i class="fas fa-trash-alt"></i></button>
+            <button onclick="showQR()" style="color:var(--text-main); background:none; border:none; font-size:1.2rem;"><i class="fas fa-qrcode"></i></button>
+        </div>
+        
+        <button onclick="saveEdit()" style="color:var(--accent); background:none; border:none; font-weight:bold; font-size:1.1rem;" data-i18n="lbl_save">Save</button>
+    </div>
+    
+    <div class="editor-body">
+        <input id="inpTitle" class="inp" data-i18n-ph="ph_title" placeholder="Song Title" style="font-weight:bold; font-size:1.1rem;">
+        
+        <details>
+            <summary>Artist & Notes</summary>
+            <div class="details-content">
+                <input id="inpArtist" class="inp" data-i18n-ph="ph_artist" placeholder="Artist">
+                <textarea id="inpNotes" class="inp" data-i18n-ph="ph_notes" placeholder="Private Notes" style="height:60px;"></textarea>
             </div>
+        </details>
+
+        <div style="display:flex; gap:10px;">
+            <input id="inpKey" class="inp" data-i18n-ph="ph_key" placeholder="Key" style="width:100px;">
+            
+            <div style="flex:1; position:relative;">
+                <div class="tag-wrapper" onclick="document.getElementById('tagInput').focus()">
+                    <div id="tagChips" style="display:contents;"></div>
+                    <input id="tagInput" class="tag-input-area" data-i18n-ph="ph_tags" placeholder="Add tag..." oninput="handleTagInput(this)" onkeydown="handleTagKey(event)">
+                </div>
+                <div id="tagSuggestions" class="tag-suggestions"></div>
+                <input id="inpTags" type="hidden"> 
+            </div>
+        </div>
+        
+        <input id="inpIntro" class="inp" data-i18n-ph="ph_intro" placeholder="Intro">
+        <input id="inpInter" class="inp" data-i18n-ph="ph_inter" placeholder="Interlude">
+        
+        <textarea id="inpBody" class="inp txt-area" data-i18n-ph="ph_body" placeholder="Lyrics & Chords..."></textarea>
+    </div>
+</div>
 
         </main>
     </div>
@@ -181,3 +195,4 @@
     </script>
 </body>
 </html>
+

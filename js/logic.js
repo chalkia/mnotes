@@ -48,37 +48,21 @@ function parseSongLogic(song) {
     });
 }
 
-// --- FINAL FIXED SPLIT FUNCTION ---
 function splitSongBody(body) {
     if (!body) return { fixed: "", scroll: "" };
-
-    // 1. Καθαρισμός και ομοιομορφία στα Newlines
     var cleanBody = body.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
-
-    // 2. Χωρισμός σε Στροφές (Blocks) με βάση το διπλό κενό
     var blocks = cleanBody.split(/\n\s*\n/);
-    
     var lastBlockWithChordIndex = -1;
-
-    // 3. Βρίσκουμε το index του ΤΕΛΕΥΤΑΙΟΥ block που έχει '!'
     blocks.forEach((block, index) => {
         if (block.includes('!')) {
             lastBlockWithChordIndex = index;
         }
     });
-
-    // 4. Λογική Διαχωρισμού
     if (lastBlockWithChordIndex === -1) {
-        // Καμία συγχορδία πουθενά -> Όλα στο Scroll (ή στο Fixed αν προτιμάς)
         return { fixed: "", scroll: cleanBody };
     }
-
-    // Fixed: Από την αρχή μέχρι ΚΑΙ το τελευταίο μπλοκ με συγχορδίες
     var fixedBlocks = blocks.slice(0, lastBlockWithChordIndex + 1);
-    
-    // Scroll: Όλα τα υπόλοιπα (που είναι σκέτα λόγια)
     var scrollBlocks = blocks.slice(lastBlockWithChordIndex + 1);
-
     return { 
         fixed: fixedBlocks.join("\n\n"), 
         scroll: scrollBlocks.join("\n\n") 
@@ -108,7 +92,8 @@ function saveSong() {
     var notes = document.getElementById('inpNotes').value;
     var body = document.getElementById('inpBody').value;
 
-    if(!title || !body) { alert("Title and Body required!"); return; }
+    // Use translation for alert
+    if(!title || !body) { alert(t('msg_title_body_req')); return; }
     var tagsArray = tagsInput.split(',').map(t => t.trim()).filter(t => t !== "");
 
     var newSongObj = {
@@ -143,8 +128,9 @@ function saveSong() {
 
 function deleteCurrentSong() {
     if (!currentSongId) return;
-    if (currentSongId.includes("demo")) { alert("Demo cannot be deleted."); return; }
-    if(confirm("Delete song?")) {
+    if (currentSongId.includes("demo")) { alert(t('msg_demo_delete')); return; }
+    
+    if(confirm(t('msg_delete_confirm'))) {
         var idx = library.findIndex(s => s.id === currentSongId);
         if(idx > -1) {
             library.splice(idx, 1);

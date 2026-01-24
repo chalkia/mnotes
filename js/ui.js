@@ -111,22 +111,44 @@ function applyFilters() {
 }
 
 function renderSidebar() {
-    var list = document.getElementById('songList'); list.innerHTML = "";
+    var list = document.getElementById('songList');
+    list.innerHTML = "";
     document.getElementById('songCount').innerText = visiblePlaylist.length;
+
     visiblePlaylist.forEach(s => {
         var li = document.createElement('li');
         li.className = `song-item ${currentSongId === s.id ? 'active' : ''}`;
         li.setAttribute('data-id', s.id);
-        li.onclick = () => loadSong(s.id);
+        
+        // Κλικ στο LI -> Φόρτωση τραγουδιού
+        // (Το event bubbling θα το χειριστούμε ώστε η λαβή να μην φορτώνει τραγούδι)
+        li.onclick = (e) => {
+            // Αν πατήσαμε τη λαβή, ΜΗΝ φορτώσεις το τραγούδι (αφού κάνουμε drag)
+            if(e.target.classList.contains('song-handle')) return;
+            loadSong(s.id);
+        };
+        
         var displayTitle = (s.id === 'demo_instruction') ? t('demo_title') : s.title;
         var art = s.artist ? `<span style="font-weight:normal; opacity:0.7"> - ${s.artist}</span>` : "";
-        li.innerHTML = `<div class="song-title">${displayTitle}${art}</div><div class="song-meta">${s.key}</div>`;
+        
+        // ΝΕΑ ΔΟΜΗ: Info Wrapper + Handle Icon
+        li.innerHTML = `
+            <div class="song-info-wrapper">
+                <div class="song-title">${displayTitle}${art}</div>
+                <div class="song-meta">${s.key}</div>
+            </div>
+            <i class="fas fa-grip-vertical song-handle"></i>
+        `;
         list.appendChild(li);
     });
 
     if (sortableInstance) sortableInstance.destroy();
+    
+    // ΕΝΕΡΓΟΠΟΙΗΣΗ SORTABLE ΜΕ ΛΑΒΗ
     sortableInstance = new Sortable(list, {
-        animation: 150, ghostClass: 'active',
+        animation: 150,
+        ghostClass: 'active',
+        handle: '.song-handle', // <--- ΤΟ ΚΛΕΙΔΙ: Μόνο η λαβή σέρνει
         onEnd: function (evt) {
             var item = visiblePlaylist.splice(evt.oldIndex, 1)[0];
             visiblePlaylist.splice(evt.newIndex, 0, item);

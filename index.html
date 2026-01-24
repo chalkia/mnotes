@@ -25,11 +25,18 @@
                 <span style="color:var(--text-main); font-weight:bold; font-size:1.2rem;">mNotes <span id="songCount" style="font-size:0.8rem; opacity:0.6;">0</span></span>
                 <button onclick="createNewSong()" style="background:none; border:none; color:var(--text-main); cursor:pointer;"><i class="fas fa-plus"></i></button>
             </div>
+            
+            <div style="padding:10px; border-bottom:1px solid var(--border-color); text-align:center;">
+                <button id="btnLang" onclick="toggleLanguage()" style="background:var(--bg-panel); color:var(--text-main); border:1px solid var(--border-color); padding:5px 15px; border-radius:15px; cursor:pointer; font-size:0.9rem;">
+                    <i class="fas fa-globe"></i> EN
+                </button>
+            </div>
+
             <ul id="songList" class="song-list"></ul>
             
             <div style="padding:10px; border-top:1px solid var(--border-color); display:flex; gap:5px;">
                 <button onclick="document.getElementById('importChoiceModal').style.display='flex'" style="flex:1; padding:10px; background:var(--bg-panel); color:var(--text-muted); border:none; cursor:pointer;">
-                    <i class="fas fa-file-import"></i> Import
+                    <i class="fas fa-file-import"></i> <span data-i18n="btn_import">Import</span>
                 </button>
                 <button onclick="clearLibrary()" style="width:40px; background:var(--bg-panel); color:var(--danger); border:none; cursor:pointer;">
                     <i class="fas fa-trash"></i>
@@ -63,7 +70,7 @@
 
                 <div class="player-footer">
                     <div class="ctl-group">
-                        <span class="ctl-label">Transpose</span>
+                        <span class="ctl-label" data-i18n="lbl_transpose">Transpose</span>
                         <div class="stepper">
                             <button onclick="changeTranspose(-1)">-</button>
                             <span id="val-t">0</span>
@@ -71,7 +78,7 @@
                         </div>
                     </div>
                     <div class="ctl-group">
-                        <span class="ctl-label">Capo</span>
+                        <span class="ctl-label" data-i18n="lbl_capo">Capo</span>
                         <div class="stepper">
                             <button onclick="changeCapo(-1)">-</button>
                             <span id="val-c">0</span>
@@ -79,7 +86,7 @@
                         </div>
                     </div>
                     <div class="ctl-group">
-                        <span class="ctl-label">Edit</span>
+                        <span class="ctl-label" data-i18n="lbl_edit">Edit</span>
                         <button onclick="switchToEditor()" style="background:none; border:1px solid var(--border-color); color:var(--text-main); padding:8px 12px; border-radius:15px;"><i class="fas fa-pen"></i></button>
                     </div>
                 </div>
@@ -87,22 +94,22 @@
 
             <div id="view-editor" class="view-section">
                 <div class="editor-toolbar">
-                    <button onclick="cancelEdit()" style="color:var(--text-muted); background:none; border:none;">Cancel</button>
+                    <button onclick="cancelEdit()" style="color:var(--text-muted); background:none; border:none;" data-i18n="lbl_cancel">Cancel</button>
                     <button onclick="deleteCurrentSong()" style="color:var(--danger); background:none; border:none; font-size:1.2rem;"><i class="fas fa-trash-alt"></i></button>
-                    <button onclick="saveEdit()" style="color:var(--accent); background:none; border:none; font-weight:bold;">Save</button>
+                    <button onclick="saveEdit()" style="color:var(--accent); background:none; border:none; font-weight:bold;" data-i18n="lbl_save">Save</button>
                 </div>
                 <div class="editor-body">
-                    <input id="inpTitle" class="inp" placeholder="Song Title">
-                    <input id="inpArtist" class="inp" placeholder="Artist (Καλλιτέχνης)">
+                    <input id="inpTitle" class="inp" data-i18n-ph="ph_title" placeholder="Song Title">
+                    <input id="inpArtist" class="inp" data-i18n-ph="ph_artist" placeholder="Artist">
                     
                     <div style="display:flex; gap:10px;">
-                        <input id="inpKey" class="inp" placeholder="Key (e.g. Am)" style="width:100px;">
-                        <input id="inpTags" class="inp" placeholder="Tags / Playlists">
+                        <input id="inpKey" class="inp" data-i18n-ph="ph_key" placeholder="Key" style="width:100px;">
+                        <input id="inpTags" class="inp" data-i18n-ph="ph_tags" placeholder="Tags">
                     </div>
-                    <input id="inpIntro" class="inp" placeholder="Intro (e.g. !Am | !G)">
-                    <input id="inpInter" class="inp" placeholder="Interlude">
-                    <textarea id="inpNotes" class="inp" placeholder="Private Notes" style="height:60px;"></textarea>
-                    <textarea id="inpBody" class="inp txt-area" placeholder="Write lyrics & chords here..."></textarea>
+                    <input id="inpIntro" class="inp" data-i18n-ph="ph_intro" placeholder="Intro">
+                    <input id="inpInter" class="inp" data-i18n-ph="ph_inter" placeholder="Interlude">
+                    <textarea id="inpNotes" class="inp" data-i18n-ph="ph_notes" placeholder="Notes" style="height:60px;"></textarea>
+                    <textarea id="inpBody" class="inp txt-area" data-i18n-ph="ph_body" placeholder="Lyrics & Chords..."></textarea>
                 </div>
             </div>
         </main>
@@ -110,9 +117,9 @@
 
     <div id="importChoiceModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); align-items:center; justify-content:center; z-index:2000;">
         <div style="background:var(--bg-panel); padding:20px; border-radius:10px; width:300px; text-align:center;">
-            <h3 style="margin-top:0; color:var(--text-main);">Import</h3>
-            <button onclick="selectImport('file')" style="width:100%; padding:15px; margin-bottom:10px; background:var(--input-bg); color:var(--text-main); border:1px solid var(--border-color);">File (.json)</button>
-            <button onclick="document.getElementById('importChoiceModal').style.display='none'" style="background:none; border:none; color:var(--text-muted);">Cancel</button>
+            <h3 style="margin-top:0; color:var(--text-main);" data-i18n="modal_import_title">Import</h3>
+            <button onclick="selectImport('file')" style="width:100%; padding:15px; margin-bottom:10px; background:var(--input-bg); color:var(--text-main); border:1px solid var(--border-color);" data-i18n="modal_btn_file">File (.json)</button>
+            <button onclick="document.getElementById('importChoiceModal').style.display='none'" style="background:none; border:none; color:var(--text-muted);" data-i18n="modal_btn_cancel">Cancel</button>
         </div>
     </div>
     

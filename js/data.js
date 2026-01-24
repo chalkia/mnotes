@@ -20,6 +20,11 @@ const TRANSLATIONS = {
         lbl_edit: "Edit",
         lbl_cancel: "Cancel",
         lbl_save: "Save",
+        
+        // Sidebar Filters
+        ph_search: "Search title...",  // NEW
+        lbl_all_tags: "All Tags",      // NEW
+        
         ph_title: "Song Title",
         ph_artist: "Artist",
         ph_key: "Key (e.g. Am)",
@@ -29,21 +34,16 @@ const TRANSLATIONS = {
         ph_notes: "Private Notes",
         ph_body: "Write lyrics & chords here...\nExample: !AmHello !Gfriend",
         
-        // Import Modal
         modal_import_title: "Import",
         modal_btn_file: "File (.json)",
-        modal_btn_qr: "Scan QR Code",  // NEW
+        modal_btn_qr: "Scan QR Code",
         modal_btn_cancel: "Cancel",
         
-        // QR Modal
-        qr_title: "Song QR Code",      // NEW
-        msg_qr_help: "Scan this with mNotes on another device.", // NEW
+        qr_title: "Song QR Code",
+        msg_qr_help: "Scan this with mNotes on another device.",
+        scan_title: "Scan QR",
+        msg_scan_camera_error: "Camera access denied or error.",
 
-        // Scanner
-        scan_title: "Scan QR",         // NEW
-        msg_scan_camera_error: "Camera access denied or error.", // NEW
-
-        // Alerts
         msg_demo_delete: "⚠️ The demo/instructions cannot be deleted!",
         msg_delete_confirm: "Are you sure you want to delete this song?",
         msg_clear_confirm: "⚠️ WARNING: This will delete ALL songs (except Demo). Are you sure?",
@@ -67,6 +67,11 @@ const TRANSLATIONS = {
         lbl_edit: "Επεξεργασία",
         lbl_cancel: "Άκυρο",
         lbl_save: "Αποθήκευση",
+        
+        // Sidebar Filters
+        ph_search: "Αναζήτηση...",      // NEW
+        lbl_all_tags: "Όλα τα Tags",    // NEW
+
         ph_title: "Τίτλος Τραγουδιού",
         ph_artist: "Καλλιτέχνης",
         ph_key: "Τόνος (π.χ. Am)",
@@ -76,19 +81,15 @@ const TRANSLATIONS = {
         ph_notes: "Σημειώσεις",
         ph_body: "Γράψτε στίχους & συγχορδίες...\nΠαράδειγμα: !AmΚαλημέρα !Gφίλε",
 
-        // Import Modal
         modal_import_title: "Εισαγωγή",
         modal_btn_file: "Αρχείο (.json)",
-        modal_btn_qr: "Σάρωση QR",     // NEW
+        modal_btn_qr: "Σάρωση QR",
         modal_btn_cancel: "Άκυρο",
 
-        // QR Modal
-        qr_title: "QR Τραγουδιού",     // NEW
-        msg_qr_help: "Σκανάρετε με το mNotes σε άλλη συσκευή.", // NEW
-
-        // Scanner
-        scan_title: "Σάρωση QR",       // NEW
-        msg_scan_camera_error: "Δεν υπάρχει πρόσβαση στην κάμερα.", // NEW
+        qr_title: "QR Τραγουδιού",
+        msg_qr_help: "Σκανάρετε με το mNotes σε άλλη συσκευή.",
+        scan_title: "Σάρωση QR",
+        msg_scan_camera_error: "Δεν υπάρχει πρόσβαση στην κάμερα.",
 
         msg_demo_delete: "⚠️ Οι οδηγίες χρήσης δεν μπορούν να διαγραφούν!",
         msg_delete_confirm: "Είστε σίγουροι ότι θέλετε να διαγράψετε αυτό το τραγούδι;",
@@ -123,7 +124,6 @@ var library = [];
 var currentSongId = null;
 var visiblePlaylist = [];
 var state = { t: 0, c: 0 };
-// Scanner Global
 var html5QrCodeScanner = null;
 
 console.log("✅ Data & Translations Loaded");

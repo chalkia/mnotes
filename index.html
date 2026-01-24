@@ -16,7 +16,8 @@
     <script src="js/logic.js"></script>
     <script src="js/ui.js"></script>
 </head>
-<body class="theme-dark"> <button id="btnMenu" class="menu-btn"><i class="fas fa-bars"></i></button>
+<body class="theme-dark">
+    <button id="btnMenu" class="menu-btn"><i class="fas fa-bars"></i></button>
 
     <div class="app-layout">
         <aside class="sidebar" id="sidebar">
@@ -36,22 +37,25 @@
             </div>
         </aside>
 
-        <main class="main-content">
+        <main class="main-content" id="mainZone">
             <div id="view-player" class="view-section active-view">
                 <div class="player-header">
                     <div class="header-row">
-                        <div style="display:flex; align-items:center; gap:10px;">
+                        <div style="display:flex; flex-direction:column;">
                             <h1 id="p-title" class="song-h1">Title</h1>
-                            <span id="p-key" class="key-badge">-</span>
+                            <span id="p-artist" class="meta-label" style="font-size:0.9rem; margin-top:2px;">Artist</span>
                         </div>
-                        <div id="header-actions"></div> </div>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <span id="p-key" class="key-badge">-</span>
+                            <div id="header-actions"></div>
+                        </div>
+                    </div>
 
                     <div id="notes-container" class="notes-container">
                         <div id="notes-area" class="notes-text"></div>
                     </div>
 
-                    <div class="info-bar">
-                        </div>
+                    <div class="info-bar"></div>
                 </div>
 
                 <div id="fixed-container" class="fixed-lyrics"></div>
@@ -84,14 +88,13 @@
             <div id="view-editor" class="view-section">
                 <div class="editor-toolbar">
                     <button onclick="cancelEdit()" style="color:var(--text-muted); background:none; border:none;">Cancel</button>
-                    
-                    <button onclick="deleteCurrentSong()" style="color:var(--danger); background:none; border:none; font-size:1.2rem;">
-                        <i class="fas fa-trash-alt"></i> </button>
-                    
+                    <button onclick="deleteCurrentSong()" style="color:var(--danger); background:none; border:none; font-size:1.2rem;"><i class="fas fa-trash-alt"></i></button>
                     <button onclick="saveEdit()" style="color:var(--accent); background:none; border:none; font-weight:bold;">Save</button>
                 </div>
                 <div class="editor-body">
                     <input id="inpTitle" class="inp" placeholder="Song Title">
+                    <input id="inpArtist" class="inp" placeholder="Artist (Καλλιτέχνης)">
+                    
                     <div style="display:flex; gap:10px;">
                         <input id="inpKey" class="inp" placeholder="Key (e.g. Am)" style="width:100px;">
                         <input id="inpTags" class="inp" placeholder="Tags / Playlists">
@@ -114,6 +117,5 @@
     </div>
     
     <input type="file" id="hiddenFileInput" style="display:none" accept=".json,.mnote">
-
 </body>
 </html>

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>mNotes Pro</title>
     <link rel="icon" type="image/png" href="icon-192.png">
+    
     <link rel="stylesheet" href="fa/css/all.min.css">
     <link rel="stylesheet" href="style.css">
     
@@ -20,6 +21,7 @@
     <button id="btnMenu" class="menu-btn"><i class="fas fa-bars"></i></button>
 
     <div class="app-layout">
+        
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <span style="color:var(--text-main); font-weight:bold; font-size:1.2rem;">mNotes <span id="songCount" style="font-size:0.8rem; opacity:0.6;">0</span></span>
@@ -45,6 +47,7 @@
         </aside>
 
         <main class="main-content" id="mainZone">
+            
             <div id="view-player" class="view-section active-view">
                 <div class="player-header">
                     <div class="header-row">
@@ -95,9 +98,10 @@
             <div id="view-editor" class="view-section">
                 <div class="editor-toolbar">
                     <button onclick="cancelEdit()" style="color:var(--text-muted); background:none; border:none;" data-i18n="lbl_cancel">Cancel</button>
-                    <button onclick="deleteCurrentSong()" style="color:var(--danger); background:none; border:none; font-size:1.2rem;"><i class="fas fa-trash-alt"></i></button>
-                    <button onclick="showQR()" style="color:var(--text-main); background:none; border:none; font-size:1.2rem;"><i class="fas fa-qrcode"></i></button>
-                    
+                    <div>
+                        <button onclick="deleteCurrentSong()" style="color:var(--danger); background:none; border:none; font-size:1.2rem; margin-right:15px;"><i class="fas fa-trash-alt"></i></button>
+                        <button onclick="showQR()" style="color:var(--text-main); background:none; border:none; font-size:1.2rem;"><i class="fas fa-qrcode"></i></button>
+                    </div>
                     <button onclick="saveEdit()" style="color:var(--accent); background:none; border:none; font-weight:bold;" data-i18n="lbl_save">Save</button>
                 </div>
                 <div class="editor-body">
@@ -113,10 +117,9 @@
                     <textarea id="inpBody" class="inp txt-area" data-i18n-ph="ph_body" placeholder="Lyrics & Chords..."></textarea>
                 </div>
             </div>
-        </main>
-    </div>
 
-    <div id="importChoiceModal" class="modal-overlay">
+        </main>
+    </div> <div id="importChoiceModal" class="modal-overlay">
         <div class="modal-box">
             <h3 style="margin-top:0; color:var(--text-main);" data-i18n="modal_import_title">Import</h3>
             <button onclick="selectImport('file')" style="width:100%; padding:15px; margin-bottom:10px; background:var(--input-bg); color:var(--text-main); border:1px solid var(--border-color);" data-i18n="modal_btn_file">File (.json)</button>
@@ -143,5 +146,6 @@
     </div>
     
     <input type="file" id="hiddenFileInput" style="display:none" accept=".json,.mnote">
+
 </body>
 </html>

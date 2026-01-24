@@ -143,39 +143,76 @@ function getNote(note, semitones) {
 }
 
 // SMART CAPO (Βελτιωμένο)
-function calculateOptimalCapo(currentKey, songBody) {
-    var chordsFound = new Set();
+//function calculateOptimalCapo(currentKey, songBody) {
+  //  var chordsFound = new Set();
     // Ψάχνουμε μόνο Κεφαλαία (Συγχορδίες) για το Capo, αγνοούμε τις νότες
-    var chordRegex = /!([A-G][#b]?)/g; 
-    var match;
-    while ((match = chordRegex.exec(songBody)) !== null) {
-        chordsFound.add(match[1]);
-    }
+    //var chordRegex = /!([A-G][#b]?)/g; 
+    //var match;
+    //while ((match = chordRegex.exec(songBody)) !== null) {
+      //  chordsFound.add(match[1]);
+    //}
     
-    if (chordsFound.size === 0) return 0;
-    var openChords = ["C", "A", "G", "E", "D", "Am", "Em", "Dm"];
-    var bestCapo = 0;
-    var maxScore = -1000;
+    //if (chordsFound.size === 0) return 0;
+    //var openChords = ["C", "A", "G", "E", "D", "Am", "Em", "Dm"];
+    //var bestCapo = 0;
+    //var maxScore = -1000;
 
-    for (var c = 0; c < 12; c++) {
-        var score = 0;
-        chordsFound.forEach(originalChord => {
+    //for (var c = 0; c < 12; c++) {
+      //  var score = 0;
+       // chordsFound.forEach(originalChord => {
             // Εδώ θέλουμε πάντα το αποτέλεσμα σε Κεφαλαία για σύγκριση με Open Chords
-            var playedChord = getNote(originalChord, -c).charAt(0).toUpperCase() + getNote(originalChord, -c).slice(1);
+         //   var playedChord = getNote(originalChord, -c).charAt(0).toUpperCase() + getNote(originalChord, -c).slice(1);
             
-            if (openChords.includes(playedChord)) {
-                score += 1;
-            } else if (playedChord.includes("#") || playedChord.includes("b")) {
-                score -= 0.5; 
-            }
+           // if (openChords.includes(playedChord)) {
+             //   score += 1;
+           // } else if (playedChord.includes("#") || playedChord.includes("b")) {
+           //     score -= 0.5; 
+          //  }
+       // });
+       // if (score > maxScore) {
+         //   maxScore = score; bestCapo = c;
+       // }
+   // }
+   // return bestCapo;
+//}
+/ --- ΠΡΟΣΘΗΚΗ: SMART CAPO ALGORITHM ---
+function calculateOptimalCapo(songBody) {
+    // Βρίσκουμε όλες τις συγχορδίες στο κείμενο
+    let chordsFound = new Set();
+    // Απλό regex για εντοπισμό ακόρντων στο κείμενο
+    let tokens = songBody.split(/\s+/);
+    const chordPattern = /^[a-gA-G][#b]?(?:m|maj|dim|aug|sus|add|7|9|11|13)*$/;
+    
+    tokens.forEach(tk => {
+        // Καθαρισμός από ! αν υπάρχει
+        let clean = tk.replace('!', '');
+        if(chordPattern.test(clean)) chordsFound.add(clean);
+    });
+
+    if (chordsFound.size === 0) return 0;
+
+    let bestCapo = 0;
+    let maxScore = -1000;
+
+    for (let c = 0; c < 12; c++) {
+        let score = 0;
+        chordsFound.forEach(originalChord => {
+            let playedChord = getNote(originalChord, -c);
+            // Αφαίρεση μπάσων (π.χ. D/F# -> D)
+            let root = playedChord.split('/')[0];
+            
+            if (OPEN_CHORDS.includes(root)) score += 2;
+            else if (HARD_CHORDS.includes(root)) score -= 2;
+            else if (root.includes("#") || root.includes("b")) score -= 1;
         });
+
         if (score > maxScore) {
-            maxScore = score; bestCapo = c;
+            maxScore = score;
+            bestCapo = c;
         }
     }
     return bestCapo;
 }
-
 function saveSong() {
     var title = document.getElementById('inpTitle').value;
     var artist = document.getElementById('inpArtist').value;

@@ -21,9 +21,12 @@ const TRANSLATIONS = {
         lbl_cancel: "Cancel",
         lbl_save: "Save",
         
-        // Sidebar Filters
-        ph_search: "Search title...",  // NEW
-        lbl_all_tags: "All Tags",      // NEW
+        ph_search: "Search title...",
+        lbl_all_tags: "All Tags",
+
+        // Smart Capo Messages
+        msg_capo_found: "Optimal: Capo ",
+        msg_capo_perfect: "Already optimized!",
         
         ph_title: "Song Title",
         ph_artist: "Artist",
@@ -68,9 +71,11 @@ const TRANSLATIONS = {
         lbl_cancel: "Άκυρο",
         lbl_save: "Αποθήκευση",
         
-        // Sidebar Filters
-        ph_search: "Αναζήτηση...",      // NEW
-        lbl_all_tags: "Όλα τα Tags",    // NEW
+        ph_search: "Αναζήτηση...",
+        lbl_all_tags: "Όλα τα Tags",
+
+        msg_capo_found: "Βέλτιστο: Capo ",
+        msg_capo_perfect: "Ήδη βέλτιστο!",
 
         ph_title: "Τίτλος Τραγουδιού",
         ph_artist: "Καλλιτέχνης",

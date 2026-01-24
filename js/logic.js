@@ -48,39 +48,48 @@ function parseSongLogic(song) {
     });
 }
 
-// --- ΝΕΑ ΛΟΓΙΚΗ ΔΙΑΧΩΡΙΣΜΟΥ ---
+// --- NEW ROBUST SPLIT FUNCTION (LINE BASED) ---
 function splitSongBody(body) {
     if (!body) return { fixed: "", scroll: "" };
 
-    // 1. Χωρισμός σε στροφές (Blocks) με βάση τις κενές γραμμές
-    var blocks = body.split(/\n\s*\n/);
-    var lastBlockWithChord = -1;
-
-    // 2. Regex για εντοπισμό συγχορδίας (π.χ. !Am, !C, !D#)
-    // Αποκλείει σκέτα θαυμαστικά (π.χ. "Γεια σου!")
+    var lines = body.split('\n');
+    var lastChordLineIndex = -1;
+    // Regex που πιάνει συγχορδίες τύπου !Am, !G, !D7
     var chordRegex = /![A-G][b#]?[a-zA-Z0-9\/]*/;
 
-    // 3. Εύρεση της ΤΕΛΕΥΤΑΙΑΣ στροφής που έχει συγχορδία
-    blocks.forEach((block, index) => {
-        if (chordRegex.test(block)) {
-            lastBlockWithChord = index;
+    // 1. Βρες την ΤΕΛΕΥΤΑΙΑ γραμμή που έχει συγχορδία
+    for (var i = 0; i < lines.length; i++) {
+        if (chordRegex.test(lines[i])) {
+            lastChordLineIndex = i;
         }
-    });
+    }
 
-    // 4. Αν δεν βρέθηκε καμία συγχορδία, όλα πάνε στο Scroll (ή στο Fixed, ανάλογα την προτίμηση)
-    // Εδώ λέμε: Αν δεν έχει συγχορδίες, βάλτα όλα στο Scroll να διαβάζονται εύκολα.
-    if (lastBlockWithChord === -1) {
+    // 2. Αν δεν υπάρχει καμία συγχορδία, όλα στο Scroll
+    if (lastChordLineIndex === -1) {
         return { fixed: "", scroll: body };
     }
 
-    // 5. Διαχωρισμός
-    // Σταθερό: Από την αρχή (0) μέχρι ΚΑΙ την τελευταία στροφή με συγχορδίες (+1 για το slice)
-    var fixed = blocks.slice(0, lastBlockWithChord + 1).join("\n\n");
-    
-    // Κυλιόμενο: Ό,τι περισσεύει μετά
-    var scroll = blocks.slice(lastBlockWithChord + 1).join("\n\n");
+    // 3. Βρες πού τελειώνει η στροφή στην οποία ανήκει η τελευταία συγχορδία.
+    // Ψάχνουμε την επόμενη κενή γραμμή μετά το lastChordLineIndex
+    var splitPoint = lastChordLineIndex;
+    for (var j = lastChordLineIndex; j < lines.length; j++) {
+        if (lines[j].trim() === "") {
+            splitPoint = j;
+            break; // Βρήκαμε το τέλος της στροφής
+        }
+        splitPoint = j; // Αν φτάσουμε στο τέλος του αρχείου
+    }
 
-    return { fixed: fixed, scroll: scroll };
+    // 4. Κόψιμο
+    // Σταθερό: Από αρχή μέχρι το splitPoint
+    var fixedLines = lines.slice(0, splitPoint + 1);
+    // Κυλιόμενο: Από το splitPoint και μετά
+    var scrollLines = lines.slice(splitPoint + 1);
+
+    return { 
+        fixed: fixedLines.join('\n'), 
+        scroll: scrollLines.join('\n') 
+    };
 }
 
 function getNote(note, semitones) {
@@ -125,14 +134,11 @@ function saveSong() {
             existingExtras = JSON.parse(JSON.stringify(library[oldIdx]));
             library.splice(oldIdx, 1);
         }
-        
         var finalSong = ensureSongStructure(newSongObj);
-        finalSong.id = "s_" + Date.now(); // Νέο ID
-        
+        finalSong.id = "s_" + Date.now(); 
         for (var k in existingExtras) {
             if (!finalSong.hasOwnProperty(k)) finalSong[k] = existingExtras[k];
         }
-
         library.push(finalSong);
         currentSongId = finalSong.id;
     }

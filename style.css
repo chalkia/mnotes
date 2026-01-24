@@ -157,3 +157,15 @@ body {
 .qr-display { background: white; padding: 15px; display: inline-block; margin: 15px 0; border-radius: 5px; }
 .qr-display img { max-width: 100%; height: auto; display: block; }
 #reader { width: 100%; border-radius: 5px; overflow: hidden; background: #000; }
+
+/* NEW: COLLAPSIBLE DETAILS */
+details {
+    background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 4px; margin-bottom: 5px;
+}
+summary {
+    padding: 10px; cursor: pointer; font-weight: bold; color: var(--text-muted); outline: none; list-style: none; display: flex; justify-content: space-between; align-items: center;
+}
+summary::-webkit-details-marker { display: none; }
+summary:after { content: '+'; font-size: 1.2rem; }
+details[open] summary:after { content: '-'; }
+

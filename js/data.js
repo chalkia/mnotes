@@ -5,8 +5,7 @@
 const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 const NOTES_FLAT = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
 
-// --- TRANSLATION SYSTEM ---
-var currentLang = localStorage.getItem('mnotes_lang') || 'en'; // Default English
+var currentLang = localStorage.getItem('mnotes_lang') || 'en'; 
 
 const TRANSLATIONS = {
     en: {
@@ -29,11 +28,22 @@ const TRANSLATIONS = {
         ph_inter: "Interlude",
         ph_notes: "Private Notes",
         ph_body: "Write lyrics & chords here...\nExample: !AmHello !Gfriend",
+        
+        // Import Modal
         modal_import_title: "Import",
         modal_btn_file: "File (.json)",
+        modal_btn_qr: "Scan QR Code",  // NEW
         modal_btn_cancel: "Cancel",
         
-        // Alerts & Messages
+        // QR Modal
+        qr_title: "Song QR Code",      // NEW
+        msg_qr_help: "Scan this with mNotes on another device.", // NEW
+
+        // Scanner
+        scan_title: "Scan QR",         // NEW
+        msg_scan_camera_error: "Camera access denied or error.", // NEW
+
+        // Alerts
         msg_demo_delete: "⚠️ The demo/instructions cannot be deleted!",
         msg_delete_confirm: "Are you sure you want to delete this song?",
         msg_clear_confirm: "⚠️ WARNING: This will delete ALL songs (except Demo). Are you sure?",
@@ -42,9 +52,8 @@ const TRANSLATIONS = {
         msg_no_import: "Nothing imported. Songs might be duplicates or invalid.",
         msg_error_read: "Error reading file.",
         
-        // Demo Content (Static ID)
         demo_title: "User Guide (Demo)",
-        demo_body: "Welcome to mNotes!\n\nTo add chords, use the exclamation mark (!)\nbefore the note. Example:\n\n!AmThis is !Dman example\n\nChords will appear above the lyrics automatically.\nClick Edit to see how this was written."
+        demo_body: "Welcome to mNotes!\n\nTo add chords, use the exclamation mark (!)\nbefore the note. Example:\n\n!AmThis is !Dman example"
     },
     el: {
         app_title: "mNotes",
@@ -66,11 +75,21 @@ const TRANSLATIONS = {
         ph_inter: "Ενδιάμεσο / Γέφυρα",
         ph_notes: "Σημειώσεις",
         ph_body: "Γράψτε στίχους & συγχορδίες...\nΠαράδειγμα: !AmΚαλημέρα !Gφίλε",
+
+        // Import Modal
         modal_import_title: "Εισαγωγή",
         modal_btn_file: "Αρχείο (.json)",
+        modal_btn_qr: "Σάρωση QR",     // NEW
         modal_btn_cancel: "Άκυρο",
 
-        // Alerts & Messages
+        // QR Modal
+        qr_title: "QR Τραγουδιού",     // NEW
+        msg_qr_help: "Σκανάρετε με το mNotes σε άλλη συσκευή.", // NEW
+
+        // Scanner
+        scan_title: "Σάρωση QR",       // NEW
+        msg_scan_camera_error: "Δεν υπάρχει πρόσβαση στην κάμερα.", // NEW
+
         msg_demo_delete: "⚠️ Οι οδηγίες χρήσης δεν μπορούν να διαγραφούν!",
         msg_delete_confirm: "Είστε σίγουροι ότι θέλετε να διαγράψετε αυτό το τραγούδι;",
         msg_clear_confirm: "⚠️ ΠΡΟΣΟΧΗ: Θα διαγραφούν ΟΛΑ τα τραγούδια (εκτός από το Demo). Είστε σίγουροι;",
@@ -79,36 +98,32 @@ const TRANSLATIONS = {
         msg_no_import: "Δεν εισήχθη τίποτα. Ίσως υπάρχουν ήδη ή το αρχείο είναι άκυρο.",
         msg_error_read: "Σφάλμα ανάγνωσης αρχείου.",
 
-        // Demo Content
         demo_title: "Οδηγίες Χρήσης (Demo)",
-        demo_body: "Καλωσήρθατε στο mNotes!\n\nΓια να βάλετε συγχορδίες, χρησιμοποιήστε το θαυμαστικό (!)\nπριν από τη νότα. Παράδειγμα:\n\n!AmΑυτό είναι !Dmένα παράδειγμα\n\nΟι συγχορδίες θα εμφανιστούν αυτόματα πάνω από το κείμενο.\nΠατήστε Επεξεργασία για να δείτε πώς γράφτηκε αυτό το κείμενο."
+        demo_body: "Καλωσήρθατε στο mNotes!\n\nΓια να βάλετε συγχορδίες, χρησιμοποιήστε το θαυμαστικό (!)\nπριν από τη νότα. Παράδειγμα:\n\n!AmΑυτό είναι !Dmένα παράδειγμα"
     }
 };
 
-// Helper function to get text
-function t(key) {
-    return TRANSLATIONS[currentLang][key] || key;
-}
+function t(key) { return TRANSLATIONS[currentLang][key] || key; }
 
-// Initial Demo Data (Dynamic based on lang is hard, so we keep a neutral ID)
 const DEFAULT_DATA = [
   {
     "id": "demo_instruction",
-    "title": "mNotes Demo", // Will be overwritten by translation on load if needed
+    "title": "mNotes Demo",
     "artist": "mNotes Team",
     "key": "Am",
     "intro": "!Am | !Dm | !E | !Am",
     "interlude": "",
     "notes": "Demo / Οδηγίες",
     "playlists": ["Help"],
-    "body": "!AmWelcome / !DmΚαλωσήρθατε" // Placeholder
+    "body": "!AmWelcome / !DmΚαλωσήρθατε"
   }
 ];
 
-// Global State
 var library = [];
 var currentSongId = null;
 var visiblePlaylist = [];
 var state = { t: 0, c: 0 };
+// Scanner Global
+var html5QrCodeScanner = null;
 
 console.log("✅ Data & Translations Loaded");

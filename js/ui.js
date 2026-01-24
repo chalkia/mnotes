@@ -423,3 +423,31 @@ function setupGestures() {
     area.addEventListener('touchstart', function(e) { if(e.touches.length === 2) { startDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); var val = getComputedStyle(document.documentElement).getPropertyValue('--lyric-size').trim(); startSize = parseFloat(val) || 1.3; }}, {passive: true});
     area.addEventListener('touchmove', function(e) { if(e.touches.length === 2) { var dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); if(startDist > 0) { var scale = dist / startDist; var newSize = startSize * scale; if(newSize < 0.8) newSize = 0.8; if(newSize > 3.0) newSize = 3.0; document.documentElement.style.setProperty('--lyric-size', newSize + "rem"); }}}, {passive: true});
 }
+/* --- AUTO SCROLL LOGIC --- */
+var scrollTimer = null;
+var scrollSpeedMs = 50; // Ταχύτητα (μικρότερο νούμερο = πιο γρήγορο)
+
+function toggleAutoScroll() {
+    var el = document.getElementById('scroll-container');
+    
+    if (scrollTimer) {
+        // Αν τρέχει ήδη -> Σταμάτα το
+        clearInterval(scrollTimer);
+        scrollTimer = null;
+        // Προαιρετικό: Ένα οπτικό εφέ ότι σταμάτησε (π.χ. φλας στο border)
+        el.style.borderLeft = "none"; 
+    } else {
+        // Αν είναι σταματημένο -> Ξεκίνα το
+        // Οπτική ένδειξη ότι τρέχει (π.χ. μια πράσινη γραμμή αριστερά)
+        el.style.borderLeft = "3px solid var(--accent)";
+        
+        scrollTimer = setInterval(function() {
+            // Έλεγχος αν φτάσαμε στο τέλος
+            if (el.scrollTop + el.clientHeight >= el.scrollHeight) {
+                toggleAutoScroll(); // Σταμάτα
+            } else {
+                el.scrollTop += 1; // Κατέβα 1 pixel
+            }
+        }, scrollSpeedMs);
+    }
+}

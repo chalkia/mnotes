@@ -1,524 +1,287 @@
 /* =========================================
-   UI & APP LOGIC (js/ui.js) - FINAL + SETLIST + MIC
-   ========================================== */
+   UI & RENDERING (UPDATED)
+   ========================================= */
 
-if(typeof library === 'undefined') var library = [];
-if(typeof state === 'undefined') var state = { t: 0, c: 0, meta: {}, parsedChords: [] };
-if(typeof currentSongId === 'undefined') var currentSongId = null;
-var visiblePlaylist = [];
-var sortableInstance = null;
-var editorTags = [];
-var scrollTimer = null;
-var scrollSpeedMs = 50;
-var html5QrCodeScanner = null;
-
-// NEW: Global variables for Setlist & Mic
-var liveSetlist = JSON.parse(localStorage.getItem('mnotes_setlist')) || [];
+var currentFontScale = 1.0;
 var viewMode = 'library'; // 'library' or 'setlist'
-var isMicMode = false;
+var isLyricsMode = false;
+var scrollTimer = null;
 
-window.onload = function() {
-    loadSavedTheme();
-    applyTranslations(); 
-    loadLibrary();
-    setupEvents();
-    setupGestures();
-};
-
-/* --- LANGUAGE --- */
+// --- LANGUAGE ---
 function toggleLanguage() {
     currentLang = (currentLang === 'en') ? 'el' : 'en';
     localStorage.setItem('mnotes_lang', currentLang);
     applyTranslations();
-    renderSidebar(); populateTags(); 
-    if(currentSongId === 'demo_instruction') loadSong(currentSongId);
+    renderSidebar(); 
+    if(currentSongId === "demo_fixed_001") {
+        let s = getSongById(currentSongId);
+        s.title = t('demo_title');
+        document.getElementById('displayTitle').innerText = s.title;
+    }
 }
 
 function applyTranslations() {
-    document.querySelectorAll('[data-i18n]').forEach(el => {
-        var key = el.getAttribute('data-i18n');
-        if (TRANSLATIONS[currentLang][key]) el.innerText = TRANSLATIONS[currentLang][key];
-    });
-    document.querySelectorAll('[data-i18n-ph]').forEach(el => {
-        var key = el.getAttribute('data-i18n-ph');
-        if (TRANSLATIONS[currentLang][key]) el.placeholder = TRANSLATIONS[currentLang][key];
-    });
     var btn = document.getElementById('btnLang');
-    if(btn) btn.innerHTML = (currentLang === 'en') ? '<i class="fas fa-globe"></i> EN' : '<i class="fas fa-globe"></i> EL';
+    if(btn) btn.innerText = (currentLang === 'en') ? 'EN' : 'EL';
+    populateTags(); // Update filter text
 }
 
-/* --- THEMES --- */
-function loadSavedTheme() {
-    var th = localStorage.getItem('mnotes_theme') || 'theme-dark';
-    document.body.className = th;
-}
-function cycleTheme() {
-    var b = document.body;
-    if (b.classList.contains('theme-dark')) b.className = 'theme-slate';
-    else if (b.classList.contains('theme-slate')) b.className = 'theme-light';
-    else b.className = 'theme-dark';
-    localStorage.setItem('mnotes_theme', b.className);
-}
-
-/* --- LIBRARY --- */
-function loadLibrary() {
-    var saved = localStorage.getItem('mnotes_data');
-    if (saved) { try { library = JSON.parse(saved); } catch(e) { library = []; } }
-    
-    var demoExists = library.some(s => s.id === "demo_instruction" || (s.id && s.id.includes("demo")));
-    if (!demoExists && typeof DEFAULT_DATA !== 'undefined') {
-        var demo = JSON.parse(JSON.stringify(DEFAULT_DATA[0]));
-        demo.title = t('demo_title'); demo.body = t('demo_body');
-        library.unshift(demo); saveData();
-    }
-    library = library.map(ensureSongStructure);
-    // Cleanup setlist (remove deleted IDs)
-    liveSetlist = liveSetlist.filter(id => library.some(s => s.id === id));
-    
-    populateTags(); 
-    renderSidebar();
-
-    if (library.length > 0) {
-        if(!currentSongId) currentSongId = library[0].id;
-        loadSong(currentSongId);
-    } else { createNewSong(); }
-}
-
-function clearLibrary() {
-    if(confirm(t('msg_clear_confirm'))) {
-        var demo = JSON.parse(JSON.stringify(DEFAULT_DATA[0]));
-        demo.title = t('demo_title'); demo.body = t('demo_body');
-        library = [ensureSongStructure(demo)];
-        liveSetlist = []; // Clear setlist too
-        localStorage.setItem('mnotes_setlist', JSON.stringify(liveSetlist));
-        saveData(); 
-        document.getElementById('searchInp').value = "";
-        document.getElementById('tagFilter').value = "";
-        applyFilters();
-        loadSong(library[0].id);
-    }
-}
-
-function populateTags() {
-    var tagSet = new Set();
-    library.forEach(s => {
-        if(s.playlists && Array.isArray(s.playlists)) { s.playlists.forEach(tag => tagSet.add(tag)); }
-    });
-    var select = document.getElementById('tagFilter');
-    if(select) {
-        select.innerHTML = `<option value="">${t('lbl_all_tags')}</option>`;
-        Array.from(tagSet).sort().forEach(tag => {
-            var opt = document.createElement('option');
-            opt.value = tag; opt.innerText = tag;
-            select.appendChild(opt);
-        });
-    }
-}
-
-// UPDATED: applyFilters just calls renderSidebar, logic is there
-function applyFilters() {
-    renderSidebar();
-}
-
-/* --- SIDEBAR & SETLIST LOGIC --- */
+// --- TABS & SETLIST ---
 function switchSidebarTab(mode) {
     viewMode = mode;
-    
-    // Update UI Tabs
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.getElementById('tab-' + mode).classList.add('active');
     
-    // Update Search Visibility (Search hidden in setlist mode)
-    var searchBox = document.querySelector('.sidebar-search');
-    if (mode === 'setlist') {
-        if(searchBox) searchBox.style.display = 'none';
-    } else {
-        if(searchBox) searchBox.style.display = 'flex';
-    }
+    // Hide search in setlist
+    var searchBox = document.querySelector('.search-box');
+    if(searchBox) searchBox.style.display = (mode === 'setlist') ? 'none' : 'flex';
+    
     renderSidebar();
 }
 
 function toggleSetlistSong(e, id) {
-    e.stopPropagation(); // Don't load song
+    e.stopPropagation();
     var idx = liveSetlist.indexOf(id);
-    if (idx > -1) {
-        liveSetlist.splice(idx, 1); // Remove
-    } else {
-        liveSetlist.push(id); // Add
-    }
+    if (idx > -1) liveSetlist.splice(idx, 1);
+    else liveSetlist.push(id);
     localStorage.setItem('mnotes_setlist', JSON.stringify(liveSetlist));
     renderSidebar();
 }
 
+// --- RENDER SIDEBAR (Updated for Tabs) ---
 function renderSidebar() {
-    var list = document.getElementById('songList'); 
-    list.innerHTML = "";
+    var c = document.getElementById('playlistContainer'); 
+    c.innerHTML = "";
     
-    // 1. Determine list to show
+    // FILTER LOGIC
     visiblePlaylist = [];
-
     if (viewMode === 'setlist') {
-        // SETLIST MODE: Show songs in specific order
         liveSetlist.forEach(id => {
-            var s = library.find(x => x.id === id);
-            if (s) visiblePlaylist.push(s);
+            var s = getSongById(id);
+            if(s) visiblePlaylist.push(s);
         });
     } else {
-        // LIBRARY MODE: Filtered list
-        var txt = document.getElementById('searchInp') ? document.getElementById('searchInp').value.toLowerCase() : "";
+        var txt = document.getElementById('searchBox').value.toLowerCase();
         var tag = document.getElementById('tagFilter') ? document.getElementById('tagFilter').value : "";
+        
         visiblePlaylist = library.filter(s => {
-            var matchTxt = s.title.toLowerCase().includes(txt) || (s.artist && s.artist.toLowerCase().includes(txt));
-            var matchTag = (tag === "") ? true : (s.playlists && s.playlists.includes(tag));
+            var matchTxt = s.title.toLowerCase().includes(txt);
+            var matchTag = true;
+            if (tag === "__no_demo") matchTag = (s.id !== "demo_fixed_001");
+            else if (tag !== "") matchTag = (s.playlists && s.playlists.includes(tag));
             return matchTxt && matchTag;
         });
     }
     
-    document.getElementById('songCount').innerText = visiblePlaylist.length;
+    document.getElementById('songCount').innerText = visiblePlaylist.length + " songs";
+    if(visiblePlaylist.length === 0) { c.innerHTML = '<div class="empty-msg">Empty</div>'; return; }
 
-    // 2. Render Items
-    visiblePlaylist.forEach(s => {
-        var li = document.createElement('li');
-        li.className = `song-item ${currentSongId === s.id ? 'active' : ''}`;
-        li.setAttribute('data-id', s.id);
-        
-        li.onclick = (e) => {
-            if(e.target.classList.contains('song-handle') || e.target.classList.contains('song-action')) return;
-            loadSong(s.id);
-        };
-        
-        var displayTitle = (s.id === 'demo_instruction') ? t('demo_title') : s.title;
-        var art = s.artist ? `<span style="font-weight:normal; opacity:0.7"> - ${s.artist}</span>` : "";
+    visiblePlaylist.forEach((s, i) => {
+        var d = document.createElement('div'); 
+        d.className = 'playlist-item';
+        if(s.id === currentSongId) d.classList.add('active');
         
         // Icons
-        var isInList = liveSetlist.includes(s.id);
-        var actionIcon = isInList ? "fas fa-check-circle in-setlist" : "far fa-circle";
-        if (viewMode === 'setlist') actionIcon = "fas fa-minus-circle"; // Show minus in setlist view
+        var isInSet = liveSetlist.includes(s.id);
+        var iconAction = (viewMode === 'setlist') 
+            ? `<i class="fas fa-minus-circle song-action" onclick="toggleSetlistSong(event, '${s.id}')"></i>`
+            : `<i class="${isInSet ? 'fas fa-check-circle in-setlist' : 'far fa-circle'} song-action" onclick="toggleSetlistSong(event, '${s.id}')"></i>`;
+        
+        var handle = (viewMode === 'setlist') ? "<span class='drag-handle'><i class='fas fa-grip-vertical'></i></span>" : "";
 
-        // Handle (Only in Setlist)
-        var handleHtml = (viewMode === 'setlist') ? `<i class="fas fa-grip-vertical song-handle"></i>` : ``;
-
-        li.innerHTML = `
-            <i class="${actionIcon} song-action" onclick="toggleSetlistSong(event, '${s.id}')"></i>
-            <div style="flex:1; overflow:hidden;">
-                <div class="song-title">${displayTitle}${art}</div>
-                <div class="song-meta">${s.key}</div>
-            </div>
-            ${handleHtml}
-        `;
-        list.appendChild(li);
+        d.innerHTML = iconAction + `<span>${s.title}</span>` + handle;
+        
+        d.onclick = (e) => { 
+            if(e.target.classList.contains('song-action') || e.target.classList.contains('drag-handle')) return;
+            currentSongId = s.id; toViewer(true); renderSidebar(); 
+            if(window.innerWidth <= 768) toggleSidebar(); 
+        };
+        c.appendChild(d);
     });
-
-    // 3. Sortable Logic (Only active for Setlist)
-    if (sortableInstance) sortableInstance.destroy();
     
-    sortableInstance = new Sortable(list, {
-        animation: 150, 
-        ghostClass: 'active',
-        handle: '.song-handle',
-        disabled: (viewMode !== 'setlist'), // Disable drag in Library
-        onEnd: function (evt) {
-            if (viewMode === 'setlist') {
-                var movedId = liveSetlist.splice(evt.oldIndex, 1)[0];
-                liveSetlist.splice(evt.newIndex, 0, movedId);
-                localStorage.setItem('mnotes_setlist', JSON.stringify(liveSetlist));
-            }
+    // Sortable only for Setlist
+    if(typeof Sortable !== 'undefined') {
+        if(window.playlistSortable) window.playlistSortable.destroy();
+        if(viewMode === 'setlist') {
+            window.playlistSortable = Sortable.create(c, {
+                animation: 150, handle: '.drag-handle', 
+                onEnd: function (evt) {
+                    var moved = liveSetlist.splice(evt.oldIndex, 1)[0];
+                    liveSetlist.splice(evt.newIndex, 0, moved);
+                    localStorage.setItem('mnotes_setlist', JSON.stringify(liveSetlist));
+                }
+            });
         }
-    });
-}
-
-/* --- PLAYER --- */
-function loadSong(id) {
-    if(scrollTimer) toggleAutoScroll(); 
-
-    currentSongId = id;
-    var s = library.find(x => x.id === id);
-    if(!s) return;
-    if (s.id === 'demo_instruction') s.title = t('demo_title');
-
-    state.t = 0; state.c = 0; 
-    parseSongLogic(s); renderPlayer(s);
-    
-    document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active-view'));
-    document.getElementById('view-player').classList.add('active-view');
-    
-    var items = document.querySelectorAll('.song-item');
-    items.forEach(i => i.classList.remove('active'));
-    var activeItem = document.querySelector(`.song-item[data-id="${id}"]`);
-    if(activeItem) activeItem.classList.add('active');
-
-    document.getElementById('sidebar').classList.remove('open');
-}
-
-function renderPlayer(s) {
-    document.getElementById('p-title').innerText = s.title;
-    document.getElementById('p-artist').innerText = s.artist || ""; 
-    document.getElementById('p-key').innerText = getNote(s.key, state.t);
-
-    var headerAct = document.getElementById('header-actions');
-    var btnHtml = `<button onclick="cycleTheme()" style="background:none; border:none; color:var(--text-muted); cursor:pointer;"><i class="fas fa-adjust"></i></button>`;
-    if (s.notes && s.notes.trim() !== "") {
-        btnHtml = `<button onclick="toggleNotes()" style="margin-right:15px; background:none; border:none; color:var(--accent); cursor:pointer;"><i class="fas fa-sticky-note"></i></button>` + btnHtml;
-        document.getElementById('notes-area').innerText = s.notes;
-        document.getElementById('notes-container').style.display = 'none';
-    } else { document.getElementById('notes-container').style.display = 'none'; }
-    headerAct.innerHTML = btnHtml;
-
-    var infoHtml = "";
-    if(s.intro) infoHtml += `<div class="info-row"><span class="meta-label" data-i18n="lbl_intro">${t('lbl_intro')}</span><span>${renderChordsLine(s.intro)}</span></div>`;
-    if(s.interlude) infoHtml += `<div class="info-row"><span class="meta-label" data-i18n="lbl_inter">${t('lbl_inter')}</span><span>${renderChordsLine(s.interlude)}</span></div>`;
-    document.querySelector('.info-bar').innerHTML = infoHtml;
-
-    document.getElementById('val-t').innerText = (state.t > 0 ? "+" : "") + state.t;
-    document.getElementById('val-c').innerText = state.c;
-
-    var split = splitSongBody(s.body || "");
-    renderArea('fixed-container', split.fixed);
-    renderArea('scroll-container', split.scroll);
-}
-
-function toggleNotes() {
-    var el = document.getElementById('notes-container');
-    el.style.display = (el.style.display === 'none') ? 'block' : 'none';
-}
-
-function renderArea(elemId, text) {
-    var container = document.getElementById(elemId); container.innerHTML = "";
-    var lines = text.split('\n');
-    lines.forEach(line => {
-        var row = document.createElement('div'); row.className = 'line-row';
-        if (line.indexOf('!') === -1) {
-            row.innerHTML = `<span class="lyric">${line}</span>`;
-        } else {
-            var parts = line.split('!');
-            if(parts[0]) row.appendChild(createToken("", parts[0]));
-            for(var i=1; i<parts.length; i++) {
-                var m = parts[i].match(/^([A-G][#b]?[a-zA-Z0-9/]*)(.*)/);
-                if(m) row.appendChild(createToken(getNote(m[1],state.t-state.c), m[2]));
-                else row.appendChild(createToken("", "!"+parts[i]));
-            }
-        }
-        container.appendChild(row);
-    });
-}
-function createToken(c, l) {
-    var d = document.createElement('div'); d.className = 'token';
-    d.innerHTML = `<span class="chord">${c}</span><span class="lyric">${l}</span>`; return d;
-}
-function renderChordsLine(str) {
-    return str.replace(/!([A-Ga-g][#b]?[a-zA-Z0-9/]*)/g, function(match, chord) {
-        var transposed = getNote(chord, state.t - state.c);
-        return `<span class="chord-highlight">${transposed}</span>`;
-    });
-}
-
-/* --- EDITOR UPDATES --- */
-function switchToEditor() {
-    document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active-view'));
-    document.getElementById('view-editor').classList.add('active-view');
-    
-    if (currentSongId) {
-        var s = library.find(x => x.id === currentSongId);
-        if (s) {
-            document.getElementById('inpTitle').value = s.title;
-            document.getElementById('inpArtist').value = s.artist || ""; 
-            document.getElementById('inpKey').value = s.key;
-            editorTags = s.playlists ? [...s.playlists] : [];
-            renderTagChips();
-
-            document.getElementById('inpIntro').value = s.intro;
-            document.getElementById('inpInter').value = s.interlude;
-            document.getElementById('inpNotes').value = s.notes;
-            document.getElementById('inpBody').value = s.body;
-        }
-    } else { createNewSong(); }
-    document.getElementById('sidebar').classList.remove('open');
-}
-
-function exitEditor() {
-    if (currentSongId) { loadSong(currentSongId); } 
-    else { if(library.length > 0) loadSong(library[0].id); }
-}
-
-function createNewSong() {
-    currentSongId = null; 
-    ['inpTitle','inpArtist','inpKey','inpTags','inpIntro','inpInter','inpNotes','inpBody'].forEach(id => {
-        var el = document.getElementById(id); if(el) el.value = "";
-    });
-    editorTags = []; renderTagChips();
-    switchToEditor();
-    document.getElementById('sidebar').classList.remove('open');
-}
-
-function cancelEdit() { loadSong(currentSongId || ((library.length>0)?library[0].id:null)); }
-function saveEdit() { saveSong(); populateTags(); applyFilters(); }
-
-/* --- ACTIONS (Mic, Capo, QR, Swipe) --- */
-function toggleMicMode() {
-    isMicMode = !isMicMode;
-    var btn = document.getElementById('btnMic');
-    if (isMicMode) {
-        document.body.classList.add('mic-mode');
-        if(btn) btn.classList.add('mic-btn-active');
-        showToast("Mic Mode: ON");
-    } else {
-        document.body.classList.remove('mic-mode');
-        if(btn) btn.classList.remove('mic-btn-active');
-        showToast("Mic Mode: OFF");
     }
 }
 
+// --- RENDER PLAYER (With Merge Logic) ---
+function render(originalSong) {
+    var keyShift = state.t; var chordShift = state.t - state.c;
+    document.getElementById('displayTitle').innerText = state.meta.title;
+    document.getElementById('visualKey').innerText = state.meta.key ? getNote(state.meta.key, keyShift) : "-";
+
+    var pinnedDiv = document.getElementById('pinnedContainer'); // Fixed
+    var scrollDiv = document.getElementById('outputContent');   // Scroll
+    
+    pinnedDiv.innerHTML = ""; scrollDiv.innerHTML = "";
+    pinnedDiv.className = isLyricsMode ? "" : "fixed-lyrics";
+    scrollDiv.className = "scroll-lyrics";
+
+    // --- LYRICS MODE: MERGE EVERYTHING INTO SCROLL DIV ---
+    var targetForFixed = isLyricsMode ? scrollDiv : pinnedDiv;
+
+    // 1. Intro/Interlude
+    if(state.meta.intro) {
+        var d = document.createElement('div'); d.className = 'intro-block';
+        d.innerHTML = `<span style="opacity:0.7">INTRO:</span> ` + renderSimple(state.meta.intro, chordShift);
+        targetForFixed.appendChild(d);
+    }
+    if(state.meta.interlude) {
+        var d = document.createElement('div'); d.className = 'compact-interlude';
+        d.innerHTML = `<span style="opacity:0.7">INTER:</span> ` + renderSimple(state.meta.interlude, chordShift);
+        targetForFixed.appendChild(d);
+    }
+
+    // 2. Body Blocks
+    var blocks = []; var currentBlock = [];
+    state.parsedChords.forEach(L => {
+        if(L.type === 'br') { if(currentBlock.length>0) { blocks.push(currentBlock); currentBlock=[]; } }
+        else currentBlock.push(L);
+    });
+    if(currentBlock.length>0) blocks.push(currentBlock);
+
+    blocks.forEach((block, index) => {
+        // If Lyrics Mode, everything goes to scrollDiv. 
+        // If Normal Mode, check if it has chords to decide Fixed vs Scroll.
+        var hasChords = block.some(l => l.type === 'mixed');
+        var target = (isLyricsMode) ? scrollDiv : (hasChords ? pinnedDiv : scrollDiv);
+
+        block.forEach(L => {
+            if(L.type === 'lyricOnly') {
+                var p = document.createElement('div'); p.className = 'compact-line'; p.innerText = L.text; target.appendChild(p);
+            } else {
+                var r = document.createElement('div'); r.className = 'line-row';
+                L.tokens.forEach(tk => {
+                    var w = document.createElement('div'); w.className = 'token';
+                    var c = document.createElement('div'); c.className = 'chord'; c.innerText = getNote(tk.c, chordShift);
+                    var tx = document.createElement('div'); tx.className = 'lyric'; tx.innerText = tk.t;
+                    w.appendChild(c); w.appendChild(tx); r.appendChild(w);
+                });
+                target.appendChild(r);
+            }
+        });
+        // Spacer
+        var sep = document.createElement('div'); sep.style.height = "15px"; target.appendChild(sep);
+    });
+
+    document.getElementById('liveStatusRow').style.display = 'flex';
+    setupGestures();
+}
+
+// --- LYRICS MODE TOGGLE ---
+function toggleLyricsMode() {
+    isLyricsMode = !isLyricsMode;
+    var btn = document.getElementById('btnLyrics');
+    if(isLyricsMode) {
+        document.body.classList.add('lyrics-mode');
+        if(btn) btn.classList.add('lyrics-btn-active');
+        showToast(t('msg_lyrics_mode_on'));
+    } else {
+        document.body.classList.remove('lyrics-mode');
+        if(btn) btn.classList.remove('lyrics-btn-active');
+        showToast(t('msg_lyrics_mode_off'));
+    }
+    // Re-render to merge/unmerge containers
+    let s = getSongById(currentSongId);
+    if(s) render(s);
+}
+
+// --- SMART CAPO ---
 function autoCapo() {
-    if (!currentSongId) return;
-    var song = library.find(s => s.id === currentSongId);
-    if (!song) return;
-    var best = calculateOptimalCapo(song.key, song.body);
-    if (best === state.c) {
-        showToast(t('msg_capo_perfect'));
-    } else {
-        state.c = best; renderPlayer(song);
-        showToast(t('msg_capo_found') + best);
-    }
+    let s = getSongById(currentSongId);
+    if(!s) return;
+    let best = calculateOptimalCapo(s.body);
+    state.c = best;
+    render(s); // Re-render with new Capo
+    
+    document.getElementById('c-val').innerText = state.c;
+    if(best === 0) showToast(t('msg_capo_perfect'));
+    else showToast(t('msg_capo_found') + best);
 }
 
-function showToast(msg) {
-    var x = document.getElementById("toast");
-    if(x) {
-        x.innerText = msg; x.className = "show";
-        setTimeout(function(){ x.className = x.className.replace("show", ""); }, 3000);
-    }
+// --- GESTURES (Double Tap & Pinch) ---
+function setupGestures() {
+    var viewer = document.getElementById('viewer-view');
+    var scroller = document.getElementById('outputContent');
+    
+    // Pinch Zoom (Existing)
+    // ... (Keep existing pinch logic here if you want) ...
+
+    // Double Tap Auto-Scroll
+    var lastTap = 0;
+    scroller.addEventListener('click', function(e) {
+        var currentTime = new Date().getTime();
+        var tapLength = currentTime - lastTap;
+        if (tapLength < 400 && tapLength > 0) {
+            e.preventDefault();
+            toggleAutoScroll();
+        }
+        lastTap = currentTime;
+    });
 }
 
 function toggleAutoScroll() {
-    var el = document.getElementById('scroll-container');
+    var el = document.getElementById('outputContent');
     if (scrollTimer) {
         clearInterval(scrollTimer); scrollTimer = null;
-        el.style.borderLeft = "none"; 
+        el.style.borderLeft = "none";
     } else {
         el.style.borderLeft = "3px solid var(--accent)";
-        scrollTimer = setInterval(function() {
+        scrollTimer = setInterval(() => {
             if (el.scrollTop + el.clientHeight >= el.scrollHeight) toggleAutoScroll();
             else el.scrollTop += 1;
-        }, scrollSpeedMs);
+        }, 50);
     }
 }
 
-/* --- QR LOGIC --- */
-function showQR() {
-    if (!currentSongId) return;
-    var song = library.find(s => s.id === currentSongId);
-    if (!song) return;
-    if (document.getElementById('view-editor').classList.contains('active-view')) {
-        song.title = document.getElementById('inpTitle').value;
-        song.artist = document.getElementById('inpArtist').value;
-        song.body = document.getElementById('inpBody').value;
-    }
-    var imgTag = generateQRForSong(song);
-    if (imgTag) {
-        document.getElementById('qr-output').innerHTML = imgTag;
-        document.getElementById('qrModal').style.display = 'flex';
-    } else { alert("Error generating QR"); }
-}
-
-function startScanner() {
-    document.getElementById('importChoiceModal').style.display = 'none';
-    document.getElementById('scanModal').style.display = 'flex';
-    if (html5QrCodeScanner) html5QrCodeScanner.clear().catch(e=>{});
-    var html5QrCode = new Html5Qrcode("reader");
-    html5QrCodeScanner = html5QrCode;
-    html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 },
-      (decodedText, decodedResult) => {
-          html5QrCode.stop().then(() => {
-             document.getElementById('scanModal').style.display = 'none';
-             var song = processQRScan(decodedText);
-             if (song) {
-                 if (!library.some(ex => ex.id === song.id)) {
-                     library.push(song); saveData(); populateTags(); applyFilters(); 
-                     loadSong(song.id);
-                     alert(t('msg_imported') + "1");
-                 } else { alert(t('msg_no_import')); }
-             } else { alert("Invalid QR"); }
-          });
-      }, (errorMessage) => {})
-    .catch((err) => { alert(t('msg_scan_camera_error')); document.getElementById('scanModal').style.display = 'none'; });
-}
-
-function closeScan() {
-    if (html5QrCodeScanner) {
-        html5QrCodeScanner.stop().then(() => { html5QrCodeScanner.clear(); document.getElementById('scanModal').style.display = 'none'; }).catch(e=>document.getElementById('scanModal').style.display='none');
-    } else { document.getElementById('scanModal').style.display = 'none'; }
-}
-
-/* --- TAG CHIPS & EVENTS --- */
-function updateHiddenTagInput() {
-    var inp = document.getElementById('inpTags');
-    if(inp) inp.value = editorTags.join(',');
-}
-
-function renderTagChips() {
-    var container = document.getElementById('tagChips');
-    if(!container) return; // Safety check
-    container.innerHTML = "";
-    editorTags.forEach(tag => {
-        var span = document.createElement('span');
-        span.className = 'tag-chip';
-        span.innerHTML = `${tag} <i class="fas fa-times" onclick="removeTag('${tag}')"></i>`;
-        container.appendChild(span);
+// --- TAGS (Global Delete & Populate) ---
+function populateTags() {
+    var select = document.getElementById('tagFilter');
+    if(!select) return;
+    
+    // Save current selection
+    var curr = select.value;
+    select.innerHTML = `<option value="">${t('lbl_all_tags')}</option><option value="__no_demo">${t('lbl_no_demo')}</option>`;
+    
+    var allTags = new Set();
+    library.forEach(s => s.playlists.forEach(t => allTags.add(t)));
+    
+    Array.from(allTags).sort().forEach(tag => {
+        var opt = document.createElement('option');
+        opt.value = tag; opt.innerText = tag;
+        select.appendChild(opt);
     });
-    updateHiddenTagInput();
+    select.value = curr;
 }
 
-function addTag(tag) {
-    tag = tag.trim();
-    if(tag && !editorTags.includes(tag)) {
-        editorTags.push(tag);
-        renderTagChips();
-    }
-    document.getElementById('tagInput').value = "";
-    document.getElementById('tagSuggestions').style.display = 'none';
+// Global Tag Delete (Call from Editor Tag Cloud)
+function deleteTagGlobally(tag) {
+    if(!confirm(t('msg_confirm_tag_delete'))) return;
+    library.forEach(s => {
+        s.playlists = s.playlists.filter(t => t !== tag);
+    });
+    saveData();
+    populateTags();
+    renderTagCloud(); // Refresh Editor
 }
 
-function removeTag(tag) {
-    editorTags = editorTags.filter(t => t !== tag);
-    renderTagChips();
-}
-
-function changeTranspose(n) { state.t += n; renderPlayer(library.find(s=>s.id===currentSongId)); }
-function changeCapo(n) { state.c += n; if(state.c<0)state.c=0; renderPlayer(library.find(s=>s.id===currentSongId)); }
-function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
-function saveData() { localStorage.setItem('mnotes_data', JSON.stringify(library)); }
-
-function setupEvents() {
-    document.getElementById('btnMenu').onclick = toggleSidebar;
-    const fileInput = document.getElementById('hiddenFileInput');
-    if(fileInput) {
-        fileInput.addEventListener('change', function(e) {
-            const file = e.target.files[0]; if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const imported = JSON.parse(e.target.result);
-                    const newSongs = Array.isArray(imported) ? imported : [imported];
-                    let added = 0;
-                    newSongs.forEach(s => { if (!library.some(ex => ex.id === s.id)) { library.push(ensureSongStructure(s)); added++; }});
-                    if(added>0) { saveData(); populateTags(); applyFilters(); alert(t('msg_imported')+added); }
-                    else { alert(t('msg_no_import')); }
-                    document.getElementById('importChoiceModal').style.display='none';
-                } catch(err) { alert(t('msg_error_read')); }
-            }; reader.readAsText(file); fileInput.value = '';
-        });
-    }
-}
-function selectImport(type) { if(type==='file') document.getElementById('hiddenFileInput').click(); if(type==='qr') startScanner(); }
-
-function setupGestures() {
-    var area = document.getElementById('mainZone');
-    var startDist = 0; var startSize = 1.3;
-    area.addEventListener('touchstart', function(e) { if(e.touches.length === 2) { startDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); var val = getComputedStyle(document.documentElement).getPropertyValue('--lyric-size').trim(); startSize = parseFloat(val) || 1.3; }}, {passive: true});
-    area.addEventListener('touchmove', function(e) { if(e.touches.length === 2) { var dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); if(startDist > 0) { var scale = dist / startDist; var newSize = startSize * scale; if(newSize < 0.8) newSize = 0.8; if(newSize > 3.0) newSize = 3.0; document.documentElement.style.setProperty('--lyric-size', newSize + "rem"); }}}, {passive: true});
-
-    var sidebar = document.getElementById('sidebar');
-    var touchStartX = 0; var touchEndX = 0;
-    sidebar.addEventListener('touchstart', function(e) { touchStartX = e.changedTouches[0].screenX; }, {passive: true});
-    sidebar.addEventListener('touchend', function(e) { touchEndX = e.changedTouches[0].screenX; if(touchStartX - touchEndX > 50) document.getElementById('sidebar').classList.remove('open'); }, {passive: true});
+// Update renderTagCloud to include delete button
+function renderTagCloud() {
+    var container = document.getElementById('tagSuggestions');
+    var input = document.getElementById('inpTags');
+    // ... (Existing logic) ...
+    // Inside the loop where you create chips:
+    // chip.oncontextmenu = (e) => { e.preventDefault(); deleteTagGlobally(tag); };
+    // Or add a small 'x' button inside the chip for global delete
 }

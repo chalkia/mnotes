@@ -453,3 +453,85 @@ function toggleAutoScroll() {
         }, scrollSpeedMs);
     }
 }
+
+/* --- UI ACTIONS --- */
+
+// NEW: MAGIC CAPO
+function autoCapo() {
+    if (!currentSongId) return;
+    var song = library.find(s => s.id === currentSongId);
+    if (!song) return;
+
+    var best = calculateOptimalCapo(song.key, song.body);
+    
+    if (best === state.c) {
+        showToast(t('msg_capo_perfect'));
+    } else {
+        state.c = best;
+        renderPlayer(song);
+        showToast(t('msg_capo_found') + best);
+    }
+}
+
+// NEW: TOAST MESSAGE
+function showToast(msg) {
+    var x = document.getElementById("toast");
+    x.innerText = msg;
+    x.className = "show";
+    setTimeout(function(){ x.className = x.className.replace("show", ""); }, 3000);
+}
+
+// UPDATE: createNewSong closes sidebar
+function createNewSong() {
+    currentSongId = null; 
+    ['inpTitle','inpArtist','inpKey','inpTags','inpIntro','inpInter','inpNotes','inpBody'].forEach(id => {
+        var el = document.getElementById(id); if(el) el.value = "";
+    });
+    editorTags = []; renderTagChips();
+    switchToEditor();
+    document.getElementById('sidebar').classList.remove('open'); // CLOSE SIDEBAR
+}
+
+
+// NEW: SWIPE GESTURE ON SIDEBAR
+function setupGestures() {
+    // 1. Text Zoom (Pinch) - Main Zone
+    var area = document.getElementById('mainZone');
+    var startDist = 0; var startSize = 1.3;
+    area.addEventListener('touchstart', function(e) { 
+        if(e.touches.length === 2) { 
+            startDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); 
+            var val = getComputedStyle(document.documentElement).getPropertyValue('--lyric-size').trim(); 
+            startSize = parseFloat(val) || 1.3; 
+        }
+    }, {passive: true});
+    area.addEventListener('touchmove', function(e) { 
+        if(e.touches.length === 2 && startDist > 0) { 
+            var dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); 
+            var scale = dist / startDist; var newSize = startSize * scale; 
+            if(newSize < 0.8) newSize = 0.8; if(newSize > 3.0) newSize = 3.0; 
+            document.documentElement.style.setProperty('--lyric-size', newSize + "rem"); 
+        }
+    }, {passive: true});
+
+    // 2. Sidebar Swipe to Close
+    var sidebar = document.getElementById('sidebar');
+    var touchStartX = 0;
+    var touchEndX = 0;
+    
+    sidebar.addEventListener('touchstart', function(e) {
+        touchStartX = e.changedTouches[0].screenX;
+    }, {passive: true});
+
+    sidebar.addEventListener('touchend', function(e) {
+        touchEndX = e.changedTouches[0].screenX;
+        handleSwipe();
+    }, {passive: true});
+
+    function handleSwipe() {
+        // Αν σύρεις προς τα αριστερά πάνω από 50px
+        if (touchStartX - touchEndX > 50) {
+            document.getElementById('sidebar').classList.remove('open');
+        }
+    }
+}

@@ -73,6 +73,54 @@ function getNote(note, semitones) {
     return NOTES[newIdx] + suffix;
 }
 
+function calculateOptimalCapo(currentKey, songBody) {
+    // 1. Βρες όλα τα chords στο τραγούδι
+    var chordsFound = new Set();
+    var chordRegex = /!([A-G][#b]?)/g;
+    var match;
+    while ((match = chordRegex.exec(songBody)) !== null) {
+        chordsFound.add(match[1]);
+    }
+    
+    if (chordsFound.size === 0) return 0; // Καμία συγχορδία
+
+    // 2. Ορισμός "Καλών" συγχορδιών (Open Chords)
+    // C, A, G, E, D, Am, Em, Dm
+    var openChords = ["C", "A", "G", "E", "D", "Am", "Em", "Dm"];
+    
+    // Επίσης καλά, αλλά όχι τέλεια (π.χ. Fmaj7 αντί για F bar)
+    // Αλλά ας μείνουμε στα βασικά για αρχή.
+    
+    var bestCapo = 0;
+    var maxScore = -1;
+
+    // 3. Δοκιμή όλων των Capo (0-11)
+    for (var c = 0; c < 12; c++) {
+        var score = 0;
+        
+        chordsFound.forEach(originalChord => {
+            // Υπολόγισε ποια συγχορδία θα παίζει ο χρήστης με αυτό το Capo
+            // Αν βάλω Capo +2, και θέλω να ακουστεί C, πρέπει να παίξω Bb? Όχι.
+            // Η λογική του "Play In": Αν το τραγούδι είναι σε C# και βάλω Capo 1, παίζω σε C.
+            // Άρα Transpose = -Capo.
+            
+            var playedChord = getNote(originalChord, -c);
+            
+            if (openChords.includes(playedChord)) {
+                score += 1;
+            } else if (playedChord.includes("#") || playedChord.includes("b")) {
+                score -= 0.5; // Ποινή για δίεση/ύφεση (συνήθως μπαρέ)
+            }
+        });
+
+        if (score > maxScore) {
+            maxScore = score;
+            bestCapo = c;
+        }
+    }
+
+    return bestCapo;
+}
 function saveSong() {
     var title = document.getElementById('inpTitle').value;
     var artist = document.getElementById('inpArtist').value;

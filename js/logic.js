@@ -6,7 +6,7 @@ function ensureSongStructure(song) {
     if (!song) song = {};
     if (!song.id) song.id = "s_" + Date.now();
     if (!song.title) song.title = "Untitled";
-    if (!song.artist) song.artist = ""; // ΝΕΟ
+    if (!song.artist) song.artist = "";
     if (!song.key) song.key = "-";
     if (!song.body) song.body = "";
     if (!song.intro) song.intro = "";
@@ -48,22 +48,38 @@ function parseSongLogic(song) {
     });
 }
 
-// SMART SPLIT FUNCTION: Βρίσκει πού τελειώνουν οι συγχορδίες
+// --- ΝΕΑ ΛΟΓΙΚΗ ΔΙΑΧΩΡΙΣΜΟΥ ---
 function splitSongBody(body) {
-    var blocks = body.split(/\n\s*\n/); // Χωρισμός σε παραγράφους
-    var lastChordIndex = -1;
+    if (!body) return { fixed: "", scroll: "" };
 
-    // Βρες την τελευταία παράγραφο που έχει '!'
-    blocks.forEach((b, i) => {
-        if (b.includes('!')) lastChordIndex = i;
+    // 1. Χωρισμός σε στροφές (Blocks) με βάση τις κενές γραμμές
+    var blocks = body.split(/\n\s*\n/);
+    var lastBlockWithChord = -1;
+
+    // 2. Regex για εντοπισμό συγχορδίας (π.χ. !Am, !C, !D#)
+    // Αποκλείει σκέτα θαυμαστικά (π.χ. "Γεια σου!")
+    var chordRegex = /![A-G][b#]?[a-zA-Z0-9\/]*/;
+
+    // 3. Εύρεση της ΤΕΛΕΥΤΑΙΑΣ στροφής που έχει συγχορδία
+    blocks.forEach((block, index) => {
+        if (chordRegex.test(block)) {
+            lastBlockWithChord = index;
+        }
     });
 
-    // Αν δεν έχει συγχορδίες, όλα κάτω
-    if (lastChordIndex === -1) return { fixed: "", scroll: body };
+    // 4. Αν δεν βρέθηκε καμία συγχορδία, όλα πάνε στο Scroll (ή στο Fixed, ανάλογα την προτίμηση)
+    // Εδώ λέμε: Αν δεν έχει συγχορδίες, βάλτα όλα στο Scroll να διαβάζονται εύκολα.
+    if (lastBlockWithChord === -1) {
+        return { fixed: "", scroll: body };
+    }
 
-    // Όλα μέχρι και το lastChordIndex πάνε πάνω
-    var fixed = blocks.slice(0, lastChordIndex + 1).join("\n\n");
-    var scroll = blocks.slice(lastChordIndex + 1).join("\n\n");
+    // 5. Διαχωρισμός
+    // Σταθερό: Από την αρχή (0) μέχρι ΚΑΙ την τελευταία στροφή με συγχορδίες (+1 για το slice)
+    var fixed = blocks.slice(0, lastBlockWithChord + 1).join("\n\n");
+    
+    // Κυλιόμενο: Ό,τι περισσεύει μετά
+    var scroll = blocks.slice(lastBlockWithChord + 1).join("\n\n");
+
     return { fixed: fixed, scroll: scroll };
 }
 
@@ -82,7 +98,7 @@ function getNote(note, semitones) {
 
 function saveSong() {
     var title = document.getElementById('inpTitle').value;
-    var artist = document.getElementById('inpArtist').value; // ΝΕΟ
+    var artist = document.getElementById('inpArtist').value;
     var key = document.getElementById('inpKey').value;
     var tagsInput = document.getElementById('inpTags').value;
     var intro = document.getElementById('inpIntro').value;
@@ -99,27 +115,20 @@ function saveSong() {
     };
 
     if (!currentSongId) {
-        // NEW
         var s = ensureSongStructure(newSongObj);
         library.push(s);
         currentSongId = s.id;
     } else {
-        // UPDATE -> CHANGE ID RULE
-        // Διαγράφουμε το παλιό με το παλιό ID
         var oldIdx = library.findIndex(s => s.id === currentSongId);
-        
-        // Διατήρηση τυχόν extra πεδίων που δεν πειράξαμε
         var existingExtras = {};
         if (oldIdx > -1) {
             existingExtras = JSON.parse(JSON.stringify(library[oldIdx]));
-            library.splice(oldIdx, 1); // Delete old
+            library.splice(oldIdx, 1);
         }
         
-        // Δημιουργία νέου με νέο ID
         var finalSong = ensureSongStructure(newSongObj);
-        finalSong.id = "s_" + Date.now(); // FORCE NEW ID
+        finalSong.id = "s_" + Date.now(); // Νέο ID
         
-        // Merge extras (ώστε να μην χάσουμε άγνωστα πεδία)
         for (var k in existingExtras) {
             if (!finalSong.hasOwnProperty(k)) finalSong[k] = existingExtras[k];
         }
@@ -131,8 +140,6 @@ function saveSong() {
     if(typeof saveData === 'function') saveData();
     if(typeof renderSidebar === 'function') renderSidebar();
     if(typeof loadSong === 'function') loadSong(currentSongId);
-    
-    // alert("Saved with new ID!"); // Προαιρετικό
 }
 
 function deleteCurrentSong() {
@@ -144,7 +151,6 @@ function deleteCurrentSong() {
             library.splice(idx, 1);
             saveData();
             currentSongId = library.length > 0 ? library[0].id : null;
-            if(!currentSongId) { /* Handle empty */ }
             if(typeof loadSong === 'function' && currentSongId) loadSong(currentSongId);
             else if (typeof createNewSong === 'function') createNewSong();
             if(typeof renderSidebar === 'function') renderSidebar();

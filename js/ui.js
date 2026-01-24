@@ -1,5 +1,5 @@
 /* =========================================
-   UI & APP LOGIC (js/ui.js) - BILINGUAL
+   UI & APP LOGIC (js/ui.js) - QR ENABLED
    ========================================= */
 
 if(typeof library === 'undefined') var library = [];
@@ -9,7 +9,7 @@ var visiblePlaylist = [];
 
 window.onload = function() {
     loadSavedTheme();
-    applyTranslations(); // Apply language on load
+    applyTranslations(); 
     loadLibrary();
     setupEvents();
     setupGestures();
@@ -20,29 +20,19 @@ function toggleLanguage() {
     currentLang = (currentLang === 'en') ? 'el' : 'en';
     localStorage.setItem('mnotes_lang', currentLang);
     applyTranslations();
-    renderSidebar(); // Refresh sidebar to translate "New" button etc if dynamic
-    // Update Demo title if it's the current song
+    renderSidebar(); 
     if(currentSongId === 'demo_instruction') loadSong(currentSongId);
 }
 
 function applyTranslations() {
-    // 1. Update text elements
     document.querySelectorAll('[data-i18n]').forEach(el => {
         var key = el.getAttribute('data-i18n');
-        if (TRANSLATIONS[currentLang][key]) {
-            el.innerText = TRANSLATIONS[currentLang][key];
-        }
+        if (TRANSLATIONS[currentLang][key]) el.innerText = TRANSLATIONS[currentLang][key];
     });
-
-    // 2. Update placeholders
     document.querySelectorAll('[data-i18n-ph]').forEach(el => {
         var key = el.getAttribute('data-i18n-ph');
-        if (TRANSLATIONS[currentLang][key]) {
-            el.placeholder = TRANSLATIONS[currentLang][key];
-        }
+        if (TRANSLATIONS[currentLang][key]) el.placeholder = TRANSLATIONS[currentLang][key];
     });
-
-    // 3. Update Language Button Icon/Text
     var btn = document.getElementById('btnLang');
     if(btn) btn.innerHTML = (currentLang === 'en') ? '<i class="fas fa-globe"></i> EN' : '<i class="fas fa-globe"></i> EL';
 }
@@ -65,15 +55,11 @@ function loadLibrary() {
     var saved = localStorage.getItem('mnotes_data');
     if (saved) { try { library = JSON.parse(saved); } catch(e) { library = []; } }
     
-    // Check Demo
-    var demoExists = library.some(s => s.id === "demo_instruction");
+    var demoExists = library.some(s => s.id === "demo_instruction" || (s.id && s.id.includes("demo")));
     if (!demoExists && typeof DEFAULT_DATA !== 'undefined') {
         var demo = JSON.parse(JSON.stringify(DEFAULT_DATA[0]));
-        // Apply text based on language ONCE during creation/reset
-        demo.title = t('demo_title');
-        demo.body = t('demo_body');
-        library.unshift(demo);
-        saveData();
+        demo.title = t('demo_title'); demo.body = t('demo_body');
+        library.unshift(demo); saveData();
     }
     library = library.map(ensureSongStructure);
     visiblePlaylist = [...library];
@@ -87,11 +73,8 @@ function loadLibrary() {
 
 function clearLibrary() {
     if(confirm(t('msg_clear_confirm'))) {
-        // Re-create demo in current lang
         var demo = JSON.parse(JSON.stringify(DEFAULT_DATA[0]));
-        demo.title = t('demo_title');
-        demo.body = t('demo_body');
-        
+        demo.title = t('demo_title'); demo.body = t('demo_body');
         library = [ensureSongStructure(demo)];
         saveData(); visiblePlaylist = [...library]; renderSidebar();
         loadSong(library[0].id);
@@ -103,13 +86,7 @@ function loadSong(id) {
     currentSongId = id;
     var s = library.find(x => x.id === id);
     if(!s) return;
-    
-    // Live translate Demo Title/Body if viewed
-    if (s.id === 'demo_instruction') {
-        s.title = t('demo_title');
-        // Note: Body isn't auto-translated to preserve user edits, 
-        // but for a pure reset demo we could. We'll leave body as is for now.
-    }
+    if (s.id === 'demo_instruction') s.title = t('demo_title');
 
     state.t = 0; state.c = 0; 
     parseSongLogic(s); renderPlayer(s);
@@ -124,7 +101,6 @@ function renderPlayer(s) {
     document.getElementById('p-artist').innerText = s.artist || ""; 
     document.getElementById('p-key').innerText = getNote(s.key, state.t);
 
-    // Notes & Theme Buttons
     var headerAct = document.getElementById('header-actions');
     var btnHtml = `<button onclick="cycleTheme()" style="background:none; border:none; color:var(--text-muted); cursor:pointer;"><i class="fas fa-adjust"></i></button>`;
     if (s.notes && s.notes.trim() !== "") {
@@ -134,7 +110,6 @@ function renderPlayer(s) {
     } else { document.getElementById('notes-container').style.display = 'none'; }
     headerAct.innerHTML = btnHtml;
 
-    // Intro/Inter Labels need translation? They are static in render but labels are dynamic
     var infoHtml = "";
     if(s.intro) infoHtml += `<div class="info-row"><span class="meta-label" data-i18n="lbl_intro">${t('lbl_intro')}</span><span class="info-chord">${renderChordsLine(s.intro)}</span></div>`;
     if(s.interlude) infoHtml += `<div class="info-row"><span class="meta-label" data-i18n="lbl_inter">${t('lbl_inter')}</span><span class="info-chord">${renderChordsLine(s.interlude)}</span></div>`;
@@ -186,10 +161,7 @@ function renderSidebar() {
         var li = document.createElement('li');
         li.className = `song-item ${currentSongId === s.id ? 'active' : ''}`;
         li.onclick = () => loadSong(s.id);
-        
-        // Translate Title if it's the Demo
         var displayTitle = (s.id === 'demo_instruction') ? t('demo_title') : s.title;
-        
         var art = s.artist ? `<span style="font-weight:normal; opacity:0.7"> - ${s.artist}</span>` : "";
         li.innerHTML = `<div class="song-title">${displayTitle}${art}</div><div class="song-meta">${s.key}</div>`;
         list.appendChild(li);
@@ -225,6 +197,88 @@ function createNewSong() {
 function cancelEdit() { loadSong(currentSongId || ((library.length>0)?library[0].id:null)); }
 function saveEdit() { saveSong(); }
 
+/* --- QR UI FUNCTIONS --- */
+function showQR() {
+    if (!currentSongId) return;
+    var song = library.find(s => s.id === currentSongId);
+    if (!song) return;
+
+    // Save current changes first just in case
+    // We get values from DOM if we are in Editor
+    if (document.getElementById('view-editor').classList.contains('active-view')) {
+        song.title = document.getElementById('inpTitle').value;
+        song.artist = document.getElementById('inpArtist').value;
+        song.body = document.getElementById('inpBody').value;
+        // ... (other fields)
+    }
+
+    var imgTag = generateQRForSong(song);
+    if (imgTag) {
+        document.getElementById('qr-output').innerHTML = imgTag;
+        document.getElementById('qrModal').style.display = 'flex';
+    } else {
+        alert("Error generating QR (Song too big?)");
+    }
+}
+
+function startScanner() {
+    document.getElementById('importChoiceModal').style.display = 'none';
+    document.getElementById('scanModal').style.display = 'flex';
+    
+    // Clean up previous instance if needed
+    if (html5QrCodeScanner) {
+        html5QrCodeScanner.clear().catch(e=>console.error(e));
+    }
+
+    // ID of div: "reader"
+    var html5QrCode = new Html5Qrcode("reader");
+    html5QrCodeScanner = html5QrCode;
+
+    html5QrCode.start(
+      { facingMode: "environment" }, 
+      { fps: 10, qrbox: 250 },
+      (decodedText, decodedResult) => {
+          // Success
+          html5QrCode.stop().then(() => {
+             document.getElementById('scanModal').style.display = 'none';
+             var song = processQRScan(decodedText);
+             if (song) {
+                 // Check duplicate
+                 if (!library.some(ex => ex.id === song.id)) {
+                     library.push(song);
+                     saveData();
+                     visiblePlaylist = [...library];
+                     renderSidebar();
+                     loadSong(song.id);
+                     alert(t('msg_imported') + "1");
+                 } else {
+                     alert(t('msg_no_import'));
+                 }
+             } else {
+                 alert("Invalid QR Data");
+             }
+          });
+      },
+      (errorMessage) => {
+          // Parsing failure, ignore
+      })
+    .catch((err) => {
+      alert(t('msg_scan_camera_error'));
+      document.getElementById('scanModal').style.display = 'none';
+    });
+}
+
+function closeScan() {
+    if (html5QrCodeScanner) {
+        html5QrCodeScanner.stop().then(() => {
+             html5QrCodeScanner.clear();
+             document.getElementById('scanModal').style.display = 'none';
+        }).catch(err => document.getElementById('scanModal').style.display = 'none');
+    } else {
+        document.getElementById('scanModal').style.display = 'none';
+    }
+}
+
 /* --- ACTIONS & GESTURES --- */
 function changeTranspose(n) { state.t += n; renderPlayer(library.find(s=>s.id===currentSongId)); }
 function changeCapo(n) { state.c += n; if(state.c<0)state.c=0; renderPlayer(library.find(s=>s.id===currentSongId)); }
@@ -243,40 +297,22 @@ function setupEvents() {
                     const imported = JSON.parse(e.target.result);
                     const newSongs = Array.isArray(imported) ? imported : [imported];
                     let added = 0;
-                    newSongs.forEach(s => { 
-                        if (!library.some(ex => ex.id === s.id)) { 
-                            library.push(ensureSongStructure(s)); added++; 
-                        }
-                    });
+                    newSongs.forEach(s => { if (!library.some(ex => ex.id === s.id)) { library.push(ensureSongStructure(s)); added++; }});
                     if(added>0) { saveData(); visiblePlaylist=[...library]; renderSidebar(); alert(t('msg_imported')+added); }
                     else { alert(t('msg_no_import')); }
-                    
                     document.getElementById('importChoiceModal').style.display='none';
                 } catch(err) { alert(t('msg_error_read')); }
             }; reader.readAsText(file); fileInput.value = '';
         });
     }
 }
-function selectImport(type) { if(type==='file') document.getElementById('hiddenFileInput').click(); }
-
+function selectImport(type) { 
+    if(type==='file') document.getElementById('hiddenFileInput').click(); 
+    if(type==='qr') startScanner();
+}
 function setupGestures() {
     var area = document.getElementById('mainZone');
     var startDist = 0; var startSize = 1.3;
-    area.addEventListener('touchstart', function(e) {
-        if(e.touches.length === 2) {
-            startDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
-            var val = getComputedStyle(document.documentElement).getPropertyValue('--lyric-size').trim();
-            startSize = parseFloat(val) || 1.3;
-        }
-    }, {passive: true});
-    area.addEventListener('touchmove', function(e) {
-        if(e.touches.length === 2) {
-            var dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
-            if(startDist > 0) {
-                var scale = dist / startDist; var newSize = startSize * scale;
-                if(newSize < 0.8) newSize = 0.8; if(newSize > 3.0) newSize = 3.0;
-                document.documentElement.style.setProperty('--lyric-size', newSize + "rem");
-            }
-        }
-    }, {passive: true});
+    area.addEventListener('touchstart', function(e) { if(e.touches.length === 2) { startDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); var val = getComputedStyle(document.documentElement).getPropertyValue('--lyric-size').trim(); startSize = parseFloat(val) || 1.3; }}, {passive: true});
+    area.addEventListener('touchmove', function(e) { if(e.touches.length === 2) { var dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); if(startDist > 0) { var scale = dist / startDist; var newSize = startSize * scale; if(newSize < 0.8) newSize = 0.8; if(newSize > 3.0) newSize = 3.0; document.documentElement.style.setProperty('--lyric-size', newSize + "rem"); }}}, {passive: true});
 }

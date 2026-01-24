@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mnotes-v1';
+const CACHE_NAME = 'mnotes-ver2.0';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
@@ -55,3 +55,4 @@ self.addEventListener('activate', (event) => {
         })
     );
 });
+

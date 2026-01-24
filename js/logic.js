@@ -48,47 +48,40 @@ function parseSongLogic(song) {
     });
 }
 
-// --- NEW ROBUST SPLIT FUNCTION (LINE BASED) ---
+// --- FINAL FIXED SPLIT FUNCTION ---
 function splitSongBody(body) {
     if (!body) return { fixed: "", scroll: "" };
 
-    var lines = body.split('\n');
-    var lastChordLineIndex = -1;
-    // Regex που πιάνει συγχορδίες τύπου !Am, !G, !D7
-    var chordRegex = /![A-G][b#]?[a-zA-Z0-9\/]*/;
+    // 1. Καθαρισμός και ομοιομορφία στα Newlines
+    var cleanBody = body.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
 
-    // 1. Βρες την ΤΕΛΕΥΤΑΙΑ γραμμή που έχει συγχορδία
-    for (var i = 0; i < lines.length; i++) {
-        if (chordRegex.test(lines[i])) {
-            lastChordLineIndex = i;
+    // 2. Χωρισμός σε Στροφές (Blocks) με βάση το διπλό κενό
+    var blocks = cleanBody.split(/\n\s*\n/);
+    
+    var lastBlockWithChordIndex = -1;
+
+    // 3. Βρίσκουμε το index του ΤΕΛΕΥΤΑΙΟΥ block που έχει '!'
+    blocks.forEach((block, index) => {
+        if (block.includes('!')) {
+            lastBlockWithChordIndex = index;
         }
+    });
+
+    // 4. Λογική Διαχωρισμού
+    if (lastBlockWithChordIndex === -1) {
+        // Καμία συγχορδία πουθενά -> Όλα στο Scroll (ή στο Fixed αν προτιμάς)
+        return { fixed: "", scroll: cleanBody };
     }
 
-    // 2. Αν δεν υπάρχει καμία συγχορδία, όλα στο Scroll
-    if (lastChordLineIndex === -1) {
-        return { fixed: "", scroll: body };
-    }
-
-    // 3. Βρες πού τελειώνει η στροφή στην οποία ανήκει η τελευταία συγχορδία.
-    // Ψάχνουμε την επόμενη κενή γραμμή μετά το lastChordLineIndex
-    var splitPoint = lastChordLineIndex;
-    for (var j = lastChordLineIndex; j < lines.length; j++) {
-        if (lines[j].trim() === "") {
-            splitPoint = j;
-            break; // Βρήκαμε το τέλος της στροφής
-        }
-        splitPoint = j; // Αν φτάσουμε στο τέλος του αρχείου
-    }
-
-    // 4. Κόψιμο
-    // Σταθερό: Από αρχή μέχρι το splitPoint
-    var fixedLines = lines.slice(0, splitPoint + 1);
-    // Κυλιόμενο: Από το splitPoint και μετά
-    var scrollLines = lines.slice(splitPoint + 1);
+    // Fixed: Από την αρχή μέχρι ΚΑΙ το τελευταίο μπλοκ με συγχορδίες
+    var fixedBlocks = blocks.slice(0, lastBlockWithChordIndex + 1);
+    
+    // Scroll: Όλα τα υπόλοιπα (που είναι σκέτα λόγια)
+    var scrollBlocks = blocks.slice(lastBlockWithChordIndex + 1);
 
     return { 
-        fixed: fixedLines.join('\n'), 
-        scroll: scrollLines.join('\n') 
+        fixed: fixedBlocks.join("\n\n"), 
+        scroll: scrollBlocks.join("\n\n") 
     };
 }
 

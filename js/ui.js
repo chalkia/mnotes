@@ -227,6 +227,8 @@ function handleTagKey(e) {
 
 /* --- PLAYER --- */
 function loadSong(id) {
+   // STOP SCROLL αν τρέχει
+    if (scrollTimer) toggleAutoScroll();
     currentSongId = id;
     var s = library.find(x => x.id === id);
     if(!s) return;

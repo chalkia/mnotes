@@ -4,8 +4,9 @@
 
 function ensureSongStructure(song) {
     if (!song) song = {};
-    if (!song.id) song.id = "s_" + Date.now() + Math.floor(Math.random() * 1000);
+    if (!song.id) song.id = "s_" + Date.now();
     if (!song.title) song.title = "Untitled";
+    if (!song.artist) song.artist = ""; // ΝΕΟ
     if (!song.key) song.key = "-";
     if (!song.body) song.body = "";
     if (!song.intro) song.intro = "";
@@ -47,6 +48,25 @@ function parseSongLogic(song) {
     });
 }
 
+// SMART SPLIT FUNCTION: Βρίσκει πού τελειώνουν οι συγχορδίες
+function splitSongBody(body) {
+    var blocks = body.split(/\n\s*\n/); // Χωρισμός σε παραγράφους
+    var lastChordIndex = -1;
+
+    // Βρες την τελευταία παράγραφο που έχει '!'
+    blocks.forEach((b, i) => {
+        if (b.includes('!')) lastChordIndex = i;
+    });
+
+    // Αν δεν έχει συγχορδίες, όλα κάτω
+    if (lastChordIndex === -1) return { fixed: "", scroll: body };
+
+    // Όλα μέχρι και το lastChordIndex πάνε πάνω
+    var fixed = blocks.slice(0, lastChordIndex + 1).join("\n\n");
+    var scroll = blocks.slice(lastChordIndex + 1).join("\n\n");
+    return { fixed: fixed, scroll: scroll };
+}
+
 function getNote(note, semitones) {
     if (!note) return "";
     var match = note.match(/^([A-G][#b]?)(.*)$/);
@@ -60,9 +80,9 @@ function getNote(note, semitones) {
     return NOTES[newIdx] + suffix;
 }
 
-// ΑΠΟΘΗΚΕΥΣΗ
 function saveSong() {
     var title = document.getElementById('inpTitle').value;
+    var artist = document.getElementById('inpArtist').value; // ΝΕΟ
     var key = document.getElementById('inpKey').value;
     var tagsInput = document.getElementById('inpTags').value;
     var intro = document.getElementById('inpIntro').value;
@@ -73,50 +93,61 @@ function saveSong() {
     if(!title || !body) { alert("Title and Body required!"); return; }
     var tagsArray = tagsInput.split(',').map(t => t.trim()).filter(t => t !== "");
 
+    var newSongObj = {
+        title: title, artist: artist, key: key, body: body,
+        intro: intro, interlude: interlude, notes: notes, playlists: tagsArray
+    };
+
     if (!currentSongId) {
-        var newSong = ensureSongStructure({
-            title: title, key: key, body: body, intro: intro, 
-            interlude: interlude, notes: notes, playlists: tagsArray
-        });
-        library.push(newSong);
-        currentSongId = newSong.id;
+        // NEW
+        var s = ensureSongStructure(newSongObj);
+        library.push(s);
+        currentSongId = s.id;
     } else {
-        var song = library.find(s => s.id === currentSongId);
-        if(song) {
-            song.title = title; song.key = key; song.body = body;
-            song.intro = intro; song.interlude = interlude;
-            song.notes = notes; song.playlists = tagsArray;
+        // UPDATE -> CHANGE ID RULE
+        // Διαγράφουμε το παλιό με το παλιό ID
+        var oldIdx = library.findIndex(s => s.id === currentSongId);
+        
+        // Διατήρηση τυχόν extra πεδίων που δεν πειράξαμε
+        var existingExtras = {};
+        if (oldIdx > -1) {
+            existingExtras = JSON.parse(JSON.stringify(library[oldIdx]));
+            library.splice(oldIdx, 1); // Delete old
         }
+        
+        // Δημιουργία νέου με νέο ID
+        var finalSong = ensureSongStructure(newSongObj);
+        finalSong.id = "s_" + Date.now(); // FORCE NEW ID
+        
+        // Merge extras (ώστε να μην χάσουμε άγνωστα πεδία)
+        for (var k in existingExtras) {
+            if (!finalSong.hasOwnProperty(k)) finalSong[k] = existingExtras[k];
+        }
+
+        library.push(finalSong);
+        currentSongId = finalSong.id;
     }
 
     if(typeof saveData === 'function') saveData();
     if(typeof renderSidebar === 'function') renderSidebar();
     if(typeof loadSong === 'function') loadSong(currentSongId);
+    
+    // alert("Saved with new ID!"); // Προαιρετικό
 }
 
-// ΔΙΑΓΡΑΦΗ (ΝΕΟ: Προστασία Demo)
 function deleteCurrentSong() {
     if (!currentSongId) return;
-
-    // ΕΛΕΓΧΟΣ: Μην διαγράφεις το demo
-    if (currentSongId === "demo_instruction") {
-        alert("⚠️ Οι οδηγίες χρήσης δεν μπορούν να διαγραφούν!");
-        return;
-    }
-
-    if(confirm("Are you sure you want to delete this song?")) {
+    if (currentSongId.includes("demo")) { alert("Demo cannot be deleted."); return; }
+    if(confirm("Delete song?")) {
         var idx = library.findIndex(s => s.id === currentSongId);
         if(idx > -1) {
             library.splice(idx, 1);
             saveData();
-            
-            // Πήγαινε στο Demo ή στο πρώτο
-            currentSongId = "demo_instruction"; 
-            if(!library.find(s => s.id === currentSongId) && library.length > 0) {
-                 currentSongId = library[0].id;
-            }
-            
-            loadSong(currentSongId);
+            currentSongId = library.length > 0 ? library[0].id : null;
+            if(!currentSongId) { /* Handle empty */ }
+            if(typeof loadSong === 'function' && currentSongId) loadSong(currentSongId);
+            else if (typeof createNewSong === 'function') createNewSong();
+            if(typeof renderSidebar === 'function') renderSidebar();
         }
     }
 }

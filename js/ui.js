@@ -1,6 +1,6 @@
 /* =========================================
    UI & APP LOGIC (js/ui.js) - FINAL + SETLIST + MIC
-   ========================================= */
+   ========================================== */
 
 if(typeof library === 'undefined') var library = [];
 if(typeof state === 'undefined') var state = { t: 0, c: 0, meta: {}, parsedChords: [] };

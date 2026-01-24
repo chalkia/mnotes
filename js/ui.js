@@ -1,11 +1,12 @@
 /* =========================================
-   UI & APP LOGIC (js/ui.js) - QR ENABLED
+   UI & APP LOGIC (js/ui.js) - FILTERS & SORT
    ========================================= */
 
 if(typeof library === 'undefined') var library = [];
 if(typeof state === 'undefined') var state = { t: 0, c: 0, meta: {}, parsedChords: [] };
 if(typeof currentSongId === 'undefined') var currentSongId = null;
 var visiblePlaylist = [];
+var sortableInstance = null; // Store Sortable instance
 
 window.onload = function() {
     loadSavedTheme();
@@ -20,7 +21,9 @@ function toggleLanguage() {
     currentLang = (currentLang === 'en') ? 'el' : 'en';
     localStorage.setItem('mnotes_lang', currentLang);
     applyTranslations();
+    // Re-render filters placeholders and list
     renderSidebar(); 
+    populateTags(); 
     if(currentSongId === 'demo_instruction') loadSong(currentSongId);
 }
 
@@ -50,7 +53,7 @@ function cycleTheme() {
     localStorage.setItem('mnotes_theme', b.className);
 }
 
-/* --- LIBRARY --- */
+/* --- LIBRARY & FILTERS --- */
 function loadLibrary() {
     var saved = localStorage.getItem('mnotes_data');
     if (saved) { try { library = JSON.parse(saved); } catch(e) { library = []; } }
@@ -62,7 +65,10 @@ function loadLibrary() {
         library.unshift(demo); saveData();
     }
     library = library.map(ensureSongStructure);
+    
+    // Initial Render
     visiblePlaylist = [...library];
+    populateTags(); // NEW: Fill tag dropdown
     renderSidebar();
 
     if (library.length > 0) {
@@ -76,9 +82,86 @@ function clearLibrary() {
         var demo = JSON.parse(JSON.stringify(DEFAULT_DATA[0]));
         demo.title = t('demo_title'); demo.body = t('demo_body');
         library = [ensureSongStructure(demo)];
-        saveData(); visiblePlaylist = [...library]; renderSidebar();
+        saveData(); 
+        // Reset filters
+        document.getElementById('searchInp').value = "";
+        document.getElementById('tagFilter').value = "";
+        applyFilters();
+        
         loadSong(library[0].id);
     }
+}
+
+// NEW: Tag Population
+function populateTags() {
+    var tagSet = new Set();
+    library.forEach(s => {
+        if(s.playlists && Array.isArray(s.playlists)) {
+            s.playlists.forEach(tag => tagSet.add(tag));
+        }
+    });
+    var select = document.getElementById('tagFilter');
+    // Keep first option (All Tags)
+    select.innerHTML = `<option value="">${t('lbl_all_tags')}</option>`;
+    
+    Array.from(tagSet).sort().forEach(tag => {
+        var opt = document.createElement('option');
+        opt.value = tag;
+        opt.innerText = tag;
+        select.appendChild(opt);
+    });
+}
+
+// NEW: Filtering Logic
+function applyFilters() {
+    var txt = document.getElementById('searchInp').value.toLowerCase();
+    var tag = document.getElementById('tagFilter').value;
+
+    visiblePlaylist = library.filter(s => {
+        var matchTxt = s.title.toLowerCase().includes(txt) || 
+                       (s.artist && s.artist.toLowerCase().includes(txt));
+        
+        var matchTag = true;
+        if (tag !== "") {
+            matchTag = s.playlists && s.playlists.includes(tag);
+        }
+        return matchTxt && matchTag;
+    });
+
+    renderSidebar();
+}
+
+// UPDATED: Render with Sortable
+function renderSidebar() {
+    var list = document.getElementById('songList');
+    list.innerHTML = "";
+    document.getElementById('songCount').innerText = visiblePlaylist.length;
+
+    visiblePlaylist.forEach(s => {
+        var li = document.createElement('li');
+        li.className = `song-item ${currentSongId === s.id ? 'active' : ''}`;
+        li.setAttribute('data-id', s.id); // Important for Sortable logic
+        li.onclick = () => loadSong(s.id);
+        
+        var displayTitle = (s.id === 'demo_instruction') ? t('demo_title') : s.title;
+        var art = s.artist ? `<span style="font-weight:normal; opacity:0.7"> - ${s.artist}</span>` : "";
+        li.innerHTML = `<div class="song-title">${displayTitle}${art}</div><div class="song-meta">${s.key}</div>`;
+        list.appendChild(li);
+    });
+
+    // NEW: Initialize or Refresh Sortable
+    if (sortableInstance) sortableInstance.destroy(); // Clean old
+    sortableInstance = new Sortable(list, {
+        animation: 150,
+        ghostClass: 'active', // Class applied to the dragging item
+        onEnd: function (evt) {
+            // Reorder visiblePlaylist array based on drag
+            // Note: This does NOT affect 'library' (permanent storage)
+            var item = visiblePlaylist.splice(evt.oldIndex, 1)[0];
+            visiblePlaylist.splice(evt.newIndex, 0, item);
+            // We do NOT call saveData() here, so it remains temporary
+        }
+    });
 }
 
 /* --- PLAYER --- */
@@ -93,7 +176,14 @@ function loadSong(id) {
     
     document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active-view'));
     document.getElementById('view-player').classList.add('active-view');
-    renderSidebar(); document.getElementById('sidebar').classList.remove('open');
+    // We do NOT re-render sidebar here to avoid resetting scroll or filters during playback
+    // Just update active class manually
+    var items = document.querySelectorAll('.song-item');
+    items.forEach(i => i.classList.remove('active'));
+    var activeItem = document.querySelector(`.song-item[data-id="${id}"]`);
+    if(activeItem) activeItem.classList.add('active');
+
+    document.getElementById('sidebar').classList.remove('open');
 }
 
 function renderPlayer(s) {
@@ -154,19 +244,6 @@ function createToken(c, l) {
 function renderChordsLine(str) {
     return str.replace(/!([A-G][#b]?[a-zA-Z0-9/]*)/g, (m, c) => `<span style="margin-right:8px;">${getNote(c, state.t - state.c)}</span>`);
 }
-function renderSidebar() {
-    var list = document.getElementById('songList'); list.innerHTML = "";
-    document.getElementById('songCount').innerText = visiblePlaylist.length;
-    visiblePlaylist.forEach(s => {
-        var li = document.createElement('li');
-        li.className = `song-item ${currentSongId === s.id ? 'active' : ''}`;
-        li.onclick = () => loadSong(s.id);
-        var displayTitle = (s.id === 'demo_instruction') ? t('demo_title') : s.title;
-        var art = s.artist ? `<span style="font-weight:normal; opacity:0.7"> - ${s.artist}</span>` : "";
-        li.innerHTML = `<div class="song-title">${displayTitle}${art}</div><div class="song-meta">${s.key}</div>`;
-        list.appendChild(li);
-    });
-}
 
 /* --- EDITOR --- */
 function switchToEditor() {
@@ -195,88 +272,61 @@ function createNewSong() {
     switchToEditor();
 }
 function cancelEdit() { loadSong(currentSongId || ((library.length>0)?library[0].id:null)); }
-function saveEdit() { saveSong(); }
+function saveEdit() { 
+    saveSong(); 
+    // Re-populate tags after save in case user added new ones
+    populateTags();
+    // Re-apply filters in case the new song matches/doesn't match
+    applyFilters();
+}
 
-/* --- QR UI FUNCTIONS --- */
+/* --- QR & IMPORT --- */
 function showQR() {
     if (!currentSongId) return;
     var song = library.find(s => s.id === currentSongId);
     if (!song) return;
-
-    // Save current changes first just in case
-    // We get values from DOM if we are in Editor
     if (document.getElementById('view-editor').classList.contains('active-view')) {
         song.title = document.getElementById('inpTitle').value;
         song.artist = document.getElementById('inpArtist').value;
         song.body = document.getElementById('inpBody').value;
-        // ... (other fields)
     }
-
     var imgTag = generateQRForSong(song);
     if (imgTag) {
         document.getElementById('qr-output').innerHTML = imgTag;
         document.getElementById('qrModal').style.display = 'flex';
-    } else {
-        alert("Error generating QR (Song too big?)");
-    }
+    } else { alert("Error generating QR"); }
 }
 
 function startScanner() {
     document.getElementById('importChoiceModal').style.display = 'none';
     document.getElementById('scanModal').style.display = 'flex';
-    
-    // Clean up previous instance if needed
-    if (html5QrCodeScanner) {
-        html5QrCodeScanner.clear().catch(e=>console.error(e));
-    }
-
-    // ID of div: "reader"
+    if (html5QrCodeScanner) html5QrCodeScanner.clear().catch(e=>{});
     var html5QrCode = new Html5Qrcode("reader");
     html5QrCodeScanner = html5QrCode;
 
-    html5QrCode.start(
-      { facingMode: "environment" }, 
-      { fps: 10, qrbox: 250 },
+    html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 },
       (decodedText, decodedResult) => {
-          // Success
           html5QrCode.stop().then(() => {
              document.getElementById('scanModal').style.display = 'none';
              var song = processQRScan(decodedText);
              if (song) {
-                 // Check duplicate
                  if (!library.some(ex => ex.id === song.id)) {
-                     library.push(song);
-                     saveData();
-                     visiblePlaylist = [...library];
-                     renderSidebar();
+                     library.push(song); saveData(); 
+                     populateTags(); applyFilters(); // Update UI
                      loadSong(song.id);
                      alert(t('msg_imported') + "1");
-                 } else {
-                     alert(t('msg_no_import'));
-                 }
-             } else {
-                 alert("Invalid QR Data");
-             }
+                 } else { alert(t('msg_no_import')); }
+             } else { alert("Invalid QR"); }
           });
       },
-      (errorMessage) => {
-          // Parsing failure, ignore
-      })
-    .catch((err) => {
-      alert(t('msg_scan_camera_error'));
-      document.getElementById('scanModal').style.display = 'none';
-    });
+      (errorMessage) => {})
+    .catch((err) => { alert(t('msg_scan_camera_error')); document.getElementById('scanModal').style.display = 'none'; });
 }
 
 function closeScan() {
     if (html5QrCodeScanner) {
-        html5QrCodeScanner.stop().then(() => {
-             html5QrCodeScanner.clear();
-             document.getElementById('scanModal').style.display = 'none';
-        }).catch(err => document.getElementById('scanModal').style.display = 'none');
-    } else {
-        document.getElementById('scanModal').style.display = 'none';
-    }
+        html5QrCodeScanner.stop().then(() => { html5QrCodeScanner.clear(); document.getElementById('scanModal').style.display = 'none'; }).catch(e=>document.getElementById('scanModal').style.display='none');
+    } else { document.getElementById('scanModal').style.display = 'none'; }
 }
 
 /* --- ACTIONS & GESTURES --- */
@@ -298,8 +348,10 @@ function setupEvents() {
                     const newSongs = Array.isArray(imported) ? imported : [imported];
                     let added = 0;
                     newSongs.forEach(s => { if (!library.some(ex => ex.id === s.id)) { library.push(ensureSongStructure(s)); added++; }});
-                    if(added>0) { saveData(); visiblePlaylist=[...library]; renderSidebar(); alert(t('msg_imported')+added); }
-                    else { alert(t('msg_no_import')); }
+                    if(added>0) { 
+                        saveData(); populateTags(); applyFilters(); 
+                        alert(t('msg_imported')+added); 
+                    } else { alert(t('msg_no_import')); }
                     document.getElementById('importChoiceModal').style.display='none';
                 } catch(err) { alert(t('msg_error_read')); }
             }; reader.readAsText(file); fileInput.value = '';

@@ -32,17 +32,22 @@
                 <button onclick="createNewSong()" style="background:none; border:none; color:var(--text-main); cursor:pointer;"><i class="fas fa-plus"></i></button>
             </div>
             
-            <div style="padding:10px; border-bottom:1px solid var(--border-color); text-align:center;">
-                <button id="btnLang" onclick="toggleLanguage()" style="background:var(--bg-panel); color:var(--text-main); border:1px solid var(--border-color); padding:5px 15px; border-radius:15px; cursor:pointer; font-size:0.9rem;">
-                    <i class="fas fa-globe"></i> EN
-                </button>
+            <div class="sidebar-tabs">
+                <button id="tab-library" class="tab-btn active" onclick="switchSidebarTab('library')">Library</button>
+                <button id="tab-setlist" class="tab-btn" onclick="switchSidebarTab('setlist')">Setlist</button>
             </div>
-            
+
             <div class="sidebar-search">
                 <input id="searchInp" type="text" data-i18n-ph="ph_search" placeholder="Search..." oninput="applyFilters()">
                 <select id="tagFilter" onchange="applyFilters()">
                     <option value="">All Tags</option>
                 </select>
+            </div>
+            
+            <div style="padding:10px; border-bottom:1px solid var(--border-color); text-align:center;">
+                <button id="btnLang" onclick="toggleLanguage()" style="background:var(--bg-panel); color:var(--text-main); border:1px solid var(--border-color); padding:5px 15px; border-radius:15px; cursor:pointer; font-size:0.9rem;">
+                    <i class="fas fa-globe"></i> EN
+                </button>
             </div>
 
             <ul id="songList" class="song-list"></ul>
@@ -81,6 +86,13 @@
                 <div id="scroll-container" class="scroll-lyrics" ondblclick="toggleAutoScroll()"></div>
 
                 <div class="player-footer">
+                    <div class="ctl-group mic-control">
+                        <span class="ctl-label">Mic</span>
+                        <button id="btnMic" onclick="toggleMicMode()" style="background:none; border:1px solid var(--border-color); color:var(--text-main); width:40px; height:40px; border-radius:50%; font-size:1.1rem;">
+                            <i class="fas fa-microphone"></i>
+                        </button>
+                    </div>
+
                     <div class="ctl-group">
                         <span class="ctl-label" data-i18n="lbl_transpose">Transpose</span>
                         <div class="stepper"><button onclick="changeTranspose(-1)">-</button><span id="val-t">0</span><button onclick="changeTranspose(1)">+</button></div>
@@ -107,50 +119,50 @@
                 </div>
             </div>
 
-          <div id="view-editor" class="view-section">
-    <div class="editor-toolbar">
-        <button onclick="exitEditor()" style="color:var(--text-muted); background:none; border:none; display:flex; align-items:center; gap:5px;">
-            <i class="fas fa-times"></i> <span data-i18n="lbl_cancel">Cancel</span>
-        </button>
-        
-        <div>
-            <button onclick="deleteCurrentSong()" style="color:var(--danger); background:none; border:none; font-size:1.2rem; margin-right:15px;"><i class="fas fa-trash-alt"></i></button>
-            <button onclick="showQR()" style="color:var(--text-main); background:none; border:none; font-size:1.2rem;"><i class="fas fa-qrcode"></i></button>
-        </div>
-        
-        <button onclick="saveEdit()" style="color:var(--accent); background:none; border:none; font-weight:bold; font-size:1.1rem;" data-i18n="lbl_save">Save</button>
-    </div>
-    
-    <div class="editor-body">
-        <input id="inpTitle" class="inp" data-i18n-ph="ph_title" placeholder="Song Title" style="font-weight:bold; font-size:1.1rem;">
-        
-        <details>
-            <summary>Artist & Notes</summary>
-            <div class="details-content">
-                <input id="inpArtist" class="inp" data-i18n-ph="ph_artist" placeholder="Artist">
-                <textarea id="inpNotes" class="inp" data-i18n-ph="ph_notes" placeholder="Private Notes" style="height:60px;"></textarea>
-            </div>
-        </details>
-
-        <div style="display:flex; gap:10px;">
-            <input id="inpKey" class="inp" data-i18n-ph="ph_key" placeholder="Key" style="width:100px;">
-            
-            <div style="flex:1; position:relative;">
-                <div class="tag-wrapper" onclick="document.getElementById('tagInput').focus()">
-                    <div id="tagChips" style="display:contents;"></div>
-                    <input id="tagInput" class="tag-input-area" data-i18n-ph="ph_tags" placeholder="Add tag..." oninput="handleTagInput(this)" onkeydown="handleTagKey(event)">
+            <div id="view-editor" class="view-section">
+                <div class="editor-toolbar">
+                    <button onclick="exitEditor()" style="color:var(--text-muted); background:none; border:none; display:flex; align-items:center; gap:5px;">
+                        <i class="fas fa-times"></i> <span data-i18n="lbl_cancel">Cancel</span>
+                    </button>
+                    
+                    <div>
+                        <button onclick="deleteCurrentSong()" style="color:var(--danger); background:none; border:none; font-size:1.2rem; margin-right:15px;"><i class="fas fa-trash-alt"></i></button>
+                        <button onclick="showQR()" style="color:var(--text-main); background:none; border:none; font-size:1.2rem;"><i class="fas fa-qrcode"></i></button>
+                    </div>
+                    
+                    <button onclick="saveEdit()" style="color:var(--accent); background:none; border:none; font-weight:bold; font-size:1.1rem;" data-i18n="lbl_save">Save</button>
                 </div>
-                <div id="tagSuggestions" class="tag-suggestions"></div>
-                <input id="inpTags" type="hidden"> 
+                
+                <div class="editor-body">
+                    <input id="inpTitle" class="inp" data-i18n-ph="ph_title" placeholder="Song Title" style="font-weight:bold; font-size:1.1rem;">
+                    
+                    <details>
+                        <summary>Artist & Notes</summary>
+                        <div class="details-content">
+                            <input id="inpArtist" class="inp" data-i18n-ph="ph_artist" placeholder="Artist">
+                            <textarea id="inpNotes" class="inp" data-i18n-ph="ph_notes" placeholder="Private Notes" style="height:60px;"></textarea>
+                        </div>
+                    </details>
+
+                    <div style="display:flex; gap:10px;">
+                        <input id="inpKey" class="inp" data-i18n-ph="ph_key" placeholder="Key" style="width:100px;">
+                        
+                        <div style="flex:1; position:relative;">
+                            <div class="tag-wrapper" onclick="document.getElementById('tagInput').focus()">
+                                <div id="tagChips" style="display:contents;"></div>
+                                <input id="tagInput" class="tag-input-area" data-i18n-ph="ph_tags" placeholder="Add tag..." oninput="handleTagInput(this)" onkeydown="handleTagKey(event)">
+                            </div>
+                            <div id="tagSuggestions" class="tag-suggestions"></div>
+                            <input id="inpTags" type="hidden"> 
+                        </div>
+                    </div>
+                    
+                    <input id="inpIntro" class="inp" data-i18n-ph="ph_intro" placeholder="Intro">
+                    <input id="inpInter" class="inp" data-i18n-ph="ph_inter" placeholder="Interlude">
+                    
+                    <textarea id="inpBody" class="inp txt-area" data-i18n-ph="ph_body" placeholder="Lyrics & Chords..."></textarea>
+                </div>
             </div>
-        </div>
-        
-        <input id="inpIntro" class="inp" data-i18n-ph="ph_intro" placeholder="Intro">
-        <input id="inpInter" class="inp" data-i18n-ph="ph_inter" placeholder="Interlude">
-        
-        <textarea id="inpBody" class="inp txt-area" data-i18n-ph="ph_body" placeholder="Lyrics & Chords..."></textarea>
-    </div>
-</div>
 
         </main>
     </div>
@@ -163,6 +175,7 @@
             <button onclick="document.getElementById('importChoiceModal').style.display='none'" style="background:none; border:none; color:var(--text-muted);" data-i18n="modal_btn_cancel">Cancel</button>
         </div>
     </div>
+    
     <div id="qrModal" class="modal-overlay">
         <div class="modal-box">
             <h3 style="color:var(--text-main);" data-i18n="qr_title">QR Code</h3>
@@ -171,6 +184,7 @@
             <button onclick="document.getElementById('qrModal').style.display='none'" style="margin-top:10px; padding:10px 20px; background:var(--accent); border:none; border-radius:5px; font-weight:bold;">OK</button>
         </div>
     </div>
+    
     <div id="scanModal" class="modal-overlay">
         <div class="modal-box" style="max-width:400px;">
             <h3 style="color:var(--text-main);" data-i18n="scan_title">Scan QR</h3>
@@ -178,6 +192,7 @@
             <button onclick="closeScan()" style="margin-top:15px; padding:10px; background:var(--danger); color:white; border:none; border-radius:5px;" data-i18n="lbl_cancel">Close</button>
         </div>
     </div>
+    
     <input type="file" id="hiddenFileInput" style="display:none" accept=".json,.mnote">
 
     <div id="toast"></div>
@@ -195,4 +210,3 @@
     </script>
 </body>
 </html>
-

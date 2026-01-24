@@ -5,14 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>mNotes Pro</title>
     <link rel="icon" type="image/png" href="icon-192.png">
-    
     <link rel="stylesheet" href="fa/css/all.min.css">
     <link rel="stylesheet" href="style.css">
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
     <script src="js/qrcodegen.js"></script>
     <script src="js/html5-qrcode.min.js"></script>
-
     <script src="js/data.js"></script>
     <script src="js/logic.js"></script>
     <script src="js/ui.js"></script>
@@ -21,7 +19,6 @@
     <button id="btnMenu" class="menu-btn"><i class="fas fa-bars"></i></button>
 
     <div class="app-layout">
-        
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <span style="color:var(--text-main); font-weight:bold; font-size:1.2rem;">mNotes <span id="songCount" style="font-size:0.8rem; opacity:0.6;">0</span></span>
@@ -105,7 +102,16 @@
                     <input id="inpArtist" class="inp" data-i18n-ph="ph_artist" placeholder="Artist">
                     <div style="display:flex; gap:10px;">
                         <input id="inpKey" class="inp" data-i18n-ph="ph_key" placeholder="Key" style="width:100px;">
-                        <input id="inpTags" class="inp" data-i18n-ph="ph_tags" placeholder="Tags">
+                        
+                        <div style="flex:1; position:relative;">
+                            <div class="tag-wrapper" onclick="document.getElementById('tagInput').focus()">
+                                <div id="tagChips" style="display:contents;"></div>
+                                <input id="tagInput" class="tag-input-area" data-i18n-ph="ph_tags" placeholder="Add tag..." oninput="handleTagInput(this)" onkeydown="handleTagKey(event)">
+                            </div>
+                            <div id="tagSuggestions" class="tag-suggestions"></div>
+                            <input id="inpTags" type="hidden"> 
+                        </div>
+
                     </div>
                     <input id="inpIntro" class="inp" data-i18n-ph="ph_intro" placeholder="Intro">
                     <input id="inpInter" class="inp" data-i18n-ph="ph_inter" placeholder="Interlude">

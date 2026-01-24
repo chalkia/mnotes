@@ -258,8 +258,9 @@ function renderPlayer(s) {
     headerAct.innerHTML = btnHtml;
 
     var infoHtml = "";
-    if(s.intro) infoHtml += `<div class="info-row"><span class="meta-label" data-i18n="lbl_intro">${t('lbl_intro')}</span><span class="info-chord">${renderChordsLine(s.intro)}</span></div>`;
-    if(s.interlude) infoHtml += `<div class="info-row"><span class="meta-label" data-i18n="lbl_inter">${t('lbl_inter')}</span><span class="info-chord">${renderChordsLine(s.interlude)}</span></div>`;
+    // Αφαιρέσαμε το class="info-chord" από το wrapper span, για να μην χρωματίζονται όλα
+    if(s.intro) infoHtml += `<div class="info-row"><span class="meta-label" data-i18n="lbl_intro">${t('lbl_intro')}</span><span>${renderChordsLine(s.intro)}</span></div>`;
+    if(s.interlude) infoHtml += `<div class="info-row"><span class="meta-label" data-i18n="lbl_inter">${t('lbl_inter')}</span><span>${renderChordsLine(s.interlude)}</span></div>`;
     document.querySelector('.info-bar').innerHTML = infoHtml;
 
     document.getElementById('val-t').innerText = (state.t > 0 ? "+" : "") + state.t;
@@ -269,7 +270,6 @@ function renderPlayer(s) {
     renderArea('fixed-container', split.fixed);
     renderArea('scroll-container', split.scroll);
 }
-
 function toggleNotes() {
     var el = document.getElementById('notes-container');
     el.style.display = (el.style.display === 'none') ? 'block' : 'none';
@@ -299,10 +299,16 @@ function createToken(c, l) {
     d.innerHTML = `<span class="chord">${c}</span><span class="lyric">${l}</span>`; return d;
 }
 function renderChordsLine(str) {
-    return str.replace(/!([A-G][#b]?[a-zA-Z0-9/]*)/g, (m, c) => `<span style="margin-right:8px;">${getNote(c, state.t - state.c)}</span>`);
+    // Αντικαθιστά τα !Chord με span, τα υπόλοιπα μένουν κείμενο
+    // Χρησιμοποιούμε regex με callback
+    return str.replace(/!([A-Ga-g][#b]?[a-zA-Z0-9/]*)/g, function(match, chord) {
+        var transposed = getNote(chord, state.t - state.c);
+        // Προσθήκη κλάσης 'chord-highlight' για χρώμα
+        return `<span class="chord-highlight">${transposed}</span>`;
+    });
 }
 
-/* --- EDITOR --- */
+/* --- EDITOR UPDATES --- */
 function switchToEditor() {
     document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active-view'));
     document.getElementById('view-editor').classList.add('active-view');
@@ -311,20 +317,34 @@ function switchToEditor() {
         var s = library.find(x => x.id === currentSongId);
         if (s) {
             document.getElementById('inpTitle').value = s.title;
+            // Ανανέωση του Artist μέσα στο Details (αν το έχεις ανοιχτό ή κλειστό)
             document.getElementById('inpArtist').value = s.artist || ""; 
-            document.getElementById('inpKey').value = s.key;
             
-            // LOAD TAGS
+            document.getElementById('inpKey').value = s.key;
             editorTags = s.playlists ? [...s.playlists] : [];
             renderTagChips();
 
             document.getElementById('inpIntro').value = s.intro;
             document.getElementById('inpInter').value = s.interlude;
+            
+            // Notes
             document.getElementById('inpNotes').value = s.notes;
+            
             document.getElementById('inpBody').value = s.body;
         }
     } else { createNewSong(); }
     document.getElementById('sidebar').classList.remove('open');
+}
+
+// NEW: Exit Without Save
+function exitEditor() {
+    // Απλά ξαναφορτώνουμε το τρέχον τραγούδι όπως είναι στη μνήμη (χωρίς save)
+    if (currentSongId) {
+        loadSong(currentSongId);
+    } else {
+        // Αν ήταν νέο τραγούδι και πατήσαμε ακύρωση, πάμε στο πρώτο της λίστας
+        if(library.length > 0) loadSong(library[0].id);
+    }
 }
 
 function createNewSong() {

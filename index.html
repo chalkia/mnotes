@@ -4,11 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>mNotes Pro</title>
-    
     <link rel="icon" type="image/png" href="icon-192.png">
-    
     <link rel="stylesheet" href="fa/css/all.min.css">
-    
     <link rel="stylesheet" href="style.css">
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
@@ -16,37 +13,45 @@
     <script src="js/html5-qrcode.min.js"></script>
 
     <script src="js/data.js"></script>
-    <script src="js/logic.js"></script> <script src="js/ui.js"></script>    </head>
-<body>
-    <button id="btnMenu" class="menu-btn"><i class="fas fa-bars"></i></button>
+    <script src="js/logic.js"></script>
+    <script src="js/ui.js"></script>
+</head>
+<body class="theme-dark"> <button id="btnMenu" class="menu-btn"><i class="fas fa-bars"></i></button>
 
     <div class="app-layout">
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
-                <span style="color:white; font-weight:bold; font-size:1.2rem;">mNotes <span id="songCount" style="font-size:0.8rem; opacity:0.6; margin-left:5px;">0</span></span>
-                <button onclick="createNewSong()" style="background:none; border:none; color:white; cursor:pointer; font-size:1.1rem;"><i class="fas fa-plus"></i></button>
+                <span style="color:var(--text-main); font-weight:bold; font-size:1.2rem;">mNotes <span id="songCount" style="font-size:0.8rem; opacity:0.6;">0</span></span>
+                <button onclick="createNewSong()" style="background:none; border:none; color:var(--text-main); cursor:pointer;"><i class="fas fa-plus"></i></button>
             </div>
             <ul id="songList" class="song-list"></ul>
             
-            <div style="padding:10px; border-top:1px solid #333;">
-                <button onclick="document.getElementById('importChoiceModal').style.display='flex'" style="width:100%; padding:10px; background:#222; color:#aaa; border:none; cursor:pointer;">
+            <div style="padding:10px; border-top:1px solid var(--border-color); display:flex; gap:5px;">
+                <button onclick="document.getElementById('importChoiceModal').style.display='flex'" style="flex:1; padding:10px; background:var(--bg-panel); color:var(--text-muted); border:none; cursor:pointer;">
                     <i class="fas fa-file-import"></i> Import
+                </button>
+                <button onclick="clearLibrary()" style="width:40px; background:var(--bg-panel); color:var(--danger); border:none; cursor:pointer;">
+                    <i class="fas fa-trash"></i>
                 </button>
             </div>
         </aside>
 
         <main class="main-content">
-            
             <div id="view-player" class="view-section active-view">
                 <div class="player-header">
                     <div class="header-row">
-                        <h1 id="p-title" class="song-h1">Song Title</h1>
-                        <span id="p-key" class="key-badge">-</span>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <h1 id="p-title" class="song-h1">Title</h1>
+                            <span id="p-key" class="key-badge">-</span>
+                        </div>
+                        <div id="header-actions"></div> </div>
+
+                    <div id="notes-container" class="notes-container">
+                        <div id="notes-area" class="notes-text"></div>
                     </div>
+
                     <div class="info-bar">
-                        <span><span class="meta-label">INTRO:</span> <span id="p-intro"></span></span>
-                        <span style="margin-left:auto;"><span class="meta-label">INTER:</span> <span id="p-inter"></span></span>
-                    </div>
+                        </div>
                 </div>
 
                 <div id="fixed-container" class="fixed-lyrics"></div>
@@ -71,16 +76,19 @@
                     </div>
                     <div class="ctl-group">
                         <span class="ctl-label">Edit</span>
-                        <button onclick="switchToEditor()" style="background:none; border:1px solid #555; color:white; padding:8px 12px; border-radius:15px;"><i class="fas fa-pen"></i></button>
+                        <button onclick="switchToEditor()" style="background:none; border:1px solid var(--border-color); color:var(--text-main); padding:8px 12px; border-radius:15px;"><i class="fas fa-pen"></i></button>
                     </div>
                 </div>
             </div>
 
             <div id="view-editor" class="view-section">
                 <div class="editor-toolbar">
-                    <button onclick="cancelEdit()" style="color:var(--danger); background:none; border:none; font-weight:bold;">Cancel</button>
-                    <span style="color:white; font-weight:300;">EDITOR</span>
-                    <button onclick="saveEdit()" style="color:var(--chord-color); background:none; border:none; font-weight:bold;">Save</button>
+                    <button onclick="cancelEdit()" style="color:var(--text-muted); background:none; border:none;">Cancel</button>
+                    
+                    <button onclick="deleteCurrentSong()" style="color:var(--danger); background:none; border:none; font-size:1.2rem;">
+                        <i class="fas fa-trash-alt"></i> </button>
+                    
+                    <button onclick="saveEdit()" style="color:var(--accent); background:none; border:none; font-weight:bold;">Save</button>
                 </div>
                 <div class="editor-body">
                     <input id="inpTitle" class="inp" placeholder="Song Title">
@@ -90,19 +98,18 @@
                     </div>
                     <input id="inpIntro" class="inp" placeholder="Intro (e.g. !Am | !G)">
                     <input id="inpInter" class="inp" placeholder="Interlude">
-                    <textarea id="inpNotes" class="inp" placeholder="Private Notes" style="height:80px; min-height:80px;"></textarea>
-                    <textarea id="inpBody" class="inp txt-area" placeholder="Write lyrics & chords here...&#10;Example:&#10;!AmHello darkness my old !Gfriend"></textarea>
+                    <textarea id="inpNotes" class="inp" placeholder="Private Notes" style="height:60px;"></textarea>
+                    <textarea id="inpBody" class="inp txt-area" placeholder="Write lyrics & chords here..."></textarea>
                 </div>
             </div>
-
         </main>
     </div>
 
     <div id="importChoiceModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); align-items:center; justify-content:center; z-index:2000;">
-        <div style="background:#222; padding:20px; border-radius:10px; width:300px; text-align:center;">
-            <h3 style="margin-top:0;">Import</h3>
-            <button onclick="selectImport('file')" style="width:100%; padding:15px; margin-bottom:10px; background:#333; color:white; border:1px solid #444;">File (.json)</button>
-            <button onclick="document.getElementById('importChoiceModal').style.display='none'" style="background:none; border:none; color:#888;">Cancel</button>
+        <div style="background:var(--bg-panel); padding:20px; border-radius:10px; width:300px; text-align:center;">
+            <h3 style="margin-top:0; color:var(--text-main);">Import</h3>
+            <button onclick="selectImport('file')" style="width:100%; padding:15px; margin-bottom:10px; background:var(--input-bg); color:var(--text-main); border:1px solid var(--border-color);">File (.json)</button>
+            <button onclick="document.getElementById('importChoiceModal').style.display='none'" style="background:none; border:none; color:var(--text-muted);">Cancel</button>
         </div>
     </div>
     
@@ -110,4 +117,3 @@
 
 </body>
 </html>
-

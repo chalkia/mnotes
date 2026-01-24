@@ -33,6 +33,13 @@
                     <i class="fas fa-globe"></i> EN
                 </button>
             </div>
+            
+            <div class="sidebar-search">
+                <input id="searchInp" type="text" data-i18n-ph="ph_search" placeholder="Search..." oninput="applyFilters()">
+                <select id="tagFilter" onchange="applyFilters()">
+                    <option value="">All Tags</option>
+                </select>
+            </div>
 
             <ul id="songList" class="song-list"></ul>
             
@@ -47,7 +54,6 @@
         </aside>
 
         <main class="main-content" id="mainZone">
-            
             <div id="view-player" class="view-section active-view">
                 <div class="player-header">
                     <div class="header-row">
@@ -60,11 +66,9 @@
                             <div id="header-actions"></div>
                         </div>
                     </div>
-
                     <div id="notes-container" class="notes-container">
                         <div id="notes-area" class="notes-text"></div>
                     </div>
-
                     <div class="info-bar"></div>
                 </div>
 
@@ -74,19 +78,11 @@
                 <div class="player-footer">
                     <div class="ctl-group">
                         <span class="ctl-label" data-i18n="lbl_transpose">Transpose</span>
-                        <div class="stepper">
-                            <button onclick="changeTranspose(-1)">-</button>
-                            <span id="val-t">0</span>
-                            <button onclick="changeTranspose(1)">+</button>
-                        </div>
+                        <div class="stepper"><button onclick="changeTranspose(-1)">-</button><span id="val-t">0</span><button onclick="changeTranspose(1)">+</button></div>
                     </div>
                     <div class="ctl-group">
                         <span class="ctl-label" data-i18n="lbl_capo">Capo</span>
-                        <div class="stepper">
-                            <button onclick="changeCapo(-1)">-</button>
-                            <span id="val-c">0</span>
-                            <button onclick="changeCapo(1)">+</button>
-                        </div>
+                        <div class="stepper"><button onclick="changeCapo(-1)">-</button><span id="val-c">0</span><button onclick="changeCapo(1)">+</button></div>
                     </div>
                     <div class="ctl-group">
                         <span class="ctl-label" data-i18n="lbl_edit">Edit</span>
@@ -117,9 +113,10 @@
                     <textarea id="inpBody" class="inp txt-area" data-i18n-ph="ph_body" placeholder="Lyrics & Chords..."></textarea>
                 </div>
             </div>
-
         </main>
-    </div> <div id="importChoiceModal" class="modal-overlay">
+    </div>
+
+    <div id="importChoiceModal" class="modal-overlay">
         <div class="modal-box">
             <h3 style="margin-top:0; color:var(--text-main);" data-i18n="modal_import_title">Import</h3>
             <button onclick="selectImport('file')" style="width:100%; padding:15px; margin-bottom:10px; background:var(--input-bg); color:var(--text-main); border:1px solid var(--border-color);" data-i18n="modal_btn_file">File (.json)</button>
@@ -127,7 +124,6 @@
             <button onclick="document.getElementById('importChoiceModal').style.display='none'" style="background:none; border:none; color:var(--text-muted);" data-i18n="modal_btn_cancel">Cancel</button>
         </div>
     </div>
-
     <div id="qrModal" class="modal-overlay">
         <div class="modal-box">
             <h3 style="color:var(--text-main);" data-i18n="qr_title">QR Code</h3>
@@ -136,7 +132,6 @@
             <button onclick="document.getElementById('qrModal').style.display='none'" style="margin-top:10px; padding:10px 20px; background:var(--accent); border:none; border-radius:5px; font-weight:bold;">OK</button>
         </div>
     </div>
-
     <div id="scanModal" class="modal-overlay">
         <div class="modal-box" style="max-width:400px;">
             <h3 style="color:var(--text-main);" data-i18n="scan_title">Scan QR</h3>
@@ -144,8 +139,6 @@
             <button onclick="closeScan()" style="margin-top:15px; padding:10px; background:var(--danger); color:white; border:none; border-radius:5px;" data-i18n="lbl_cancel">Close</button>
         </div>
     </div>
-    
     <input type="file" id="hiddenFileInput" style="display:none" accept=".json,.mnote">
-
 </body>
 </html>

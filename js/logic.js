@@ -17,34 +17,84 @@ function ensureSongStructure(song) {
     return song;
 }
 
+// --- STRICT TOKENIZER PARSING ---
 function parseSongLogic(song) {
     state.meta = song;
     state.parsedChords = [];
     if (!song.body) return;
 
-    var blocks = song.body.split('\n');
-    blocks.forEach(line => {
+    var lines = song.body.split('\n');
+    
+    lines.forEach(line => {
         line = line.trimEnd(); 
         if (line.trim() === "") {
             state.parsedChords.push({ type: 'br' });
-        } else if (line.indexOf('!') === -1) {
-            state.parsedChords.push({ type: 'lyricOnly', text: line });
-        } else {
-            var parts = line.split('!');
-            var tokens = [];
-            if (parts[0].length > 0) tokens.push({ c: "", t: parts[0] });
-
-            for (var i = 1; i < parts.length; i++) {
-                var p = parts[i];
-                var m = p.match(/^([A-G][#b]?[a-zA-Z0-9/]*)(.*)/);
-                if (m) {
-                    tokens.push({ c: m[1], t: m[2] || "" });
-                } else {
-                    tokens.push({ c: "", t: "!" + p });
-                }
-            }
-            state.parsedChords.push({ type: 'mixed', tokens: tokens });
+            return;
         }
+        
+        if (line.indexOf('!') === -1) {
+            state.parsedChords.push({ type: 'lyricOnly', text: line });
+            return;
+        }
+
+        var tokens = [];
+        var buffer = "";
+        var i = 0;
+        
+        while (i < line.length) {
+            var char = line[i];
+
+            if (char === '!') {
+                // Αν υπάρχει κείμενο πριν, αποθήκευσέ το
+                if (buffer.length > 0) {
+                    tokens.push({ c: "", t: buffer });
+                    buffer = "";
+                }
+
+                // Έναρξη συγχορδίας/νότας
+                i++; // Προσπερνάμε το '!'
+                var chordBuf = "";
+                var stopChord = false;
+
+                while (i < line.length && !stopChord) {
+                    var c = line[i];
+                    
+                    // Κανόνες Τερματισμού:
+                    var isBang = (c === '!');    // Νέο θαυμαστικό
+                    var isSpace = (c === ' ');  // Κενό
+                    // Ελληνικοί χαρακτήρες (και τονισμένοι)
+                    var isGreek = (c >= '\u0370' && c <= '\u03FF') || (c >= '\u1F00' && c <= '\u1FFF');
+
+                    if (isBang) {
+                        i++; // Καταναλώνουμε το επόμενο '!'
+                        stopChord = true;
+                    } else if (isSpace || isGreek) {
+                        stopChord = true; // Σταματάμε εδώ (το γράμμα ανήκει στο επόμενο token)
+                    } else {
+                        chordBuf += c;
+                        i++;
+                    }
+                }
+                
+                // Αποθήκευση συγχορδίας (ακόμα κι αν είναι μικρή/νότα)
+                tokens.push({ c: chordBuf, t: "" });
+
+            } else {
+                buffer += char;
+                i++;
+            }
+        }
+        
+        // Τέλος γραμμής: Αν έμεινε buffer
+        if (buffer.length > 0) {
+            if (tokens.length > 0 && tokens[tokens.length-1].t === "") {
+                tokens[tokens.length-1].t = buffer;
+            } else {
+                tokens.push({ c: "", t: buffer });
+            }
+        }
+        
+        state.parsedChords.push({ type: 'mixed', tokens: tokens });
     });
 }
 
@@ -60,72 +110,78 @@ function splitSongBody(body) {
     return { fixed: fixedBlocks.join("\n\n"), scroll: scrollBlocks.join("\n\n") };
 }
 
+// --- CASE SENSITIVE TRANSPOSE ---
 function getNote(note, semitones) {
     if (!note) return "";
-    var match = note.match(/^([A-G][#b]?)(.*)$/);
-    if (!match) return note;
+    
+    // Έλεγχος αν η ρίζα είναι κεφαλαία ή μικρή
+    var firstChar = note.charAt(0);
+    var isLowerCase = (firstChar === firstChar.toLowerCase() && firstChar !== firstChar.toUpperCase());
+    
+    // Για τον υπολογισμό, μετατρέπουμε σε κεφαλαίο
+    var noteProper = firstChar.toUpperCase() + note.slice(1);
+
+    var match = noteProper.match(/^([A-G][#b]?)(.*)$/);
+    if (!match) return note; 
+    
     var root = match[1];
     var suffix = match[2];
+    
     var idx = NOTES.indexOf(root);
     if (idx === -1) idx = NOTES_FLAT.indexOf(root);
     if (idx === -1) return note;
+    
     var newIdx = (idx + semitones + 12000) % 12;
-    return NOTES[newIdx] + suffix;
+    var newRoot = NOTES[newIdx];
+
+    // Αν ήταν μικρό, το ξανακάνουμε μικρό
+    if (isLowerCase) {
+        newRoot = newRoot.toLowerCase();
+    }
+
+    return newRoot + suffix;
 }
 
+// SMART CAPO (Βελτιωμένο)
 function calculateOptimalCapo(currentKey, songBody) {
-    // 1. Βρες όλα τα chords στο τραγούδι
     var chordsFound = new Set();
-    var chordRegex = /!([A-G][#b]?)/g;
+    // Ψάχνουμε μόνο Κεφαλαία (Συγχορδίες) για το Capo, αγνοούμε τις νότες
+    var chordRegex = /!([A-G][#b]?)/g; 
     var match;
     while ((match = chordRegex.exec(songBody)) !== null) {
         chordsFound.add(match[1]);
     }
     
-    if (chordsFound.size === 0) return 0; // Καμία συγχορδία
-
-    // 2. Ορισμός "Καλών" συγχορδιών (Open Chords)
-    // C, A, G, E, D, Am, Em, Dm
+    if (chordsFound.size === 0) return 0;
     var openChords = ["C", "A", "G", "E", "D", "Am", "Em", "Dm"];
-    
-    // Επίσης καλά, αλλά όχι τέλεια (π.χ. Fmaj7 αντί για F bar)
-    // Αλλά ας μείνουμε στα βασικά για αρχή.
-    
     var bestCapo = 0;
-    var maxScore = -1;
+    var maxScore = -1000;
 
-    // 3. Δοκιμή όλων των Capo (0-11)
     for (var c = 0; c < 12; c++) {
         var score = 0;
-        
         chordsFound.forEach(originalChord => {
-            // Υπολόγισε ποια συγχορδία θα παίζει ο χρήστης με αυτό το Capo
-            // Αν βάλω Capo +2, και θέλω να ακουστεί C, πρέπει να παίξω Bb? Όχι.
-            // Η λογική του "Play In": Αν το τραγούδι είναι σε C# και βάλω Capo 1, παίζω σε C.
-            // Άρα Transpose = -Capo.
-            
-            var playedChord = getNote(originalChord, -c);
+            // Εδώ θέλουμε πάντα το αποτέλεσμα σε Κεφαλαία για σύγκριση με Open Chords
+            var playedChord = getNote(originalChord, -c).charAt(0).toUpperCase() + getNote(originalChord, -c).slice(1);
             
             if (openChords.includes(playedChord)) {
                 score += 1;
             } else if (playedChord.includes("#") || playedChord.includes("b")) {
-                score -= 0.5; // Ποινή για δίεση/ύφεση (συνήθως μπαρέ)
+                score -= 0.5; 
             }
         });
-
         if (score > maxScore) {
-            maxScore = score;
-            bestCapo = c;
+            maxScore = score; bestCapo = c;
         }
     }
-
     return bestCapo;
 }
+
 function saveSong() {
     var title = document.getElementById('inpTitle').value;
     var artist = document.getElementById('inpArtist').value;
     var key = document.getElementById('inpKey').value;
-    var tagsInput = document.getElementById('inpTags').value;
+    var tagsInput = document.getElementById('inpTags') ? document.getElementById('inpTags').value : ""; 
+    
     var intro = document.getElementById('inpIntro').value;
     var interlude = document.getElementById('inpInter').value;
     var notes = document.getElementById('inpNotes').value;
@@ -173,45 +229,5 @@ function deleteCurrentSong() {
             else if (typeof createNewSong === 'function') createNewSong();
             if(typeof renderSidebar === 'function') renderSidebar();
         }
-    }
-}
-
-// --- QR LOGIC (SAFE UTF-8) ---
-
-function generateQRForSong(song) {
-    try {
-        // 1. Convert to JSON
-        var json = JSON.stringify(song);
-        
-        // 2. Safe Encode for Greek Characters (UTF-8 workaround)
-        // unescape(encodeURIComponent(str)) turns multibyte chars into UTF-8 byte string
-        var safeStr = unescape(encodeURIComponent(json));
-        
-        // 3. Generate QR (Type 0 = Auto, 'M' = Medium Error Correction)
-        var qr = qrcode(0, 'M');
-        qr.addData(safeStr);
-        qr.make();
-        
-        // 4. Return HTML Image Tag
-        return qr.createImgTag(5, 10); // cell size 5, margin 10
-    } catch (e) {
-        console.error(e);
-        return null;
-    }
-}
-
-function processQRScan(scannedText) {
-    try {
-        // 1. Safe Decode (Reverse of Generate)
-        var jsonStr = decodeURIComponent(escape(scannedText));
-        
-        // 2. Parse JSON
-        var songData = JSON.parse(jsonStr);
-        
-        // 3. Ensure Structure
-        return ensureSongStructure(songData);
-    } catch (e) {
-        console.error("QR Parse Error", e);
-        return null;
     }
 }

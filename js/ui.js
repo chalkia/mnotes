@@ -1,12 +1,12 @@
 /* =========================================
-   UI & APP LOGIC (js/ui.js) - FILTERS & SORT
+   UI & APP LOGIC (js/ui.js) - TAG CHIPS
    ========================================= */
 
 if(typeof library === 'undefined') var library = [];
 if(typeof state === 'undefined') var state = { t: 0, c: 0, meta: {}, parsedChords: [] };
 if(typeof currentSongId === 'undefined') var currentSongId = null;
 var visiblePlaylist = [];
-var sortableInstance = null; // Store Sortable instance
+var sortableInstance = null;
 
 window.onload = function() {
     loadSavedTheme();
@@ -21,9 +21,7 @@ function toggleLanguage() {
     currentLang = (currentLang === 'en') ? 'el' : 'en';
     localStorage.setItem('mnotes_lang', currentLang);
     applyTranslations();
-    // Re-render filters placeholders and list
-    renderSidebar(); 
-    populateTags(); 
+    renderSidebar(); populateTags(); 
     if(currentSongId === 'demo_instruction') loadSong(currentSongId);
 }
 
@@ -53,7 +51,7 @@ function cycleTheme() {
     localStorage.setItem('mnotes_theme', b.className);
 }
 
-/* --- LIBRARY & FILTERS --- */
+/* --- LIBRARY --- */
 function loadLibrary() {
     var saved = localStorage.getItem('mnotes_data');
     if (saved) { try { library = JSON.parse(saved); } catch(e) { library = []; } }
@@ -65,11 +63,8 @@ function loadLibrary() {
         library.unshift(demo); saveData();
     }
     library = library.map(ensureSongStructure);
-    
-    // Initial Render
     visiblePlaylist = [...library];
-    populateTags(); // NEW: Fill tag dropdown
-    renderSidebar();
+    populateTags(); renderSidebar();
 
     if (library.length > 0) {
         if(!currentSongId) currentSongId = library[0].id;
@@ -83,86 +78,130 @@ function clearLibrary() {
         demo.title = t('demo_title'); demo.body = t('demo_body');
         library = [ensureSongStructure(demo)];
         saveData(); 
-        // Reset filters
         document.getElementById('searchInp').value = "";
         document.getElementById('tagFilter').value = "";
         applyFilters();
-        
         loadSong(library[0].id);
     }
 }
 
-// NEW: Tag Population
 function populateTags() {
     var tagSet = new Set();
     library.forEach(s => {
-        if(s.playlists && Array.isArray(s.playlists)) {
-            s.playlists.forEach(tag => tagSet.add(tag));
-        }
+        if(s.playlists && Array.isArray(s.playlists)) { s.playlists.forEach(tag => tagSet.add(tag)); }
     });
     var select = document.getElementById('tagFilter');
-    // Keep first option (All Tags)
     select.innerHTML = `<option value="">${t('lbl_all_tags')}</option>`;
-    
     Array.from(tagSet).sort().forEach(tag => {
         var opt = document.createElement('option');
-        opt.value = tag;
-        opt.innerText = tag;
+        opt.value = tag; opt.innerText = tag;
         select.appendChild(opt);
     });
 }
 
-// NEW: Filtering Logic
 function applyFilters() {
     var txt = document.getElementById('searchInp').value.toLowerCase();
     var tag = document.getElementById('tagFilter').value;
-
     visiblePlaylist = library.filter(s => {
-        var matchTxt = s.title.toLowerCase().includes(txt) || 
-                       (s.artist && s.artist.toLowerCase().includes(txt));
-        
-        var matchTag = true;
-        if (tag !== "") {
-            matchTag = s.playlists && s.playlists.includes(tag);
-        }
+        var matchTxt = s.title.toLowerCase().includes(txt) || (s.artist && s.artist.toLowerCase().includes(txt));
+        var matchTag = (tag === "") ? true : (s.playlists && s.playlists.includes(tag));
         return matchTxt && matchTag;
     });
-
     renderSidebar();
 }
 
-// UPDATED: Render with Sortable
 function renderSidebar() {
-    var list = document.getElementById('songList');
-    list.innerHTML = "";
+    var list = document.getElementById('songList'); list.innerHTML = "";
     document.getElementById('songCount').innerText = visiblePlaylist.length;
-
     visiblePlaylist.forEach(s => {
         var li = document.createElement('li');
         li.className = `song-item ${currentSongId === s.id ? 'active' : ''}`;
-        li.setAttribute('data-id', s.id); // Important for Sortable logic
+        li.setAttribute('data-id', s.id);
         li.onclick = () => loadSong(s.id);
-        
         var displayTitle = (s.id === 'demo_instruction') ? t('demo_title') : s.title;
         var art = s.artist ? `<span style="font-weight:normal; opacity:0.7"> - ${s.artist}</span>` : "";
         li.innerHTML = `<div class="song-title">${displayTitle}${art}</div><div class="song-meta">${s.key}</div>`;
         list.appendChild(li);
     });
 
-    // NEW: Initialize or Refresh Sortable
-    if (sortableInstance) sortableInstance.destroy(); // Clean old
+    if (sortableInstance) sortableInstance.destroy();
     sortableInstance = new Sortable(list, {
-        animation: 150,
-        ghostClass: 'active', // Class applied to the dragging item
+        animation: 150, ghostClass: 'active',
         onEnd: function (evt) {
-            // Reorder visiblePlaylist array based on drag
-            // Note: This does NOT affect 'library' (permanent storage)
             var item = visiblePlaylist.splice(evt.oldIndex, 1)[0];
             visiblePlaylist.splice(evt.newIndex, 0, item);
-            // We do NOT call saveData() here, so it remains temporary
         }
     });
 }
+
+/* --- TAG CHIPS LOGIC --- */
+var editorTags = []; // Stores current tags in editor
+
+function updateHiddenTagInput() {
+    document.getElementById('inpTags').value = editorTags.join(',');
+}
+
+function renderTagChips() {
+    var container = document.getElementById('tagChips');
+    container.innerHTML = "";
+    editorTags.forEach(tag => {
+        var span = document.createElement('span');
+        span.className = 'tag-chip';
+        span.innerHTML = `${tag} <i class="fas fa-times" onclick="removeTag('${tag}')"></i>`;
+        container.appendChild(span);
+    });
+    updateHiddenTagInput();
+}
+
+function addTag(tag) {
+    tag = tag.trim();
+    if(tag && !editorTags.includes(tag)) {
+        editorTags.push(tag);
+        renderTagChips();
+    }
+    document.getElementById('tagInput').value = "";
+    document.getElementById('tagSuggestions').style.display = 'none';
+}
+
+function removeTag(tag) {
+    editorTags = editorTags.filter(t => t !== tag);
+    renderTagChips();
+}
+
+function handleTagInput(inp) {
+    var val = inp.value.toLowerCase();
+    var sugg = document.getElementById('tagSuggestions');
+    if(!val) { sugg.style.display = 'none'; return; }
+
+    // Get all existing tags
+    var allTags = new Set();
+    library.forEach(s => s.playlists.forEach(t => allTags.add(t)));
+    var matches = Array.from(allTags).filter(t => t.toLowerCase().includes(val) && !editorTags.includes(t));
+
+    sugg.innerHTML = "";
+    if(matches.length > 0) {
+        matches.forEach(m => {
+            var div = document.createElement('div');
+            div.className = 'tag-suggestion-item';
+            div.innerText = m;
+            div.onclick = function() { addTag(m); };
+            sugg.appendChild(div);
+        });
+        sugg.style.display = 'block';
+    } else {
+        sugg.style.display = 'none';
+    }
+}
+
+function handleTagKey(e) {
+    if(e.key === 'Enter') {
+        e.preventDefault();
+        addTag(e.target.value);
+    } else if (e.key === 'Backspace' && e.target.value === "" && editorTags.length > 0) {
+        removeTag(editorTags[editorTags.length-1]);
+    }
+}
+
 
 /* --- PLAYER --- */
 function loadSong(id) {
@@ -176,8 +215,7 @@ function loadSong(id) {
     
     document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active-view'));
     document.getElementById('view-player').classList.add('active-view');
-    // We do NOT re-render sidebar here to avoid resetting scroll or filters during playback
-    // Just update active class manually
+    
     var items = document.querySelectorAll('.song-item');
     items.forEach(i => i.classList.remove('active'));
     var activeItem = document.querySelector(`.song-item[data-id="${id}"]`);
@@ -249,13 +287,18 @@ function renderChordsLine(str) {
 function switchToEditor() {
     document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active-view'));
     document.getElementById('view-editor').classList.add('active-view');
+    
     if (currentSongId) {
         var s = library.find(x => x.id === currentSongId);
         if (s) {
             document.getElementById('inpTitle').value = s.title;
             document.getElementById('inpArtist').value = s.artist || ""; 
             document.getElementById('inpKey').value = s.key;
-            document.getElementById('inpTags').value = (s.playlists || []).join(', ');
+            
+            // LOAD TAGS
+            editorTags = s.playlists ? [...s.playlists] : [];
+            renderTagChips();
+
             document.getElementById('inpIntro').value = s.intro;
             document.getElementById('inpInter').value = s.interlude;
             document.getElementById('inpNotes').value = s.notes;
@@ -264,21 +307,19 @@ function switchToEditor() {
     } else { createNewSong(); }
     document.getElementById('sidebar').classList.remove('open');
 }
+
 function createNewSong() {
     currentSongId = null; 
     ['inpTitle','inpArtist','inpKey','inpTags','inpIntro','inpInter','inpNotes','inpBody'].forEach(id => {
         var el = document.getElementById(id); if(el) el.value = "";
     });
+    // Reset Tags
+    editorTags = []; renderTagChips();
     switchToEditor();
 }
+
 function cancelEdit() { loadSong(currentSongId || ((library.length>0)?library[0].id:null)); }
-function saveEdit() { 
-    saveSong(); 
-    // Re-populate tags after save in case user added new ones
-    populateTags();
-    // Re-apply filters in case the new song matches/doesn't match
-    applyFilters();
-}
+function saveEdit() { saveSong(); populateTags(); applyFilters(); }
 
 /* --- QR & IMPORT --- */
 function showQR() {
@@ -303,7 +344,6 @@ function startScanner() {
     if (html5QrCodeScanner) html5QrCodeScanner.clear().catch(e=>{});
     var html5QrCode = new Html5Qrcode("reader");
     html5QrCodeScanner = html5QrCode;
-
     html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 },
       (decodedText, decodedResult) => {
           html5QrCode.stop().then(() => {
@@ -311,15 +351,13 @@ function startScanner() {
              var song = processQRScan(decodedText);
              if (song) {
                  if (!library.some(ex => ex.id === song.id)) {
-                     library.push(song); saveData(); 
-                     populateTags(); applyFilters(); // Update UI
+                     library.push(song); saveData(); populateTags(); applyFilters(); 
                      loadSong(song.id);
                      alert(t('msg_imported') + "1");
                  } else { alert(t('msg_no_import')); }
              } else { alert("Invalid QR"); }
           });
-      },
-      (errorMessage) => {})
+      }, (errorMessage) => {})
     .catch((err) => { alert(t('msg_scan_camera_error')); document.getElementById('scanModal').style.display = 'none'; });
 }
 
@@ -348,20 +386,15 @@ function setupEvents() {
                     const newSongs = Array.isArray(imported) ? imported : [imported];
                     let added = 0;
                     newSongs.forEach(s => { if (!library.some(ex => ex.id === s.id)) { library.push(ensureSongStructure(s)); added++; }});
-                    if(added>0) { 
-                        saveData(); populateTags(); applyFilters(); 
-                        alert(t('msg_imported')+added); 
-                    } else { alert(t('msg_no_import')); }
+                    if(added>0) { saveData(); populateTags(); applyFilters(); alert(t('msg_imported')+added); }
+                    else { alert(t('msg_no_import')); }
                     document.getElementById('importChoiceModal').style.display='none';
                 } catch(err) { alert(t('msg_error_read')); }
             }; reader.readAsText(file); fileInput.value = '';
         });
     }
 }
-function selectImport(type) { 
-    if(type==='file') document.getElementById('hiddenFileInput').click(); 
-    if(type==='qr') startScanner();
-}
+function selectImport(type) { if(type==='file') document.getElementById('hiddenFileInput').click(); if(type==='qr') startScanner(); }
 function setupGestures() {
     var area = document.getElementById('mainZone');
     var startDist = 0; var startSize = 1.3;

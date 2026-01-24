@@ -1,27 +1,35 @@
 /* =========================================
-   mNotes PRO - FINAL STYLE (Compact + Features)
+   mNotes PRO - FINAL COMPLETE STYLE
    ========================================= */
 
 @font-face { font-family: 'Roboto Condensed'; src: url('fonts/RobotoCondensed-Regular.ttf'); font-weight: normal; }
 @font-face { font-family: 'Roboto Condensed'; src: url('fonts/RobotoCondensed-Bold.ttf'); font-weight: bold; }
 @font-face { font-family: 'Roboto Condensed'; src: url('fonts/RobotoCondensed-Light.ttf'); font-weight: 300; }
 
+/* 1. VARIABLES & THEMES */
 :root {
-    --bg-main: #121212; --bg-panel: #1e1e1e; --bg-sidebar: #050505;
-    --text-main: #e0e0e0; --text-muted: #888;
-    --accent: #bb86fc; --chord-color: #03dac6;
-    --input-bg: #222; --border-color: #333;
+    --bg-main: #121212; 
+    --bg-panel: #1e1e1e; 
+    --bg-sidebar: #050505;
+    --text-main: #e0e0e0; 
+    --text-muted: #888;
+    --accent: #bb86fc; 
+    --chord-color: #03dac6;
+    --input-bg: #222; 
+    --border-color: #333;
     --danger: #cf6679;
     --font-ui: 'Roboto Condensed', sans-serif;
     --lyric-size: 1.3rem; 
 }
 
+/* Theme Overrides */
 body.theme-slate {
     --bg-main: #2c3d50; --bg-panel: #34495e; --bg-sidebar: #1a252f;
     --text-main: #ecf0f1; --text-muted: #bdc3c7;
     --accent: #f1c40f; --chord-color: #f1c40f;
     --input-bg: #34495e; --border-color: #465f75;
 }
+
 body.theme-light {
     --bg-main: #f5f5f5; --bg-panel: #ffffff; --bg-sidebar: #e0e0e0;
     --text-main: #333333; --text-muted: #666;
@@ -29,215 +37,188 @@ body.theme-light {
     --input-bg: #fff; --border-color: #ccc;
 }
 
+/* 2. BASE LAYOUT */
 body {
-    background: var(--bg-main); color: var(--text-main);
-    font-family: var(--font-ui); margin: 0; height: 100vh; width: 100vw;
+    background: var(--bg-main); color: var(--text-main); font-family: var(--font-ui);
+    margin: 0; height: 100vh; width: 100vw;
     overflow: hidden; transition: background 0.3s, color 0.3s;
 }
 
 .app-layout { display: flex; height: 100%; width: 100%; }
 
-/* --- SIDEBAR (COMPACT) --- */
+/* 3. SIDEBAR */
 .sidebar {
     width: 280px; background: var(--bg-sidebar); border-right: 1px solid var(--border-color);
     display: flex; flex-direction: column; flex-shrink: 0; z-index: 100;
 }
-.sidebar-header { padding: 10px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
 
-.sidebar-search { padding: 8px; border-bottom: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 5px; }
-.sidebar-search input, .sidebar-search select { background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-main); padding: 6px; border-radius: 4px; font-family: var(--font-ui); font-size: 0.9rem; }
-.sidebar-search input:focus, .sidebar-search select:focus { border-color: var(--accent); outline: none; }
+.sidebar-header {
+    padding: 15px; border-bottom: 1px solid var(--border-color);
+    display: flex; justify-content: space-between; align-items: center;
+}
+.brand { font-size: 1.2rem; font-weight: bold; color: var(--text-main); display: flex; align-items: center; gap: 10px; }
+.badge { font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; background: #333; color: #aaa; }
 
-.song-list { 
-    list-style: none; padding: 0; margin: 0; 
-    flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; 
+/* NEW: TABS (Library / Setlist) */
+.sidebar-tabs { display: flex; border-bottom: 1px solid var(--border-color); }
+.tab-btn { 
+    flex: 1; background: var(--bg-panel); border: none; color: var(--text-muted); 
+    padding: 10px; cursor: pointer; font-weight: bold; border-bottom: 2px solid transparent; 
+    transition: 0.3s;
 }
+.tab-btn:hover { background: rgba(255,255,255,0.05); }
+.tab-btn.active { color: var(--accent); border-bottom: 2px solid var(--accent); background: rgba(255,255,255,0.02); }
 
-.song-item { 
-    padding: 8px 10px; 
-    border-bottom: 1px solid var(--border-color); 
-    cursor: pointer; 
-    display: flex; align-items: center; 
-    justify-content: space-between;
-    height: 40px; 
-}
-.song-item:hover { background: rgba(255,255,255,0.05); }
-.song-item.active { background: rgba(255, 255, 255, 0.1); border-left: 4px solid var(--accent); }
+/* SIDEBAR ACTIONS & SEARCH */
+.sidebar-actions { padding: 10px; display: flex; flex-direction: column; gap: 5px; border-bottom: 1px solid var(--border-color); }
+.sidebar-btn { text-align: left; padding: 8px; font-size: 0.9rem; }
 
-.song-title { 
-    font-size: 1rem; color: var(--text-main); font-weight: bold; 
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    flex: 1; margin-right: 10px;
-}
-.song-meta { 
-    font-size: 0.8rem; color: var(--text-muted); 
-    white-space: nowrap; margin-right: 10px;
-}
-.song-handle {
-    color: var(--text-muted); cursor: grab; font-size: 1rem; opacity: 0.4; padding: 5px;
-}
-.song-handle:active { cursor: grabbing; opacity: 1; color: var(--accent); }
+.search-box { padding: 10px; display: flex; flex-direction: column; gap: 5px; border-bottom: 1px solid var(--border-color); }
 
-/* --- MAIN CONTENT (COMPACT) --- */
+/* LIST */
+.playlist-header { padding: 5px 15px; font-size: 0.8rem; color: var(--text-muted); background: rgba(0,0,0,0.2); }
+.playlist-container { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+
+.playlist-item {
+    padding: 10px 15px; border-bottom: 1px solid var(--border-color); cursor: pointer;
+    display: flex; align-items: center; gap: 10px;
+}
+.playlist-item:hover { background: rgba(255,255,255,0.05); }
+.playlist-item.active { background: rgba(255, 255, 255, 0.1); border-left: 4px solid var(--accent); }
+
+/* Icons in List */
+.song-action { color: var(--text-muted); cursor: pointer; font-size: 1rem; padding: 5px; }
+.song-action:hover { color: var(--accent); }
+.in-setlist { color: var(--accent); }
+.drag-handle { cursor: grab; color: var(--text-muted); opacity: 0.5; margin-left: auto; }
+
+/* 4. MAIN CONTENT */
 .main-content { flex: 1; display: flex; flex-direction: column; position: relative; overflow: hidden; background: var(--bg-main); }
 .view-section { display: none; height: 100%; flex-direction: column; }
 .view-section.active-view { display: flex; }
 
-.player-header { 
-    background: var(--bg-panel); padding: 5px 15px; 
-    border-bottom: 1px solid var(--border-color); flex-shrink: 0; 
+/* 5. PLAYER HEADER */
+.player-header { background: var(--bg-panel); padding: 10px 20px; border-bottom: 1px solid var(--border-color); flex-shrink: 0; }
+.header-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.song-h1 { margin: 0; font-size: 1.6rem; color: var(--accent); line-height: 1.2; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 100%; }
+
+.live-controls-area { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--border-color); margin-bottom: 5px; }
+.key-badge { background: var(--input-bg); color: var(--text-main); border: 1px solid var(--border-color); padding: 4px 10px; border-radius: 4px; font-size: 1rem; font-weight: bold; }
+
+/* Info Bar (Intro/Inter) */
+.intro-block, .compact-interlude { 
+    background: rgba(0,0,0,0.2); padding: 6px 10px; border-radius: 4px; font-size: 0.95rem; 
+    margin-bottom: 5px; border: 1px solid var(--border-color); display: flex; align-items: center; gap: 8px; 
 }
-.header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
-.song-h1 { margin: 0; font-size: 1.5rem; color: var(--accent); line-height: 1.1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.key-badge { background: var(--input-bg); color: var(--text-main); border: 1px solid var(--border-color); padding: 2px 8px; border-radius: 4px; font-size: 1rem; font-weight: bold; }
+.mini-chord { color: var(--chord-color); font-weight: bold; font-family: monospace; }
+.mini-lyric { color: var(--text-main); }
 
-.notes-container { background: var(--input-bg); border-left: 3px solid var(--accent); padding: 5px; margin-bottom: 5px; display: none; }
-.notes-text { font-size: 0.9rem; color: var(--text-main); font-style: italic; }
-
-.info-bar { display: flex; gap: 10px; margin-top: 2px; flex-wrap: wrap; }
-.info-row { background: rgba(0,0,0,0.2); padding: 4px 8px; border-radius: 4px; font-size: 0.9rem; display: flex; align-items: center; border: 1px solid var(--border-color); }
-.meta-label { color: var(--text-muted); font-weight: 300; margin-right: 5px; font-size: 0.8rem; }
-.info-chord { color: var(--chord-color); font-weight: bold; font-family: monospace; }
-/* NEW: Mixed content highlight */
-.chord-highlight { color: var(--chord-color); font-weight: bold; font-family: monospace; margin: 0 3px; }
-
-/* LYRICS */
-.fixed-lyrics { flex-shrink: 0; max-height: 35vh; overflow-y: auto; padding: 10px 15px; border-bottom: 2px dashed var(--border-color); background: rgba(0,0,0,0.05); }
-.scroll-lyrics { flex: 1; overflow-y: auto; padding: 10px 15px; padding-bottom: 90px; }
-
-.line-row { display: flex; flex-wrap: wrap; align-items: flex-end; }
-.fixed-lyrics .line-row { margin-bottom: 20px; line-height: 1.0; }
-.scroll-lyrics .line-row { margin-bottom: 6px; line-height: 1.25; }
-
-.token { display: flex; flex-direction: column; margin-right: 3px; }
-.chord { color: var(--chord-color); font-size: calc(var(--lyric-size) * 0.85); font-weight: bold; margin-bottom: -4px; z-index: 10; line-height: 1; }
-.lyric { color: var(--text-main); font-size: var(--lyric-size); white-space: pre; line-height: 1.1; padding-top: 2px; }
-
-/* FOOTER (COMPACT) */
-.player-footer { position: absolute; bottom: 0; left: 0; right: 0; height: 75px; background: var(--bg-panel); border-top: 1px solid var(--border-color); display: flex; justify-content: space-around; align-items: center; z-index: 50; box-shadow: 0 -5px 15px rgba(0,0,0,0.2); }
-.ctl-group { display: flex; flex-direction: column; align-items: center; }
-.ctl-label { font-size: 0.65rem; color: var(--text-muted); margin-bottom: 3px; text-transform: uppercase; }
-.stepper { display: flex; align-items: center; background: var(--input-bg); border-radius: 15px; padding: 1px; border: 1px solid var(--border-color); }
-.stepper button { background: none; border: none; color: var(--text-main); width: 35px; height: 35px; font-size: 18px; cursor: pointer; }
-.stepper span { min-width: 25px; text-align: center; font-weight: bold; font-size: 1rem; color: var(--accent); }
-
-/* TOAST */
-#toast {
-    visibility: hidden; min-width: 200px; background-color: rgba(50, 50, 50, 0.95);
-    color: #fff; text-align: center; border-radius: 5px; padding: 12px;
-    position: fixed; z-index: 3000; left: 50%; bottom: 100px;
-    transform: translateX(-50%); font-size: 1rem; border: 1px solid var(--accent);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.5); opacity: 0; transition: opacity 0.3s;
+/* 6. LYRICS AREAS (Dynamic & Touch Fixes) */
+.fixed-lyrics {
+    flex-shrink: 0;
+    max-height: 75vh; /* Dynamic Height based on screen */
+    height: auto;
+    overflow-y: auto;
+    padding: 15px 20px;
+    border-bottom: 2px dashed var(--border-color);
+    background: rgba(0,0,0,0.05);
 }
-#toast.show { visibility: visible; opacity: 1; }
 
-/* EDITOR */
-.editor-toolbar { padding: 10px; background: var(--bg-panel); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); }
-.editor-body { flex: 1; padding: 10px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; }
-.inp { background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-main); padding: 10px; font-family: var(--font-ui); font-size: 1rem; border-radius: 4px; }
+.scroll-lyrics {
+    flex: 1;
+    overflow-y: auto;
+    padding: 15px 20px;
+    padding-bottom: 100px; /* Space for footer */
+    touch-action: pan-y;   /* FIX: Allows double-tap without zoom delay */
+}
+
+.line-row { display: flex; flex-wrap: wrap; align-items: flex-end; margin-bottom: 20px; line-height: 1.0; }
+.token { display: flex; flex-direction: column; margin-right: 4px; }
+.chord { color: var(--chord-color); font-size: calc(var(--lyric-size) * 0.9); font-weight: bold; margin-bottom: -4px; z-index: 10; line-height: 1; }
+.lyric { color: var(--text-main); font-size: var(--lyric-size); white-space: pre; line-height: 1.2; padding-top: 2px; }
+.compact-line { margin-bottom: 10px; font-size: var(--lyric-size); color: var(--text-main); }
+
+/* 7. PLAYER FOOTER (Controls) */
+.view-controls {
+    position: absolute; bottom: 0; left: 0; right: 0; height: 80px;
+    background: var(--bg-panel); border-top: 1px solid var(--border-color);
+    display: flex; justify-content: space-around; align-items: center; z-index: 50;
+    box-shadow: 0 -5px 15px rgba(0,0,0,0.2);
+}
+
+/* Common Button Styles */
+.btn-small, .icon-btn { background: none; border: 1px solid var(--border-color); color: var(--text-main); padding: 8px 12px; border-radius: 20px; cursor: pointer; font-size: 1rem; display: flex; align-items: center; gap: 5px; }
+.float-btn { background: var(--accent); color: #000; border: none; width: 45px; height: 45px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+
+/* Lyrics Mode Button Active State */
+.lyrics-btn-active { color: var(--accent) !important; border-color: var(--accent) !important; background: rgba(255,255,255,0.05); }
+
+/* 8. EDITOR STYLES */
+.editor-toolbar { padding: 10px 15px; background: var(--bg-panel); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); }
+.editor-body { flex: 1; padding: 15px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
+.inp { background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-main); padding: 12px; font-family: var(--font-ui); font-size: 1rem; border-radius: 4px; }
 .txt-area { flex: 1; resize: none; font-family: monospace; font-size: 1.1rem; line-height: 1.5; min-height: 200px; }
 
-/* NEW: COLLAPSIBLE DETAILS */
-details {
-    background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 4px; margin-bottom: 5px;
-}
-summary {
-    padding: 10px; cursor: pointer; font-weight: bold; color: var(--text-muted); outline: none; list-style: none; display: flex; justify-content: space-between; align-items: center;
-}
+/* Collapsible Details */
+details { background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 4px; }
+summary { padding: 10px; cursor: pointer; font-weight: bold; color: var(--text-muted); outline: none; list-style: none; display: flex; justify-content: space-between; align-items: center; }
 summary::-webkit-details-marker { display: none; }
 summary:after { content: '+'; font-size: 1.2rem; }
 details[open] summary:after { content: '-'; }
-details .details-content { padding: 10px; border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 10px; }
+.details-content { padding: 10px; border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 10px; }
 
-/* TAGS */
+/* Tags */
 .tag-wrapper { background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 4px; padding: 5px; min-height: 40px; display: flex; flex-wrap: wrap; gap: 5px; }
 .tag-chip { background: var(--accent); color: #000; padding: 2px 8px; border-radius: 12px; font-size: 0.85rem; display: flex; align-items: center; gap: 5px; }
 .tag-input-area { border: none; background: transparent; color: var(--text-main); flex: 1; min-width: 60px; outline: none; font-family: var(--font-ui); font-size: 0.9rem; }
 .tag-suggestions { position: absolute; background: var(--bg-panel); border: 1px solid var(--border-color); width: 100%; max-height: 150px; overflow-y: auto; z-index: 1000; display: none; left: 0; top: 100%; }
-.tag-suggestion-item { padding: 8px; cursor: pointer; border-bottom: 1px solid #333; }
+.tag-suggestion-item { padding: 8px; cursor: pointer; border-bottom: 1px solid #333; display: flex; justify-content: space-between; }
 .tag-suggestion-item:hover { background: var(--accent); color: #000; }
+.tag-delete-btn { color: var(--danger); padding: 0 5px; }
 
-/* MENU BTN */
-.menu-btn { display: none; position: fixed; top: 10px; left: 10px; z-index: 200; background: var(--bg-panel); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px; border-radius: 4px; font-size: 1.1rem; }
+/* 9. MOBILE MENU & RESPONSIVE FIXES */
+.menu-btn { 
+    display: none; position: fixed; top: 10px; left: 10px; z-index: 200; 
+    background: var(--bg-panel); color: var(--text-main); border: 1px solid var(--border-color); 
+    padding: 8px; border-radius: 4px; font-size: 1.1rem; 
+}
+
 @media (max-width: 768px) {
     .sidebar { position: fixed; left: -100%; top: 0; bottom: 0; width: 85%; transition: 0.3s; box-shadow: 5px 0 15px rgba(0,0,0,0.5); }
     .sidebar.open { left: 0; }
     .menu-btn { display: block; }
+    
+    /* FIX: Add padding so hamburger menu doesn't cover Title or Cancel/Back buttons */
+    .player-header { padding-left: 55px; }
+    .editor-toolbar { padding-left: 55px; }
+    
+    .header-row { flex-direction: column; align-items: flex-start; gap: 5px; }
+    .song-h1 { font-size: 1.4rem; }
 }
 
-/* MODALS */
+/* 10. MODALS */
 .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); align-items: center; justify-content: center; z-index: 2000; }
 .modal-box { background: var(--bg-panel); padding: 20px; border-radius: 10px; width: 90%; max-width: 350px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid var(--border-color); }
 .qr-display { background: white; padding: 15px; display: inline-block; margin: 15px 0; border-radius: 5px; }
 .qr-display img { max-width: 100%; height: auto; display: block; }
 #reader { width: 100%; border-radius: 5px; overflow: hidden; background: #000; }
 
-/* ΠΡΟΣΘΗΚΗ ΣΤΟ ΤΕΛΟΣ ΤΟΥ style.css */
-
-/* --- MIC MODE (Karaoke) --- */
-body.mic-mode .chord, 
-body.mic-mode .chord-highlight, 
-body.mic-mode .info-bar, 
-body.mic-mode .key-badge,
-body.mic-mode .notes-container,
-body.mic-mode .ctl-group:not(.mic-control) { /* Κρύψε τα πάντα εκτός από το Mic button */
-    display: none !important;
+/* 11. LYRICS MODE (OVERRIDES) */
+/* Hides chords, info bars, keys, extra controls */
+body.lyrics-mode .chord, 
+body.lyrics-mode .info-bar, 
+body.lyrics-mode .key-badge,
+body.lyrics-mode .notes-container,
+body.lyrics-mode .intro-block,
+body.lyrics-mode .compact-interlude,
+body.lyrics-mode .ctl-group:not(.lyrics-control),
+body.lyrics-mode .mini-header-row { 
+    display: none !important; 
 }
 
-body.mic-mode .lyric {
-    font-size: calc(var(--lyric-size) * 1.3); /* Μεγαλύτερα γράμματα */
-    line-height: 1.6;
-    opacity: 0.9;
-}
+/* Larger Text */
+body.lyrics-mode .lyric { font-size: calc(var(--lyric-size) * 1.3); line-height: 1.6; opacity: 0.95; }
+body.lyrics-mode .compact-line { font-size: calc(var(--lyric-size) * 1.3); margin-bottom: 15px; }
 
-body.mic-mode .line-row {
-    margin-bottom: 15px; /* Πιο "αεράτο" κείμενο */
-}
-
-/* Ειδικό στυλ για το κουμπί μικροφώνου όταν είναι ενεργό */
-.mic-btn-active {
-    color: var(--danger) !important;
-    border-color: var(--danger) !important;
-    background: rgba(255, 0, 0, 0.1) !important;
-    animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-    0% { box-shadow: 0 0 0 0 rgba(207, 102, 121, 0.4); }
-    70% { box-shadow: 0 0 0 10px rgba(207, 102, 121, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(207, 102, 121, 0); }
-}
-
-/* --- SIDEBAR TABS (Library vs Setlist) --- */
-.sidebar-tabs {
-    display: flex;
-    border-bottom: 1px solid var(--border-color);
-}
-.tab-btn {
-    flex: 1;
-    background: var(--bg-panel);
-    border: none;
-    color: var(--text-muted);
-    padding: 12px;
-    cursor: pointer;
-    font-weight: bold;
-    border-bottom: 2px solid transparent;
-    transition: 0.3s;
-}
-.tab-btn.active {
-    color: var(--accent);
-    border-bottom: 2px solid var(--accent);
-    background: rgba(255,255,255,0.02);
-}
-
-/* Setlist Add/Remove Action Icon */
-.song-action {
-    padding: 10px;
-    color: var(--text-muted);
-    cursor: pointer;
-    font-size: 1rem;
-    margin-right: 5px;
-}
-.song-action:hover { color: var(--accent); }
-.in-setlist { color: var(--accent); } /* Αν είναι ήδη στη λίστα */
-
+/* Remove Border from fixed part (since it merges visually) */
+body.lyrics-mode .fixed-lyrics { border-bottom: none; background: transparent; padding-bottom: 0; }

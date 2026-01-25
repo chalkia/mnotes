@@ -140,12 +140,12 @@ details .details-content { padding: 10px; border-top: 1px solid var(--border-col
 .menu-btn { display: none; position: fixed; top: 10px; left: 10px; z-index: 200; background: var(--bg-panel); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px; border-radius: 4px; font-size: 1.1rem; }
 
 /* Issue 1: Mobile Header overlap fix */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
     .sidebar { position: fixed; left: -100%; top: 0; bottom: 0; width: 85%; transition: 0.3s; box-shadow: 5px 0 15px rgba(0,0,0,0.5); }
     .sidebar.open { left: 0; }
     .menu-btn { display: block; }
-    
-    /* Add padding to headers so the fixed menu button doesn't cover text */
+    .sidebar.open .sidebar-header {padding-left: 60px; /* Δίνει χώρο για να μην πέφτει το menu button πάνω στο mNotes */  }
+     /* Add padding to headers so the fixed menu button doesn't cover text */
     .player-header { padding-left: 55px; } 
     .editor-toolbar { padding-left: 55px; }
 }
@@ -186,3 +186,4 @@ body.lyrics-mode .fixed-lyrics { border-bottom: none; background: transparent; }
 .song-action { padding: 10px; color: var(--text-muted); cursor: pointer; font-size: 1rem; margin-right: 5px; }
 .song-action:hover { color: var(--accent); }
 .in-setlist { color: var(--accent); }
+

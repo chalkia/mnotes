@@ -1,6 +1,6 @@
-/* ==========================================
-   UI & APP LOGIC (js/ui.js) - FINAL + SETLIST + MIC
-   ========================================== */
+/* =========================================
+   UI & APP LOGIC (js/ui.js) - v3
+   ========================================= */
 
 if(typeof library === 'undefined') var library = [];
 if(typeof state === 'undefined') var state = { t: 0, c: 0, meta: {}, parsedChords: [] };
@@ -12,10 +12,9 @@ var scrollTimer = null;
 var scrollSpeedMs = 50;
 var html5QrCodeScanner = null;
 
-// NEW: Global variables for Setlist & Mic
 var liveSetlist = JSON.parse(localStorage.getItem('mnotes_setlist')) || [];
 var viewMode = 'library'; // 'library' or 'setlist'
-var isMicMode = false;
+var isLyricsMode = false; // Renamed from isMicMode
 
 window.onload = function() {
     loadSavedTheme();
@@ -25,7 +24,6 @@ window.onload = function() {
     setupGestures();
 };
 
-/* --- LANGUAGE --- */
 function toggleLanguage() {
     currentLang = (currentLang === 'en') ? 'el' : 'en';
     localStorage.setItem('mnotes_lang', currentLang);
@@ -47,7 +45,6 @@ function applyTranslations() {
     if(btn) btn.innerHTML = (currentLang === 'en') ? '<i class="fas fa-globe"></i> EN' : '<i class="fas fa-globe"></i> EL';
 }
 
-/* --- THEMES --- */
 function loadSavedTheme() {
     var th = localStorage.getItem('mnotes_theme') || 'theme-dark';
     document.body.className = th;
@@ -60,7 +57,6 @@ function cycleTheme() {
     localStorage.setItem('mnotes_theme', b.className);
 }
 
-/* --- LIBRARY --- */
 function loadLibrary() {
     var saved = localStorage.getItem('mnotes_data');
     if (saved) { try { library = JSON.parse(saved); } catch(e) { library = []; } }
@@ -72,7 +68,6 @@ function loadLibrary() {
         library.unshift(demo); saveData();
     }
     library = library.map(ensureSongStructure);
-    // Cleanup setlist (remove deleted IDs)
     liveSetlist = liveSetlist.filter(id => library.some(s => s.id === id));
     
     populateTags(); 
@@ -89,7 +84,7 @@ function clearLibrary() {
         var demo = JSON.parse(JSON.stringify(DEFAULT_DATA[0]));
         demo.title = t('demo_title'); demo.body = t('demo_body');
         library = [ensureSongStructure(demo)];
-        liveSetlist = []; // Clear setlist too
+        liveSetlist = [];
         localStorage.setItem('mnotes_setlist', JSON.stringify(liveSetlist));
         saveData(); 
         document.getElementById('searchInp').value = "";
@@ -99,6 +94,7 @@ function clearLibrary() {
     }
 }
 
+// Issue 6: Pre-installed filter options
 function populateTags() {
     var tagSet = new Set();
     library.forEach(s => {
@@ -106,7 +102,10 @@ function populateTags() {
     });
     var select = document.getElementById('tagFilter');
     if(select) {
-        select.innerHTML = `<option value="">${t('lbl_all_tags')}</option>`;
+        // Option A & B
+        select.innerHTML = `<option value="">${t('lbl_all_tags')}</option>`; // All
+        select.innerHTML += `<option value="__no_demo">${t('lbl_no_demo')}</option>`; // All except Demo
+        
         Array.from(tagSet).sort().forEach(tag => {
             var opt = document.createElement('option');
             opt.value = tag; opt.innerText = tag;
@@ -115,20 +114,13 @@ function populateTags() {
     }
 }
 
-// UPDATED: applyFilters just calls renderSidebar, logic is there
-function applyFilters() {
-    renderSidebar();
-}
+function applyFilters() { renderSidebar(); }
 
-/* --- SIDEBAR & SETLIST LOGIC --- */
 function switchSidebarTab(mode) {
     viewMode = mode;
-    
-    // Update UI Tabs
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.getElementById('tab-' + mode).classList.add('active');
     
-    // Update Search Visibility (Search hidden in setlist mode)
     var searchBox = document.querySelector('.sidebar-search');
     if (mode === 'setlist') {
         if(searchBox) searchBox.style.display = 'none';
@@ -139,13 +131,10 @@ function switchSidebarTab(mode) {
 }
 
 function toggleSetlistSong(e, id) {
-    e.stopPropagation(); // Don't load song
+    e.stopPropagation(); 
     var idx = liveSetlist.indexOf(id);
-    if (idx > -1) {
-        liveSetlist.splice(idx, 1); // Remove
-    } else {
-        liveSetlist.push(id); // Add
-    }
+    if (idx > -1) { liveSetlist.splice(idx, 1); } 
+    else { liveSetlist.push(id); }
     localStorage.setItem('mnotes_setlist', JSON.stringify(liveSetlist));
     renderSidebar();
 }
@@ -153,30 +142,34 @@ function toggleSetlistSong(e, id) {
 function renderSidebar() {
     var list = document.getElementById('songList'); 
     list.innerHTML = "";
-    
-    // 1. Determine list to show
     visiblePlaylist = [];
 
     if (viewMode === 'setlist') {
-        // SETLIST MODE: Show songs in specific order
         liveSetlist.forEach(id => {
             var s = library.find(x => x.id === id);
             if (s) visiblePlaylist.push(s);
         });
     } else {
-        // LIBRARY MODE: Filtered list
         var txt = document.getElementById('searchInp') ? document.getElementById('searchInp').value.toLowerCase() : "";
         var tag = document.getElementById('tagFilter') ? document.getElementById('tagFilter').value : "";
+        
         visiblePlaylist = library.filter(s => {
             var matchTxt = s.title.toLowerCase().includes(txt) || (s.artist && s.artist.toLowerCase().includes(txt));
-            var matchTag = (tag === "") ? true : (s.playlists && s.playlists.includes(tag));
+            
+            // Logic for "All except Demo"
+            var matchTag = true;
+            if (tag === "__no_demo") {
+                matchTag = !s.id.includes("demo");
+            } else if (tag !== "") {
+                matchTag = (s.playlists && s.playlists.includes(tag));
+            }
+            
             return matchTxt && matchTag;
         });
     }
     
     document.getElementById('songCount').innerText = visiblePlaylist.length;
 
-    // 2. Render Items
     visiblePlaylist.forEach(s => {
         var li = document.createElement('li');
         li.className = `song-item ${currentSongId === s.id ? 'active' : ''}`;
@@ -190,12 +183,10 @@ function renderSidebar() {
         var displayTitle = (s.id === 'demo_instruction') ? t('demo_title') : s.title;
         var art = s.artist ? `<span style="font-weight:normal; opacity:0.7"> - ${s.artist}</span>` : "";
         
-        // Icons
         var isInList = liveSetlist.includes(s.id);
         var actionIcon = isInList ? "fas fa-check-circle in-setlist" : "far fa-circle";
-        if (viewMode === 'setlist') actionIcon = "fas fa-minus-circle"; // Show minus in setlist view
+        if (viewMode === 'setlist') actionIcon = "fas fa-minus-circle";
 
-        // Handle (Only in Setlist)
         var handleHtml = (viewMode === 'setlist') ? `<i class="fas fa-grip-vertical song-handle"></i>` : ``;
 
         li.innerHTML = `
@@ -209,14 +200,13 @@ function renderSidebar() {
         list.appendChild(li);
     });
 
-    // 3. Sortable Logic (Only active for Setlist)
     if (sortableInstance) sortableInstance.destroy();
     
     sortableInstance = new Sortable(list, {
         animation: 150, 
         ghostClass: 'active',
         handle: '.song-handle',
-        disabled: (viewMode !== 'setlist'), // Disable drag in Library
+        disabled: (viewMode !== 'setlist'),
         onEnd: function (evt) {
             if (viewMode === 'setlist') {
                 var movedId = liveSetlist.splice(evt.oldIndex, 1)[0];
@@ -273,8 +263,17 @@ function renderPlayer(s) {
     document.getElementById('val-c').innerText = state.c;
 
     var split = splitSongBody(s.body || "");
-    renderArea('fixed-container', split.fixed);
-    renderArea('scroll-container', split.scroll);
+    
+    // Issue 3: In Lyrics Mode, don't split. Put everything in scroll container.
+    if (isLyricsMode) {
+        document.getElementById('fixed-container').innerHTML = ""; // Clear fixed
+        // Join fixed + scroll part
+        var fullText = split.fixed + "\n\n" + split.scroll;
+        renderArea('scroll-container', fullText.trim());
+    } else {
+        renderArea('fixed-container', split.fixed);
+        renderArea('scroll-container', split.scroll);
+    }
 }
 
 function toggleNotes() {
@@ -312,7 +311,6 @@ function renderChordsLine(str) {
     });
 }
 
-/* --- EDITOR UPDATES --- */
 function switchToEditor() {
     document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active-view'));
     document.getElementById('view-editor').classList.add('active-view');
@@ -353,18 +351,28 @@ function createNewSong() {
 function cancelEdit() { loadSong(currentSongId || ((library.length>0)?library[0].id:null)); }
 function saveEdit() { saveSong(); populateTags(); applyFilters(); }
 
-/* --- ACTIONS (Mic, Capo, QR, Swipe) --- */
-function toggleMicMode() {
-    isMicMode = !isMicMode;
-    var btn = document.getElementById('btnMic');
-    if (isMicMode) {
-        document.body.classList.add('mic-mode');
-        if(btn) btn.classList.add('mic-btn-active');
-        showToast("Mic Mode: ON");
+// Issue 2: Rename toggleMicMode -> toggleLyricsMode
+function toggleLyricsMode() {
+    isLyricsMode = !isLyricsMode;
+    var btn = document.getElementById('btnLyrics'); // Updated ID
+    if (isLyricsMode) {
+        document.body.classList.add('lyrics-mode');
+        if(btn) btn.classList.add('lyrics-btn-active');
+        showToast(t('msg_lyrics_mode_on'));
+        // Re-render to merge containers
+        if(currentSongId) {
+            var s = library.find(x => x.id === currentSongId);
+            renderPlayer(s);
+        }
     } else {
-        document.body.classList.remove('mic-mode');
-        if(btn) btn.classList.remove('mic-btn-active');
-        showToast("Mic Mode: OFF");
+        document.body.classList.remove('lyrics-mode');
+        if(btn) btn.classList.remove('lyrics-btn-active');
+        showToast(t('msg_lyrics_mode_off'));
+        // Re-render to split containers
+        if(currentSongId) {
+            var s = library.find(x => x.id === currentSongId);
+            renderPlayer(s);
+        }
     }
 }
 
@@ -403,7 +411,6 @@ function toggleAutoScroll() {
     }
 }
 
-/* --- QR LOGIC --- */
 function showQR() {
     if (!currentSongId) return;
     var song = library.find(s => s.id === currentSongId);
@@ -449,7 +456,6 @@ function closeScan() {
     } else { document.getElementById('scanModal').style.display = 'none'; }
 }
 
-/* --- TAG CHIPS & EVENTS --- */
 function updateHiddenTagInput() {
     var inp = document.getElementById('inpTags');
     if(inp) inp.value = editorTags.join(',');
@@ -457,7 +463,7 @@ function updateHiddenTagInput() {
 
 function renderTagChips() {
     var container = document.getElementById('tagChips');
-    if(!container) return; // Safety check
+    if(!container) return;
     container.innerHTML = "";
     editorTags.forEach(tag => {
         var span = document.createElement('span');
@@ -481,6 +487,81 @@ function addTag(tag) {
 function removeTag(tag) {
     editorTags = editorTags.filter(t => t !== tag);
     renderTagChips();
+}
+
+// Issue 5: Global Tag Delete Logic
+function deleteTagGlobally(e, tag) {
+    e.stopPropagation();
+    if (confirm(t('msg_confirm_tag_delete'))) {
+        // Remove from all songs in library
+        library.forEach(s => {
+            if(s.playlists) {
+                s.playlists = s.playlists.filter(t => t !== tag);
+            }
+        });
+        saveData(); // Save to localstorage
+        populateTags(); // Update UI filter dropdown
+        
+        // Update Editor view if currently open
+        if (document.getElementById('view-editor').classList.contains('active-view')) {
+             editorTags = editorTags.filter(t => t !== tag);
+             renderTagChips();
+             // Re-populate suggestions to remove the deleted tag from there too
+             var inp = document.getElementById('tagInput');
+             if(inp) handleTagInput(inp); 
+        } else {
+            // If in player mode, refresh list because filters might change
+            applyFilters();
+        }
+    }
+}
+
+function handleTagInput(inp) {
+    var val = inp.value.toLowerCase();
+    var sugg = document.getElementById('tagSuggestions');
+    if(!val && document.activeElement !== inp) { sugg.style.display = 'none'; return; }
+    
+    // Get all unique tags from library
+    var allTags = new Set();
+    library.forEach(s => s.playlists.forEach(t => allTags.add(t)));
+    
+    // Filter tags that match input AND are not already selected
+    var matches = Array.from(allTags).filter(t => t.toLowerCase().includes(val) && !editorTags.includes(t));
+
+    sugg.innerHTML = "";
+    if(matches.length > 0) {
+        matches.forEach(m => {
+            var div = document.createElement('div');
+            div.className = 'tag-suggestion-item';
+            
+            // Text part
+            var spanText = document.createElement('span');
+            spanText.innerText = m;
+            spanText.onclick = function() { addTag(m); };
+            
+            // Delete button (Global delete)
+            var btnDel = document.createElement('i');
+            btnDel.className = 'fas fa-trash-alt tag-delete-btn';
+            btnDel.onclick = function(e) { deleteTagGlobally(e, m); };
+
+            div.appendChild(spanText);
+            div.appendChild(btnDel);
+            
+            sugg.appendChild(div);
+        });
+        sugg.style.display = 'block';
+    } else {
+        sugg.style.display = 'none';
+    }
+}
+
+function handleTagKey(e) {
+    if(e.key === 'Enter') {
+        e.preventDefault();
+        addTag(e.target.value);
+    } else if (e.key === 'Backspace' && e.target.value === "" && editorTags.length > 0) {
+        removeTag(editorTags[editorTags.length-1]);
+    }
 }
 
 function changeTranspose(n) { state.t += n; renderPlayer(library.find(s=>s.id===currentSongId)); }
@@ -508,6 +589,15 @@ function setupEvents() {
             }; reader.readAsText(file); fileInput.value = '';
         });
     }
+    
+    // Ensure tag input closes suggestions on blur
+    document.addEventListener('click', function(e) {
+        var wrap = document.querySelector('.tag-wrapper');
+        var sugg = document.getElementById('tagSuggestions');
+        if (wrap && sugg && !wrap.contains(e.target) && !sugg.contains(e.target)) {
+            sugg.style.display = 'none';
+        }
+    });
 }
 function selectImport(type) { if(type==='file') document.getElementById('hiddenFileInput').click(); if(type==='qr') startScanner(); }
 

@@ -1,5 +1,5 @@
 /* =========================================
-   UI & APP LOGIC (js/ui.js) - FINAL FIXED
+   UI & APP LOGIC (js/ui.js) - FINAL CLEAN
    ========================================= */
 
 var currentFontScale = 1.0;
@@ -9,9 +9,12 @@ var scrollTimer = null;
 var editorTags = [];
 var html5QrCodeScanner = null;
 
+// --- INITIALIZATION ---
 window.onload = function() {
     loadSavedTheme();
-    applyTranslations(); 
+    if (typeof applyTranslations === 'function') {
+        applyTranslations(); 
+    }
     loadLibrary();
     setupEvents();
     setupGestures();
@@ -24,7 +27,6 @@ function loadLibrary() {
     var demoExists = library.some(s => s.id === "demo_instruction" || (s.id && s.id.includes("demo")));
     if (!demoExists && typeof DEFAULT_DATA !== 'undefined') {
         var demo = JSON.parse(JSON.stringify(DEFAULT_DATA[0]));
-        demo.title = t('demo_title'); demo.body = t('demo_body');
         library.unshift(ensureSongStructure(demo)); 
         saveData();
     }
@@ -115,11 +117,9 @@ function render(originalSong) {
                 target.appendChild(r);
             }
         });
-        // Spacer for blocks
         var sep = document.createElement('div'); sep.style.height = "15px"; target.appendChild(sep);
     });
     
-    // Update Control Values
     var valT = document.getElementById('val-t'); if(valT) valT.innerText = state.t;
     var valC = document.getElementById('val-c'); if(valC) valC.innerText = state.c;
 }
@@ -138,6 +138,7 @@ function renderSimple(t, s) {
     return h;
 }
 
+// --- SIDEBAR ---
 function renderSidebar() {
     var c = document.getElementById('songList'); 
     if(!c) return;
@@ -172,16 +173,13 @@ function renderSidebar() {
         if(s.id === currentSongId) li.classList.add('active');
         li.setAttribute('data-id', s.id);
         
-        var displayTitle = (s.id === 'demo_instruction') ? t('demo_title') : s.title;
-        var art = s.artist ? `<span style="font-weight:normal; opacity:0.7"> - ${s.artist}</span>` : "";
-
         var isInSet = liveSetlist.includes(s.id);
         var iconAction = (viewMode === 'setlist') 
             ? `<i class="fas fa-minus-circle song-action" onclick="toggleSetlistSong(event, '${s.id}')"></i>`
             : `<i class="${isInSet ? 'fas fa-check-circle in-setlist' : 'far fa-circle'} song-action" onclick="toggleSetlistSong(event, '${s.id}')"></i>`;
         var handle = (viewMode === 'setlist') ? `<i class="fas fa-grip-vertical song-handle"></i>` : "";
 
-        li.innerHTML = `${iconAction} <div style="flex:1;overflow:hidden;"><div class="song-title">${displayTitle}${art}</div><div class="song-meta">${s.key}</div></div> ${handle}`;
+        li.innerHTML = `${iconAction} <div style="flex:1;overflow:hidden;"><div class="song-title">${s.title}</div><div class="song-meta">${s.key}</div></div> ${handle}`;
         
         li.onclick = (e) => { 
             if(e.target.classList.contains('song-action') || e.target.classList.contains('song-handle')) return;
@@ -203,6 +201,7 @@ function renderSidebar() {
     }
 }
 
+// --- GLOBAL ACTIONS ---
 function switchToEditor() {
     var s = library.find(x => x.id === currentSongId);
     document.getElementById('view-player').classList.remove('active-view');
@@ -237,7 +236,7 @@ function exitEditor() {
     if (currentSongId) loadSong(currentSongId); 
     else if(library.length > 0) loadSong(library[0].id);
 }
-function saveEdit() { saveSong(); populateTags(); applyFilters(); }
+function saveEdit() { saveSong(); populateTags(); renderSidebar(); }
 
 function selectImport(type) { 
     if(type==='file') document.getElementById('hiddenFileInput').click(); 
@@ -261,17 +260,38 @@ function startScanner() {
       (decodedText) => {
           html5QrCodeScanner.stop().then(() => {
              document.getElementById('scanModal').style.display = 'none';
-             var song = processQRScan(decodedText); // Should now exist in logic.js
+             var song = processQRScan(decodedText); 
              if(!song) { try { song = JSON.parse(decodedText); } catch(e) { song=null; } }
              if (song) {
                  if (!library.some(ex => ex.id === song.id)) {
-                     library.push(ensureSongStructure(song)); saveData(); populateTags(); applyFilters(); 
+                     library.push(ensureSongStructure(song)); saveData(); populateTags(); renderSidebar(); 
                      loadSong(song.id); alert(t('msg_imported') + "1");
                  } else { alert(t('msg_no_import')); }
              } else { alert("Invalid QR"); }
           });
       })
     .catch(() => { alert(t('msg_scan_camera_error')); document.getElementById('scanModal').style.display = 'none'; });
+}
+
+function showQR() {
+    if (!currentSongId) return;
+    var song = library.find(s => s.id === currentSongId);
+    if (!song) return;
+    if (document.getElementById('view-editor').classList.contains('active-view')) {
+        song.title = document.getElementById('inpTitle').value;
+        song.artist = document.getElementById('inpArtist').value;
+        song.body = document.getElementById('inpBody').value;
+    }
+    // Απλή γεννήτρια QR (αν δεν υπάρχει βιβλιοθήκη, χρησιμοποιεί API)
+    var text = JSON.stringify(song);
+    var qrDiv = document.getElementById('qr-output');
+    qrDiv.innerHTML = "";
+    if(typeof QRCode !== 'undefined') {
+        new QRCode(qrDiv, { text: text, width: 250, height: 250 });
+    } else {
+        qrDiv.innerHTML = "QR Lib Missing";
+    }
+    document.getElementById('qrModal').style.display = 'flex';
 }
 
 function toggleLyricsMode() {
@@ -295,7 +315,7 @@ function changeCapo(n) { state.c += n; if(state.c<0)state.c=0; renderPlayer(libr
 function autoCapo() {
     let s = library.find(x => x.id === currentSongId);
     if(!s) return;
-    let best = calculateOptimalCapo(s.key, s.body); // Updated arguments
+    let best = calculateOptimalCapo(s.body);
     state.c = best;
     renderPlayer(s);
     showToast(t('msg_capo_found') + best);
@@ -392,6 +412,12 @@ function toggleLanguage() {
     currentLang = (currentLang === 'en') ? 'el' : 'en';
     localStorage.setItem('mnotes_lang', currentLang);
     applyTranslations(); renderSidebar(); populateTags();
+}
+function applyTranslations() {
+    var btn = document.getElementById('btnLang'); if(btn) btn.innerText = (currentLang === 'en') ? 'EN' : 'EL';
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        var key = el.getAttribute('data-i18n'); if(TRANSLATIONS[currentLang][key]) el.innerText = TRANSLATIONS[currentLang][key];
+    });
 }
 function showToast(m) { 
     var d = document.getElementById("toast"); 

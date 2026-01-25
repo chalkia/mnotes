@@ -3,10 +3,10 @@
    ========================================= */
 var hasUnsavedChanges = false;
 
-window.onload = function() {
+window.addEventListener('load', function() {
     loadSavedTheme();
     setupSidebarSwipe();
-   setupAdminSwitch();
+    setupAdminSwitch();
     checkPremiumUI();
     var savedData = localStorage.getItem('mnotes_data');
     if(savedData) {
@@ -22,6 +22,13 @@ window.onload = function() {
         if(!currentSongId) currentSongId = library[0].id;
         toViewer(true); 
     } else { toEditor(); }
+
+    // Συγχρονισμός με GitHub
+    setTimeout(() => {
+        syncWithGitHub();
+    }, 1000);
+});
+   
 // --- ΝΕΟ: Κλήση για συγχρονισμό με GitHub ---
     // Το καλούμε στο τέλος για να μην καθυστερήσει το άνοιγμα της εφαρμογής
     setTimeout(() => {

@@ -20,6 +20,8 @@ const TRANSLATIONS = {
         lbl_edit: "Edit",
         lbl_cancel: "Cancel",
         lbl_save: "Save",
+        lbl_lyrics_mode: "Lyrics",
+        lbl_smart_capo: "Smart Capo",
         
         ph_search: "Search title...",
         lbl_all_tags: "All",           // Updated
@@ -77,6 +79,8 @@ const TRANSLATIONS = {
         lbl_edit: "Επεξεργασία",
         lbl_cancel: "Άκυρο",
         lbl_save: "Αποθήκευση",
+        lbl_lyrics_mode: "Στίχοι",  // Προσθήκη για το κουμπί
+        lbl_smart_capo: "Smart Capo", // Προσθήκη για το label
         
         ph_search: "Αναζήτηση...",
         lbl_all_tags: "Όλα",            // Updated

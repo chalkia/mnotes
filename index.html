@@ -85,36 +85,46 @@
                 <div id="fixed-container" class="fixed-lyrics"></div>
                 <div id="scroll-container" class="scroll-lyrics" ondblclick="toggleAutoScroll()"></div>
 
-                <div class="player-footer">
-                    <div class="ctl-group mic-control">
-    <span class="ctl-label">Lyrics</span> <button id="btnLyrics" onclick="toggleLyricsMode()" style="background:none; border:1px solid var(--border-color); color:var(--text-main); width:40px; height:40px; border-radius:50%; font-size:1.1rem;">
-        <i class="fas fa-scroll"></i> </button>
-</div>
+      <div class="player-footer">
+    <div class="ctl-group mic-control">
+        <span class="ctl-label" data-i18n="lbl_lyrics_mode">Lyrics</span>
+        <button id="btnLyrics" onclick="toggleLyricsMode()" style="background:none; border:1px solid var(--border-color); color:var(--text-main); width:40px; height:40px; border-radius:50%; font-size:1.1rem; cursor:pointer;">
+            <i class="fas fa-scroll"></i>
+        </button>
+    </div>
 
-                    <div class="ctl-group">
-                        <span class="ctl-label" data-i18n="lbl_transpose">Transpose</span>
-                        <div class="stepper"><button onclick="changeTranspose(-1)">-</button><span id="val-t">0</span><button onclick="changeTranspose(1)">+</button></div>
-                    </div>
-                    
-                    <div class="ctl-group">
-                        <span class="ctl-label" data-i18n="lbl_capo">Capo</span>
-                        <div style="display:flex; gap:5px;"> 
-                            <div class="stepper">
-                                <button onclick="changeCapo(-1)">-</button>
-                                <span id="val-c">0</span>
-                                <button onclick="changeCapo(1)">+</button>
-                            </div>
-                            <button onclick="autoCapo()" style="background:var(--bg-panel); border:1px solid var(--accent); color:var(--accent); border-radius:50%; width:40px; height:40px; cursor:pointer; font-size:1rem;">
-                                <i class="fas fa-magic"></i>
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="ctl-group">
-                        <span class="ctl-label" data-i18n="lbl_edit">Edit</span>
-                        <button onclick="switchToEditor()" style="background:none; border:1px solid var(--border-color); color:var(--text-main); padding:8px 12px; border-radius:15px;"><i class="fas fa-pen"></i></button>
-                    </div>
-                </div>
+    <div class="ctl-group">
+        <span class="ctl-label" data-i18n="lbl_transpose">Transpose</span>
+        <div class="stepper">
+            <button onclick="changeTranspose(-1)">-</button>
+            <span id="val-t">0</span>
+            <button onclick="changeTranspose(1)">+</button>
+        </div>
+    </div>
+    
+    <div class="ctl-group">
+        <span class="ctl-label" data-i18n="lbl_capo">Capo</span>
+        <div class="stepper">
+            <button onclick="changeCapo(-1)">-</button>
+            <span id="val-c">0</span>
+            <button onclick="changeCapo(1)">+</button>
+        </div>
+    </div>
+
+    <div class="ctl-group">
+        <span class="ctl-label" data-i18n="lbl_smart_capo">Smart Capo</span>
+        <button onclick="autoCapo()" style="background:var(--bg-panel); border:1px solid var(--accent); color:var(--accent); border-radius:50%; width:40px; height:40px; cursor:pointer; font-size:1rem;">
+            <i class="fas fa-magic"></i>
+        </button>
+    </div>
+    
+    <div class="ctl-group">
+        <span class="ctl-label" data-i18n="lbl_edit">Edit</span>
+        <button onclick="switchToEditor()" style="background:none; border:1px solid var(--border-color); color:var(--text-main); width:40px; height:40px; border-radius:50%; cursor:pointer;">
+            <i class="fas fa-pen"></i>
+        </button>
+    </div>
+</div>
             </div>
 
             <div id="view-editor" class="view-section">
@@ -208,4 +218,5 @@
     </script>
 </body>
 </html>
+
 

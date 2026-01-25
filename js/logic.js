@@ -180,6 +180,15 @@ function calculateOptimalCapo(currentKey, songBody) {
     return bestCapo;
 }
 
+function convertBracketsToBang(text) {
+    if (!text) return "";
+    // Βρίσκει το [Chord] και το κάνει !Chord (με κενό μετά για ασφάλεια)
+    // Το regex [([^\]]+)] βρίσκει οτιδήποτε ανάμεσα σε [ και ]
+    return text.replace(/\[([^\]]+)\]/g, function(match, chord) {
+        return "!" + chord + " "; 
+    });
+}
+
 function saveSong() {
     var title = document.getElementById('inpTitle').value;
     var artist = document.getElementById('inpArtist').value;

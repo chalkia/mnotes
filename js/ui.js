@@ -441,6 +441,18 @@ function showQR() {
         document.getElementById('qrModal').style.display = 'flex';
     } else { alert("Error generating QR"); }
 }
+function generateQRFromEditor() {
+    const currentSong = {
+        title: document.getElementById('inpTitle').value,
+        artist: document.getElementById('inpArtist').value,
+        key: document.getElementById('inpKey').value,
+        body: document.getElementById('inpBody').value,
+        intro: document.getElementById('inpIntro').value,
+        inter: document.getElementById('inpInter').value,
+        tags: document.getElementById('inpTags').value
+    };
+    showQR(currentSong);
+}
 
 function startScanner() {
     document.getElementById('importChoiceModal').style.display = 'none';

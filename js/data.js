@@ -22,6 +22,8 @@ const TRANSLATIONS = {
         lbl_save: "Save",
         lbl_lyrics_mode: "Lyrics",
         lbl_smart_capo: "Smart Capo",
+        tab_library: "Library",
+        tab_setlist: "Setlist",
         
         ph_search: "Search title...",
         lbl_all_tags: "All",           // Updated
@@ -81,7 +83,9 @@ const TRANSLATIONS = {
         lbl_save: "Αποθήκευση",
         lbl_lyrics_mode: "Στίχοι",  // Προσθήκη για το κουμπί
         lbl_smart_capo: "Smart Capo", // Προσθήκη για το label
-        
+        tab_library: "Βιβλιοθήκη",
+        tab_setlist: "Προσωρινή Λίστα",
+            
         ph_search: "Αναζήτηση...",
         lbl_all_tags: "Όλα",            // Updated
         lbl_no_demo: "Όλα εκτός Demo",  // New

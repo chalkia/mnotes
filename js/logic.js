@@ -110,35 +110,39 @@ function splitSongBody(body) {
     return { fixed: fixedBlocks.join("\n\n"), scroll: scrollBlocks.join("\n\n") };
 }
 
-// --- CASE SENSITIVE TRANSPOSE ---
 function getNote(note, semitones) {
     if (!note) return "";
     
-    // Έλεγχος αν η ρίζα είναι κεφαλαία ή μικρή
-    var firstChar = note.charAt(0);
-    var isLowerCase = (firstChar === firstChar.toLowerCase() && firstChar !== firstChar.toUpperCase());
-    
-    // Για τον υπολογισμό, μετατρέπουμε σε κεφαλαίο
-    var noteProper = firstChar.toUpperCase() + note.slice(1);
+    // Αφαίρεση του ! για τον υπολογισμό
+    let isTagged = note.startsWith('!');
+    let workingNote = isTagged ? note.substring(1) : note;
 
-    var match = noteProper.match(/^([A-G][#b]?)(.*)$/);
-    if (!match) return note; 
-    
-    var root = match[1];
-    var suffix = match[2];
-    
-    var idx = NOTES.indexOf(root);
-    if (idx === -1) idx = NOTES_FLAT.indexOf(root);
-    if (idx === -1) return note;
-    
-    var newIdx = (idx + semitones + 12000) % 12;
-    var newRoot = NOTES[newIdx];
+    // Εντοπισμός της ρίζας (π.χ. "A#") και του υπόλοιπου κειμένου (π.χ. " χιτζάζ")
+    // Το regex πλέον πιάνει τη νότα αλλά αφήνει το suffix ανέπαφο
+    let match = workingNote.match(/^([A-Ga-g][#b]?)(.*)$/);
+    if (!match) return workingNote; 
 
-    // Αν ήταν μικρό, το ξανακάνουμε μικρό
-    if (isLowerCase) {
+    let root = match[1];
+    let suffix = match[2]; // Αυτό το κομμάτι θα μείνει ως έχει (π.χ. " χιτζάζ")
+
+    // Μετατροπή μόνο της ρίζας σε κεφαλαία για την αναζήτηση στον πίνακα NOTES
+    let rootUpper = root.toUpperCase().replace('Α','A').replace('Β','B').replace('Ε','E');
+    
+    let idx = NOTES.indexOf(rootUpper);
+    if (idx === -1) idx = NOTES_FLAT.indexOf(rootUpper);
+    
+    if (idx === -1) return workingNote;
+
+    // Υπολογισμός νέας νότας
+    let newIdx = (idx + semitones + 12000) % 12;
+    let newRoot = NOTES[newIdx];
+
+    // Αν η αρχική νότα ήταν μικρό γράμμα (π.χ. "a"), κάνε και τη νέα μικρό
+    if (root === root.toLowerCase()) {
         newRoot = newRoot.toLowerCase();
     }
 
+    // Επιστροφή της νέας νότας + το ΑΡΧΙΚΟ suffix χωρίς καμία αλλαγή
     return newRoot + suffix;
 }
 

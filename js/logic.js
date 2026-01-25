@@ -198,7 +198,10 @@ function saveSong() {
     var intro = document.getElementById('inpIntro').value;
     var interlude = document.getElementById('inpInter').value;
     var notes = document.getElementById('inpNotes').value;
-    var body = document.getElementById('inpBody').value;
+    
+    // ΕΔΩ ΓΙΝΕΤΑΙ Η ΜΕΤΑΤΡΟΠΗ
+    var rawBody = document.getElementById('inpBody').value;
+    var body = convertBracketsToBang(rawBody); 
 
     if(!title || !body) { alert(t('msg_title_body_req')); return; }
     var tagsArray = tagsInput.split(',').map(t => t.trim()).filter(t => t !== "");

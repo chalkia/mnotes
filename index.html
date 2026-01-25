@@ -53,13 +53,18 @@
             <ul id="songList" class="song-list"></ul>
             
             <div style="padding:10px; border-top:1px solid var(--border-color); display:flex; gap:5px;">
-                <button onclick="document.getElementById('importChoiceModal').style.display='flex'" style="flex:1; padding:10px; background:var(--bg-panel); color:var(--text-muted); border:none; cursor:pointer;">
-                    <i class="fas fa-file-import"></i> <span data-i18n="btn_import">Import</span>
-                </button>
-                <button onclick="clearLibrary()" style="width:40px; background:var(--bg-panel); color:var(--danger); border:none; cursor:pointer;">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </div>
+    <button onclick="document.getElementById('importChoiceModal').style.display='flex'" style="flex:1; padding:10px; background:var(--bg-panel); color:var(--text-muted); border:none; cursor:pointer;">
+        <i class="fas fa-file-import"></i> <span data-i18n="btn_import">Import</span>
+    </button>
+    
+    <button onclick="exportJSON()" style="width:40px; background:var(--bg-panel); color:var(--accent); border:none; cursor:pointer;" title="Export .mnote">
+        <i class="fas fa-file-export"></i>
+    </button>
+
+    <button onclick="clearLibrary()" style="width:40px; background:var(--bg-panel); color:var(--danger); border:none; cursor:pointer;">
+        <i class="fas fa-trash"></i>
+    </button>
+</div>
         </aside>
 
         <main class="main-content" id="mainZone">
@@ -218,5 +223,6 @@
     </script>
 </body>
 </html>
+
 
 

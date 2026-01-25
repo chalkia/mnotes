@@ -241,36 +241,51 @@ function loadSong(id) {
 }
 
 function renderPlayer(s) {
+    // 1. Βασικές Πληροφορίες & Δυναμική Τονικότητα
     document.getElementById('p-title').innerText = s.title;
     document.getElementById('p-artist').innerText = s.artist || ""; 
-    document.getElementById('p-key').innerText = getNote(s.key, state.t);
+    
+    // Εδώ χρησιμοποιούμε τη νέα getNote για να αλλάζει η τονικότητα με το Transpose
+    // και να καθαρίζει το "!" αν υπάρχει στην αρχή.
+    document.getElementById('p-key').innerText = getNote(s.key || "-", state.t);
 
+    // 2. Διαχείριση Header Actions (Theme & Notes)
     var headerAct = document.getElementById('header-actions');
     var btnHtml = `<button onclick="cycleTheme()" style="background:none; border:none; color:var(--text-muted); cursor:pointer;"><i class="fas fa-adjust"></i></button>`;
+    
     if (s.notes && s.notes.trim() !== "") {
         btnHtml = `<button onclick="toggleNotes()" style="margin-right:15px; background:none; border:none; color:var(--accent); cursor:pointer;"><i class="fas fa-sticky-note"></i></button>` + btnHtml;
         document.getElementById('notes-area').innerText = s.notes;
         document.getElementById('notes-container').style.display = 'none';
-    } else { document.getElementById('notes-container').style.display = 'none'; }
+    } else { 
+        document.getElementById('notes-container').style.display = 'none';
+    }
     headerAct.innerHTML = btnHtml;
 
+    // 3. Intro & Interlude (Πιάνουν όλο το πλάτος με βάση το νέο CSS)
     var infoHtml = "";
-    if(s.intro) infoHtml += `<div class="info-row"><span class="meta-label" data-i18n="lbl_intro">${t('lbl_intro')}</span><span>${renderChordsLine(s.intro)}</span></div>`;
-    if(s.interlude) infoHtml += `<div class="info-row"><span class="meta-label" data-i18n="lbl_inter">${t('lbl_inter')}</span><span>${renderChordsLine(s.interlude)}</span></div>`;
+    if(s.intro) {
+        infoHtml += `<div class="info-row"><span class="meta-label" data-i18n="lbl_intro">${t('lbl_intro')}</span><span>${renderChordsLine(s.intro)}</span></div>`;
+    }
+    if(s.interlude) {
+        infoHtml += `<div class="info-row"><span class="meta-label" data-i18n="lbl_inter">${t('lbl_inter')}</span><span>${renderChordsLine(s.interlude)}</span></div>`;
+    }
     document.querySelector('.info-bar').innerHTML = infoHtml;
 
+    // 4. Ενημέρωση των ενδείξεων στο Footer
     document.getElementById('val-t').innerText = (state.t > 0 ? "+" : "") + state.t;
     document.getElementById('val-c').innerText = state.c;
 
+    // 5. Διαχωρισμός και Rendering Στίχων/Συγχορδιών
     var split = splitSongBody(s.body || "");
     
-    // Issue 3: In Lyrics Mode, don't split. Put everything in scroll container.
     if (isLyricsMode) {
-        document.getElementById('fixed-container').innerHTML = ""; // Clear fixed
-        // Join fixed + scroll part
+        // Σε Lyrics Mode (Στίχοι), όλα μπαίνουν στο scroll container
+        document.getElementById('fixed-container').innerHTML = "";
         var fullText = split.fixed + "\n\n" + split.scroll;
         renderArea('scroll-container', fullText.trim());
     } else {
+        // Κανονική λειτουργία: Σταθερό πάνω μέρος και κυλιόμενο κάτω
         renderArea('fixed-container', split.fixed);
         renderArea('scroll-container', split.scroll);
     }

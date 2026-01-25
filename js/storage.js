@@ -47,6 +47,11 @@ function importJSON(input) {
             if(Array.isArray(imported)) {
                 // Merge logic: Προσθήκη νέων ή ενημέρωση υπαρχόντων
                 imported.forEach(song => {
+                    // Μετατροπή των αγκυλών στο σώμα του τραγουδιού πριν την επεξεργασία
+                    if (song.body) {
+                        song.body = convertBracketsToBang(song.body);
+                    }
+                    
                     var safeSong = ensureSongStructure(song);
                     var idx = library.findIndex(x => x.id === safeSong.id);
                     if(idx !== -1) {
@@ -57,6 +62,9 @@ function importJSON(input) {
                 });
             } else {
                 // Single song import
+                if (imported.body) {
+                    imported.body = convertBracketsToBang(imported.body);
+                }
                 var safeSong = ensureSongStructure(imported);
                 library.push(safeSong);
             }

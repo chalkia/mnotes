@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="el">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -7,35 +7,29 @@
     
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="icon-192.png">
-    <link rel="apple-touch-icon" href="icon-192.png">
     <meta name="theme-color" content="#121212">
-
+    <link rel="apple-touch-icon" href="icon-192.png">
+    
     <link rel="stylesheet" href="fa/css/all.min.css">
     <link rel="stylesheet" href="style.css">
     
+    <script src="js/sortable.min.js"></script>
     <script src="js/qrcodegen.js"></script>
     <script src="js/html5-qrcode.min.js"></script>
-    <script src="js/sortable.min.js"></script>
 
     <script src="js/data.js"></script>
     <script src="js/logic.js"></script>
     <script src="js/ui.js"></script>
 </head>
 <body class="theme-dark">
-
     <button id="btnMenu" class="menu-btn"><i class="fas fa-bars"></i></button>
 
     <div class="app-layout">
         
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
-                <div class="brand">
-                    <i class="fas fa-music"></i> mNotes 
-                    <span class="badge" id="songCount">0</span>
-                </div>
-                <button onclick="createNewSong()" style="background:none; border:none; color:var(--text-main); cursor:pointer; font-size:1.1rem;">
-                    <i class="fas fa-plus"></i>
-                </button>
+                <span style="color:var(--text-main); font-weight:bold; font-size:1.2rem;">mNotes <span id="songCount" style="font-size:0.8rem; opacity:0.6;">0</span></span>
+                <button onclick="createNewSong()" style="background:none; border:none; color:var(--text-main); cursor:pointer;"><i class="fas fa-plus"></i></button>
             </div>
             
             <div class="sidebar-tabs">
@@ -44,23 +38,21 @@
             </div>
 
             <div class="sidebar-search">
-                <input id="searchInp" type="text" data-i18n-ph="ph_search" placeholder="Search title..." oninput="applyFilters()">
+                <input id="searchInp" type="text" data-i18n-ph="ph_search" placeholder="Search..." oninput="applyFilters()">
                 <select id="tagFilter" onchange="applyFilters()">
                     <option value="">All Tags</option>
                 </select>
             </div>
-
+            
             <div style="padding:10px; border-bottom:1px solid var(--border-color); text-align:center;">
-                <button id="btnLang" onclick="toggleLanguage()" style="background:var(--bg-panel); color:var(--text-main); border:1px solid var(--border-color); padding:4px 12px; border-radius:12px; cursor:pointer; font-size:0.8rem; font-weight:bold;">
-                    EN
+                <button id="btnLang" onclick="toggleLanguage()" style="background:var(--bg-panel); color:var(--text-main); border:1px solid var(--border-color); padding:5px 15px; border-radius:15px; cursor:pointer; font-size:0.9rem;">
+                    <i class="fas fa-globe"></i> EN
                 </button>
             </div>
 
-            <div id="playlistContainer" class="playlist-container">
-                <ul id="songList" class="song-list"></ul>
-            </div>
+            <ul id="songList" class="song-list"></ul>
             
-            <div style="padding:10px; border-top:1px solid var(--border-color); display:flex; gap:5px; margin-top:auto;">
+            <div style="padding:10px; border-top:1px solid var(--border-color); display:flex; gap:5px;">
                 <button onclick="document.getElementById('importChoiceModal').style.display='flex'" style="flex:1; padding:10px; background:var(--bg-panel); color:var(--text-muted); border:none; cursor:pointer;">
                     <i class="fas fa-file-import"></i> <span data-i18n="btn_import">Import</span>
                 </button>
@@ -73,7 +65,6 @@
         <main class="main-content" id="mainZone">
             
             <div id="view-player" class="view-section active-view">
-                
                 <div class="player-header">
                     <div class="header-row">
                         <div style="display:flex; flex-direction:column; overflow:hidden;">
@@ -82,42 +73,29 @@
                         </div>
                         <div style="display:flex; align-items:center; gap:10px;">
                             <span id="p-key" class="key-badge">-</span>
-                            <button onclick="cycleTheme()" style="background:none; border:none; color:var(--text-muted); cursor:pointer;">
-                                <i class="fas fa-adjust"></i>
-                            </button>
-                            <button id="btnToggleNotes" onclick="toggleNotes()" style="background:none; border:none; color:var(--accent); cursor:pointer; display:none;">
-                                <i class="fas fa-sticky-note"></i>
-                            </button>
                             <div id="header-actions"></div>
                         </div>
                     </div>
-
                     <div id="notes-container" class="notes-container">
                         <div id="notes-area" class="notes-text"></div>
                     </div>
-                    
                     <div class="info-bar"></div>
                 </div>
 
                 <div id="fixed-container" class="fixed-lyrics"></div>
-                <div id="scroll-container" class="scroll-lyrics"></div>
+                <div id="scroll-container" class="scroll-lyrics" ondblclick="toggleAutoScroll()"></div>
 
                 <div class="player-footer">
-                    
-                    <div class="ctl-group lyrics-control">
-                        <span class="ctl-label">Lyrics</span>
-                        <button id="btnLyrics" onclick="toggleLyricsMode()" style="background:none; border:1px solid var(--border-color); color:var(--text-main); width:40px; height:40px; border-radius:50%; font-size:1.1rem;">
-                            <i class="fas fa-scroll"></i>
+                    <div class="ctl-group mic-control">
+                        <span class="ctl-label">Mic</span>
+                        <button id="btnMic" onclick="toggleMicMode()" style="background:none; border:1px solid var(--border-color); color:var(--text-main); width:40px; height:40px; border-radius:50%; font-size:1.1rem;">
+                            <i class="fas fa-microphone"></i>
                         </button>
                     </div>
 
                     <div class="ctl-group">
                         <span class="ctl-label" data-i18n="lbl_transpose">Transpose</span>
-                        <div class="stepper">
-                            <button onclick="changeTranspose(-1)">-</button>
-                            <span id="val-t">0</span>
-                            <button onclick="changeTranspose(1)">+</button>
-                        </div>
+                        <div class="stepper"><button onclick="changeTranspose(-1)">-</button><span id="val-t">0</span><button onclick="changeTranspose(1)">+</button></div>
                     </div>
                     
                     <div class="ctl-group">
@@ -128,7 +106,7 @@
                                 <span id="val-c">0</span>
                                 <button onclick="changeCapo(1)">+</button>
                             </div>
-                            <button onclick="autoCapo()" style="background:var(--bg-panel); border:1px solid var(--accent); color:var(--accent); border-radius:50%; width:40px; height:40px; cursor:pointer; font-size:1rem;" title="Smart Capo">
+                            <button onclick="autoCapo()" style="background:var(--bg-panel); border:1px solid var(--accent); color:var(--accent); border-radius:50%; width:40px; height:40px; cursor:pointer; font-size:1rem;">
                                 <i class="fas fa-magic"></i>
                             </button>
                         </div>
@@ -136,9 +114,7 @@
                     
                     <div class="ctl-group">
                         <span class="ctl-label" data-i18n="lbl_edit">Edit</span>
-                        <button onclick="switchToEditor()" style="background:none; border:1px solid var(--border-color); color:var(--text-main); padding:8px 12px; border-radius:15px;">
-                            <i class="fas fa-pen"></i>
-                        </button>
+                        <button onclick="switchToEditor()" style="background:none; border:1px solid var(--border-color); color:var(--text-main); padding:8px 12px; border-radius:15px;"><i class="fas fa-pen"></i></button>
                     </div>
                 </div>
             </div>
@@ -150,17 +126,11 @@
                     </button>
                     
                     <div>
-                        <button onclick="deleteCurrentSong()" style="color:var(--danger); background:none; border:none; font-size:1.2rem; margin-right:15px;">
-                            <i class="fas fa-trash-alt"></i>
-                        </button>
-                        <button onclick="showQR()" style="color:var(--text-main); background:none; border:none; font-size:1.2rem;">
-                            <i class="fas fa-qrcode"></i>
-                        </button>
+                        <button onclick="deleteCurrentSong()" style="color:var(--danger); background:none; border:none; font-size:1.2rem; margin-right:15px;"><i class="fas fa-trash-alt"></i></button>
+                        <button onclick="showQR()" style="color:var(--text-main); background:none; border:none; font-size:1.2rem;"><i class="fas fa-qrcode"></i></button>
                     </div>
                     
-                    <button onclick="saveEdit()" style="color:var(--accent); background:none; border:none; font-weight:bold; font-size:1.1rem;" data-i18n="lbl_save">
-                        Save
-                    </button>
+                    <button onclick="saveEdit()" style="color:var(--accent); background:none; border:none; font-weight:bold; font-size:1.1rem;" data-i18n="lbl_save">Save</button>
                 </div>
                 
                 <div class="editor-body">

@@ -2,17 +2,12 @@
    CORE LOGIC & PARSING (js/logic.js)
    ========================================= */
 
-// --- SMART CAPO CONSTANTS (Απαραίτητα για τον αλγόριθμο) ---
-const OPEN_CHORDS = ["C", "A", "G", "E", "D", "Am", "Em", "Dm", "Cmaj7", "A7", "E7", "D7", "B7", "Fmaj7"];
-const HARD_CHORDS = ["C#", "D#", "F#", "G#", "A#", "Db", "Eb", "Gb", "Ab", "Bb", "B", "F"];
-
 function ensureSongStructure(song) {
     if (!song) song = {};
     if (!song.id) song.id = "s_" + Date.now();
     if (!song.title) song.title = "Untitled";
     if (!song.artist) song.artist = "";
     if (!song.key) song.key = "-";
-    // Δεν βάζουμε capo εδώ ως μόνιμο πεδίο
     if (!song.body) song.body = "";
     if (!song.intro) song.intro = "";
     if (!song.interlude) song.interlude = "";
@@ -56,7 +51,7 @@ function parseSongLogic(song) {
                     buffer = "";
                 }
 
-                // Έναρξη συγχορδίας
+                // Έναρξη συγχορδίας/νότας
                 i++; // Προσπερνάμε το '!'
                 var chordBuf = "";
                 var stopChord = false;
@@ -67,21 +62,21 @@ function parseSongLogic(song) {
                     // Κανόνες Τερματισμού:
                     var isBang = (c === '!');    // Νέο θαυμαστικό
                     var isSpace = (c === ' ');  // Κενό
-                    // Ελληνικοί χαρακτήρες
+                    // Ελληνικοί χαρακτήρες (και τονισμένοι)
                     var isGreek = (c >= '\u0370' && c <= '\u03FF') || (c >= '\u1F00' && c <= '\u1FFF');
 
                     if (isBang) {
                         i++; // Καταναλώνουμε το επόμενο '!'
                         stopChord = true;
                     } else if (isSpace || isGreek) {
-                        stopChord = true; 
+                        stopChord = true; // Σταματάμε εδώ (το γράμμα ανήκει στο επόμενο token)
                     } else {
                         chordBuf += c;
                         i++;
                     }
                 }
                 
-                // Αποθήκευση
+                // Αποθήκευση συγχορδίας (ακόμα κι αν είναι μικρή/νότα)
                 tokens.push({ c: chordBuf, t: "" });
 
             } else {
@@ -123,7 +118,7 @@ function getNote(note, semitones) {
     var firstChar = note.charAt(0);
     var isLowerCase = (firstChar === firstChar.toLowerCase() && firstChar !== firstChar.toUpperCase());
     
-    // Μετατροπή σε κεφαλαίο για υπολογισμό
+    // Για τον υπολογισμό, μετατρέπουμε σε κεφαλαίο
     var noteProper = firstChar.toUpperCase() + note.slice(1);
 
     var match = noteProper.match(/^([A-G][#b]?)(.*)$/);
@@ -139,7 +134,7 @@ function getNote(note, semitones) {
     var newIdx = (idx + semitones + 12000) % 12;
     var newRoot = NOTES[newIdx];
 
-    // Επαναφορά σε μικρό αν ήταν αρχικά
+    // Αν ήταν μικρό, το ξανακάνουμε μικρό
     if (isLowerCase) {
         newRoot = newRoot.toLowerCase();
     }
@@ -147,40 +142,35 @@ function getNote(note, semitones) {
     return newRoot + suffix;
 }
 
-// --- SMART CAPO ALGORITHM ---
-function calculateOptimalCapo(songBody) {
-    let chordsFound = new Set();
-    // Regex για εντοπισμό ακόρντων (χωρίς το !)
-    let tokens = songBody.split(/\s+/);
-    const chordPattern = /^[a-gA-G][#b]?(?:m|maj|dim|aug|sus|add|7|9|11|13)*$/;
+// SMART CAPO (Βελτιωμένο)
+function calculateOptimalCapo(currentKey, songBody) {
+    var chordsFound = new Set();
+    // Ψάχνουμε μόνο Κεφαλαία (Συγχορδίες) για το Capo, αγνοούμε τις νότες
+    var chordRegex = /!([A-G][#b]?)/g; 
+    var match;
+    while ((match = chordRegex.exec(songBody)) !== null) {
+        chordsFound.add(match[1]);
+    }
     
-    tokens.forEach(tk => {
-        let clean = tk.replace('!', '');
-        // Καθαρισμός σημείων στίξης
-        clean = clean.replace(/[.,;:]/g, '');
-        if(chordPattern.test(clean)) chordsFound.add(clean);
-    });
-
     if (chordsFound.size === 0) return 0;
+    var openChords = ["C", "A", "G", "E", "D", "Am", "Em", "Dm"];
+    var bestCapo = 0;
+    var maxScore = -1000;
 
-    let bestCapo = 0;
-    let maxScore = -1000;
-
-    for (let c = 0; c < 12; c++) {
-        let score = 0;
+    for (var c = 0; c < 12; c++) {
+        var score = 0;
         chordsFound.forEach(originalChord => {
-            let playedChord = getNote(originalChord, -c);
-            // Αφαίρεση μπάσων (π.χ. D/F# -> D)
-            let root = playedChord.split('/')[0];
+            // Εδώ θέλουμε πάντα το αποτέλεσμα σε Κεφαλαία για σύγκριση με Open Chords
+            var playedChord = getNote(originalChord, -c).charAt(0).toUpperCase() + getNote(originalChord, -c).slice(1);
             
-            if (OPEN_CHORDS.includes(root)) score += 2;
-            else if (HARD_CHORDS.includes(root)) score -= 2;
-            else if (root.includes("#") || root.includes("b")) score -= 1;
+            if (openChords.includes(playedChord)) {
+                score += 1;
+            } else if (playedChord.includes("#") || playedChord.includes("b")) {
+                score -= 0.5; 
+            }
         });
-
         if (score > maxScore) {
-            maxScore = score;
-            bestCapo = c;
+            maxScore = score; bestCapo = c;
         }
     }
     return bestCapo;
@@ -217,15 +207,7 @@ function saveSong() {
         }
         var finalSong = ensureSongStructure(newSongObj);
         finalSong.id = "s_" + Date.now(); 
-        
-        // Διατήρηση έξτρα πεδίων (αλλά όχι του capo)
-        for (var k in existingExtras) { 
-            if (!finalSong.hasOwnProperty(k)) finalSong[k] = existingExtras[k]; 
-        }
-        
-        // Σιγουρεύουμε ότι δεν σώζεται μόνιμα το Capo
-        if(finalSong.capo) delete finalSong.capo;
-
+        for (var k in existingExtras) { if (!finalSong.hasOwnProperty(k)) finalSong[k] = existingExtras[k]; }
         library.push(finalSong); currentSongId = finalSong.id;
     }
 

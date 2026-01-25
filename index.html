@@ -36,19 +36,7 @@
     </script>
 
     <button id="btnMenu" class="menu-btn"><i class="fas fa-bars"></i></button>
-    ```
-
-### Γιατί το κάναμε έτσι:
-1.  **`isMobile`**: Χρησιμοποιούμε το `window.innerWidth` για να ανιχνεύσουμε τη συσκευή.
-2.  **`className`**: Αντικαθιστούμε πλήρως οποιοδήποτε class υπήρχε πριν, ώστε να μην μπερδεύονται τα χρώματα.
-3.  **Άμεση Εκτέλεση**: Το script είναι μέσα σε παρενθέσεις `(function() { ... })();` (IIFE) για να εκτελεστεί ακαριαία.
-
-### Σχετικά με το Import from URL:
-Εφόσον αφαιρέσαμε το αυτόματο GitHub sync, αν θέλεις να κρατήσεις τη δυνατότητα **"Import from URL"** στο modal για να βάζεις εσύ χειροκίνητα κάποιο link, η συνάρτηση `importFromURL()` που σου έστειλα πριν θα λειτουργεί κανονικά, αρκεί να καλεί την `convertBracketsToBang` για να καθαρίζει το κείμενο.
-
-Η ώρα είναι 00:16.
-
-Θέλεις να σου στείλω τον κώδικα για την `importFromURL` προσαρμοσμένο χωρίς το GitHub, ώστε να τον προσθέσεις στο `ui.js`;
+    
     <button id="btnMenu" class="menu-btn"><i class="fas fa-bars"></i></button>
 
     <div class="app-layout">
@@ -251,6 +239,7 @@
     </script>
 </body>
 </html>
+
 
 
 

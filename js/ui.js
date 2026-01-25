@@ -426,23 +426,60 @@ function toggleAutoScroll() {
     }
 }
 
-function showQR() {
-    if (!currentSongId) return;
-    var song = library.find(s => s.id === currentSongId);
-    if (!song) return;
-    if (document.getElementById('view-editor').classList.contains('active-view')) {
-        song.title = document.getElementById('inpTitle').value;
-        song.artist = document.getElementById('inpArtist').value;
-        song.body = document.getElementById('inpBody').value;
+/* --- QR CODE FUNCTIONS --- */
+
+// 1. Η βασική συνάρτηση που χρησιμοποιεί τη βιβλιοθήκη του Kazuhiko Arima
+function generateQRForSong(songData) {
+    try {
+        const jsonStr = JSON.stringify(songData);
+        // Type 0 = auto size, 'L' = Low error correction
+        const qr = qrcode(0, 'L');
+        qr.addData(jsonStr);
+        qr.make();
+        //cellSize: 4, margin: 12
+        return qr.createImgTag(4, 12);
+    } catch (e) {
+        console.error("QR Error:", e);
+        return null;
     }
-    var imgTag = generateQRForSong(song);
-    if (imgTag) {
-        document.getElementById('qr-output').innerHTML = imgTag;
-        document.getElementById('qrModal').style.display = 'flex';
-    } else { alert("Error generating QR"); }
 }
+
+// 2. Η συνάρτηση που ανοίγει το Modal
+function showQR(songData) {
+    let dataToEncode = songData;
+    
+    // Αν καλεστεί χωρίς ορίσματα (από τον viewer), βρες το τρέχον τραγούδι
+    if (!dataToEncode && currentSongId) {
+        dataToEncode = library.find(s => s.id === currentSongId);
+    }
+
+    if (!dataToEncode) {
+        alert("No song data to share!");
+        return;
+    }
+
+    const imgTag = generateQRForSong(dataToEncode);
+    
+    if (imgTag) {
+        const container = document.getElementById('qr-output');
+        container.innerHTML = imgTag;
+        
+        // Responsive fix
+        const img = container.querySelector('img');
+        if (img) {
+            img.style.width = "100%";
+            img.style.height = "auto";
+        }
+        
+        document.getElementById('qrModal').style.display = 'flex';
+    } else {
+        alert("Error: Song data too large for QR.");
+    }
+}
+
+// 3. Η συνάρτηση για το κουμπί του Editor
 function generateQRFromEditor() {
-    const currentSong = {
+    const tempSong = {
         title: document.getElementById('inpTitle').value,
         artist: document.getElementById('inpArtist').value,
         key: document.getElementById('inpKey').value,
@@ -451,7 +488,7 @@ function generateQRFromEditor() {
         inter: document.getElementById('inpInter').value,
         tags: document.getElementById('inpTags').value
     };
-    showQR(currentSong);
+    showQR(tempSong);
 }
 
 function startScanner() {
@@ -626,7 +663,39 @@ function setupEvents() {
         }
     });
 }
-function selectImport(type) { if(type==='file') document.getElementById('hiddenFileInput').click(); if(type==='qr') startScanner(); }
+function selectImport(type) { 
+    if(type==='file') document.getElementById('hiddenFileInput').click(); 
+    if(type==='qr') startScanner(); 
+    if(type==='url') importFromURL(); // Προσθήκη αυτής της γραμμής
+}
+
+// Πρόσθεσε και αυτή τη συνάρτηση ακριβώς από κάτω
+async function importFromURL() {
+    const url = prompt("Enter the URL of the .mnote or .json file:");
+    if (!url) return;
+
+    try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error("Network error");
+        const imported = await response.json();
+        
+        // Χρησιμοποιούμε την importJSON του storage.js αλλά για object
+        const songs = Array.isArray(imported) ? imported : [imported];
+        songs.forEach(s => {
+            if (s.body) s.body = convertBracketsToBang(s.body);
+            const safe = ensureSongStructure(s);
+            const idx = library.findIndex(x => x.id === safe.id);
+            if(idx !== -1) library[idx] = safe;
+            else library.push(safe);
+        });
+
+        saveData(); populateTags(); applyFilters();
+        alert("Imported successfully!");
+        document.getElementById('importChoiceModal').style.display='none';
+    } catch (err) {
+        alert("Failed to import from URL. Check CORS or link.");
+    }
+}
 
 function setupGestures() {
     var area = document.getElementById('mainZone');

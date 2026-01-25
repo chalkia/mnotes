@@ -16,13 +16,13 @@ var liveSetlist = JSON.parse(localStorage.getItem('mnotes_setlist')) || [];
 var viewMode = 'library'; // 'library' or 'setlist'
 var isLyricsMode = false; // Renamed from isMicMode
 
-window.onload = function() {
+window.addEventListener('load', function() {
     loadSavedTheme();
     applyTranslations(); 
     loadLibrary();
     setupEvents();
     setupGestures();
-};
+});
 
 function toggleLanguage() {
     currentLang = (currentLang === 'en') ? 'el' : 'en';

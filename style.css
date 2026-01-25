@@ -70,11 +70,12 @@ body {
 .notes-container { background: var(--input-bg); border-left: 3px solid var(--accent); padding: 5px; margin-bottom: 5px; display: none; }
 .notes-text { font-size: 0.9rem; color: var(--text-main); font-style: italic; }
 
-.info-bar { display: flex; gap: 10px; margin-top: 2px; flex-wrap: wrap; }
-.info-row { background: rgba(0,0,0,0.2); padding: 4px 8px; border-radius: 4px; font-size: 0.9rem; display: flex; align-items: center; border: 1px solid var(--border-color); }
+.info-bar { display: flex; gap: 8px; margin-top: 5px; flex-direction: column; width: 100%; }
+.info-row { background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 4px; font-size: 1.1rem; display: flex; align-items: center; border: 1px solid var(--border-color);
+           justify-content: space-between; /* Σπρώχνει το Label αριστερά και τις Συγχορδίες δεξιά */ width: 100%; /* Πιάνει όλο το πλάτος */ box-sizing: border-box; }
 .meta-label { color: var(--text-muted); font-weight: 300; margin-right: 5px; font-size: 0.8rem; }
 .info-chord { color: var(--chord-color); font-weight: bold; font-family: monospace; }
-.chord-highlight { color: var(--chord-color); font-weight: bold; font-family: monospace; margin: 0 3px; }
+.chord-highlight { color: var(--chord-color); font-weight: bold; font-family: monospace; margin: 0 5px; font-size: 1.2rem;}
 
 /* --- LYRICS & SPACING --- */
 /* Issue 4: Dynamic height for fixed container (up to 75vh), shrinkable */
@@ -186,5 +187,6 @@ body.lyrics-mode .fixed-lyrics { border-bottom: none; background: transparent; }
 .song-action { padding: 10px; color: var(--text-muted); cursor: pointer; font-size: 1rem; margin-right: 5px; }
 .song-action:hover { color: var(--accent); }
 .in-setlist { color: var(--accent); }
+
 
 

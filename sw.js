@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mNotes-v2.2'; // Άλλαξε το v για να γίνει refresh στη μνήμη
+const CACHE_NAME = 'mNotes-v2.5'; // Άλλαξε το v για να γίνει refresh στη μνήμη
 const ASSETS = [
   './',
   './index.html',
@@ -33,6 +33,7 @@ self.addEventListener('activate', (event) => {
     ))
   );
 });
+
 
 
 

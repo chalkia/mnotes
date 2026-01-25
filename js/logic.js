@@ -2,6 +2,8 @@
    CORE LOGIC & PARSING (js/logic.js)
    ========================================= */
 
+// ΣΗΜΕΙΩΣΗ: Τα OPEN_CHORDS και HARD_CHORDS πρέπει να υπάρχουν στο data.js
+
 function ensureSongStructure(song) {
     if (!song) song = {};
     if (!song.id) song.id = "s_" + Date.now();
@@ -45,47 +47,37 @@ function parseSongLogic(song) {
             var char = line[i];
 
             if (char === '!') {
-                // Αν υπάρχει κείμενο πριν, αποθήκευσέ το
                 if (buffer.length > 0) {
                     tokens.push({ c: "", t: buffer });
                     buffer = "";
                 }
-
-                // Έναρξη συγχορδίας/νότας
-                i++; // Προσπερνάμε το '!'
+                i++; // Skip '!'
                 var chordBuf = "";
                 var stopChord = false;
 
                 while (i < line.length && !stopChord) {
                     var c = line[i];
-                    
-                    // Κανόνες Τερματισμού:
-                    var isBang = (c === '!');    // Νέο θαυμαστικό
-                    var isSpace = (c === ' ');  // Κενό
-                    // Ελληνικοί χαρακτήρες (και τονισμένοι)
+                    var isBang = (c === '!');
+                    var isSpace = (c === ' ');
                     var isGreek = (c >= '\u0370' && c <= '\u03FF') || (c >= '\u1F00' && c <= '\u1FFF');
 
                     if (isBang) {
-                        i++; // Καταναλώνουμε το επόμενο '!'
+                        i++; 
                         stopChord = true;
                     } else if (isSpace || isGreek) {
-                        stopChord = true; // Σταματάμε εδώ (το γράμμα ανήκει στο επόμενο token)
+                        stopChord = true; 
                     } else {
                         chordBuf += c;
                         i++;
                     }
                 }
-                
-                // Αποθήκευση συγχορδίας (ακόμα κι αν είναι μικρή/νότα)
                 tokens.push({ c: chordBuf, t: "" });
-
             } else {
                 buffer += char;
                 i++;
             }
         }
         
-        // Τέλος γραμμής: Αν έμεινε buffer
         if (buffer.length > 0) {
             if (tokens.length > 0 && tokens[tokens.length-1].t === "") {
                 tokens[tokens.length-1].t = buffer;
@@ -93,7 +85,6 @@ function parseSongLogic(song) {
                 tokens.push({ c: "", t: buffer });
             }
         }
-        
         state.parsedChords.push({ type: 'mixed', tokens: tokens });
     });
 }
@@ -113,14 +104,10 @@ function splitSongBody(body) {
 // --- CASE SENSITIVE TRANSPOSE ---
 function getNote(note, semitones) {
     if (!note) return "";
-    
-    // Έλεγχος αν η ρίζα είναι κεφαλαία ή μικρή
     var firstChar = note.charAt(0);
     var isLowerCase = (firstChar === firstChar.toLowerCase() && firstChar !== firstChar.toUpperCase());
     
-    // Για τον υπολογισμό, μετατρέπουμε σε κεφαλαίο
     var noteProper = firstChar.toUpperCase() + note.slice(1);
-
     var match = noteProper.match(/^([A-G][#b]?)(.*)$/);
     if (!match) return note; 
     
@@ -134,48 +121,47 @@ function getNote(note, semitones) {
     var newIdx = (idx + semitones + 12000) % 12;
     var newRoot = NOTES[newIdx];
 
-    // Αν ήταν μικρό, το ξανακάνουμε μικρό
-    if (isLowerCase) {
-        newRoot = newRoot.toLowerCase();
-    }
-
+    if (isLowerCase) newRoot = newRoot.toLowerCase();
     return newRoot + suffix;
 }
 
-// SMART CAPO (Βελτιωμένο)
-function calculateOptimalCapo(currentKey, songBody) {
-    var chordsFound = new Set();
-    // Ψάχνουμε μόνο Κεφαλαία (Συγχορδίες) για το Capo, αγνοούμε τις νότες
-    var chordRegex = /!([A-G][#b]?)/g; 
-    var match;
-    while ((match = chordRegex.exec(songBody)) !== null) {
-        chordsFound.add(match[1]);
-    }
+// --- SMART CAPO ALGORITHM ---
+function calculateOptimalCapo(songBody) {
+    // Χρησιμοποιεί τα OPEN_CHORDS / HARD_CHORDS από το data.js
+    let chordsFound = new Set();
+    let tokens = songBody.split(/\s+/);
+    const chordPattern = /^[a-gA-G][#b]?(?:m|maj|dim|aug|sus|add|7|9|11|13)*$/;
     
-    if (chordsFound.size === 0) return 0;
-    var openChords = ["C", "A", "G", "E", "D", "Am", "Em", "Dm"];
-    var bestCapo = 0;
-    var maxScore = -1000;
+    tokens.forEach(tk => {
+        let clean = tk.replace('!', '').replace(/[.,;:]/g, '');
+        if(chordPattern.test(clean)) chordsFound.add(clean);
+    });
 
-    for (var c = 0; c < 12; c++) {
-        var score = 0;
+    if (chordsFound.size === 0) return 0;
+
+    let bestCapo = 0;
+    let maxScore = -1000;
+
+    for (let c = 0; c < 12; c++) {
+        let score = 0;
         chordsFound.forEach(originalChord => {
-            // Εδώ θέλουμε πάντα το αποτέλεσμα σε Κεφαλαία για σύγκριση με Open Chords
-            var playedChord = getNote(originalChord, -c).charAt(0).toUpperCase() + getNote(originalChord, -c).slice(1);
+            let playedChord = getNote(originalChord, -c);
+            let root = playedChord.split('/')[0];
             
-            if (openChords.includes(playedChord)) {
-                score += 1;
-            } else if (playedChord.includes("#") || playedChord.includes("b")) {
-                score -= 0.5; 
-            }
+            if (typeof OPEN_CHORDS !== 'undefined' && OPEN_CHORDS.includes(root)) score += 2;
+            else if (typeof HARD_CHORDS !== 'undefined' && HARD_CHORDS.includes(root)) score -= 2;
+            else if (root.includes("#") || root.includes("b")) score -= 1;
         });
+
         if (score > maxScore) {
-            maxScore = score; bestCapo = c;
+            maxScore = score;
+            bestCapo = c;
         }
     }
     return bestCapo;
 }
 
+// --- SAVE / DELETE / IMPORT ---
 function saveSong() {
     var title = document.getElementById('inpTitle').value;
     var artist = document.getElementById('inpArtist').value;
@@ -208,6 +194,8 @@ function saveSong() {
         var finalSong = ensureSongStructure(newSongObj);
         finalSong.id = "s_" + Date.now(); 
         for (var k in existingExtras) { if (!finalSong.hasOwnProperty(k)) finalSong[k] = existingExtras[k]; }
+        // Αφαιρούμε το capo για να μην σωθεί μόνιμα
+        if(finalSong.capo) delete finalSong.capo;
         library.push(finalSong); currentSongId = finalSong.id;
     }
 
@@ -230,4 +218,19 @@ function deleteCurrentSong() {
             if(typeof renderSidebar === 'function') renderSidebar();
         }
     }
+}
+
+// --- QR Helper (Missing in your version) ---
+function processQRScan(decodedText) {
+    try {
+        let song = JSON.parse(decodedText);
+        // Υποστήριξη compressed format (t, b, k)
+        if (song.t && song.b) {
+            return {
+                title: song.t, key: song.k || "", body: song.b,
+                intro: song.i || "", interlude: song.n || ""
+            };
+        }
+        return song;
+    } catch(e) { return null; }
 }

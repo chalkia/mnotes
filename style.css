@@ -103,7 +103,7 @@ body {
 .ctl-label { font-size: 0.65rem; color: var(--text-muted); margin-bottom: 3px; text-transform: uppercase; }
 .stepper { display: flex; align-items: center; background: var(--input-bg); border-radius: 15px; padding: 1px; border: 1px solid var(--border-color); }
 .stepper button { background: none; border: none; color: var(--text-main); width: 35px; height: 35px; font-size: 18px; cursor: pointer; }
-.stepper span { min-width: 25px; text-align: center; font-weight: bold; font-size: 1rem; color: var(--accent); }
+.stepper span { min-width: 35px; text-align: center; font-weight: bold; font-size: 1.1rem; color: var(--accent);align-items: center; justify-content: center; line-height: 1; }
 
 /* TOAST */
 #toast {
@@ -186,4 +186,5 @@ body.lyrics-mode .fixed-lyrics { border-bottom: none; background: transparent; }
 .song-action { padding: 10px; color: var(--text-muted); cursor: pointer; font-size: 1rem; margin-right: 5px; }
 .song-action:hover { color: var(--accent); }
 .in-setlist { color: var(--accent); }
+
 

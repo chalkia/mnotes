@@ -86,10 +86,13 @@ function chooseImportMethod() {
 }
 // Εξαγωγή σε αρχείο (Download)
 function exportJSON() {
-    var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(library, null, 2));
-    var downloadAnchorNode = document.createElement('a');
+    // Χρήση const για δεδομένα που δεν αλλάζουν εντός της συνάρτησης
+    const dataStr = "data:application/octet-stream;charset=utf-8," + encodeURIComponent(JSON.stringify(library, null, 2));
+    const downloadAnchorNode = document.createElement('a');
+    
     downloadAnchorNode.setAttribute("href", dataStr);
     downloadAnchorNode.setAttribute("download", "mnotes_backup_" + new Date().toISOString().slice(0,10) + ".mnote");
+    
     document.body.appendChild(downloadAnchorNode);
     downloadAnchorNode.click();
     downloadAnchorNode.remove();

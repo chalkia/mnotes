@@ -118,15 +118,34 @@ function applyFilters() { renderSidebar(); }
 
 function switchSidebarTab(mode) {
     viewMode = mode;
+    
+    // 1. Αλλαγή χρωμάτων στα κουμπιά των Tabs
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.getElementById('tab-' + mode).classList.add('active');
     
+    // 2. Διαχείριση της μπάρας αναζήτησης (Κρύψιμο στο Setlist)
     var searchBox = document.querySelector('.sidebar-search');
     if (mode === 'setlist') {
         if(searchBox) searchBox.style.display = 'none';
     } else {
         if(searchBox) searchBox.style.display = 'flex';
     }
+
+    // 3. ΔΥΝΑΜΙΚΗ ΕΜΦΑΝΙΣΗ ΚΟΥΜΠΙΩΝ (Η αλλαγή που ζήτησες)
+    var btnShare = document.getElementById('btnShareSetlist');
+    var btnAdd = document.getElementById('btnAddSong');
+
+    if (mode === 'setlist') {
+        // Αν είμαστε στο Setlist: Δείξε το QR, Κρύψε την Προσθήκη (προαιρετικά)
+        if(btnShare) btnShare.style.display = 'inline-block';
+        if(btnAdd) btnAdd.style.display = 'none'; // Αν θες να κρύβεται το "+" όταν βλέπεις τη λίστα
+    } else {
+        // Αν είμαστε στη Library: Κρύψε το QR, Δείξε την Προσθήκη
+        if(btnShare) btnShare.style.display = 'none';
+        if(btnAdd) btnAdd.style.display = 'inline-block';
+    }
+
+    // 4. Ενημέρωση της λίστας
     renderSidebar();
 }
 

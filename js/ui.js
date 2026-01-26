@@ -425,18 +425,54 @@ function toggleAutoScroll() {
         }, scrollSpeedMs);
     }
 }
+/* --- QR, URL & SETLIST SHARING --- */
 
-/* --- QR CODE FUNCTIONS --- */
+// 1. Ο Scanner: Πλέον στέλνει τα δεδομένα στην processImportedData
+function startScanner() {
+    document.getElementById('importChoiceModal').style.display = 'none';
+    document.getElementById('scanModal').style.display = 'flex';
+    
+    if (html5QrCodeScanner) html5QrCodeScanner.clear().catch(e=>{});
+    
+    var html5QrCode = new Html5Qrcode("reader");
+    html5QrCodeScanner = html5QrCode;
+    
+    html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 },
+      (decodedText, decodedResult) => {
+          html5QrCode.stop().then(() => {
+              document.getElementById('scanModal').style.display = 'none';
+              try {
+                  const data = JSON.parse(decodedText);
+                  processImportedData(data); // Κεντρικός έλεγχος για τραγούδι ή λίστα
+              } catch(e) {
+                  alert("Invalid QR format");
+              }
+          });
+      }, (errorMessage) => {})
+    .catch((err) => { 
+        alert(t('msg_scan_camera_error')); 
+        document.getElementById('scanModal').style.display = 'none'; 
+    });
+}
 
-// 1. Η βασική συνάρτηση που χρησιμοποιεί τη βιβλιοθήκη του Kazuhiko Arima
-function generateQRForSong(songData) {
+function closeScan() {
+    if (html5QrCodeScanner) {
+        html5QrCodeScanner.stop().then(() => { 
+            html5QrCodeScanner.clear(); 
+            document.getElementById('scanModal').style.display = 'none'; 
+        }).catch(e => document.getElementById('scanModal').style.display='none');
+    } else { 
+        document.getElementById('scanModal').style.display = 'none'; 
+    }
+}
+
+// 2. Δημιουργία & Εμφάνιση QR
+function generateQRForSong(data) {
     try {
-        const jsonStr = JSON.stringify(songData);
-        // Type 0 = auto size, 'L' = Low error correction
+        const jsonStr = JSON.stringify(data);
         const qr = qrcode(0, 'L');
         qr.addData(jsonStr);
         qr.make();
-        //cellSize: 4, margin: 12
         return qr.createImgTag(4, 12);
     } catch (e) {
         console.error("QR Error:", e);
@@ -444,40 +480,23 @@ function generateQRForSong(songData) {
     }
 }
 
-// 2. Η συνάρτηση που ανοίγει το Modal
-function showQR(songData) {
-    let dataToEncode = songData;
-    
-    // Αν καλεστεί χωρίς ορίσματα (από τον viewer), βρες το τρέχον τραγούδι
+function showQR(customData) {
+    let dataToEncode = customData;
     if (!dataToEncode && currentSongId) {
         dataToEncode = library.find(s => s.id === currentSongId);
     }
-
-    if (!dataToEncode) {
-        alert("No song data to share!");
-        return;
-    }
+    if (!dataToEncode) return;
 
     const imgTag = generateQRForSong(dataToEncode);
-    
     if (imgTag) {
         const container = document.getElementById('qr-output');
         container.innerHTML = imgTag;
-        
-        // Responsive fix
         const img = container.querySelector('img');
-        if (img) {
-            img.style.width = "100%";
-            img.style.height = "auto";
-        }
-        
+        if (img) { img.style.width = "100%"; img.style.height = "auto"; }
         document.getElementById('qrModal').style.display = 'flex';
-    } else {
-        alert("Error: Song data too large for QR.");
     }
 }
 
-// 3. Η συνάρτηση για το κουμπί του Editor
 function generateQRFromEditor() {
     const tempSong = {
         title: document.getElementById('inpTitle').value,
@@ -491,69 +510,62 @@ function generateQRFromEditor() {
     showQR(tempSong);
 }
 
-function startScanner() {
-    document.getElementById('importChoiceModal').style.display = 'none';
-    document.getElementById('scanModal').style.display = 'flex';
-    if (html5QrCodeScanner) html5QrCodeScanner.clear().catch(e=>{});
-    var html5QrCode = new Html5Qrcode("reader");
-    html5QrCodeScanner = html5QrCode;
-    html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 },
-      (decodedText, decodedResult) => {
-          html5QrCode.stop().then(() => {
-             document.getElementById('scanModal').style.display = 'none';
-             var song = processQRScan(decodedText);
-             if (song) {
-                 if (!library.some(ex => ex.id === song.id)) {
-                     library.push(song); saveData(); populateTags(); applyFilters(); 
-                     loadSong(song.id);
-                     alert(t('msg_imported') + "1");
-                 } else { alert(t('msg_no_import')); }
-             } else { alert("Invalid QR"); }
-          });
-      }, (errorMessage) => {})
-    .catch((err) => { alert(t('msg_scan_camera_error')); document.getElementById('scanModal').style.display = 'none'; });
-}
-
-function closeScan() {
-    if (html5QrCodeScanner) {
-        html5QrCodeScanner.stop().then(() => { html5QrCodeScanner.clear(); document.getElementById('scanModal').style.display = 'none'; }).catch(e=>document.getElementById('scanModal').style.display='none');
-    } else { document.getElementById('scanModal').style.display = 'none'; }
-}
-
-function updateHiddenTagInput() {
-    var inp = document.getElementById('inpTags');
-    if(inp) inp.value = editorTags.join(',');
-}
-
-function renderTagChips() {
-    var container = document.getElementById('tagChips');
-    if(!container) return;
-    container.innerHTML = "";
-    editorTags.forEach(tag => {
-        var span = document.createElement('span');
-        span.className = 'tag-chip';
-        span.innerHTML = `${tag} <i class="fas fa-times" onclick="removeTag('${tag}')"></i>`;
-        container.appendChild(span);
-    });
-    updateHiddenTagInput();
-}
-
-function addTag(tag) {
-    tag = tag.trim();
-    if(tag && !editorTags.includes(tag)) {
-        editorTags.push(tag);
-        renderTagChips();
+// 3. Εξαγωγή Προσωρινής Λίστας
+function exportSetlist() {
+    if (liveSetlist.length === 0) {
+        showToast("Η Προσωρινή Λίστα είναι άδεια!");
+        return;
     }
-    document.getElementById('tagInput').value = "";
-    document.getElementById('tagSuggestions').style.display = 'none';
+    const sharePackage = { type: "mnotes_setlist", data: liveSetlist };
+    showQR(sharePackage);
 }
 
-function removeTag(tag) {
-    editorTags = editorTags.filter(t => t !== tag);
-    renderTagChips();
+// 4. Εισαγωγή από URL
+async function importFromURL() {
+    const url = prompt("Εισάγετε το URL του αρχείου (.mnote ή .json):");
+    if (!url) return;
+    try {
+        const response = await fetch(url);
+        const imported = await response.json();
+        processImportedData(imported);
+    } catch (err) {
+        alert("Αποτυχία εισαγωγής. Ελέγξτε το σύνδεσμο ή το CORS.");
+    }
 }
 
-// Issue 5: Global Tag Delete Logic
+// 5. Κεντρικός Διαχειριστής Εισαγωγής (The "Brain")
+function processImportedData(data) {
+    if (data && data.type === "mnotes_setlist") {
+        if (confirm("Λήφθηκε νέα σειρά τραγουδιών. Αντικατάσταση Προσωρινής Λίστας;")) {
+            liveSetlist = data.data;
+            localStorage.setItem('mnotes_setlist', JSON.stringify(liveSetlist));
+            renderSidebar();
+            showToast("Η σειρά ενημερώθηκε!");
+        }
+        return;
+    }
+
+    const songs = Array.isArray(data) ? data : [data];
+    let addedCount = 0;
+    songs.forEach(s => {
+        if (s.body) s.body = convertBracketsToBang(s.body);
+        const safeSong = ensureSongStructure(s);
+        const idx = library.findIndex(x => x.id === safeSong.id);
+        if(idx !== -1) library[idx] = safeSong;
+        else library.push(safeSong);
+        addedCount++;
+    });
+
+    saveData(); populateTags(); applyFilters();
+    showToast("Επιτυχής εισαγωγή " + addedCount + " τραγουδιών!");
+}
+
+function selectImport(type) { 
+    if(type==='file') document.getElementById('hiddenFileInput').click(); 
+    if(type==='qr') startScanner(); 
+    if(type==='url') importFromURL(); 
+}
+
 function deleteTagGlobally(e, tag) {
     e.stopPropagation();
     if (confirm(t('msg_confirm_tag_delete'))) {
@@ -640,17 +652,17 @@ function setupEvents() {
         fileInput.addEventListener('change', function(e) {
             const file = e.target.files[0]; if (!file) return;
             const reader = new FileReader();
-            reader.onload = function(e) {
+          reader.onload = function(e) {
                 try {
                     const imported = JSON.parse(e.target.result);
-                    const newSongs = Array.isArray(imported) ? imported : [imported];
-                    let added = 0;
-                    newSongs.forEach(s => { if (!library.some(ex => ex.id === s.id)) { library.push(ensureSongStructure(s)); added++; }});
-                    if(added>0) { saveData(); populateTags(); applyFilters(); alert(t('msg_imported')+added); }
-                    else { alert(t('msg_no_import')); }
-                    document.getElementById('importChoiceModal').style.display='none';
-                } catch(err) { alert(t('msg_error_read')); }
-            }; reader.readAsText(file); fileInput.value = '';
+                    // Χρήση της κεντρικής συνάρτησης για αυτόματη αναγνώριση
+                    processImportedData(imported);
+                    document.getElementById('importChoiceModal').style.display = 'none';
+                } catch(err) { 
+                    alert(t('msg_error_read')); 
+                }
+            };
+           reader.readAsText(file); fileInput.value = '';
         });
     }
     
@@ -663,39 +675,8 @@ function setupEvents() {
         }
     });
 }
-function selectImport(type) { 
-    if(type==='file') document.getElementById('hiddenFileInput').click(); 
-    if(type==='qr') startScanner(); 
-    if(type==='url') importFromURL(); // Προσθήκη αυτής της γραμμής
-}
 
-// Πρόσθεσε και αυτή τη συνάρτηση ακριβώς από κάτω
-async function importFromURL() {
-    const url = prompt("Enter the URL of the .mnote or .json file:");
-    if (!url) return;
 
-    try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error("Network error");
-        const imported = await response.json();
-        
-        // Χρησιμοποιούμε την importJSON του storage.js αλλά για object
-        const songs = Array.isArray(imported) ? imported : [imported];
-        songs.forEach(s => {
-            if (s.body) s.body = convertBracketsToBang(s.body);
-            const safe = ensureSongStructure(s);
-            const idx = library.findIndex(x => x.id === safe.id);
-            if(idx !== -1) library[idx] = safe;
-            else library.push(safe);
-        });
-
-        saveData(); populateTags(); applyFilters();
-        alert("Imported successfully!");
-        document.getElementById('importChoiceModal').style.display='none';
-    } catch (err) {
-        alert("Failed to import from URL. Check CORS or link.");
-    }
-}
 
 function setupGestures() {
     var area = document.getElementById('mainZone');

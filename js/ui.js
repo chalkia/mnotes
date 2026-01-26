@@ -1,5 +1,5 @@
 /* =========================================
-   UI & APP LOGIC (js/ui.js) - v3
+   UI & APP LOGIC (js/ui.js) - v3 FINAL
    ========================================= */
 
 if(typeof library === 'undefined') var library = [];
@@ -14,7 +14,7 @@ var html5QrCodeScanner = null;
 
 var liveSetlist = JSON.parse(localStorage.getItem('mnotes_setlist')) || [];
 var viewMode = 'library'; // 'library' or 'setlist'
-var isLyricsMode = false; // Renamed from isMicMode
+var isLyricsMode = false; 
 
 window.addEventListener('load', function() {
     loadSavedTheme();
@@ -67,6 +67,7 @@ function loadLibrary() {
         demo.title = t('demo_title'); demo.body = t('demo_body');
         library.unshift(demo); saveData();
     }
+    // ensureSongStructure is in logic.js
     library = library.map(ensureSongStructure);
     liveSetlist = liveSetlist.filter(id => library.some(s => s.id === id));
     
@@ -94,7 +95,6 @@ function clearLibrary() {
     }
 }
 
-// Issue 6: Pre-installed filter options
 function populateTags() {
     var tagSet = new Set();
     library.forEach(s => {
@@ -102,9 +102,8 @@ function populateTags() {
     });
     var select = document.getElementById('tagFilter');
     if(select) {
-        // Option A & B
-        select.innerHTML = `<option value="">${t('lbl_all_tags')}</option>`; // All
-        select.innerHTML += `<option value="__no_demo">${t('lbl_no_demo')}</option>`; // All except Demo
+        select.innerHTML = `<option value="">${t('lbl_all_tags')}</option>`; 
+        select.innerHTML += `<option value="__no_demo">${t('lbl_no_demo')}</option>`; 
         
         Array.from(tagSet).sort().forEach(tag => {
             var opt = document.createElement('option');
@@ -119,11 +118,11 @@ function applyFilters() { renderSidebar(); }
 function switchSidebarTab(mode) {
     viewMode = mode;
     
-    // 1. Αλλαγή χρωμάτων στα κουμπιά των Tabs
+    // 1. Tab Styling
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.getElementById('tab-' + mode).classList.add('active');
     
-    // 2. Διαχείριση της μπάρας αναζήτησης (Κρύψιμο στο Setlist)
+    // 2. Search Box visibility
     var searchBox = document.querySelector('.sidebar-search');
     if (mode === 'setlist') {
         if(searchBox) searchBox.style.display = 'none';
@@ -131,21 +130,18 @@ function switchSidebarTab(mode) {
         if(searchBox) searchBox.style.display = 'flex';
     }
 
-    // 3. ΔΥΝΑΜΙΚΗ ΕΜΦΑΝΙΣΗ ΚΟΥΜΠΙΩΝ (Η αλλαγή που ζήτησες)
+    // 3. Dynamic Button Visibility (Share vs Add)
     var btnShare = document.getElementById('btnShareSetlist');
     var btnAdd = document.getElementById('btnAddSong');
 
     if (mode === 'setlist') {
-        // Αν είμαστε στο Setlist: Δείξε το QR, Κρύψε την Προσθήκη (προαιρετικά)
         if(btnShare) btnShare.style.display = 'inline-block';
-        if(btnAdd) btnAdd.style.display = 'none'; // Αν θες να κρύβεται το "+" όταν βλέπεις τη λίστα
+        if(btnAdd) btnAdd.style.display = 'none'; 
     } else {
-        // Αν είμαστε στη Library: Κρύψε το QR, Δείξε την Προσθήκη
         if(btnShare) btnShare.style.display = 'none';
         if(btnAdd) btnAdd.style.display = 'inline-block';
     }
 
-    // 4. Ενημέρωση της λίστας
     renderSidebar();
 }
 
@@ -175,7 +171,6 @@ function renderSidebar() {
         visiblePlaylist = library.filter(s => {
             var matchTxt = s.title.toLowerCase().includes(txt) || (s.artist && s.artist.toLowerCase().includes(txt));
             
-            // Logic for "All except Demo"
             var matchTag = true;
             if (tag === "__no_demo") {
                 matchTag = !s.id.includes("demo");
@@ -260,15 +255,10 @@ function loadSong(id) {
 }
 
 function renderPlayer(s) {
-    // 1. Βασικές Πληροφορίες & Δυναμική Τονικότητα
     document.getElementById('p-title').innerText = s.title;
     document.getElementById('p-artist').innerText = s.artist || ""; 
-    
-    // Εδώ χρησιμοποιούμε τη νέα getNote για να αλλάζει η τονικότητα με το Transpose
-    // και να καθαρίζει το "!" αν υπάρχει στην αρχή.
     document.getElementById('p-key').innerText = getNote(s.key || "-", state.t);
 
-    // 2. Διαχείριση Header Actions (Theme & Notes)
     var headerAct = document.getElementById('header-actions');
     var btnHtml = `<button onclick="cycleTheme()" style="background:none; border:none; color:var(--text-muted); cursor:pointer;"><i class="fas fa-adjust"></i></button>`;
     
@@ -281,7 +271,6 @@ function renderPlayer(s) {
     }
     headerAct.innerHTML = btnHtml;
 
-    // 3. Intro & Interlude (Πιάνουν όλο το πλάτος με βάση το νέο CSS)
     var infoHtml = "";
     if(s.intro) {
         infoHtml += `<div class="info-row"><span class="meta-label" data-i18n="lbl_intro">${t('lbl_intro')}</span><span>${renderChordsLine(s.intro)}</span></div>`;
@@ -291,20 +280,16 @@ function renderPlayer(s) {
     }
     document.querySelector('.info-bar').innerHTML = infoHtml;
 
-    // 4. Ενημέρωση των ενδείξεων στο Footer
     document.getElementById('val-t').innerText = (state.t > 0 ? "+" : "") + state.t;
     document.getElementById('val-c').innerText = state.c;
 
-    // 5. Διαχωρισμός και Rendering Στίχων/Συγχορδιών
     var split = splitSongBody(s.body || "");
     
     if (isLyricsMode) {
-        // Σε Lyrics Mode (Στίχοι), όλα μπαίνουν στο scroll container
         document.getElementById('fixed-container').innerHTML = "";
         var fullText = split.fixed + "\n\n" + split.scroll;
         renderArea('scroll-container', fullText.trim());
     } else {
-        // Κανονική λειτουργία: Σταθερό πάνω μέρος και κυλιόμενο κάτω
         renderArea('fixed-container', split.fixed);
         renderArea('scroll-container', split.scroll);
     }
@@ -352,16 +337,17 @@ function switchToEditor() {
     if (currentSongId) {
         var s = library.find(x => x.id === currentSongId);
         if (s) {
-            document.getElementById('inpTitle').value = s.title;
+            document.getElementById('inpTitle').value = s.title || "";
             document.getElementById('inpArtist').value = s.artist || ""; 
-            document.getElementById('inpKey').value = s.key;
+            document.getElementById('inpKey').value = s.key || "";
+            
+            document.getElementById('inpIntro').value = s.intro || "";
+            document.getElementById('inpInter').value = s.interlude || "";
+            document.getElementById('inpNotes').value = s.notes || "";
+            document.getElementById('inpBody').value = s.body || "";
+
             editorTags = s.playlists ? [...s.playlists] : [];
             renderTagChips();
-
-            document.getElementById('inpIntro').value = s.intro;
-            document.getElementById('inpInter').value = s.interlude;
-            document.getElementById('inpNotes').value = s.notes;
-            document.getElementById('inpBody').value = s.body;
         }
     } else { createNewSong(); }
     document.getElementById('sidebar').classList.remove('open');
@@ -378,22 +364,22 @@ function createNewSong() {
         var el = document.getElementById(id); if(el) el.value = "";
     });
     editorTags = []; renderTagChips();
-    switchToEditor();
+    
+    document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active-view'));
+    document.getElementById('view-editor').classList.add('active-view');
     document.getElementById('sidebar').classList.remove('open');
 }
 
 function cancelEdit() { loadSong(currentSongId || ((library.length>0)?library[0].id:null)); }
 function saveEdit() { saveSong(); populateTags(); applyFilters(); }
 
-// Issue 2: Rename toggleMicMode -> toggleLyricsMode
 function toggleLyricsMode() {
     isLyricsMode = !isLyricsMode;
-    var btn = document.getElementById('btnLyrics'); // Updated ID
+    var btn = document.getElementById('btnLyrics');
     if (isLyricsMode) {
         document.body.classList.add('lyrics-mode');
         if(btn) btn.classList.add('lyrics-btn-active');
         showToast(t('msg_lyrics_mode_on'));
-        // Re-render to merge containers
         if(currentSongId) {
             var s = library.find(x => x.id === currentSongId);
             renderPlayer(s);
@@ -402,7 +388,6 @@ function toggleLyricsMode() {
         document.body.classList.remove('lyrics-mode');
         if(btn) btn.classList.remove('lyrics-btn-active');
         showToast(t('msg_lyrics_mode_off'));
-        // Re-render to split containers
         if(currentSongId) {
             var s = library.find(x => x.id === currentSongId);
             renderPlayer(s);
@@ -444,9 +429,8 @@ function toggleAutoScroll() {
         }, scrollSpeedMs);
     }
 }
-/* --- QR, URL & SETLIST SHARING --- */
 
-// 1. Ο Scanner: Πλέον στέλνει τα δεδομένα στην processImportedData
+/* --- QR, URL & SETLIST SHARING --- */
 function startScanner() {
     document.getElementById('importChoiceModal').style.display = 'none';
     document.getElementById('scanModal').style.display = 'flex';
@@ -457,12 +441,12 @@ function startScanner() {
     html5QrCodeScanner = html5QrCode;
     
     html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 },
-      (decodedText, decodedResult) => {
+      (decodedText) => {
           html5QrCode.stop().then(() => {
               document.getElementById('scanModal').style.display = 'none';
               try {
                   const data = JSON.parse(decodedText);
-                  processImportedData(data); // Κεντρικός έλεγχος για τραγούδι ή λίστα
+                  processImportedData(data);
               } catch(e) {
                   alert("Invalid QR format");
               }
@@ -485,7 +469,6 @@ function closeScan() {
     }
 }
 
-// 2. Δημιουργία & Εμφάνιση QR
 function generateQRForSong(data) {
     try {
         const jsonStr = JSON.stringify(data);
@@ -529,7 +512,6 @@ function generateQRFromEditor() {
     showQR(tempSong);
 }
 
-// 3. Εξαγωγή Προσωρινής Λίστας
 function exportSetlist() {
     if (liveSetlist.length === 0) {
         showToast("Η Προσωρινή Λίστα είναι άδεια!");
@@ -539,7 +521,6 @@ function exportSetlist() {
     showQR(sharePackage);
 }
 
-// 4. Εισαγωγή από URL
 async function importFromURL() {
     const url = prompt("Εισάγετε το URL του αρχείου (.mnote ή .json):");
     if (!url) return;
@@ -552,7 +533,6 @@ async function importFromURL() {
     }
 }
 
-// 5. Κεντρικός Διαχειριστής Εισαγωγής (The "Brain")
 function processImportedData(data) {
     if (data && data.type === "mnotes_setlist") {
         if (confirm("Λήφθηκε νέα σειρά τραγουδιών. Αντικατάσταση Προσωρινής Λίστας;")) {
@@ -585,27 +565,60 @@ function selectImport(type) {
     if(type==='url') importFromURL(); 
 }
 
+/* --- TAGS HELPER FUNCTIONS (MISSING IN PREVIOUS VERSION) --- */
+
+function renderTagChips() {
+    var container = document.getElementById('tagChips');
+    if(!container) return;
+    container.innerHTML = "";
+    editorTags.forEach(tag => {
+        var span = document.createElement('span');
+        span.className = 'tag-chip';
+        span.innerHTML = `${tag} <i class="fas fa-times" onclick="removeTag('${tag}')"></i>`;
+        container.appendChild(span);
+    });
+    updateHiddenTagInput();
+}
+
+function updateHiddenTagInput() {
+    var inp = document.getElementById('inpTags');
+    if(inp) inp.value = editorTags.join(',');
+}
+
+function addTag(tag) {
+    tag = tag.trim();
+    if(tag && !editorTags.includes(tag)) {
+        editorTags.push(tag);
+        renderTagChips();
+    }
+    document.getElementById('tagInput').value = "";
+    document.getElementById('tagSuggestions').style.display = 'none';
+}
+
+function removeTag(tag) {
+    editorTags = editorTags.filter(t => t !== tag);
+    renderTagChips();
+}
+
+/* --- DELETION & HELPERS --- */
+
 function deleteTagGlobally(e, tag) {
     e.stopPropagation();
     if (confirm(t('msg_confirm_tag_delete'))) {
-        // Remove from all songs in library
         library.forEach(s => {
             if(s.playlists) {
                 s.playlists = s.playlists.filter(t => t !== tag);
             }
         });
-        saveData(); // Save to localstorage
-        populateTags(); // Update UI filter dropdown
+        saveData(); 
+        populateTags(); 
         
-        // Update Editor view if currently open
         if (document.getElementById('view-editor').classList.contains('active-view')) {
              editorTags = editorTags.filter(t => t !== tag);
              renderTagChips();
-             // Re-populate suggestions to remove the deleted tag from there too
              var inp = document.getElementById('tagInput');
              if(inp) handleTagInput(inp); 
         } else {
-            // If in player mode, refresh list because filters might change
             applyFilters();
         }
     }
@@ -616,11 +629,9 @@ function handleTagInput(inp) {
     var sugg = document.getElementById('tagSuggestions');
     if(!val && document.activeElement !== inp) { sugg.style.display = 'none'; return; }
     
-    // Get all unique tags from library
     var allTags = new Set();
     library.forEach(s => s.playlists.forEach(t => allTags.add(t)));
     
-    // Filter tags that match input AND are not already selected
     var matches = Array.from(allTags).filter(t => t.toLowerCase().includes(val) && !editorTags.includes(t));
 
     sugg.innerHTML = "";
@@ -629,12 +640,10 @@ function handleTagInput(inp) {
             var div = document.createElement('div');
             div.className = 'tag-suggestion-item';
             
-            // Text part
             var spanText = document.createElement('span');
             spanText.innerText = m;
             spanText.onclick = function() { addTag(m); };
             
-            // Delete button (Global delete)
             var btnDel = document.createElement('i');
             btnDel.className = 'fas fa-trash-alt tag-delete-btn';
             btnDel.onclick = function(e) { deleteTagGlobally(e, m); };
@@ -671,21 +680,19 @@ function setupEvents() {
         fileInput.addEventListener('change', function(e) {
             const file = e.target.files[0]; if (!file) return;
             const reader = new FileReader();
-          reader.onload = function(e) {
+            reader.onload = function(e) {
                 try {
                     const imported = JSON.parse(e.target.result);
-                    // Χρήση της κεντρικής συνάρτησης για αυτόματη αναγνώριση
                     processImportedData(imported);
                     document.getElementById('importChoiceModal').style.display = 'none';
                 } catch(err) { 
                     alert(t('msg_error_read')); 
                 }
             };
-           reader.readAsText(file); fileInput.value = '';
+            reader.readAsText(file); fileInput.value = '';
         });
     }
     
-    // Ensure tag input closes suggestions on blur
     document.addEventListener('click', function(e) {
         var wrap = document.querySelector('.tag-wrapper');
         var sugg = document.getElementById('tagSuggestions');
@@ -694,8 +701,6 @@ function setupEvents() {
         }
     });
 }
-
-
 
 function setupGestures() {
     var area = document.getElementById('mainZone');

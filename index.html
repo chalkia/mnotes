@@ -178,4 +178,74 @@
                         <summary>Artist & Notes</summary>
                         <div class="details-content">
                             <input id="inpArtist" class="inp" data-i18n-ph="ph_artist" placeholder="Artist">
-                            <textarea id="inpNotes" class="inp" data-i18n-ph="ph_notes
+                            <textarea id="inpNotes" class="inp" data-i18n-ph="ph_notes" placeholder="Private Notes" style="height:60px;"></textarea>
+                        </div>
+                    </details>
+
+                    <div style="display:flex; gap:10px;">
+                        <input id="inpKey" class="inp" data-i18n-ph="ph_key" placeholder="Key" style="width:100px;">
+                        
+                        <div style="flex:1; position:relative;">
+                            <div class="tag-wrapper" onclick="document.getElementById('tagInput').focus()">
+                                <div id="tagChips" style="display:contents;"></div>
+                                <input id="tagInput" class="tag-input-area" data-i18n-ph="ph_tags" placeholder="Add tag..." oninput="handleTagInput(this)" onkeydown="handleTagKey(event)">
+                            </div>
+                            <div id="tagSuggestions" class="tag-suggestions"></div>
+                            <input id="inpTags" type="hidden"> 
+                        </div>
+                    </div>
+                    
+                    <input id="inpIntro" class="inp" data-i18n-ph="ph_intro" placeholder="Intro">
+                    <input id="inpInter" class="inp" data-i18n-ph="ph_inter" placeholder="Interlude">
+                    
+                    <textarea id="inpBody" class="inp txt-area" data-i18n-ph="ph_body" placeholder="Lyrics & Chords..."></textarea>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <div id="importChoiceModal" class="modal-overlay">
+        <div class="modal-box">
+            <h3 style="margin-top:0; color:var(--text-main);" data-i18n="modal_import_title">Import</h3>
+            <button onclick="selectImport('file')" style="width:100%; padding:15px; margin-bottom:10px; background:var(--input-bg); color:var(--text-main); border:1px solid var(--border-color);" data-i18n="modal_btn_file">File (.json)</button>
+            <button onclick="selectImport('url')" style="width:100%; padding:15px; margin-bottom:10px; background:var(--input-bg); color:var(--text-main); border:1px solid var(--border-color);"><i class="fas fa-link"></i> Import from URL</button>
+            <button onclick="selectImport('qr')" style="width:100%; padding:15px; margin-bottom:10px; background:var(--input-bg); color:var(--text-main); border:1px solid var(--border-color);" data-i18n="modal_btn_qr">Scan QR Code</button>
+            <button onclick="document.getElementById('importChoiceModal').style.display='none'" style="background:none; border:none; color:var(--text-muted);" data-i18n="modal_btn_cancel">Cancel</button>
+        </div>
+    </div>
+    
+    <div id="qrModal" class="modal-overlay">
+        <div class="modal-box">
+            <h3 style="color:var(--text-main);" data-i18n="qr_title">QR Code</h3>
+            <div id="qr-output" class="qr-display"></div>
+            <p style="color:var(--text-muted); font-size:0.9rem;" data-i18n="msg_qr_help">Scan on another device</p>
+            <button onclick="document.getElementById('qrModal').style.display='none'" style="margin-top:10px; padding:10px 20px; background:var(--accent); border:none; border-radius:5px; font-weight:bold;">OK</button>
+        </div>
+    </div>
+    
+    <div id="scanModal" class="modal-overlay">
+        <div class="modal-box" style="max-width:400px;">
+            <h3 style="color:var(--text-main);" data-i18n="scan_title">Scan QR</h3>
+            <div id="reader"></div>
+            <button onclick="closeScan()" style="margin-top:15px; padding:10px; background:var(--danger); color:white; border:none; border-radius:5px;" data-i18n="lbl_cancel">Close</button>
+        </div>
+    </div>
+    
+    <input type="file" id="hiddenFileInput" style="display:none" accept=".json,.mnote">
+
+    <div id="toast"></div>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('sw.js').then(function(registration) {
+                    console.log('ServiceWorker registration successful');
+                }, function(err) {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
+    </script>
+</body>
+</html>

@@ -2,6 +2,22 @@
    CORE LOGIC & PARSING (js/logic.js)
    ========================================= */
 
+// Βεβαιωνόμαστε ότι υπάρχουν τα Global Arrays για τις νότες (αν δεν είναι στο data.js)
+if (typeof NOTES === 'undefined') {
+    var NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+    var NOTES_FLAT = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
+}
+
+// Βοηθητική για μεταφράσεις (αν δεν υπάρχει στο data.js)
+if (typeof t === 'undefined') {
+    window.t = function(key) {
+        if (typeof TRANSLATIONS !== 'undefined' && typeof currentLang !== 'undefined') {
+            return TRANSLATIONS[currentLang][key] || key;
+        }
+        return key;
+    };
+}
+
 function ensureSongStructure(song) {
     if (!song) song = {};
     if (!song.id) song.id = "s_" + Date.now();
@@ -13,7 +29,7 @@ function ensureSongStructure(song) {
     if (!song.interlude) song.interlude = "";
     if (!song.notes) song.notes = "";
     if (!song.playlists) song.playlists = [];
-    if (song.tags && Array.isArray(song.tags)) song.playlists = song.tags;
+    if (song.tags && Array.isArray(song.tags)) song.playlists = song.tags; // Legacy support
     return song;
 }
 
@@ -66,7 +82,7 @@ function parseSongLogic(song) {
                     var isGreek = (c >= '\u0370' && c <= '\u03FF') || (c >= '\u1F00' && c <= '\u1FFF');
 
                     if (isBang) {
-                        i++; // Καταναλώνουμε το επόμενο '!'
+                        // Το '!' δεν το τρώμε εδώ, θα το βρει το outer loop
                         stopChord = true;
                     } else if (isSpace || isGreek) {
                         stopChord = true; // Σταματάμε εδώ (το γράμμα ανήκει στο επόμενο token)
@@ -117,15 +133,14 @@ function getNote(note, semitones) {
     let isTagged = note.startsWith('!');
     let workingNote = isTagged ? note.substring(1) : note;
 
-    // Εντοπισμός της ρίζας (π.χ. "A#") και του υπόλοιπου κειμένου (π.χ. " χιτζάζ")
-    // Το regex πλέον πιάνει τη νότα αλλά αφήνει το suffix ανέπαφο
+    // Εντοπισμός της ρίζας (π.χ. "A#") και του υπόλοιπου κειμένου (π.χ. "m7")
     let match = workingNote.match(/^([A-Ga-g][#b]?)(.*)$/);
     if (!match) return workingNote; 
 
     let root = match[1];
-    let suffix = match[2]; // Αυτό το κομμάτι θα μείνει ως έχει (π.χ. " χιτζάζ")
+    let suffix = match[2];
 
-    // Μετατροπή μόνο της ρίζας σε κεφαλαία για την αναζήτηση στον πίνακα NOTES
+    // Μετατροπή μόνο της ρίζας σε κεφαλαία για την αναζήτηση
     let rootUpper = root.toUpperCase().replace('Α','A').replace('Β','B').replace('Ε','E');
     
     let idx = NOTES.indexOf(rootUpper);
@@ -137,19 +152,17 @@ function getNote(note, semitones) {
     let newIdx = (idx + semitones + 12000) % 12;
     let newRoot = NOTES[newIdx];
 
-    // Αν η αρχική νότα ήταν μικρό γράμμα (π.χ. "a"), κάνε και τη νέα μικρό
+    // Αν η αρχική νότα ήταν μικρό γράμμα, διατήρηση case
     if (root === root.toLowerCase()) {
         newRoot = newRoot.toLowerCase();
     }
 
-    // Επιστροφή της νέας νότας + το ΑΡΧΙΚΟ suffix χωρίς καμία αλλαγή
     return newRoot + suffix;
 }
 
-// SMART CAPO (Βελτιωμένο)
+// SMART CAPO
 function calculateOptimalCapo(currentKey, songBody) {
     var chordsFound = new Set();
-    // Ψάχνουμε μόνο Κεφαλαία (Συγχορδίες) για το Capo, αγνοούμε τις νότες
     var chordRegex = /!([A-G][#b]?)/g; 
     var match;
     while ((match = chordRegex.exec(songBody)) !== null) {
@@ -164,7 +177,6 @@ function calculateOptimalCapo(currentKey, songBody) {
     for (var c = 0; c < 12; c++) {
         var score = 0;
         chordsFound.forEach(originalChord => {
-            // Εδώ θέλουμε πάντα το αποτέλεσμα σε Κεφαλαία για σύγκριση με Open Chords
             var playedChord = getNote(originalChord, -c).charAt(0).toUpperCase() + getNote(originalChord, -c).slice(1);
             
             if (openChords.includes(playedChord)) {
@@ -182,8 +194,6 @@ function calculateOptimalCapo(currentKey, songBody) {
 
 function convertBracketsToBang(text) {
     if (!text) return "";
-    // Βρίσκει το [Chord] και το κάνει !Chord (με κενό μετά για ασφάλεια)
-    // Το regex [([^\]]+)] βρίσκει οτιδήποτε ανάμεσα σε [ και ]
     return text.replace(/\[([^\]]+)\]/g, function(match, chord) {
         return "!" + chord + " "; 
     });
@@ -199,7 +209,7 @@ function saveSong() {
     var interlude = document.getElementById('inpInter').value;
     var notes = document.getElementById('inpNotes').value;
     
-    // ΕΔΩ ΓΙΝΕΤΑΙ Η ΜΕΤΑΤΡΟΠΗ
+    // Convert [Am] -> !Am
     var rawBody = document.getElementById('inpBody').value;
     var body = convertBracketsToBang(rawBody); 
 
@@ -246,4 +256,22 @@ function deleteCurrentSong() {
             if(typeof renderSidebar === 'function') renderSidebar();
         }
     }
+}
+
+// --- MISSING FUNCTION ADDED ---
+function exportJSON() {
+    if (!library || library.length === 0) {
+        alert("Library is empty!");
+        return;
+    }
+    var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(library, null, 2));
+    var downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href", dataStr);
+    
+    var date = new Date().toISOString().slice(0,10);
+    downloadAnchorNode.setAttribute("download", "mNotes_backup_" + date + ".mnote");
+    
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
 }

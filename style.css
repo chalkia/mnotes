@@ -1,5 +1,5 @@
 /* =========================================
-   mNotes PRO - FINAL STYLE v2
+   mNotes PRO - FINAL STYLE v3
    ========================================= */
 
 @font-face { font-family: 'Roboto Condensed'; src: url('fonts/RobotoCondensed-Regular.ttf'); font-weight: normal; }
@@ -42,12 +42,39 @@ body {
     width: 280px; background: var(--bg-sidebar); border-right: 1px solid var(--border-color);
     display: flex; flex-direction: column; flex-shrink: 0; z-index: 100;
 }
-.sidebar-header { padding: 10px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+.sidebar-header { 
+    padding: 10px; 
+    border-bottom: 1px solid var(--border-color); 
+    display: flex; 
+    flex-direction: column; /* Changed to allow stacking */
+}
 
+/* New Action Buttons (Add/Share) */
+.sidebar-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.action-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    padding: 5px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.action-btn:hover {
+    color: var(--accent);
+    transform: scale(1.1);
+}
+
+/* Sidebar Search */
 .sidebar-search { padding: 8px; border-bottom: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 5px; }
 .sidebar-search input, .sidebar-search select { background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-main); padding: 6px; border-radius: 4px; font-family: var(--font-ui); font-size: 0.9rem; }
 .sidebar-search input:focus, .sidebar-search select:focus { border-color: var(--accent); outline: none; }
 
+/* Song List */
 .song-list { list-style: none; padding: 0; margin: 0; flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 .song-item { padding: 8px 10px; border-bottom: 1px solid var(--border-color); cursor: pointer; display: flex; align-items: center; justify-content: space-between; height: 40px; }
 .song-item:hover { background: rgba(255,255,255,0.05); }
@@ -56,6 +83,38 @@ body {
 .song-meta { font-size: 0.8rem; color: var(--text-muted); white-space: nowrap; margin-right: 10px; }
 .song-handle { color: var(--text-muted); cursor: grab; font-size: 1rem; opacity: 0.4; padding: 5px; }
 .song-handle:active { cursor: grabbing; opacity: 1; color: var(--accent); }
+
+.song-action { padding: 5px; color: var(--text-muted); cursor: pointer; font-size: 1rem; margin-right: 8px; }
+.song-action:hover { color: var(--accent); }
+.in-setlist { color: var(--accent); }
+
+
+/* --- SIDEBAR TABS --- */
+.sidebar-tabs { 
+    display: flex; 
+    gap: 5px; 
+    margin-top: 5px;
+    background: rgba(255,255,255,0.03);
+    padding: 3px;
+    border-radius: 5px;
+}
+.tab-btn { 
+    flex: 1; 
+    background: none; 
+    border: none; 
+    color: var(--text-muted); 
+    padding: 6px; 
+    cursor: pointer; 
+    font-weight: bold; 
+    font-size: 0.85rem;
+    border-radius: 4px;
+    transition: 0.3s; 
+}
+.tab-btn.active { 
+    background: var(--accent); 
+    color: #000; /* Better contrast on accent */
+}
+
 
 /* --- MAIN CONTENT --- */
 .main-content { flex: 1; display: flex; flex-direction: column; position: relative; overflow: hidden; background: var(--bg-main); }
@@ -72,17 +131,16 @@ body {
 
 .info-bar { display: flex; gap: 8px; margin-top: 5px; flex-direction: column; width: 100%; }
 .info-row { background: rgba(0,0,0,0.2); padding: 10px 15px; border-radius: 4px; font-size: 1.1rem; display: flex; align-items: center; border: 1px solid var(--border-color);
-           justify-content: flex-start; width: 100%; /* Πιάνει όλο το πλάτος */ box-sizing: border-box; }
+            justify-content: flex-start; width: 100%; box-sizing: border-box; }
 .meta-label { color: var(--text-muted); font-weight: 300; margin-right: 5px; font-size: 0.8rem; }
 .info-chord { color: var(--chord-color); font-weight: bold; font-family: monospace; }
 .chord-highlight { color: var(--chord-color); font-weight: bold; font-family: monospace; margin: 0 5px; font-size: 1.2rem;}
 
 /* --- LYRICS & SPACING --- */
-/* Issue 4: Dynamic height for fixed container (up to 75vh), shrinkable */
 .fixed-lyrics { 
     flex-shrink: 0; 
-    max-height: 75vh; /* Increased from 40vh */
-    height: auto;     /* Dynamic */
+    max-height: 75vh; 
+    height: auto; 
     overflow-y: auto; 
     padding: 10px 15px; 
     border-bottom: 2px dashed var(--border-color); 
@@ -140,13 +198,12 @@ details .details-content { padding: 10px; border-top: 1px solid var(--border-col
 
 .menu-btn { display: none; position: fixed; top: 10px; left: 10px; z-index: 200; background: var(--bg-panel); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px; border-radius: 4px; font-size: 1.1rem; }
 
-/* Issue 1: Mobile Header overlap fix */
+/* Mobile Header overlap fix */
 @media (max-width: 1024px) {
     .sidebar { position: fixed; left: -100%; top: 0; bottom: 0; width: 85%; transition: 0.3s; box-shadow: 5px 0 15px rgba(0,0,0,0.5); }
     .sidebar.open { left: 0; }
     .menu-btn { display: block; }
-    .sidebar.open .sidebar-header {padding-left: 60px; /* Δίνει χώρο για να μην πέφτει το menu button πάνω στο mNotes */  }
-     /* Add padding to headers so the fixed menu button doesn't cover text */
+    .sidebar.open .sidebar-header { padding-left: 60px; }
     .player-header { padding-left: 55px; } 
     .editor-toolbar { padding-left: 55px; }
 }
@@ -157,7 +214,7 @@ details .details-content { padding: 10px; border-top: 1px solid var(--border-col
 .qr-display img { max-width: 100%; height: auto; display: block; }
 #reader { width: 100%; border-radius: 5px; overflow: hidden; background: #000; }
 
-/* --- LYRICS MODE (Formerly Mic Mode) --- */
+/* --- LYRICS MODE --- */
 body.lyrics-mode .chord, 
 body.lyrics-mode .chord-highlight, 
 body.lyrics-mode .info-bar, 
@@ -167,27 +224,10 @@ body.lyrics-mode .ctl-group:not(.mic-control) { display: none !important; }
 
 body.lyrics-mode .lyric { font-size: calc(var(--lyric-size) * 1.3); line-height: 1.6; opacity: 0.9; }
 body.lyrics-mode .line-row { margin-bottom: 15px; }
-
-/* Issue 3: In Lyrics mode, we might hide the fixed container border or unify layout in JS */
 body.lyrics-mode .fixed-lyrics { border-bottom: none; background: transparent; }
 
-/* Issue 2: New Icon/Style for Lyrics button (No red) */
 .lyrics-btn-active { 
     color: var(--accent) !important; 
     border-color: var(--accent) !important; 
     background: rgba(255, 255, 255, 0.1) !important; 
-    /* No pulse animation to look less like recording */
 }
-
-/* SIDEBAR TABS */
-.sidebar-tabs { display: flex; border-bottom: 1px solid var(--border-color); }
-.tab-btn { flex: 1; background: var(--bg-panel); border: none; color: var(--text-muted); padding: 12px; cursor: pointer; font-weight: bold; border-bottom: 2px solid transparent; transition: 0.3s; }
-.tab-btn.active { color: var(--accent); border-bottom: 2px solid var(--accent); background: rgba(255,255,255,0.02); }
-
-.song-action { padding: 10px; color: var(--text-muted); cursor: pointer; font-size: 1rem; margin-right: 5px; }
-.song-action:hover { color: var(--accent); }
-.in-setlist { color: var(--accent); }
-
-
-
-

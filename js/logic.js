@@ -2,14 +2,11 @@
    CORE LOGIC & PARSING (js/logic.js)
    ========================================= */
 
-// Βεβαιωνόμαστε ότι υπάρχουν τα Global Arrays για τις νότες (αν δεν είναι στο data.js)
-if (typeof NOTES === 'undefined') {
-    var NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-    var NOTES_FLAT = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
-}
+// ΣΗΜΕΙΩΣΗ: Οι μεταβλητές NOTES και TRANSLATIONS φορτώνονται από το data.js
+// Δεν τις δηλώνουμε ξανά εδώ για να αποφύγουμε το SyntaxError.
 
-// Βοηθητική για μεταφράσεις (αν δεν υπάρχει στο data.js)
-if (typeof t === 'undefined') {
+// Βοηθητική συνάρτηση μετάφρασης (αν δεν υπάρχει ήδη)
+if (typeof window.t === 'undefined') {
     window.t = function(key) {
         if (typeof TRANSLATIONS !== 'undefined' && typeof currentLang !== 'undefined') {
             return TRANSLATIONS[currentLang][key] || key;
@@ -29,7 +26,7 @@ function ensureSongStructure(song) {
     if (!song.interlude) song.interlude = "";
     if (!song.notes) song.notes = "";
     if (!song.playlists) song.playlists = [];
-    if (song.tags && Array.isArray(song.tags)) song.playlists = song.tags; // Legacy support
+    if (song.tags && Array.isArray(song.tags)) song.playlists = song.tags; 
     return song;
 }
 
@@ -61,38 +58,30 @@ function parseSongLogic(song) {
             var char = line[i];
 
             if (char === '!') {
-                // Αν υπάρχει κείμενο πριν, αποθήκευσέ το
                 if (buffer.length > 0) {
                     tokens.push({ c: "", t: buffer });
                     buffer = "";
                 }
 
-                // Έναρξη συγχορδίας/νότας
-                i++; // Προσπερνάμε το '!'
+                i++; // Skip '!'
                 var chordBuf = "";
                 var stopChord = false;
 
                 while (i < line.length && !stopChord) {
                     var c = line[i];
-                    
-                    // Κανόνες Τερματισμού:
-                    var isBang = (c === '!');    // Νέο θαυμαστικό
-                    var isSpace = (c === ' ');  // Κενό
-                    // Ελληνικοί χαρακτήρες (και τονισμένοι)
+                    var isBang = (c === '!');    
+                    var isSpace = (c === ' ');  
                     var isGreek = (c >= '\u0370' && c <= '\u03FF') || (c >= '\u1F00' && c <= '\u1FFF');
 
                     if (isBang) {
-                        // Το '!' δεν το τρώμε εδώ, θα το βρει το outer loop
                         stopChord = true;
                     } else if (isSpace || isGreek) {
-                        stopChord = true; // Σταματάμε εδώ (το γράμμα ανήκει στο επόμενο token)
+                        stopChord = true; 
                     } else {
                         chordBuf += c;
                         i++;
                     }
                 }
-                
-                // Αποθήκευση συγχορδίας (ακόμα κι αν είναι μικρή/νότα)
                 tokens.push({ c: chordBuf, t: "" });
 
             } else {
@@ -101,7 +90,6 @@ function parseSongLogic(song) {
             }
         }
         
-        // Τέλος γραμμής: Αν έμεινε buffer
         if (buffer.length > 0) {
             if (tokens.length > 0 && tokens[tokens.length-1].t === "") {
                 tokens[tokens.length-1].t = buffer;
@@ -109,7 +97,6 @@ function parseSongLogic(song) {
                 tokens.push({ c: "", t: buffer });
             }
         }
-        
         state.parsedChords.push({ type: 'mixed', tokens: tokens });
     });
 }
@@ -129,30 +116,28 @@ function splitSongBody(body) {
 function getNote(note, semitones) {
     if (!note) return "";
     
-    // Αφαίρεση του ! για τον υπολογισμό
+    // Έλεγχος αν υπάρχει το NOTES array
+    if (typeof NOTES === 'undefined') return note;
+
     let isTagged = note.startsWith('!');
     let workingNote = isTagged ? note.substring(1) : note;
 
-    // Εντοπισμός της ρίζας (π.χ. "A#") και του υπόλοιπου κειμένου (π.χ. "m7")
     let match = workingNote.match(/^([A-Ga-g][#b]?)(.*)$/);
     if (!match) return workingNote; 
 
     let root = match[1];
     let suffix = match[2];
 
-    // Μετατροπή μόνο της ρίζας σε κεφαλαία για την αναζήτηση
     let rootUpper = root.toUpperCase().replace('Α','A').replace('Β','B').replace('Ε','E');
     
     let idx = NOTES.indexOf(rootUpper);
-    if (idx === -1) idx = NOTES_FLAT.indexOf(rootUpper);
+    if (idx === -1 && typeof NOTES_FLAT !== 'undefined') idx = NOTES_FLAT.indexOf(rootUpper);
     
     if (idx === -1) return workingNote;
 
-    // Υπολογισμός νέας νότας
     let newIdx = (idx + semitones + 12000) % 12;
     let newRoot = NOTES[newIdx];
 
-    // Αν η αρχική νότα ήταν μικρό γράμμα, διατήρηση case
     if (root === root.toLowerCase()) {
         newRoot = newRoot.toLowerCase();
     }
@@ -160,7 +145,6 @@ function getNote(note, semitones) {
     return newRoot + suffix;
 }
 
-// SMART CAPO
 function calculateOptimalCapo(currentKey, songBody) {
     var chordsFound = new Set();
     var chordRegex = /!([A-G][#b]?)/g; 
@@ -209,7 +193,6 @@ function saveSong() {
     var interlude = document.getElementById('inpInter').value;
     var notes = document.getElementById('inpNotes').value;
     
-    // Convert [Am] -> !Am
     var rawBody = document.getElementById('inpBody').value;
     var body = convertBracketsToBang(rawBody); 
 
@@ -258,7 +241,6 @@ function deleteCurrentSong() {
     }
 }
 
-// --- MISSING FUNCTION ADDED ---
 function exportJSON() {
     if (!library || library.length === 0) {
         alert("Library is empty!");

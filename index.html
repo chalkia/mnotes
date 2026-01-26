@@ -40,17 +40,19 @@
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
+                    
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <span style="color:var(--text-main); font-weight:bold; font-size:1.2rem;">
                             mNotes <span id="songCount" style="font-size:0.8rem; opacity:0.6;">0</span>
                         </span>
                         
                         <div class="sidebar-actions">
-                            <button onclick="createNewSong()" class="action-btn" title="Προσθήκη">
+                            <button id="btnAddSong" onclick="createNewSong()" class="action-btn" title="Προσθήκη νέου">
                                 <i class="fas fa-plus"></i>
                             </button>
-                            <button onclick="exportSetlist()" class="action-btn" title="Κοινοποίηση Σειράς">
-                                <i class="fas fa-share-alt"></i>
+                            
+                            <button id="btnShareSetlist" onclick="exportSetlist()" class="action-btn" title="QR Λίστας" style="display:none;">
+                                <i class="fas fa-qrcode"></i>
                             </button>
                         </div>
                     </div>
@@ -249,3 +251,4 @@
     </script>
 </body>
 </html>
+

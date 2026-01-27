@@ -236,21 +236,37 @@ function renderPlayer(s) {
     document.getElementById('p-title').innerText = s.title;
     document.getElementById('p-artist').innerText = s.artist || ""; 
     document.getElementById('p-key').innerText = getNote(s.key || "-", state.t);
+
     var headerAct = document.getElementById('header-actions');
-    var btnHtml = `<button onclick="cycleTheme()" style="background:none; border:none; color:var(--text-muted); cursor:pointer;"><i class="fas fa-adjust"></i></button>`;
+    
+    // ΑΛΛΑΓΗ ΕΔΩ: Αντί για Theme Cycle, βάζουμε Settings (Γρανάζι)
+    var btnHtml = `<button onclick="openSettings()" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:1.2rem;" title="Ρυθμίσεις"><i class="fas fa-cog"></i></button>`;
+    
+    // Αν υπάρχουν σημειώσεις, προσθέτουμε και το κουμπί Notes αριστερά από το γρανάζι
     if (s.notes && s.notes.trim() !== "") {
-        btnHtml = `<button onclick="toggleNotes()" style="margin-right:15px; background:none; border:none; color:var(--accent); cursor:pointer;"><i class="fas fa-sticky-note"></i></button>` + btnHtml;
+        btnHtml = `<button onclick="toggleNotes()" style="margin-right:15px; background:none; border:none; color:var(--accent); cursor:pointer; font-size:1.2rem;" title="Σημειώσεις"><i class="fas fa-sticky-note"></i></button>` + btnHtml;
         document.getElementById('notes-area').innerText = s.notes;
         document.getElementById('notes-container').style.display = 'none';
-    } else { document.getElementById('notes-container').style.display = 'none'; }
+    } else { 
+        document.getElementById('notes-container').style.display = 'none';
+    }
+    
     headerAct.innerHTML = btnHtml;
+
     var infoHtml = "";
-    if(s.intro) infoHtml += `<div class="info-row"><span class="meta-label" data-i18n="lbl_intro">${t('lbl_intro')}</span><span>${renderChordsLine(s.intro)}</span></div>`;
-    if(s.interlude) infoHtml += `<div class="info-row"><span class="meta-label" data-i18n="lbl_inter">${t('lbl_inter')}</span><span>${renderChordsLine(s.interlude)}</span></div>`;
+    if(s.intro) {
+        infoHtml += `<div class="info-row"><span class="meta-label" data-i18n="lbl_intro">${t('lbl_intro')}</span><span>${renderChordsLine(s.intro)}</span></div>`;
+    }
+    if(s.interlude) {
+        infoHtml += `<div class="info-row"><span class="meta-label" data-i18n="lbl_inter">${t('lbl_inter')}</span><span>${renderChordsLine(s.interlude)}</span></div>`;
+    }
     document.querySelector('.info-bar').innerHTML = infoHtml;
+
     document.getElementById('val-t').innerText = (state.t > 0 ? "+" : "") + state.t;
     document.getElementById('val-c').innerText = state.c;
+
     var split = splitSongBody(s.body || "");
+    
     if (isLyricsMode) {
         document.getElementById('fixed-container').innerHTML = "";
         var fullText = split.fixed + "\n\n" + split.scroll;

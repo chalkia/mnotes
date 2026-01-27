@@ -13,7 +13,8 @@
     --input-bg: #222; --border-color: #333;
     --danger: #cf6679;
     --font-ui: 'Roboto Condensed', sans-serif;
-    --lyric-size: 1.3rem; 
+    --lyric-size: 1.3rem;
+    --intro-size: 1.1rem;
 }
 
 body.theme-slate {
@@ -130,8 +131,8 @@ body {
 .notes-text { font-size: 0.9rem; color: var(--text-main); font-style: italic; }
 
 .info-bar { display: flex; gap: 8px; margin-top: 5px; flex-direction: column; width: 100%; }
-.info-row { background: rgba(0,0,0,0.2); padding: 10px 15px; border-radius: 4px; font-size: 1.1rem; display: flex; align-items: center; border: 1px solid var(--border-color);
-            justify-content: flex-start; width: 100%; box-sizing: border-box; }
+.info-row { background: rgba(0,0,0,0.2); padding: 10px 15px; border-radius: 4px; font-size: var(--intro-size); 
+           display: flex; align-items: center; border: 1px solid var(--border-color); justify-content: flex-start; width: 100%; box-sizing: border-box; }
 .meta-label { color: var(--text-muted); font-weight: 300; margin-right: 5px; font-size: 0.8rem; }
 .info-chord { color: var(--chord-color); font-weight: bold; font-family: monospace; }
 .chord-highlight { color: var(--chord-color); font-weight: bold; font-family: monospace; margin: 0 5px; font-size: 1.2rem;}
@@ -214,6 +215,28 @@ details .details-content { padding: 10px; border-top: 1px solid var(--border-col
 .qr-display img { max-width: 100%; height: auto; display: block; }
 #reader { width: 100%; border-radius: 5px; overflow: hidden; background: #000; }
 
+/* ΝΕΑ STYLES ΓΙΑ ΤΟ MODAL ΡΥΘΜΙΣΕΩΝ */
+.color-picker-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    background: rgba(255,255,255,0.05);
+    padding: 5px 10px;
+    border-radius: 5px;
+}
+.color-picker-row label {
+    font-size: 0.9rem;
+    color: var(--text-main);
+}
+.color-picker-row input[type="color"] {
+    border: none;
+    width: 40px;
+    height: 30px;
+    background: none;
+    cursor: pointer;
+}
+
 /* --- LYRICS MODE --- */
 body.lyrics-mode .chord, 
 body.lyrics-mode .chord-highlight, 
@@ -231,3 +254,4 @@ body.lyrics-mode .fixed-lyrics { border-bottom: none; background: transparent; }
     border-color: var(--accent) !important; 
     background: rgba(255, 255, 255, 0.1) !important; 
 }
+

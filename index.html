@@ -235,8 +235,8 @@
         </div>
     </div>
 
-    <div id="settingsModal" class="modal-overlay">
-        <div class="modal-box" style="text-align:left;">
+<div id="settingsModal" class="modal-overlay">
+        <div class="modal-box" style="text-align:left; max-height: 85vh; overflow-y: auto;">
             <h3 style="color:var(--text-main); margin-top:0; text-align:center;" data-i18n="lbl_settings">Settings</h3>
             
             <label class="ctl-label" data-i18n="lbl_scroll_speed">Scroll Speed</label>
@@ -246,20 +246,56 @@
                 <i class="fas fa-tortoise"></i>
             </div>
 
+            <label class="ctl-label" data-i18n="lbl_intro_size">Intro Size</label>
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:15px; background:var(--input-bg); padding:5px; border-radius:5px;">
+                <button onclick="changeIntroSizeSettings(-1)" style="width:30px; background:none; border:none; color:var(--text-main); font-weight:bold;">-</button>
+                <span id="dispIntroSize" style="flex:1; text-align:center; color:var(--accent);">100%</span>
+                <button onclick="changeIntroSizeSettings(1)" style="width:30px; background:none; border:none; color:var(--text-main); font-weight:bold;">+</button>
+            </div>
+
             <label class="ctl-label" data-i18n="lbl_max_capo">Max Capo</label>
             <input type="number" id="setMaxCapo" class="inp" style="width:100%; margin-bottom:15px;" min="0" max="12">
 
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                 <label class="ctl-label" style="margin:0;" data-i18n="lbl_backup_reminder">Backup Reminder</label>
                 <input type="checkbox" id="setBackup" style="width:20px; height:20px;">
             </div>
+            
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <label class="ctl-label" style="margin:0;" data-i18n="lbl_hide_demo">Hide Demo</label>
+                <input type="checkbox" id="setHideDemo" style="width:20px; height:20px;">
+            </div>
 
             <label class="ctl-label" data-i18n="lbl_def_theme">Theme</label>
-            <select id="setTheme" class="inp" style="width:100%; margin-bottom:20px;">
+            <select id="setTheme" class="inp" style="width:100%; margin-bottom:10px;" onchange="toggleCustomColors(this.value)">
                 <option value="theme-dark" data-i18n="lbl_theme_dark">Dark</option>
                 <option value="theme-slate" data-i18n="lbl_theme_slate">Slate</option>
                 <option value="theme-light" data-i18n="lbl_theme_light">Light</option>
+                <option value="theme-custom" data-i18n="lbl_theme_custom">Custom</option>
             </select>
+
+            <div id="customColorArea" style="display:none; border:1px solid var(--border-color); padding:10px; border-radius:5px; margin-bottom:20px;">
+                <div class="color-picker-row">
+                    <label data-i18n="lbl_cust_bg">Background</label>
+                    <input type="color" id="colBgMain">
+                </div>
+                <div class="color-picker-row">
+                    <label data-i18n="lbl_cust_panel">Panel</label>
+                    <input type="color" id="colBgPanel">
+                </div>
+                <div class="color-picker-row">
+                    <label data-i18n="lbl_cust_text">Text</label>
+                    <input type="color" id="colTextMain">
+                </div>
+                <div class="color-picker-row">
+                    <label data-i18n="lbl_cust_acc">Accent</label>
+                    <input type="color" id="colAccent">
+                </div>
+                <div class="color-picker-row">
+                    <label data-i18n="lbl_cust_chord">Chord</label>
+                    <input type="color" id="colChord">
+                </div>
+            </div>
 
             <div style="display:flex; gap:10px;">
                 <button onclick="saveSettings()" style="flex:1; padding:10px; background:var(--accent); border:none; border-radius:5px; font-weight:bold; color:#000;" data-i18n="lbl_save">Save</button>
@@ -284,3 +320,4 @@
     </script>
 </body>
 </html>
+

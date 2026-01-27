@@ -1,11 +1,7 @@
 /* =========================================
-   CORE LOGIC & PARSING (js/logic.js)
+   CORE LOGIC & PARSING (js/logic.js) - FINAL v4
    ========================================= */
 
-// ΣΗΜΕΙΩΣΗ: Οι μεταβλητές NOTES και TRANSLATIONS φορτώνονται από το data.js
-// Δεν τις δηλώνουμε ξανά εδώ για να αποφύγουμε το SyntaxError.
-
-// Βοηθητική συνάρτηση μετάφρασης (αν δεν υπάρχει ήδη)
 if (typeof window.t === 'undefined') {
     window.t = function(key) {
         if (typeof TRANSLATIONS !== 'undefined' && typeof currentLang !== 'undefined') {
@@ -30,7 +26,7 @@ function ensureSongStructure(song) {
     return song;
 }
 
-// --- STRICT TOKENIZER PARSING ---
+// --- STRICT TOKENIZER PARSING (FIXED SPACING) ---
 function parseSongLogic(song) {
     state.meta = song;
     state.parsedChords = [];
@@ -58,12 +54,13 @@ function parseSongLogic(song) {
             var char = line[i];
 
             if (char === '!') {
+                // Αν υπάρχει κείμενο πριν, αποθήκευσέ το
                 if (buffer.length > 0) {
                     tokens.push({ c: "", t: buffer });
                     buffer = "";
                 }
 
-                i++; // Skip '!'
+                i++; // Προσπερνάμε το '!'
                 var chordBuf = "";
                 var stopChord = false;
 
@@ -74,14 +71,17 @@ function parseSongLogic(song) {
                     var isGreek = (c >= '\u0370' && c <= '\u03FF') || (c >= '\u1F00' && c <= '\u1FFF');
 
                     if (isBang) {
-                        stopChord = true;
+                        stopChord = true; // Τερματισμός στο επόμενο !
                     } else if (isSpace || isGreek) {
-                        stopChord = true; 
+                        stopChord = true;
+                        // FIX: Αν σταματήσαμε λόγω κενού, το "τρώμε" (skip) ώστε να μην μπει στους στίχους
+                        if (isSpace) i++; 
                     } else {
                         chordBuf += c;
                         i++;
                     }
                 }
+                
                 tokens.push({ c: chordBuf, t: "" });
 
             } else {
@@ -115,8 +115,6 @@ function splitSongBody(body) {
 
 function getNote(note, semitones) {
     if (!note) return "";
-    
-    // Έλεγχος αν υπάρχει το NOTES array
     if (typeof NOTES === 'undefined') return note;
 
     let isTagged = note.startsWith('!');
@@ -145,6 +143,7 @@ function getNote(note, semitones) {
     return newRoot + suffix;
 }
 
+// SMART CAPO (Uses User Settings)
 function calculateOptimalCapo(currentKey, songBody) {
     var chordsFound = new Set();
     var chordRegex = /!([A-G][#b]?)/g; 
@@ -158,7 +157,11 @@ function calculateOptimalCapo(currentKey, songBody) {
     var bestCapo = 0;
     var maxScore = -1000;
 
-    for (var c = 0; c < 12; c++) {
+    // Load maxCapo from settings (default 12)
+    var userSettings = JSON.parse(localStorage.getItem('mnotes_settings')) || {};
+    var maxFret = (userSettings.maxCapo !== undefined) ? parseInt(userSettings.maxCapo) : 12;
+
+    for (var c = 0; c <= maxFret; c++) {
         var score = 0;
         chordsFound.forEach(originalChord => {
             var playedChord = getNote(originalChord, -c).charAt(0).toUpperCase() + getNote(originalChord, -c).slice(1);
@@ -241,19 +244,39 @@ function deleteCurrentSong() {
     }
 }
 
-function exportJSON() {
+// --- SMART EXPORT (Share on Mobile, Download on Desktop) ---
+async function exportJSON() {
     if (!library || library.length === 0) {
         alert("Library is empty!");
         return;
     }
-    var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(library, null, 2));
-    var downloadAnchorNode = document.createElement('a');
-    downloadAnchorNode.setAttribute("href", dataStr);
-    
-    var date = new Date().toISOString().slice(0,10);
-    downloadAnchorNode.setAttribute("download", "mNotes_backup_" + date + ".mnote");
-    
-    document.body.appendChild(downloadAnchorNode);
-    downloadAnchorNode.click();
-    downloadAnchorNode.remove();
+
+    // Save timestamp for Reminder
+    localStorage.setItem('mnotes_last_backup', Date.now()); 
+
+    const jsonStr = JSON.stringify(library, null, 2);
+    const date = new Date().toISOString().slice(0,10);
+    const fileName = "mNotes_backup_" + date + ".mnote";
+
+    const file = new File([jsonStr], fileName, { type: "application/json" });
+
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+            await navigator.share({
+                files: [file],
+                title: 'mNotes Backup',
+                text: 'Backup ' + date
+            });
+        } catch (err) {
+            console.log("Share cancelled", err);
+        }
+    } else {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(jsonStr);
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", fileName);
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+    }
 }

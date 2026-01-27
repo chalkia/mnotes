@@ -1,5 +1,5 @@
 /* =========================================
-   DATA & CONFIG (js/data.js)
+   DATA & CONFIG (js/data.js) - FINAL v4
    ========================================= */
 
 const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
@@ -26,8 +26,8 @@ const TRANSLATIONS = {
         tab_setlist: "Setlist",
         
         ph_search: "Search title...",
-        lbl_all_tags: "All",           // Updated
-        lbl_no_demo: "All except Demo", // New
+        lbl_all_tags: "All",            
+        lbl_no_demo: "All except Demo", 
 
         msg_capo_found: "Optimal: Capo ",
         msg_capo_perfect: "Already optimized!",
@@ -48,15 +48,32 @@ const TRANSLATIONS = {
         ph_notes: "Private Notes",
         ph_body: "Write lyrics & chords here...\nExample: !AmHello !Gfriend",
         
+        // Import Modal
         modal_import_title: "Import",
         modal_btn_file: "File (.json)",
+        modal_btn_url: "From URL",
         modal_btn_qr: "Scan QR Code",
         modal_btn_cancel: "Cancel",
         
-        qr_title: "Song QR Code",
+        // QR & Share
+        qr_title_song: "Song Share",
+        qr_title_setlist: "Setlist Share",
         msg_qr_help: "Scan this with mNotes on another device.",
         scan_title: "Scan QR",
         msg_scan_camera_error: "Camera access denied or error.",
+
+        // Settings Menu
+        lbl_settings: "Settings",
+        lbl_scroll_speed: "Auto-Scroll Speed",
+        lbl_max_capo: "Max Capo Fret",
+        lbl_backup_reminder: "Monthly Backup Reminder",
+        lbl_def_theme: "Default Theme",
+        lbl_theme_slate: "Slate (Blue)",
+        lbl_theme_dark: "Dark (Black)",
+        lbl_theme_light: "Light (White)",
+        msg_settings_saved: "Settings saved!",
+        
+        msg_backup_reminder: "It's been over a month since your last backup. Do you want to save your library now?",
 
         msg_demo_delete: "⚠️ The demo/instructions cannot be deleted!",
         msg_delete_confirm: "Are you sure you want to delete this song?",
@@ -81,14 +98,14 @@ const TRANSLATIONS = {
         lbl_edit: "Επεξεργασία",
         lbl_cancel: "Άκυρο",
         lbl_save: "Αποθήκευση",
-        lbl_lyrics_mode: "Στίχοι",  // Προσθήκη για το κουμπί
-        lbl_smart_capo: "Smart Capo", // Προσθήκη για το label
+        lbl_lyrics_mode: "Στίχοι",  
+        lbl_smart_capo: "Smart Capo", 
         tab_library: "Βιβλιοθήκη",
         tab_setlist: "Προσωρινή Λίστα",
             
         ph_search: "Αναζήτηση...",
-        lbl_all_tags: "Όλα",            // Updated
-        lbl_no_demo: "Όλα εκτός Demo",  // New
+        lbl_all_tags: "Όλα",            
+        lbl_no_demo: "Όλα εκτός Demo",  
 
         msg_capo_found: "Βέλτιστο: Capo ",
         msg_capo_perfect: "Ήδη βέλτιστο!",
@@ -109,15 +126,32 @@ const TRANSLATIONS = {
         ph_notes: "Σημειώσεις",
         ph_body: "Γράψτε στίχους & συγχορδίες...\nΠαράδειγμα: !AmΚαλημέρα !Gφίλε",
 
+        // Import Modal
         modal_import_title: "Εισαγωγή",
         modal_btn_file: "Αρχείο (.json)",
+        modal_btn_url: "Από σύνδεσμο (URL)", 
         modal_btn_qr: "Σάρωση QR",
-        modal_btn_cancel: "Άκυρο",
+        modal_btn_cancel: "Ακύρωση",
 
-        qr_title: "QR Τραγουδιού",
+        // QR & Share
+        qr_title_song: "Διαμοιρασμός Τραγουδιού",
+        qr_title_setlist: "Διαμοιρασμός Λίστας",
         msg_qr_help: "Σκανάρετε με το mNotes σε άλλη συσκευή.",
         scan_title: "Σάρωση QR",
         msg_scan_camera_error: "Δεν υπάρχει πρόσβαση στην κάμερα.",
+
+        // Settings Menu
+        lbl_settings: "Ρυθμίσεις",
+        lbl_scroll_speed: "Ταχύτητα Κύλισης",
+        lbl_max_capo: "Μέγιστο Τάστο Capo",
+        lbl_backup_reminder: "Υπενθύμιση Backup (Μήνας)",
+        lbl_def_theme: "Προεπιλεγμένο Θέμα",
+        lbl_theme_slate: "Slate (Μπλε)",
+        lbl_theme_dark: "Dark (Μαύρο)",
+        lbl_theme_light: "Light (Λευκό)",
+        msg_settings_saved: "Οι ρυθμίσεις αποθηκεύτηκαν!",
+        
+        msg_backup_reminder: "Έχει περάσει πάνω από μήνας από το τελευταίο Backup. Θέλετε να αποθηκεύσετε τη βιβλιοθήκη τώρα;",
 
         msg_demo_delete: "⚠️ Οι οδηγίες χρήσης δεν μπορούν να διαγραφούν!",
         msg_delete_confirm: "Είστε σίγουροι ότι θέλετε να διαγράψετε αυτό το τραγούδι;",
@@ -144,10 +178,11 @@ const DEFAULT_DATA = [
     "interlude": "",
     "notes": "Demo / Οδηγίες",
     "playlists": ["Help"],
-    "body": "!AmWelcome / !DmΚαλωσήρθατε"
+    "body": "!AmWelcome / !DmΚαλωσήρθατε\n\n[Full Guide]\n1. Edit to add songs\n2. Use !Chord for chords\n3. Share via QR"
   }
 ];
 
+// Global Variables Initialization
 var library = [];
 var currentSongId = null;
 var visiblePlaylist = [];

@@ -14,22 +14,22 @@
     <link rel="stylesheet" href="style.css">
     
     <script src="js/sortable.min.js"></script>
-    <script src="js/qrcodegen.js"></script> <script src="js/html5-qrcode.min.js"></script>
+    <script src="js/qrcodegen.js"></script>
+    <script src="js/html5-qrcode.min.js"></script>
 
     <script src="js/data.js"></script>
     <script src="js/storage.js"></script>
     <script src="js/logic.js"></script>
     <script src="js/ui.js"></script>
 </head>
-<body class="theme-blue-yellow"> 
+<body class="theme-dark"> 
     <script>
+        // Γρήγορος έλεγχος για κινητό πριν φορτώσει το CSS
         (function() {
             const isMobile = window.innerWidth <= 768;
-            if (isMobile) {
-                document.body.className = 'theme-blue-yellow';
-            } else {
-                document.body.className = 'theme-light';
-            }
+            // Αν υπάρχει αποθηκευμένο θέμα, θα το φορτώσει το ui.js, 
+            // εδώ βάζουμε μια default λογική για να μην αναβοσβήνει
+            if (isMobile) document.body.className = 'theme-slate';
         })();
     </script>
 
@@ -40,19 +40,20 @@
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
-                    
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <span style="color:var(--text-main); font-weight:bold; font-size:1.2rem;">
                             mNotes <span id="songCount" style="font-size:0.8rem; opacity:0.6;">0</span>
                         </span>
                         
                         <div class="sidebar-actions">
-                            <button id="btnAddSong" onclick="createNewSong()" class="action-btn" title="Προσθήκη νέου">
+                            <button id="btnAddSong" onclick="createNewSong()" class="action-btn" title="Προσθήκη">
                                 <i class="fas fa-plus"></i>
                             </button>
-                            
                             <button id="btnShareSetlist" onclick="exportSetlist()" class="action-btn" title="QR Λίστας" style="display:none;">
                                 <i class="fas fa-qrcode"></i>
+                            </button>
+                            <button onclick="openSettings()" class="action-btn" title="Ρυθμίσεις">
+                                <i class="fas fa-cog"></i>
                             </button>
                         </div>
                     </div>
@@ -84,7 +85,7 @@
                     <i class="fas fa-file-import"></i> <span data-i18n="btn_import">Import</span>
                 </button>
                 
-                <button onclick="exportJSON()" style="width:40px; background:var(--bg-panel); color:var(--accent); border:none; cursor:pointer;" title="Export .mnote">
+                <button onclick="exportJSON()" style="width:40px; background:var(--bg-panel); color:var(--accent); border:none; cursor:pointer;" title="Export / Share">
                     <i class="fas fa-file-export"></i>
                 </button>
 
@@ -233,9 +234,41 @@
             <button onclick="closeScan()" style="margin-top:15px; padding:10px; background:var(--danger); color:white; border:none; border-radius:5px;" data-i18n="lbl_cancel">Close</button>
         </div>
     </div>
+
+    <div id="settingsModal" class="modal-overlay">
+        <div class="modal-box" style="text-align:left;">
+            <h3 style="color:var(--text-main); margin-top:0; text-align:center;" data-i18n="lbl_settings">Settings</h3>
+            
+            <label class="ctl-label" data-i18n="lbl_scroll_speed">Scroll Speed</label>
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:15px;">
+                <i class="fas fa-hare"></i>
+                <input type="range" id="setScroll" min="10" max="200" step="10" style="flex:1">
+                <i class="fas fa-tortoise"></i>
+            </div>
+
+            <label class="ctl-label" data-i18n="lbl_max_capo">Max Capo</label>
+            <input type="number" id="setMaxCapo" class="inp" style="width:100%; margin-bottom:15px;" min="0" max="12">
+
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <label class="ctl-label" style="margin:0;" data-i18n="lbl_backup_reminder">Backup Reminder</label>
+                <input type="checkbox" id="setBackup" style="width:20px; height:20px;">
+            </div>
+
+            <label class="ctl-label" data-i18n="lbl_def_theme">Theme</label>
+            <select id="setTheme" class="inp" style="width:100%; margin-bottom:20px;">
+                <option value="theme-dark" data-i18n="lbl_theme_dark">Dark</option>
+                <option value="theme-slate" data-i18n="lbl_theme_slate">Slate</option>
+                <option value="theme-light" data-i18n="lbl_theme_light">Light</option>
+            </select>
+
+            <div style="display:flex; gap:10px;">
+                <button onclick="saveSettings()" style="flex:1; padding:10px; background:var(--accent); border:none; border-radius:5px; font-weight:bold; color:#000;" data-i18n="lbl_save">Save</button>
+                <button onclick="document.getElementById('settingsModal').style.display='none'" style="flex:1; padding:10px; background:var(--input-bg); color:var(--text-main); border:1px solid var(--border-color); border-radius:5px;" data-i18n="modal_btn_cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
     
     <input type="file" id="hiddenFileInput" style="display:none" accept=".json,.mnote">
-
     <div id="toast"></div>
 
     <script>
@@ -251,4 +284,3 @@
     </script>
 </body>
 </html>
-

@@ -1,5 +1,5 @@
 /* =========================================
-   UI & APP LOGIC (js/ui.js) - v3 FINAL
+   UI & APP LOGIC (js/ui.js) - FINAL v4
    ========================================= */
 
 if(typeof library === 'undefined') var library = [];
@@ -9,19 +9,29 @@ var visiblePlaylist = [];
 var sortableInstance = null;
 var editorTags = [];
 var scrollTimer = null;
-var scrollSpeedMs = 50;
 var html5QrCodeScanner = null;
 
 var liveSetlist = JSON.parse(localStorage.getItem('mnotes_setlist')) || [];
-var viewMode = 'library'; // 'library' or 'setlist'
+var viewMode = 'library'; 
 var isLyricsMode = false; 
 
+// --- SETTINGS DEFAULT ---
+var userSettings = JSON.parse(localStorage.getItem('mnotes_settings')) || {
+    scrollSpeed: 50,
+    maxCapo: 12,
+    backupReminder: true,
+    theme: 'theme-dark'
+};
+
 window.addEventListener('load', function() {
-    loadSavedTheme();
+    loadSavedTheme(); // Uses userSettings
     applyTranslations(); 
     loadLibrary();
     setupEvents();
     setupGestures();
+    
+    // Check Backup Interval
+    checkBackupReminder();
 });
 
 function toggleLanguage() {
@@ -46,15 +56,18 @@ function applyTranslations() {
 }
 
 function loadSavedTheme() {
-    var th = localStorage.getItem('mnotes_theme') || 'theme-dark';
+    var th = userSettings.theme || 'theme-dark';
     document.body.className = th;
 }
 function cycleTheme() {
+    // Quick toggle just cycles, doesn't save to settings object immediately (optional)
     var b = document.body;
     if (b.classList.contains('theme-dark')) b.className = 'theme-slate';
     else if (b.classList.contains('theme-slate')) b.className = 'theme-light';
     else b.className = 'theme-dark';
-    localStorage.setItem('mnotes_theme', b.className);
+    // Sync temporary change to settings
+    userSettings.theme = b.className;
+    localStorage.setItem('mnotes_settings', JSON.stringify(userSettings));
 }
 
 function loadLibrary() {
@@ -67,7 +80,6 @@ function loadLibrary() {
         demo.title = t('demo_title'); demo.body = t('demo_body');
         library.unshift(demo); saveData();
     }
-    // ensureSongStructure is in logic.js
     library = library.map(ensureSongStructure);
     liveSetlist = liveSetlist.filter(id => library.some(s => s.id === id));
     
@@ -118,11 +130,9 @@ function applyFilters() { renderSidebar(); }
 function switchSidebarTab(mode) {
     viewMode = mode;
     
-    // 1. Tab Styling
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.getElementById('tab-' + mode).classList.add('active');
     
-    // 2. Search Box visibility
     var searchBox = document.querySelector('.sidebar-search');
     if (mode === 'setlist') {
         if(searchBox) searchBox.style.display = 'none';
@@ -130,7 +140,7 @@ function switchSidebarTab(mode) {
         if(searchBox) searchBox.style.display = 'flex';
     }
 
-    // 3. Dynamic Button Visibility (Share vs Add)
+    // Dynamic Buttons: Share (List) vs Add (Song)
     var btnShare = document.getElementById('btnShareSetlist');
     var btnAdd = document.getElementById('btnAddSong');
 
@@ -170,14 +180,12 @@ function renderSidebar() {
         
         visiblePlaylist = library.filter(s => {
             var matchTxt = s.title.toLowerCase().includes(txt) || (s.artist && s.artist.toLowerCase().includes(txt));
-            
             var matchTag = true;
             if (tag === "__no_demo") {
                 matchTag = !s.id.includes("demo");
             } else if (tag !== "") {
                 matchTag = (s.playlists && s.playlists.includes(tag));
             }
-            
             return matchTxt && matchTag;
         });
     }
@@ -231,7 +239,6 @@ function renderSidebar() {
     });
 }
 
-/* --- PLAYER --- */
 function loadSong(id) {
     if(scrollTimer) toggleAutoScroll(); 
 
@@ -340,7 +347,6 @@ function switchToEditor() {
             document.getElementById('inpTitle').value = s.title || "";
             document.getElementById('inpArtist').value = s.artist || ""; 
             document.getElementById('inpKey').value = s.key || "";
-            
             document.getElementById('inpIntro').value = s.intro || "";
             document.getElementById('inpInter').value = s.interlude || "";
             document.getElementById('inpNotes').value = s.notes || "";
@@ -380,18 +386,12 @@ function toggleLyricsMode() {
         document.body.classList.add('lyrics-mode');
         if(btn) btn.classList.add('lyrics-btn-active');
         showToast(t('msg_lyrics_mode_on'));
-        if(currentSongId) {
-            var s = library.find(x => x.id === currentSongId);
-            renderPlayer(s);
-        }
+        if(currentSongId) renderPlayer(library.find(x => x.id === currentSongId));
     } else {
         document.body.classList.remove('lyrics-mode');
         if(btn) btn.classList.remove('lyrics-btn-active');
         showToast(t('msg_lyrics_mode_off'));
-        if(currentSongId) {
-            var s = library.find(x => x.id === currentSongId);
-            renderPlayer(s);
-        }
+        if(currentSongId) renderPlayer(library.find(x => x.id === currentSongId));
     }
 }
 
@@ -416,6 +416,25 @@ function showToast(msg) {
     }
 }
 
+// FIX: Limit Transpose -6 to +6
+function changeTranspose(n) { 
+    state.t += n; 
+    if (state.t > 6) state.t = 6;
+    if (state.t < -6) state.t = -6;
+    
+    renderPlayer(library.find(s=>s.id===currentSongId)); 
+}
+
+function changeCapo(n) { 
+    state.c += n; 
+    if(state.c<0)state.c=0; 
+    renderPlayer(library.find(s=>s.id===currentSongId)); 
+}
+
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
+function saveData() { localStorage.setItem('mnotes_data', JSON.stringify(library)); }
+
+// FIX: Use userSettings for scroll speed
 function toggleAutoScroll() {
     var el = document.getElementById('scroll-container');
     if (scrollTimer) {
@@ -423,10 +442,11 @@ function toggleAutoScroll() {
         el.style.borderLeft = "none"; 
     } else {
         el.style.borderLeft = "3px solid var(--accent)";
+        var speed = userSettings.scrollSpeed || 50; 
         scrollTimer = setInterval(function() {
             if (el.scrollTop + el.clientHeight >= el.scrollHeight) toggleAutoScroll();
             else el.scrollTop += 1;
-        }, scrollSpeedMs);
+        }, speed);
     }
 }
 
@@ -482,12 +502,21 @@ function generateQRForSong(data) {
     }
 }
 
-function showQR(customData) {
+// FIX: Distinguish QR titles
+function showQR(customData, type) {
     let dataToEncode = customData;
     if (!dataToEncode && currentSongId) {
         dataToEncode = library.find(s => s.id === currentSongId);
+        type = 'song'; // Default
     }
     if (!dataToEncode) return;
+
+    // Set Title dynamically
+    const titleEl = document.querySelector('#qrModal h3');
+    if (titleEl) {
+        if (type === 'setlist') titleEl.innerText = t('qr_title_setlist');
+        else titleEl.innerText = t('qr_title_song');
+    }
 
     const imgTag = generateQRForSong(dataToEncode);
     if (imgTag) {
@@ -509,7 +538,7 @@ function generateQRFromEditor() {
         inter: document.getElementById('inpInter').value,
         tags: document.getElementById('inpTags').value
     };
-    showQR(tempSong);
+    showQR(tempSong, 'song');
 }
 
 function exportSetlist() {
@@ -518,7 +547,7 @@ function exportSetlist() {
         return;
     }
     const sharePackage = { type: "mnotes_setlist", data: liveSetlist };
-    showQR(sharePackage);
+    showQR(sharePackage, 'setlist');
 }
 
 async function importFromURL() {
@@ -565,8 +594,7 @@ function selectImport(type) {
     if(type==='url') importFromURL(); 
 }
 
-/* --- TAGS HELPER FUNCTIONS (MISSING IN PREVIOUS VERSION) --- */
-
+/* --- TAGS & SETUP --- */
 function renderTagChips() {
     var container = document.getElementById('tagChips');
     if(!container) return;
@@ -600,8 +628,6 @@ function removeTag(tag) {
     renderTagChips();
 }
 
-/* --- DELETION & HELPERS --- */
-
 function deleteTagGlobally(e, tag) {
     e.stopPropagation();
     if (confirm(t('msg_confirm_tag_delete'))) {
@@ -612,7 +638,6 @@ function deleteTagGlobally(e, tag) {
         });
         saveData(); 
         populateTags(); 
-        
         if (document.getElementById('view-editor').classList.contains('active-view')) {
              editorTags = editorTags.filter(t => t !== tag);
              renderTagChips();
@@ -631,7 +656,6 @@ function handleTagInput(inp) {
     
     var allTags = new Set();
     library.forEach(s => s.playlists.forEach(t => allTags.add(t)));
-    
     var matches = Array.from(allTags).filter(t => t.toLowerCase().includes(val) && !editorTags.includes(t));
 
     sugg.innerHTML = "";
@@ -639,18 +663,8 @@ function handleTagInput(inp) {
         matches.forEach(m => {
             var div = document.createElement('div');
             div.className = 'tag-suggestion-item';
-            
-            var spanText = document.createElement('span');
-            spanText.innerText = m;
-            spanText.onclick = function() { addTag(m); };
-            
-            var btnDel = document.createElement('i');
-            btnDel.className = 'fas fa-trash-alt tag-delete-btn';
-            btnDel.onclick = function(e) { deleteTagGlobally(e, m); };
-
-            div.appendChild(spanText);
-            div.appendChild(btnDel);
-            
+            div.innerHTML = `<span>${m}</span><i class="fas fa-trash-alt tag-delete-btn" onclick="deleteTagGlobally(event, '${m}')"></i>`;
+            div.onclick = function(e) { if(e.target.tagName !== 'I') addTag(m); };
             sugg.appendChild(div);
         });
         sugg.style.display = 'block';
@@ -667,11 +681,6 @@ function handleTagKey(e) {
         removeTag(editorTags[editorTags.length-1]);
     }
 }
-
-function changeTranspose(n) { state.t += n; renderPlayer(library.find(s=>s.id===currentSongId)); }
-function changeCapo(n) { state.c += n; if(state.c<0)state.c=0; renderPlayer(library.find(s=>s.id===currentSongId)); }
-function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
-function saveData() { localStorage.setItem('mnotes_data', JSON.stringify(library)); }
 
 function setupEvents() {
     document.getElementById('btnMenu').onclick = toggleSidebar;
@@ -712,4 +721,49 @@ function setupGestures() {
     var touchStartX = 0; var touchEndX = 0;
     sidebar.addEventListener('touchstart', function(e) { touchStartX = e.changedTouches[0].screenX; }, {passive: true});
     sidebar.addEventListener('touchend', function(e) { touchEndX = e.changedTouches[0].screenX; if(touchStartX - touchEndX > 50) document.getElementById('sidebar').classList.remove('open'); }, {passive: true});
+}
+
+/* --- SETTINGS & BACKUP LOGIC --- */
+function openSettings() {
+    document.getElementById('setScroll').value = userSettings.scrollSpeed;
+    document.getElementById('setMaxCapo').value = userSettings.maxCapo;
+    document.getElementById('setBackup').checked = userSettings.backupReminder;
+    document.getElementById('setTheme').value = userSettings.theme;
+    
+    document.getElementById('settingsModal').style.display = 'flex';
+}
+
+function saveSettings() {
+    userSettings.scrollSpeed = parseInt(document.getElementById('setScroll').value);
+    userSettings.maxCapo = parseInt(document.getElementById('setMaxCapo').value);
+    userSettings.backupReminder = document.getElementById('setBackup').checked;
+    userSettings.theme = document.getElementById('setTheme').value;
+    
+    localStorage.setItem('mnotes_settings', JSON.stringify(userSettings));
+    document.body.className = userSettings.theme;
+    
+    document.getElementById('settingsModal').style.display = 'none';
+    showToast(t('msg_settings_saved'));
+}
+
+function checkBackupReminder() {
+    if (userSettings.backupReminder === false) return; 
+
+    const lastBackup = localStorage.getItem('mnotes_last_backup');
+    if (!lastBackup) {
+        localStorage.setItem('mnotes_last_backup', Date.now());
+        return;
+    }
+
+    const now = Date.now();
+    const thirtyDays = 30 * 24 * 60 * 60 * 1000; 
+
+    if (now - parseInt(lastBackup) > thirtyDays) {
+        if (confirm(t('msg_backup_reminder'))) {
+            exportJSON();
+        } else {
+            const oneDaySnooze = now - thirtyDays + (24 * 60 * 60 * 1000); 
+            localStorage.setItem('mnotes_last_backup', oneDaySnooze);
+        }
+    }
 }

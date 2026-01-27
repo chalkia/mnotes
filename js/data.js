@@ -1,5 +1,5 @@
 /* =========================================
-   DATA & CONFIG (js/data.js) - FINAL v4
+   DATA & CONFIG (js/data.js) - FINAL v6
    ========================================= */
 
 const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
@@ -32,11 +32,9 @@ const TRANSLATIONS = {
         msg_capo_found: "Optimal: Capo ",
         msg_capo_perfect: "Already optimized!",
         
-        // Lyrics Mode
         msg_lyrics_mode_on: "Lyrics Mode: ON",
         msg_lyrics_mode_off: "Lyrics Mode: OFF",
 
-        // Tags
         msg_confirm_tag_delete: "⚠️ This will remove this tag from ALL songs in your library. Are you sure?",
 
         ph_title: "Song Title",
@@ -48,29 +46,27 @@ const TRANSLATIONS = {
         ph_notes: "Private Notes",
         ph_body: "Write lyrics & chords here...\nExample: !AmHello !Gfriend",
         
-        // Import Modal
         modal_import_title: "Import",
         modal_btn_file: "File (.json)",
         modal_btn_url: "From URL",
         modal_btn_qr: "Scan QR Code",
         modal_btn_cancel: "Cancel",
         
-        // QR & Share
         qr_title_song: "Song Share",
         qr_title_setlist: "Setlist Share",
         msg_qr_help: "Scan this with mNotes on another device.",
         scan_title: "Scan QR",
         msg_scan_camera_error: "Camera access denied or error.",
 
-        // Settings Menu
         lbl_settings: "Settings",
         lbl_scroll_speed: "Auto-Scroll Speed",
         lbl_max_capo: "Max Capo Fret",
         lbl_backup_reminder: "Monthly Backup Reminder",
-        lbl_def_theme: "Default Theme",
+        lbl_def_theme: "Theme",
         lbl_theme_slate: "Slate (Blue)",
         lbl_theme_dark: "Dark (Black)",
         lbl_theme_light: "Light (White)",
+        lbl_theme_custom: "Custom (DIY)",
         msg_settings_saved: "Settings saved!",
         
         msg_backup_reminder: "It's been over a month since your last backup. Do you want to save your library now?",
@@ -84,7 +80,14 @@ const TRANSLATIONS = {
         msg_error_read: "Error reading file.",
         
         demo_title: "User Guide (Demo)",
-        demo_body: "Welcome to mNotes!\n\nTo add chords, use the exclamation mark (!)\nbefore the note. Example:\n\n!AmThis is !Dman example"
+        
+        lbl_intro_size: "Intro/Inter Font Size",
+        lbl_hide_demo: "Hide Demo (if library not empty)",
+        lbl_cust_bg: "Background",
+        lbl_cust_panel: "Panel/Header",
+        lbl_cust_text: "Text Color",
+        lbl_cust_acc: "Accent (Buttons)",
+        lbl_cust_chord: "Chords Color"
     },
     el: {
         app_title: "mNotes",
@@ -110,11 +113,9 @@ const TRANSLATIONS = {
         msg_capo_found: "Βέλτιστο: Capo ",
         msg_capo_perfect: "Ήδη βέλτιστο!",
 
-        // Lyrics Mode
         msg_lyrics_mode_on: "Λειτουργία Στίχων: ON",
         msg_lyrics_mode_off: "Λειτουργία Στίχων: OFF",
 
-        // Tags
         msg_confirm_tag_delete: "⚠️ Αυτό θα διαγράψει την κατηγορία από ΟΛΑ τα τραγούδια. Είστε σίγουροι;",
 
         ph_title: "Τίτλος Τραγουδιού",
@@ -126,29 +127,27 @@ const TRANSLATIONS = {
         ph_notes: "Σημειώσεις",
         ph_body: "Γράψτε στίχους & συγχορδίες...\nΠαράδειγμα: !AmΚαλημέρα !Gφίλε",
 
-        // Import Modal
         modal_import_title: "Εισαγωγή",
         modal_btn_file: "Αρχείο (.json)",
         modal_btn_url: "Από σύνδεσμο (URL)", 
         modal_btn_qr: "Σάρωση QR",
         modal_btn_cancel: "Ακύρωση",
 
-        // QR & Share
         qr_title_song: "Διαμοιρασμός Τραγουδιού",
         qr_title_setlist: "Διαμοιρασμός Λίστας",
         msg_qr_help: "Σκανάρετε με το mNotes σε άλλη συσκευή.",
         scan_title: "Σάρωση QR",
         msg_scan_camera_error: "Δεν υπάρχει πρόσβαση στην κάμερα.",
 
-        // Settings Menu
         lbl_settings: "Ρυθμίσεις",
         lbl_scroll_speed: "Ταχύτητα Κύλισης",
         lbl_max_capo: "Μέγιστο Τάστο Capo",
         lbl_backup_reminder: "Υπενθύμιση Backup (Μήνας)",
-        lbl_def_theme: "Προεπιλεγμένο Θέμα",
+        lbl_def_theme: "Επιλογή Θέματος",
         lbl_theme_slate: "Slate (Μπλε)",
         lbl_theme_dark: "Dark (Μαύρο)",
         lbl_theme_light: "Light (Λευκό)",
+        lbl_theme_custom: "Προσαρμοσμένο (DIY)",
         msg_settings_saved: "Οι ρυθμίσεις αποθηκεύτηκαν!",
         
         msg_backup_reminder: "Έχει περάσει πάνω από μήνας από το τελευταίο Backup. Θέλετε να αποθηκεύσετε τη βιβλιοθήκη τώρα;",
@@ -162,7 +161,14 @@ const TRANSLATIONS = {
         msg_error_read: "Σφάλμα ανάγνωσης αρχείου.",
 
         demo_title: "Οδηγίες Χρήσης (Demo)",
-        demo_body: "Καλωσήρθατε στο mNotes!\n\nΓια να βάλετε συγχορδίες, χρησιμοποιήστε το θαυμαστικό (!)\nπριν από τη νότα. Παράδειγμα:\n\n!AmΑυτό είναι !Dmένα παράδειγμα"
+        
+        lbl_intro_size: "Μέγεθος Intro/Inter",
+        lbl_hide_demo: "Απόκρυψη Demo (αν υπάρχουν τραγούδια)",
+        lbl_cust_bg: "Φόντο",
+        lbl_cust_panel: "Πάνελ/Κεφαλίδα",
+        lbl_cust_text: "Κείμενο",
+        lbl_cust_acc: "Κουμπιά (Accent)",
+        lbl_cust_chord: "Συγχορδίες"
     }
 };
 
@@ -171,14 +177,14 @@ function t(key) { return TRANSLATIONS[currentLang][key] || key; }
 const DEFAULT_DATA = [
   {
     "id": "demo_instruction",
-    "title": "mNotes Demo",
+    "title": "Οδηγίες Χρήσης (Demo)",
     "artist": "mNotes Team",
-    "key": "Am",
-    "intro": "!Am | !Dm | !E | !Am",
+    "key": "C",
+    "intro": "",
     "interlude": "",
-    "notes": "Demo / Οδηγίες",
-    "playlists": ["Help"],
-    "body": "!AmWelcome / !DmΚαλωσήρθατε\n\n[Full Guide]\n1. Edit to add songs\n2. Use !Chord for chords\n3. Share via QR"
+    "notes": "Διαβάστε παρακάτω για όλες τις δυνατότητες!",
+    "playlists": ["Help", "Manual"],
+    "body": "Καλωσήρθατε στο mNotes! !ΑmΜια εφαρμογή για τη δημιουργία και χρήση στίχων με συγχορδίες για κιθάρα.\nΣτο περιβάλλον του editor για την εισαγωγή συγχορδίας προηγείται το θαυμαστικό (!) και τελειώνει σε κενό (π.χ. !C ).\n(Το κενό δεν είναι απαραίτητο όταν ο επόμενος χαρακτήρας είναι ελληνικός).\nΟι στροφές διαχωρίζονται με κενή γραμμή.\n\n=====================================\nΟΔΗΓΙΕΣ ΧΡΗΣΗΣ & ΔΥΝΑΤΟΤΗΤΕΣ\n=====================================\n\n1. ΒΙΒΛΙΟΘΗΚΗ\nΗ εφαρμογή δημιουργεί μια βιβλιοθήκη τραγουδιών που παραμένει στη συσκευή σας και μετά το κλείσιμο της εφαρμογής. Εμπλουτίζεται όταν κάνετε εισαγωγή κομματιών.\n\n2. ΠΡΟΣΩΡΙΝΗ ΛΙΣΤΑ (Setlist)\nΜπορείτε να δημιουργείτε Προσωρινή Λίστα (Setlist) για τα Live σας, στην οποία μετακινείτε τα τραγούδια σε όποια σειρά θέλετε (Drag & Drop).\n\n3. ΔΙΑΜΟΙΡΑΣΜΟΣ (Sharing)\n• QR Song (Μέσα στον Editor): Μοιράζεται ΜΟΝΟ το τραγούδι που βλέπετε τώρα.\n• QR Setlist (Στο Tab της Λίστας): Μοιράζεται ΜΟΝΟ τη σειρά των τραγουδιών (IDs) για να συγχρονιστείτε με την μπάντα (προϋποθέτει την ύπαρξη της βιβλιοθήκης στην άλλη συσκευή).\n• Export / Backup:\n  -> Σε PC: Κατεβάζει αρχείο ασφαλείας .mnote.\n  -> Σε Κινητό: Ανοίγει το Viber/WhatsApp/Email για άμεση αποστολή του αρχείου.\n*Προτείνεται να εξάγετε συχνά τη βιβλιοθήκη ώστε να μην τη χάσετε αν απεγκαταστήσετε την εφαρμογή.*\n\n4. ΕΙΣΑΓΩΓΗ (Import)\nΜπορείτε να εισάγετε αρχεία .mnote για τον εμπλουτισμό της βιβλιοθήκης σας, καθώς και αρχεία που ακολουθούν το πρότυπο ChordPro.\n\n5. ΜΟΥΣΙΚΑ ΕΡΓΑΛΕΙΑ\n• Transpose: Αλλάζει τον τόνο του τραγουδιού (-6 έως +6).\n• Capo: Μεταγράφει τις συγχορδίες ώστε να διαβάζονται εύκολα όταν χρησιμοποιείται capo.\n• Smart Capo: Ο αλγόριθμος προτείνει το καλύτερο τάστο για το Capo για να παίξετε με τις πιο εύκολες (ανοιχτές) συγχορδίες.\n• Lyrics Mode: Κρύβει τις συγχορδίες, μεγαλώνει τα γράμματα και ενώνει το κείμενο."
   }
 ];
 

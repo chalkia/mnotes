@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mnotes-ver3.0';
+const CACHE_NAME = 'mnotes-ver4.0';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
@@ -8,6 +8,7 @@ const ASSETS_TO_CACHE = [
     
     // JS Files
     './js/data.js',
+    './js/storage.js',
     './js/logic.js',
     './js/ui.js',
     './js/qrcodegen.js',
@@ -48,12 +49,17 @@ self.addEventListener('activate', (event) => {
     event.waitUntil(
         caches.keys().then((keyList) => {
             return Promise.all(keyList.map((key) => {
+                // Αν το κλειδί δεν είναι το τωρινό (ver4.0), διέγραψέ το (π.χ. ver3.0)
                 if (key !== CACHE_NAME) {
+                    console.log('Removing old cache:', key);
                     return caches.delete(key);
                 }
             }));
         })
     );
+    // Ensure the service worker takes control of the page immediately
+    return self.clients.claim();
 });
+
 
 

@@ -153,18 +153,25 @@
             </div>
 
             <div id="view-editor" class="view-section">
+               
                 <div class="editor-toolbar">
-                    <button onclick="exitEditor()" style="color:var(--text-muted); background:none; border:none; display:flex; align-items:center; gap:5px;">
+                    <button onclick="exitEditor()" style="color:var(--text-muted); background:none; border:none; display:flex; align-items:center; gap:5px; font-size:1.1rem;">
                         <i class="fas fa-times"></i> <span data-i18n="lbl_cancel">Cancel</span>
                     </button>
                     
-                    <div>
-                        <button onclick="deleteCurrentSong()" style="color:var(--danger); background:none; border:none; font-size:1.2rem; margin-right:15px;"><i class="fas fa-trash-alt"></i></button>
-                        <button onclick="generateQRFromEditor()" style="color:var(--text-main); background:none; border:none; font-size:1.2rem;"><i class="fas fa-qrcode"></i></button>
+                    <div style="display:flex; gap:15px; align-items:center;">
+                        <button onclick="deleteCurrentSong()" style="color:var(--danger); background:none; border:none; font-size:1.2rem;" title="Delete"><i class="fas fa-trash-alt"></i></button>
+                        <button onclick="generateQRFromEditor()" style="color:var(--text-main); background:none; border:none; font-size:1.3rem;" title="QR Code"><i class="fas fa-qrcode"></i></button>
+                        
+                        <!-- ΤΟ ΝΕΟ ΚΟΥΜΠΙ SAVE ΜΕ ΕΙΚΟΝΙΔΙΟ -->
+                        <button onclick="saveEdit()" style="color:var(--accent); background:none; border:none; font-size:1.5rem;" title="Save">
+                            <i class="fas fa-save"></i>
+                        </button>
                     </div>
-                    
-                    <button onclick="saveEdit()" style="color:var(--accent); background:none; border:none; font-weight:bold; font-size:1.1rem;" data-i18n="lbl_save">Save</button>
                 </div>
+                
+                <div class="editor-body">
+                    <!-- ... (το υπόλοιπο body παραμένει ίδιο) ... -->
                 
                 <div class="editor-body">
                     <input id="inpTitle" class="inp" data-i18n-ph="ph_title" placeholder="Song Title" style="font-weight:bold; font-size:1.1rem;">
@@ -319,5 +326,6 @@
     </script>
 </body>
 </html>
+
 
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mnotes-ver4.0';
+const CACHE_NAME = 'mnotes-ver5.0';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
@@ -60,6 +60,7 @@ self.addEventListener('activate', (event) => {
     // Ensure the service worker takes control of the page immediately
     return self.clients.claim();
 });
+
 
 
 

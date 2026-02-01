@@ -1,3 +1,4 @@
+
 /* =========================================
    mNotes PRO - FINAL STYLE v3
    ========================================= */
@@ -123,11 +124,33 @@ body {
 .view-section { display: none; height: 100%; flex-direction: column; }
 .view-section.active-view { display: flex; }
 
-.player-header { display: flex; background: var(--bg-panel); padding: 10px 15px; width: 100%; border-bottom: 1px solid var(--border-color); flex-shrink: 0 ;box-sizing: border-box; justify-content: space-between; /* Σπρώχνει τα στοιχεία στις άκρες */ align-items: center; }
-#header-actions { display: flex; align-items: center; gap: 12px;}
-.header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
-.song-h1 { margin: 0; font-size: 1.5rem; color: var(--accent); line-height: 1.1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; flex:1;margin-right: 15px;}
-.key-badge { background: var(--input-bg); color: var(--text-main); border: 1px solid var(--border-color); padding: 2px 8px; border-radius: 4px; font-size: 1rem; font-weight: bold; }
+.player-header {
+    display: flex;
+    flex-direction: column;      /* ⬅️ header-row πάνω, intro κάτω */
+    align-items: stretch;        /* ⬅️ full width */
+    justify-content: flex-start; /* ⬅️ όχι space-between */
+    background: var(--bg-panel);
+    padding: 10px 15px;
+    width: 100%;
+    border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0;
+    box-sizing: border-box;
+}
+#header-actions { display: flex; align-items: center; gap: 12px; flex-shrink:0; }
+.header-row { display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 10px;}
+.song-h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: var(--accent);
+  line-height: 1.1;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;          /* ⬅️ κρίσιμο σε flex */
+  margin-right: 15px;
+}
+.key-badge {background: var(--input-bg); flex-shrink:0; color: var(--text-main); border: 1px solid var(--border-color); padding: 2px 8px; border-radius: 4px; font-size: 1rem; font-weight: bold; }
 
 .notes-container { background: var(--input-bg); border-left: 3px solid var(--accent); padding: 5px; margin-bottom: 5px; display: none; }
 .notes-text { font-size: 0.9rem; color: var(--text-main); font-style: italic; }
@@ -152,14 +175,13 @@ body {
 
 .meta-label { 
     color: var(--text-muted); 
-    font-weight: bold; 
+    font-weight: 300; 
     margin-right: 10px; 
     font-size: 0.8rem; 
     text-transform: uppercase;
     min-width: 70px; /* Σταθερό πλάτος στην ετικέτα για στοίχιση */
+    flex-shrink: 0;
 }
-
-.meta-label { color: var(--text-muted); font-weight: 300; margin-right: 5px; font-size: 0.8rem; }
 .info-chord { color: var(--chord-color); font-weight: bold; font-family: monospace; }
 .chord-highlight { color: var(--chord-color); font-weight: bold; font-family: monospace; margin: 0 5px; font-size: 1.2rem;}
 
@@ -292,6 +314,7 @@ body.lyrics-mode .fixed-lyrics { border-bottom: none; background: transparent; }
 .song-item.new-import:hover {
     background-color: color-mix(in srgb, var(--accent), transparent 85%) !important;
 }
+
 
 
 

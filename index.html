@@ -43,10 +43,8 @@
                             </button>
                             <button id="btnShareSetlist" onclick="exportSetlist()" class="action-btn" title="QR Λίστας" style="display:none;">
                                 <i class="fas fa-qrcode"></i>
-                            </button>
-                            <button onclick="openSettings()" class="action-btn" title="Ρυθμίσεις">
-                                <i class="fas fa-cog"></i>
-                            </button>
+                             </button>
+                    
                         </div>
                     </div>
 
@@ -60,7 +58,13 @@
             <div class="sidebar-search">
                 <input id="searchInp" type="text" data-i18n-ph="ph_search" placeholder="Search..." oninput="applyFilters()">
                 <select id="tagFilter" onchange="applyFilters()">
-                    <option value="">All Tags</option>
+                     <option value="">All Tags</option>
+                </select>
+
+                <select id="sortFilter" onchange="applySortAndRender()" style="margin-top:5px; background:var(--bg-main); color:var(--text-main); border:1px solid var(--border-color); padding:5px; border-radius:5px; width:100%; font-size:0.9rem;">
+                    <option value="alpha">🔤 Αλφαβητικά</option>
+                    <option value="created">✨ Νεότερα (Δημιουργία)</option>
+                    <option value="modified">✏️ Πρόσφατα (Αλλαγή)</option>
                 </select>
             </div>
             
@@ -142,13 +146,22 @@
                             <i class="fas fa-magic"></i>
                         </button>
                     </div>
-                    
-                    <div class="ctl-group">
-                        <span class="ctl-label" data-i18n="lbl_edit">Edit</span>
-                        <button onclick="switchToEditor()" style="background:none; border:1px solid var(--border-color); color:var(--text-main); width:40px; height:40px; border-radius:50%; cursor:pointer;">
-                            <i class="fas fa-pen"></i>
-                        </button>
-                    </div>
+                         <!-- 1. Προσθήκη ID στο Edit Group -->
+                        <div class="ctl-group" id="editControlGroup">
+                             <span class="ctl-label" data-i18n="lbl_edit">Edit</span>
+                             <button id="btnEditSong" onclick="switchToEditor()" style="background:none; border:1px solid var(--border-color); color:var(--text-main); width:40px; height:40px; border-radius:50%; cursor:pointer;">
+                                    <i class="fas fa-pen"></i>
+                             </button>
+                        </div>
+                          <!-- 2. Προσθήκη Navigation Group (αρχικά κρυφό) -->
+                         <div class="ctl-group" id="setlistNavGroup" style="display:none;">
+                            <span class="ctl-label">Setlist</span>
+                             <div class="stepper">
+                                 <button onclick="navSetlist(-1)"><i class="fas fa-chevron-left"></i></button>
+                                 <button onclick="navSetlist(1)"><i class="fas fa-chevron-right"></i></button>
+                             </div>
+                        </div>
+                
                 </div>
             </div>
 
@@ -264,6 +277,10 @@
                 <label class="ctl-label" style="margin:0;" data-i18n="lbl_hide_demo">Hide Demo</label>
                 <input type="checkbox" id="setHideDemo" style="width:20px; height:20px;">
             </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <label class="ctl-label" style="margin:0;" data-i18n="lbl_keep_screen_on">Keep Screen On</label>
+                <input type="checkbox" id="setWakeLock" style="width:20px; height:20px;">
+            </div>
 
             <label class="ctl-label" data-i18n="lbl_def_theme">Theme</label>
             <select id="setTheme" class="inp" style="width:100%; margin-bottom:10px;" onchange="toggleCustomColors(this.value)">
@@ -312,7 +329,7 @@
     <script src="js/data.js"></script>
     <script src="js/storage.js"></script>
     <script src="js/logic.js"></script>
-    <script src="js/ui.js"></script>
+    <script src="js/ui.js?v=7.0"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function() {
@@ -326,6 +343,12 @@
     </script>
 </body>
 </html>
+
+
+
+
+
+
 
 
 

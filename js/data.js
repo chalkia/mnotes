@@ -78,7 +78,13 @@ const TRANSLATIONS = {
         msg_imported: "Imported songs: ",
         msg_no_import: "Nothing imported. Songs might be duplicates or invalid.",
         msg_error_read: "Error reading file.",
-        
+
+        msg_setlist_empty: "Setlist is empty!",
+        ph_url_import: "Enter file URL (.mnote or .json):",
+        msg_import_error_url: "Import failed. Check URL or CORS settings.",
+        msg_setlist_confirm: "New setlist order received. Replace current setlist?",
+        msg_setlist_updated: "Setlist order updated!",
+        msg_import_summary: "Imported ${added} new & updated ${updated} existing songs!",
         demo_title: "User Guide (Demo)",
         
         lbl_intro_size: "Intro/Inter Font Size",
@@ -159,6 +165,12 @@ const TRANSLATIONS = {
         msg_imported: "Εισήχθησαν τραγούδια: ",
         msg_no_import: "Δεν εισήχθη τίποτα. Ίσως υπάρχουν ήδη ή το αρχείο είναι άκυρο.",
         msg_error_read: "Σφάλμα ανάγνωσης αρχείου.",
+       msg_setlist_empty: "Η Προσωρινή Λίστα είναι άδεια!",
+       ph_url_import: "Εισάγετε το URL του αρχείου (.mnote ή .json):",
+       msg_import_error_url: "Αποτυχία εισαγωγής. Ελέγξτε το σύνδεσμο ή το CORS.",
+       msg_setlist_confirm: "Λήφθηκε νέα σειρά τραγουδιών. Αντικατάσταση Προσωρινής Λίστας;",
+       msg_setlist_updated: "Η σειρά ενημερώθηκε!",
+       msg_import_summary: "Εισήχθησαν ${added} νέα & ενημερώθηκαν ${updated} τραγούδια!",
 
         demo_title: "Οδηγίες Χρήσης (Demo)",
         

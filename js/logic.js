@@ -196,6 +196,11 @@ function saveSong() {
     var title = document.getElementById('inpTitle').value;
     var artist = document.getElementById('inpArtist').value;
     var key = document.getElementById('inpKey').value;
+    
+    // --- ΝΕΟ: Ανάγνωση URL βίντεο ---
+    // Ελέγχουμε αν υπάρχει το πεδίο (γιατί στο mobile μπορεί να λείπει)
+    var videoUrl = document.getElementById('inpVideo') ? document.getElementById('inpVideo').value : "";
+
     var tagsInput = document.getElementById('inpTags') ? document.getElementById('inpTags').value : ""; 
     
     var intro = document.getElementById('inpIntro').value;
@@ -211,6 +216,7 @@ function saveSong() {
     var newSongObj = {
         title: title, artist: artist, key: key, body: body,
         intro: intro, interlude: interlude, notes: notes, playlists: tagsArray,
+        video: videoUrl, // <--- ΑΠΟΘΗΚΕΥΣΗ ΤΟΥ VIDEO LINK
         updatedAt: Date.now()
     };
      

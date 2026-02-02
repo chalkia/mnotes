@@ -643,21 +643,58 @@ function handleTagInput(inp) {
 }
 function handleTagKey(e) { if(e.key === 'Enter') { e.preventDefault(); addTag(e.target.value); } else if (e.key === 'Backspace' && e.target.value === "" && editorTags.length > 0) { removeTag(editorTags[editorTags.length-1]); } }
 function setupEvents() {
-    document.getElementById('btnMenu').onclick = toggleSidebar;
-    const fileInput = document.getElementById('hiddenFileInput');
-    if(fileInput) { fileInput.addEventListener('change', function(e) { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = function(e) { try { const imported = JSON.parse(e.target.result); processImportedData(imported); document.getElementById('importChoiceModal').style.display = 'none'; } catch(err) { alert(t('msg_error_read')); } }; reader.readAsText(file); fileInput.value = ''; }); }
-    document.addEventListener('click', function(e) { var wrap = document.querySelector('.tag-wrapper'); var sugg = document.getElementById('tagSuggestions'); if (wrap && sugg && !wrap.contains(e.target) && !sugg.contains(e.target)) { sugg.style.display = 'none'; } });
-    // --- AUDIO ENGINE EVENTS (ΝΕΟ) ---
-    const btnPlay = document.getElementById('btnPlayRhythm');
-    if(btnPlay) {
-        btnPlay.onclick = togglePlay; // Καλεί τη συνάρτηση από το audio.js
+    // 1. Menu Button (Έλεγχος αν υπάρχει)
+    var btnMenu = document.getElementById('btnMenu');
+    if (btnMenu) {
+        btnMenu.onclick = toggleSidebar;
     }
+
+    // 2. File Input (Import)
+    const fileInput = document.getElementById('hiddenFileInput');
+    if(fileInput) {
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    processImportedData(imported);
+                    // Κλείσιμο modal αν υπάρχει
+                    const modal = document.getElementById('importChoiceModal');
+                    if(modal) modal.style.display = 'none';
+                } catch(err) {
+                    alert("Σφάλμα ανάγνωσης αρχείου");
+                }
+            };
+            reader.readAsText(file);
+            fileInput.value = '';
+        });
+    }
+
+    // 3. Global Clicks (Tags suggestions close)
+    document.addEventListener('click', function(e) {
+        var wrap = document.querySelector('.tag-wrapper');
+        var sugg = document.getElementById('tagSuggestions');
+        if (wrap && sugg && !wrap.contains(e.target) && !sugg.contains(e.target)) {
+            sugg.style.display = 'none';
+        }
+    });
+
+    // 4. AUDIO ENGINE EVENTS (Με αυστηρούς ελέγχους)
+    const btnPlay = document.getElementById('btnPlayRhythm');
+    // Ελέγχουμε αν υπάρχει το κουμπί ΚΑΙ αν έχει φορτώσει η συνάρτηση togglePlay
+    if(btnPlay && typeof togglePlay === 'function') {
+        btnPlay.onclick = togglePlay;
+    }
+
     const rngBpm = document.getElementById('rngBpm');
-    if(rngBpm) {
+    if(rngBpm && typeof updateBpm === 'function') {
         rngBpm.oninput = function(e) { updateBpm(e.target.value); };
     }
+
     const selRhythm = document.getElementById('selRhythm');
-    if(selRhythm) {
+    if(selRhythm && typeof changeRhythmStyle === 'function') {
         selRhythm.onchange = function(e) { changeRhythmStyle(e.target.value); };
     }
 }

@@ -8,35 +8,27 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="icon-192.png">
     <meta name="theme-color" content="#121212">
-    <link rel="apple-touch-icon" href="icon-192.png">
     
     <link rel="stylesheet" href="fa/css/all.min.css">
     <link rel="stylesheet" href="style.css">
-        
 </head>
 <body class="theme-dark"> 
     <script>
-        // Γρήγορος έλεγχος για κινητό πριν φορτώσει το CSS
+        // Γρήγορος έλεγχος για theme κινητού
         (function() {
-            const isMobile = window.innerWidth <= 768;
-            // Αν υπάρχει αποθηκευμένο θέμα, θα το φορτώσει το ui.js, 
-            // εδώ βάζουμε μια default λογική για να μην αναβοσβήνει
-            if (isMobile) document.body.className = 'theme-slate';
+            if (window.innerWidth <= 768) document.body.className = 'theme-slate';
         })();
     </script>
 
-    <button id="btnMenu" class="menu-btn"><i class="fas fa-bars"></i></button>
-    
-    <div class="app-layout">
+    <div class="app-container">
         
-        <aside class="sidebar" id="sidebar">
+        <aside class="col-nav" id="sidebar">
             <div class="sidebar-header">
                 <div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span style="color:var(--text-main); font-weight:bold; font-size:1.2rem;">
+                        <span class="logo-text">
                             mNotes <span id="songCount" style="font-size:0.8rem; opacity:0.6;">0</span>
                         </span>
-                        
                         <div class="sidebar-actions">
                             <button id="btnAddSong" onclick="createNewSong()" class="action-btn" title="Προσθήκη">
                                 <i class="fas fa-plus"></i>
@@ -44,71 +36,54 @@
                             <button id="btnShareSetlist" onclick="exportSetlist()" class="action-btn" title="QR Λίστας" style="display:none;">
                                 <i class="fas fa-qrcode"></i>
                              </button>
-                    
                         </div>
                     </div>
 
-                    <div class="sidebar-tabs" style="display: flex; gap: 5px;">
-                        <button id="tab-library" class="tab-btn active" onclick="switchSidebarTab('library')" data-i18n="tab_library" style="flex:1;">Library</button>
-                        <button id="tab-setlist" class="tab-btn" onclick="switchSidebarTab('setlist')" data-i18n="tab_setlist" style="flex:1;">Setlist</button>
+                    <div class="sidebar-tabs">
+                        <button id="tab-library" class="tab-btn active" onclick="switchSidebarTab('library')">Library</button>
+                        <button id="tab-setlist" class="tab-btn" onclick="switchSidebarTab('setlist')">Setlist</button>
                     </div>
                 </div>
             </div>
             
             <div class="sidebar-search">
-                <input id="searchInp" type="text" data-i18n-ph="ph_search" placeholder="Search..." oninput="applyFilters()">
+                <input id="searchInp" type="text" placeholder="Αναζήτηση..." oninput="applyFilters()">
                 <select id="tagFilter" onchange="applyFilters()">
                      <option value="">All Tags</option>
                 </select>
-
-                <select id="sortFilter" onchange="applySortAndRender()" style="margin-top:5px; background:var(--bg-main); color:var(--text-main); border:1px solid var(--border-color); padding:5px; border-radius:5px; width:100%; font-size:0.9rem;">
+                <select id="sortFilter" onchange="applySortAndRender()" style="margin-top:5px; background:var(--input-bg); color:var(--text-main); border:1px solid var(--border-color); padding:5px; border-radius:5px; width:100%; font-size:0.9rem;">
                     <option value="alpha">🔤 Αλφαβητικά</option>
                     <option value="created">✨ Νεότερα (Δημιουργία)</option>
                     <option value="modified">✏️ Πρόσφατα (Αλλαγή)</option>
                 </select>
             </div>
             
-            <div style="padding:10px; border-bottom:1px solid var(--border-color); text-align:center;">
-                <button id="btnLang" onclick="toggleLanguage()" style="background:var(--bg-panel); color:var(--text-main); border:1px solid var(--border-color); padding:5px 15px; border-radius:15px; cursor:pointer; font-size:0.9rem;">
-                    <i class="fas fa-globe"></i> EN
-                </button>
-            </div>
-
             <ul id="songList" class="song-list"></ul>
             
-            <div style="padding:10px; border-top:1px solid var(--border-color); display:flex; gap:5px;">
-                <button onclick="document.getElementById('importChoiceModal').style.display='flex'" style="flex:1; padding:10px; background:var(--bg-panel); color:var(--text-muted); border:none; cursor:pointer;">
-                    <i class="fas fa-file-import"></i> <span data-i18n="btn_import">Import</span>
+            <div class="sidebar-footer">
+                <button id="btnLang" onclick="toggleLanguage()" class="footer-btn small">
+                    <i class="fas fa-globe"></i>
                 </button>
-                
-                <button onclick="exportJSON()" style="width:40px; background:var(--bg-panel); color:var(--accent); border:none; cursor:pointer;" title="Export / Share">
+                <button onclick="document.getElementById('importChoiceModal').style.display='flex'" class="footer-btn">
+                    <i class="fas fa-file-import"></i> Import
+                </button>
+                <button onclick="exportJSON()" class="footer-btn icon-only" title="Export">
                     <i class="fas fa-file-export"></i>
                 </button>
-
-                <button onclick="clearLibrary()" style="width:40px; background:var(--bg-panel); color:var(--danger); border:none; cursor:pointer;">
+                <button onclick="clearLibrary()" class="footer-btn icon-only danger">
                     <i class="fas fa-trash"></i>
                 </button>
             </div>
         </aside>
 
-        <main class="main-content" id="mainZone">
+        <main class="col-stage" id="mainZone">
             
             <div id="view-player" class="view-section active-view">
-                <div class="player-header">
-                    <div class="header-row">
-                        <div style="display:flex; flex-direction:column; overflow:hidden;">
-                            <h1 id="p-title" class="song-h1">Title</h1>
-                            <span id="p-artist" class="meta-label" style="font-size:0.9rem; margin-top:2px;">Artist</span>
-                        </div>
-                        <div style="display:flex; align-items:center; gap:10px;">
-                            <span id="p-key" class="key-badge">-</span>
-                            <div id="header-actions"></div>
-                        </div>
+                <div class="player-header-container">
+                    <div class="player-header">
+                        <h1 id="p-title" class="song-h1">Select a Song</h1>
+                        <span id="p-artist" class="meta-label">-</span>
                     </div>
-                    <div id="notes-container" class="notes-container">
-                        <div id="notes-area" class="notes-text"></div>
-                    </div>
-                    <div class="info-bar"></div>
                 </div>
 
                 <div id="fixed-container" class="fixed-lyrics"></div>
@@ -116,14 +91,14 @@
 
                 <div class="player-footer">
                     <div class="ctl-group mic-control">
-                        <span class="ctl-label" data-i18n="lbl_lyrics_mode">Lyrics</span>
-                        <button id="btnLyrics" onclick="toggleLyricsMode()" style="background:none; border:1px solid var(--border-color); color:var(--text-main); width:40px; height:40px; border-radius:50%; font-size:1.1rem; cursor:pointer;">
+                        <span class="ctl-label">Lyrics</span>
+                        <button id="btnLyrics" onclick="toggleLyricsMode()" class="round-btn">
                             <i class="fas fa-scroll"></i>
                         </button>
                     </div>
 
                     <div class="ctl-group">
-                        <span class="ctl-label" data-i18n="lbl_transpose">Transpose</span>
+                        <span class="ctl-label">Transpose</span>
                         <div class="stepper">
                             <button onclick="changeTranspose(-1)">-</button>
                             <span id="val-t">0</span>
@@ -132,7 +107,7 @@
                     </div>
                     
                     <div class="ctl-group">
-                        <span class="ctl-label" data-i18n="lbl_capo">Capo</span>
+                        <span class="ctl-label">Capo</span>
                         <div class="stepper">
                             <button onclick="changeCapo(-1)">-</button>
                             <span id="val-c">0</span>
@@ -141,187 +116,213 @@
                     </div>
 
                     <div class="ctl-group">
-                        <span class="ctl-label" data-i18n="lbl_smart_capo">Smart Capo</span>
-                        <button onclick="autoCapo()" style="background:var(--bg-panel); border:1px solid var(--accent); color:var(--accent); border-radius:50%; width:40px; height:40px; cursor:pointer; font-size:1rem;">
+                        <span class="ctl-label">Smart</span>
+                        <button onclick="autoCapo()" class="round-btn accent-btn">
                             <i class="fas fa-magic"></i>
                         </button>
                     </div>
-                         <!-- 1. Προσθήκη ID στο Edit Group -->
-                        <div class="ctl-group" id="editControlGroup">
-                             <span class="ctl-label" data-i18n="lbl_edit">Edit</span>
-                             <button id="btnEditSong" onclick="switchToEditor()" style="background:none; border:1px solid var(--border-color); color:var(--text-main); width:40px; height:40px; border-radius:50%; cursor:pointer;">
-                                    <i class="fas fa-pen"></i>
-                             </button>
-                        </div>
-                          <!-- 2. Προσθήκη Navigation Group (αρχικά κρυφό) -->
-                         <div class="ctl-group" id="setlistNavGroup" style="display:none;">
-                            <span class="ctl-label">Setlist</span>
-                             <div class="stepper">
-                                 <button onclick="navSetlist(-1)"><i class="fas fa-chevron-left"></i></button>
-                                 <button onclick="navSetlist(1)"><i class="fas fa-chevron-right"></i></button>
-                             </div>
-                        </div>
-                
+                    
+                    <div class="ctl-group">
+                         <span class="ctl-label">Edit</span>
+                         <button id="btnEditSong" onclick="switchToEditor()" class="round-btn">
+                                <i class="fas fa-pen"></i>
+                         </button>
+                    </div>
                 </div>
             </div>
 
             <div id="view-editor" class="view-section">
-               
                 <div class="editor-toolbar">
-                    <button onclick="exitEditor()" style="color:var(--text-muted); background:none; border:none; display:flex; align-items:center; gap:5px; font-size:1.1rem;">
-                        <i class="fas fa-times"></i> <span data-i18n="lbl_cancel">Cancel</span>
+                    <button onclick="exitEditor()" class="text-btn">
+                        <i class="fas fa-times"></i> Cancel
                     </button>
                     
                     <div style="display:flex; gap:15px; align-items:center;">
-                        <button onclick="deleteCurrentSong()" style="color:var(--danger); background:none; border:none; font-size:1.2rem;" title="Delete"><i class="fas fa-trash-alt"></i></button>
-                        <button onclick="generateQRFromEditor()" style="color:var(--text-main); background:none; border:none; font-size:1.3rem;" title="QR Code"><i class="fas fa-qrcode"></i></button>
-                        
-                        <!-- ΤΟ ΝΕΟ ΚΟΥΜΠΙ SAVE ΜΕ ΕΙΚΟΝΙΔΙΟ -->
-                        <button onclick="saveEdit()" style="color:var(--accent); background:none; border:none; font-size:1.5rem;" title="Save">
-                            <i class="fas fa-save"></i>
-                        </button>
+                        <button onclick="deleteCurrentSong()" class="icon-btn danger" title="Delete"><i class="fas fa-trash-alt"></i></button>
+                        <button onclick="generateQRFromEditor()" class="icon-btn" title="QR Code"><i class="fas fa-qrcode"></i></button>
+                        <button onclick="saveEdit()" class="icon-btn accent" title="Save"><i class="fas fa-save"></i></button>
                     </div>
                 </div>
                 
                 <div class="editor-body">
-                    <!-- ... (το υπόλοιπο body παραμένει ίδιο) ... -->
-                
-                <div class="editor-body">
-                    <input id="inpTitle" class="inp" data-i18n-ph="ph_title" placeholder="Song Title" style="font-weight:bold; font-size:1.1rem;">
+                    <input id="inpTitle" class="inp title-inp" placeholder="Song Title">
                     
                     <details>
                         <summary>Artist & Notes</summary>
                         <div class="details-content">
-                            <input id="inpArtist" class="inp" data-i18n-ph="ph_artist" placeholder="Artist">
-                            <textarea id="inpNotes" class="inp" data-i18n-ph="ph_notes" placeholder="Private Notes" style="height:60px;"></textarea>
+                            <input id="inpArtist" class="inp" placeholder="Artist">
+                            <textarea id="inpNotes" class="inp" placeholder="Private Notes" style="height:60px;"></textarea>
                         </div>
                     </details>
 
                     <div style="display:flex; gap:10px;">
-                        <input id="inpKey" class="inp" data-i18n-ph="ph_key" placeholder="Key" style="width:100px;">
-                        
+                        <input id="inpKey" class="inp" placeholder="Key" style="width:80px;">
                         <div style="flex:1; position:relative;">
                             <div class="tag-wrapper" onclick="document.getElementById('tagInput').focus()">
                                 <div id="tagChips" style="display:contents;"></div>
-                                <input id="tagInput" class="tag-input-area" data-i18n-ph="ph_tags" placeholder="Add tag..." oninput="handleTagInput(this)" onkeydown="handleTagKey(event)">
+                                <input id="tagInput" class="tag-input-area" placeholder="Add tag..." oninput="handleTagInput(this)" onkeydown="handleTagKey(event)">
                             </div>
                             <div id="tagSuggestions" class="tag-suggestions"></div>
                             <input id="inpTags" type="hidden"> 
                         </div>
                     </div>
                     
-                    <input id="inpIntro" class="inp" data-i18n-ph="ph_intro" placeholder="Intro">
-                    <input id="inpInter" class="inp" data-i18n-ph="ph_inter" placeholder="Interlude">
+                    <input id="inpIntro" class="inp" placeholder="Intro">
+                    <input id="inpInter" class="inp" placeholder="Interlude">
                     
-                    <textarea id="inpBody" class="inp txt-area" data-i18n-ph="ph_body" placeholder="Lyrics & Chords..."></textarea>
+                    <input id="inpVideo" class="inp desktop-only-video" placeholder="YouTube URL (Desktop Only)">
+
+                    <textarea id="inpBody" class="inp txt-area" placeholder="Lyrics & Chords..."></textarea>
                 </div>
             </div>
-
         </main>
+
+        <aside class="col-tools" id="rhythmTools">
+            <div class="tools-header">
+                <h3>RHYTHM</h3>
+                <span class="badge-pro">PRO</span>
+            </div>
+            
+            <div class="rhythm-panel">
+                <div class="visualizer-box">
+                    <canvas id="visualizer" width="300" height="60"></canvas>
+                </div>
+                
+                <div class="ctl-row main-play">
+                    <button id="btnPlayRhythm" class="big-play-btn"><i class="fas fa-play"></i></button>
+                    <div class="bpm-box">
+                        <label>BPM: <span id="dispBpm">120</span></label>
+                        <input type="range" id="rngBpm" min="40" max="200" value="120">
+                    </div>
+                </div>
+
+                <div class="ctl-row">
+                    <label style="width:50px;">Style</label>
+                    <select id="selRhythm" class="inp" style="padding:5px;">
+                        <option value="zeibekiko">Ζεϊμέκικο (9/4)</option>
+                        <option value="kalamatianos">Καλαματιανός (7/8)</option>
+                        <option value="chasapiko">Χασάπικο (4/4)</option>
+                        <option value="tsifteteli">Τσιφτετέλι (4/4)</option>
+                    </select>
+                </div>
+                
+                <div class="ctl-row">
+                     <label style="width:50px;">Kit</label>
+                     <select id="selKit" class="inp" style="padding:5px;">
+                        <option value="folk">Folk (Greek)</option>
+                        <option value="drums">Standard Drums</option>
+                        <option value="acoustic">Acoustic</option>
+                    </select>
+                </div>
+
+                <div class="widget-box">
+                    <div class="widget-header">
+                        <span>PERSONAL NOTES</span>
+                        <i class="fas fa-lock locked-icon"></i>
+                    </div>
+                    <textarea class="inp locked-textarea" placeholder="Unlock Pro to add private notes..." disabled></textarea>
+                </div>
+
+                <button onclick="openSettings()" class="settings-full-btn">
+                    <i class="fas fa-cog"></i> App Settings
+                </button>
+            </div>
+        </aside>
+
+        <nav class="mobile-nav">
+            <button class="tab-btn-mob" onclick="switchMobileTab('library')">
+                <i class="fas fa-list"></i>
+                <span>Λίστα</span>
+            </button>
+            <button class="tab-btn-mob active" onclick="switchMobileTab('stage')">
+                <i class="fas fa-microphone-alt"></i>
+                <span>Πρόβα</span>
+            </button>
+            <button class="tab-btn-mob" onclick="switchMobileTab('tools')">
+                <i class="fas fa-drum"></i>
+                <span>Ρυθμός</span>
+            </button>
+        </nav>
     </div>
 
     <div id="importChoiceModal" class="modal-overlay">
         <div class="modal-box">
-            <h3 style="margin-top:0; color:var(--text-main);" data-i18n="modal_import_title">Import</h3>
-            <button onclick="selectImport('file')" style="width:100%; padding:15px; margin-bottom:10px; background:var(--input-bg); color:var(--text-main); border:1px solid var(--border-color);" data-i18n="modal_btn_file">File (.json)</button>
-            <button onclick="selectImport('url')" style="width:100%; padding:15px; margin-bottom:10px; background:var(--input-bg); color:var(--text-main); border:1px solid var(--border-color);"><i class="fas fa-link"></i> Import from URL</button>
-            <button onclick="selectImport('qr')" style="width:100%; padding:15px; margin-bottom:10px; background:var(--input-bg); color:var(--text-main); border:1px solid var(--border-color);" data-i18n="modal_btn_qr">Scan QR Code</button>
-            <button onclick="document.getElementById('importChoiceModal').style.display='none'" style="background:none; border:none; color:var(--text-muted);" data-i18n="modal_btn_cancel">Cancel</button>
+            <h3>Import</h3>
+            <button onclick="selectImport('file')" class="modal-btn">File (.json)</button>
+            <button onclick="selectImport('url')" class="modal-btn"><i class="fas fa-link"></i> URL</button>
+            <button onclick="selectImport('qr')" class="modal-btn">Scan QR</button>
+            <button onclick="document.getElementById('importChoiceModal').style.display='none'" class="modal-btn cancel">Cancel</button>
         </div>
     </div>
     
     <div id="qrModal" class="modal-overlay">
         <div class="modal-box">
-            <h3 style="color:var(--text-main);" data-i18n="qr_title">QR Code</h3>
+            <h3>QR Code</h3>
             <div id="qr-output" class="qr-display"></div>
-            <p style="color:var(--text-muted); font-size:0.9rem;" data-i18n="msg_qr_help">Scan on another device</p>
-            <button onclick="document.getElementById('qrModal').style.display='none'" style="margin-top:10px; padding:10px 20px; background:var(--accent); border:none; border-radius:5px; font-weight:bold;">OK</button>
+            <p style="color:#888; font-size:0.9rem;">Scan on another device</p>
+            <button onclick="document.getElementById('qrModal').style.display='none'" class="modal-btn accent">OK</button>
         </div>
     </div>
     
     <div id="scanModal" class="modal-overlay">
         <div class="modal-box" style="max-width:400px;">
-            <h3 style="color:var(--text-main);" data-i18n="scan_title">Scan QR</h3>
+            <h3>Scan QR</h3>
             <div id="reader"></div>
-            <button onclick="closeScan()" style="margin-top:15px; padding:10px; background:var(--danger); color:white; border:none; border-radius:5px;" data-i18n="lbl_cancel">Close</button>
+            <button onclick="closeScan()" class="modal-btn danger">Close</button>
         </div>
     </div>
 
-<div id="settingsModal" class="modal-overlay">
+    <div id="settingsModal" class="modal-overlay">
         <div class="modal-box" style="text-align:left; max-height: 85vh; overflow-y: auto;">
-            <h3 style="color:var(--text-main); margin-top:0; text-align:center;" data-i18n="lbl_settings">Settings</h3>
+            <h3 style="text-align:center;">Settings</h3>
             
-            <label class="ctl-label" data-i18n="lbl_scroll_speed">Scroll Speed</label>
+            <label class="ctl-label">Scroll Speed</label>
             <div style="display:flex; align-items:center; gap:10px; margin-bottom:15px;">
                 <i class="fas fa-hare"></i>
                 <input type="range" id="setScroll" min="10" max="200" step="10" style="flex:1">
                 <i class="fas fa-tortoise"></i>
             </div>
 
-            <label class="ctl-label" data-i18n="lbl_intro_size">Intro Size</label>
+            <label class="ctl-label">Intro Size</label>
             <div style="display:flex; align-items:center; gap:10px; margin-bottom:15px; background:var(--input-bg); padding:5px; border-radius:5px;">
-                <button onclick="changeIntroSizeSettings(-1)" style="width:30px; background:none; border:none; color:var(--text-main); font-weight:bold;">-</button>
+                <button onclick="changeIntroSizeSettings(-1)" style="width:30px; background:none; border:none; color:white;">-</button>
                 <span id="dispIntroSize" style="flex:1; text-align:center; color:var(--accent);">100%</span>
-                <button onclick="changeIntroSizeSettings(1)" style="width:30px; background:none; border:none; color:var(--text-main); font-weight:bold;">+</button>
+                <button onclick="changeIntroSizeSettings(1)" style="width:30px; background:none; border:none; color:white;">+</button>
             </div>
 
-            <label class="ctl-label" data-i18n="lbl_max_capo">Max Capo</label>
+            <label class="ctl-label">Max Capo</label>
             <input type="number" id="setMaxCapo" class="inp" style="width:100%; margin-bottom:15px;" min="0" max="12">
-
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <label class="ctl-label" style="margin:0;" data-i18n="lbl_backup_reminder">Backup Reminder</label>
-                <input type="checkbox" id="setBackup" style="width:20px; height:20px;">
-            </div>
             
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                <label class="ctl-label" style="margin:0;" data-i18n="lbl_hide_demo">Hide Demo</label>
-                <input type="checkbox" id="setHideDemo" style="width:20px; height:20px;">
-            </div>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                <label class="ctl-label" style="margin:0;" data-i18n="lbl_keep_screen_on">Keep Screen On</label>
-                <input type="checkbox" id="setWakeLock" style="width:20px; height:20px;">
-            </div>
+            <div class="chk-row"><label>Backup Reminder</label><input type="checkbox" id="setBackup"></div>
+            <div class="chk-row"><label>Hide Demo</label><input type="checkbox" id="setHideDemo"></div>
+            <div class="chk-row"><label>Keep Screen On</label><input type="checkbox" id="setWakeLock"></div>
 
-            <label class="ctl-label" data-i18n="lbl_def_theme">Theme</label>
+            <label class="ctl-label">Theme</label>
             <select id="setTheme" class="inp" style="width:100%; margin-bottom:10px;" onchange="toggleCustomColors(this.value)">
-                <option value="theme-dark" data-i18n="lbl_theme_dark">Dark</option>
-                <option value="theme-slate" data-i18n="lbl_theme_slate">Slate</option>
-                <option value="theme-light" data-i18n="lbl_theme_light">Light</option>
-                <option value="theme-custom" data-i18n="lbl_theme_custom">Custom</option>
+                <option value="theme-dark">Dark</option>
+                <option value="theme-slate">Slate</option>
+                <option value="theme-light">Light</option>
+                <option value="theme-custom">Custom</option>
             </select>
 
-            <div id="customColorArea" style="display:none; border:1px solid var(--border-color); padding:10px; border-radius:5px; margin-bottom:20px;">
-                <div class="color-picker-row">
-                    <label data-i18n="lbl_cust_bg">Background</label>
-                    <input type="color" id="colBgMain">
-                </div>
-                <div class="color-picker-row">
-                    <label data-i18n="lbl_cust_panel">Panel</label>
-                    <input type="color" id="colBgPanel">
-                </div>
-                <div class="color-picker-row">
-                    <label data-i18n="lbl_cust_text">Text</label>
-                    <input type="color" id="colTextMain">
-                </div>
-                <div class="color-picker-row">
-                    <label data-i18n="lbl_cust_acc">Accent</label>
-                    <input type="color" id="colAccent">
-                </div>
-                <div class="color-picker-row">
-                    <label data-i18n="lbl_cust_chord">Chord</label>
-                    <input type="color" id="colChord">
-                </div>
+            <div id="customColorArea" style="display:none; border:1px solid #333; padding:10px; border-radius:5px; margin-bottom:20px;">
+                <div class="color-picker-row"><label>Background</label><input type="color" id="colBgMain"></div>
+                <div class="color-picker-row"><label>Panel</label><input type="color" id="colBgPanel"></div>
+                <div class="color-picker-row"><label>Text</label><input type="color" id="colTextMain"></div>
+                <div class="color-picker-row"><label>Accent</label><input type="color" id="colAccent"></div>
+                <div class="color-picker-row"><label>Chord</label><input type="color" id="colChord"></div>
             </div>
 
             <div style="display:flex; gap:10px;">
-                <button onclick="saveSettings()" style="flex:1; padding:10px; background:var(--accent); border:none; border-radius:5px; font-weight:bold; color:#000;" data-i18n="lbl_save">Save</button>
-                <button onclick="document.getElementById('settingsModal').style.display='none'" style="flex:1; padding:10px; background:var(--input-bg); color:var(--text-main); border:1px solid var(--border-color); border-radius:5px;" data-i18n="modal_btn_cancel">Cancel</button>
+                <button onclick="saveSettings()" class="modal-btn accent">Save</button>
+                <button onclick="document.getElementById('settingsModal').style.display='none'" class="modal-btn cancel">Cancel</button>
             </div>
         </div>
     </div>
     
     <input type="file" id="hiddenFileInput" style="display:none" accept=".json,.mnote">
     <div id="toast"></div>
+
     <script src="js/sortable.min.js"></script>
     <script src="js/qrcodegen.js"></script>
     <script src="js/html5-qrcode.min.js"></script>
@@ -329,26 +330,6 @@
     <script src="js/data.js"></script>
     <script src="js/storage.js"></script>
     <script src="js/logic.js"></script>
-    <script src="js/ui.js?v=7.0"></script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-                navigator.serviceWorker.register('sw.js').then(function(registration) {
-                    console.log('ServiceWorker registration successful');
-                }, function(err) {
-                    console.log('ServiceWorker registration failed: ', err);
-                });
-            });
-        }
-    </script>
+    <script src="js/ui.js"></script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-

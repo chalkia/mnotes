@@ -661,7 +661,7 @@ function setupEvents() {
         selRhythm.onchange = function(e) { changeRhythmStyle(e.target.value); };
     }
 }
-}
+
 function setupGestures() {
     var area = document.getElementById('mainZone'); var startDist = 0; var startSize = 1.3;
     area.addEventListener('touchstart', function(e) { if(e.touches.length === 2) { startDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); var val = getComputedStyle(document.documentElement).getPropertyValue('--lyric-size').trim(); startSize = parseFloat(val) || 1.3; }}, {passive: true});

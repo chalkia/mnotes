@@ -45,6 +45,7 @@ window.addEventListener('load', function() {
     setupEvents();
     setupGestures();
     checkBackupReminder();
+   if (window.innerWidth <= 768) switchMobileTab('library');
 });
 
 function toggleLanguage() {
@@ -279,88 +280,93 @@ function renderSidebar() {
 }
 
 function loadSong(id) {
-    if(scrollTimer) toggleAutoScroll(); 
-    currentSongId = id; var s = library.find(x => x.id === id); if(!s) return;
-    if (s.id === 'demo_instruction') s.title = t('demo_title');
+    if(typeof scrollTimer !== 'undefined' && scrollTimer) toggleAutoScroll(); 
+    
+    currentSongId = id; 
+    var s = library.find(x => x.id === id); if(!s) return;
+    
+    // Reset Transpose/Capo
     state.t = 0; state.c = 0; 
-    parseSongLogic(s); renderPlayer(s);
-    document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active-view'));
+    parseSongLogic(s); 
+    renderPlayer(s);
+    
+    // Ενεργοποίηση View Player
     document.getElementById('view-player').classList.add('active-view');
-    var items = document.querySelectorAll('.song-item'); items.forEach(i => i.classList.remove('active'));
-    var activeItem = document.querySelector(`.song-item[data-id="${id}"]`); if(activeItem) activeItem.classList.add('active');
-    document.getElementById('sidebar').classList.remove('open');
-    requestWakeLock();
+    document.getElementById('view-editor').classList.remove('active-view');
+    
+    // Highlight στη Sidebar
+    document.querySelectorAll('.song-item').forEach(i => i.classList.remove('active'));
+    var activeItem = document.querySelector(`.song-item[data-id="${id}"]`); 
+    if(activeItem) activeItem.classList.add('active');
+    
+    // Wake Lock (αν υπάρχει η συνάρτηση)
+    if(typeof requestWakeLock === 'function') requestWakeLock();
+
+    // --- ΝΕΟ: Mobile Tab Switch ---
+    // Αν είμαστε σε κινητό, πήγαινε αυτόματα στην καρτέλα "Πρόβα"
+    if (window.innerWidth <= 768 && typeof switchMobileTab === 'function') {
+        switchMobileTab('stage');
+    }
 }
 function renderPlayer(s) {
     if (!s) return;
 
-    // 1. HEADER: Δημιουργία Flexbox δομής για τίτλο και εργαλεία
-    const headerContent = `
+    // 1. HEADER (Προσαρμοσμένο στο νέο Layout)
+    const headerHTML = `
         <div class="player-header">
-            <div class="header-main-info" style="flex: 1; overflow: hidden;">
-                <h2 id="p-title" style="margin:0; font-size:1.4rem; color:var(--accent); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${s.title}</h2>
-                <div id="p-artist" style="font-size:0.9rem; opacity:0.8;">${s.artist || ""}</div>
+            <div class="header-row">
+                <h1 id="p-title" class="song-h1">${s.title}</h1>
+                <span class="key-badge">${getNote(s.key || "-", state.t)}</span>
             </div>
-            <div class="header-right-tools" style="display:flex; align-items:center; gap:12px;">
-                <span class="key-badge" style="background:var(--input-bg); border:1px solid var(--border-color); padding:2px 8px; border-radius:4px; font-weight:bold;">${getNote(s.key || "-", state.t)}</span>
-                <div id="header-actions"></div>
-            </div>
+            <div class="meta-label" style="margin-top:5px;">${s.artist || ""}</div>
         </div>
     `;
     
-    // Επιλογή του στοιχείου που περιέχει το header (προσάρμοσε το ID αν διαφέρει στο index.html σου)
-    const headerContainer = document.querySelector('.player-header-container') || document.getElementById('view-player');
-    // Σημείωση: Αν το headerContent μπαίνει μέσα σε υπάρχον div, ίσως χρειαστεί να το στοχεύσεις ακριβέστερα.
-    
-    // 2. ΕΝΗΜΕΡΩΣΗ ACTIONS (Settings/Notes)
-    var btnHtml = `<button onclick="openSettings()" class="action-btn" title="Ρυθμίσεις"><i class="fas fa-cog"></i></button>`;
-    if (s.notes && s.notes.trim() !== "") {
-        btnHtml = `<button onclick="toggleNotes()" class="action-btn" style="color:var(--accent);" title="Σημειώσεις"><i class="fas fa-sticky-note"></i></button>` + btnHtml;
-        document.getElementById('notes-area').innerText = s.notes;
-    }
-    
-    // Επανασχεδιασμός του Header (Προσοχή: Βεβαιώσου ότι τα ID p-title κλπ υπάρχουν ήδη)
-    document.getElementById('p-title').innerText = s.title;
-    document.getElementById('p-artist').innerText = s.artist || "";
-    document.getElementById('p-key').innerText = getNote(s.key || "-", state.t);
-    document.getElementById('header-actions').innerHTML = btnHtml;
+    // Βεβαιώσου ότι το container υπάρχει στο HTML
+    const headerContainer = document.querySelector('.player-header-container');
+    if (headerContainer) headerContainer.innerHTML = headerHTML;
 
-    // 3. INTRO/INTERLUDE: Ξεκινά από την αρχή χωρίς περιθώρια
-    var infoHtml = "";
-    if(s.intro) {
-        infoHtml += `
-            <div class="info-row" style="width:100%; padding:12px 15px; background:rgba(255,255,255,0.05); border-bottom:1px solid var(--border-color); box-sizing:border-box;">
-                <span class="meta-label" style="font-weight:bold; color:var(--text-muted); font-size:0.75rem; min-width:65px; display:inline-block;">ΕΙΣΑΓΩΓΗ</span>
-                <span style="flex:1;">${renderChordsLine(s.intro)}</span>
-            </div>`;
-    }
-    if(s.interlude) {
-        infoHtml += `
-            <div class="info-row" style="width:100%; padding:12px 15px; background:rgba(255,255,255,0.05); border-bottom:1px solid var(--border-color); box-sizing:border-box;">
-                <span class="meta-label" style="font-weight:bold; color:var(--text-muted); font-size:0.75rem; min-width:65px; display:inline-block;">ΕΝΔΙΑΜΕΣΟ</span>
-                <span style="flex:1;">${renderChordsLine(s.interlude)}</span>
-            </div>`;
-    }
-    
-    const infoBar = document.querySelector('.info-bar');
-    if (infoBar) {
-        infoBar.style.gap = "0";
-        infoBar.style.margin = "0";
-        infoBar.innerHTML = infoHtml;
-    }
+    // 2. ΕΝΗΜΕΡΩΣΗ ΤΙΜΩΝ (Transpose/Capo)
+    if(document.getElementById('val-t')) document.getElementById('val-t').innerText = (state.t > 0 ? "+" : "") + state.t;
+    if(document.getElementById('val-c')) document.getElementById('val-c').innerText = state.c;
 
-    // 4. ΛΟΙΠΑ ΣΤΟΙΧΕΙΑ
-    document.getElementById('val-t').innerText = (state.t > 0 ? "+" : "") + state.t;
-    document.getElementById('val-c').innerText = state.c;
-
+    // 3. ΣΤΙΧΟΙ (Fixed & Scroll)
     var split = splitSongBody(s.body || "");
-    if (isLyricsMode) {
-        document.getElementById('fixed-container').innerHTML = "";
-        var fullText = split.fixed + "\n\n" + split.scroll;
-        renderArea('scroll-container', fullText.trim());
-    } else {
-        renderArea('fixed-container', split.fixed);
-        renderArea('scroll-container', split.scroll);
+    renderArea('fixed-container', split.fixed); 
+    renderArea('scroll-container', split.scroll);
+
+    // 4. VIDEO EMBED (ΝΕΟ: Προσθήκη βίντεο στο τέλος)
+    // Πρώτα σβήνουμε τυχόν παλιό βίντεο για να μην παίζει από κάτω
+    var oldVideo = document.getElementById('video-embed-container');
+    if (oldVideo) oldVideo.remove();
+
+    if (s.video) {
+        var ytId = getYoutubeId(s.video);
+        if (ytId) {
+            var vidContainer = document.createElement('div');
+            vidContainer.id = 'video-embed-container';
+            vidContainer.className = 'video-responsive desktop-only-video'; // Κλάση για κρύψιμο σε κινητά
+            
+            vidContainer.innerHTML = `
+                <iframe src="https://www.youtube.com/embed/${ytId}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+            `;
+            
+            // Το βάζουμε στο τέλος των κυλιόμενων στίχων
+            var scrollCont = document.getElementById('scroll-container');
+            if (scrollCont) {
+                // Προσθήκη διαχωριστικού τίτλου
+                var titleDiv = document.createElement('div');
+                titleDiv.className = 'desktop-only-video';
+                titleDiv.style.marginTop = "30px";
+                titleDiv.style.borderTop = "1px solid #333";
+                titleDiv.style.paddingTop = "10px";
+                titleDiv.style.color = "#888";
+                titleDiv.innerHTML = '<i class="fab fa-youtube"></i> Reference Video';
+                
+                scrollCont.appendChild(titleDiv);
+                scrollCont.appendChild(vidContainer);
+            }
+        }
     }
 }
 function toggleNotes() { var el = document.getElementById('notes-container'); el.style.display = (el.style.display === 'none') ? 'block' : 'none'; }
@@ -412,45 +418,35 @@ function createToken(c, l) {
 }
 function renderChordsLine(str) { return str.replace(/!([A-G][b#]?[m]?[maj7|sus4|7|add9|dim|0-9]*(\/[A-G][b#]?)?)/g, function(match, chord) { var transposed = getNote(chord, state.t - state.c); return `<span class="chord-highlight">${transposed}</span>`; }); }
 function switchToEditor() {
-    document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active-view'));
+    // Αλλαγή View (ενεργοποίηση Editor)
+    document.getElementById('view-player').classList.remove('active-view');
     document.getElementById('view-editor').classList.add('active-view');
+    
     if (currentSongId) {
         var s = library.find(x => x.id === currentSongId);
         if (s) {
             document.getElementById('inpTitle').value = s.title || "";
             document.getElementById('inpArtist').value = s.artist || ""; 
-
-            // --- ΔΙΟΡΘΩΣΗ: Transpose Logic για όλα τα πεδία ---
-            let keyToEdit = s.key || "";
-            let bodyToEdit = s.body || "";
-            let introToEdit = s.intro || "";
-            let interToEdit = s.interlude || "";
-
-            if (state.t !== 0) {
-                // Εφαρμογή του transpose μόνιμα στα κείμενα
-                keyToEdit = getNote(keyToEdit, state.t);
-                bodyToEdit = transposeBodyText(bodyToEdit, state.t);
-                introToEdit = transposeBodyText(introToEdit, state.t); // ΝΕΟ
-                interToEdit = transposeBodyText(interToEdit, state.t); // ΝΕΟ
-                
-                // Μηδενίζουμε το transpose του state αφού το "κάψαμε" στο κείμενο
-                state.t = 0; 
-                if(document.getElementById('val-t')) {
-                    document.getElementById('val-t').innerText = "0";
-                }
+            
+            // --- ΝΕΟ: Φόρτωση Video URL ---
+            if(document.getElementById('inpVideo')) {
+                document.getElementById('inpVideo').value = s.video || "";
             }
 
-            document.getElementById('inpKey').value = keyToEdit;
-            document.getElementById('inpBody').value = bodyToEdit;
-            document.getElementById('inpIntro').value = introToEdit; // Ενημερωμένο
-            document.getElementById('inpInter').value = interToEdit; // Ενημερωμένο
+            // Φόρτωση υπολοίπων πεδίων
+            document.getElementById('inpKey').value = s.key || "";
+            document.getElementById('inpBody').value = s.body || ""; 
             
+            document.getElementById('inpIntro').value = s.intro || "";
+            document.getElementById('inpInter').value = s.interlude || "";
             document.getElementById('inpNotes').value = s.notes || "";
+            
             editorTags = s.playlists ? [...s.playlists] : [];
-            renderTagChips();
+            if(typeof renderTagChips === 'function') renderTagChips();
         }
-    } else { createNewSong(); }
-    document.getElementById('sidebar').classList.remove('open');
+    } else { 
+        createNewSong(); 
+    }
 }
 function exitEditor() { if (currentSongId) { loadSong(currentSongId); } else { if(library.length > 0) loadSong(library[0].id); } }
 function createNewSong() {
@@ -461,7 +457,6 @@ function createNewSong() {
     document.getElementById('sidebar').classList.remove('open');
 }
 function cancelEdit() { loadSong(currentSongId || ((library.length>0)?library[0].id:null)); }
-//function saveEdit() { saveSong(); populateTags(); applyFilters(); }
 function saveEdit() { 
     let bodyArea = document.getElementById('inpBody');
     if (bodyArea) {
@@ -802,3 +797,48 @@ document.addEventListener('visibilitychange', async () => {
         await requestWakeLock();
     }
 });
+/* =========================================
+   NEW HELPER FUNCTIONS (GRID LAYOUT & VIDEO)
+   ========================================= */
+
+// 1. YouTube ID Extractor
+function getYoutubeId(url) {
+    if (!url) return null;
+    var regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    var match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+}
+
+// 2. Mobile Tab Switcher
+function switchMobileTab(tabName) {
+    // Αγνοούμε αν είμαστε σε Desktop
+    if (window.innerWidth > 768) return;
+
+    // Ενημέρωση ενεργού κουμπιού (κάτω μπάρα)
+    document.querySelectorAll('.tab-btn-mob').forEach(btn => btn.classList.remove('active'));
+    
+    const btns = document.querySelectorAll('.tab-btn-mob');
+    // Σειρά: 0=Library, 1=Stage, 2=Rhythm
+    if(tabName === 'library' && btns[0]) btns[0].classList.add('active');
+    if(tabName === 'stage' && btns[1]) btns[1].classList.add('active');
+    if(tabName === 'tools' && btns[2]) btns[2].classList.add('active');
+
+    // Εναλλαγή Στηλών (κρύβουμε/εμφανίζουμε βάσει της κλάσης mobile-view-active)
+    var navCol = document.querySelector('.col-nav');
+    var stageCol = document.querySelector('.col-stage');
+    var toolsCol = document.querySelector('.col-tools');
+    
+    if(navCol) navCol.classList.remove('mobile-view-active');
+    if(stageCol) stageCol.classList.remove('mobile-view-active');
+    if(toolsCol) toolsCol.classList.remove('mobile-view-active');
+
+    if(tabName === 'library' && navCol) navCol.classList.add('mobile-view-active');
+    if(tabName === 'stage' && stageCol) stageCol.classList.add('mobile-view-active');
+    if(tabName === 'tools' && toolsCol) toolsCol.classList.add('mobile-view-active');
+}
+
+// 3. Initial Load Check (Για να ανοίγει σωστά στο κινητό)
+// Σιγουρέψου ότι δεν υπάρχει άλλο window.onload που το ακυρώνει
+// Αν έχεις ήδη window.addEventListener('load'...) στην αρχή του αρχείου,
+// απλά πρόσθεσε μέσα του τη γραμμή: 
+// if (window.innerWidth <= 768) switchMobileTab('library');

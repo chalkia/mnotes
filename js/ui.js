@@ -647,6 +647,20 @@ function setupEvents() {
     const fileInput = document.getElementById('hiddenFileInput');
     if(fileInput) { fileInput.addEventListener('change', function(e) { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = function(e) { try { const imported = JSON.parse(e.target.result); processImportedData(imported); document.getElementById('importChoiceModal').style.display = 'none'; } catch(err) { alert(t('msg_error_read')); } }; reader.readAsText(file); fileInput.value = ''; }); }
     document.addEventListener('click', function(e) { var wrap = document.querySelector('.tag-wrapper'); var sugg = document.getElementById('tagSuggestions'); if (wrap && sugg && !wrap.contains(e.target) && !sugg.contains(e.target)) { sugg.style.display = 'none'; } });
+    // --- AUDIO ENGINE EVENTS (ΝΕΟ) ---
+    const btnPlay = document.getElementById('btnPlayRhythm');
+    if(btnPlay) {
+        btnPlay.onclick = togglePlay; // Καλεί τη συνάρτηση από το audio.js
+    }
+    const rngBpm = document.getElementById('rngBpm');
+    if(rngBpm) {
+        rngBpm.oninput = function(e) { updateBpm(e.target.value); };
+    }
+    const selRhythm = document.getElementById('selRhythm');
+    if(selRhythm) {
+        selRhythm.onchange = function(e) { changeRhythmStyle(e.target.value); };
+    }
+}
 }
 function setupGestures() {
     var area = document.getElementById('mainZone'); var startDist = 0; var startSize = 1.3;

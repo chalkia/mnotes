@@ -136,3 +136,75 @@ body.lyrics-mode .line-row { align-items: center; line-height: 1.8; }
 .modal-btn.cancel { margin-top: 10px; padding: 12px; font-size: 1rem; opacity: 0.8; background: none; border: none; }
 #toast { visibility: hidden; min-width: 200px; background-color: rgba(30, 30, 30, 0.95); color: #fff; text-align: center; border-radius: 8px; padding: 15px; position: fixed; z-index: 3000; left: 50%; bottom: 100px; transform: translateX(-50%); font-size: 1rem; border: 1px solid var(--accent); opacity: 0; transition: opacity 0.3s; }
 #toast.show { visibility: visible; opacity: 1; }
+
+/* Tags / Chords Fix */
+.line-row { 
+    display: flex; 
+    flex-wrap: wrap; 
+    align-items: flex-end; 
+    margin-bottom: 8px; /* Λίγο αέρα ανάμεσα στις γραμμές */
+}
+.token { 
+    display: flex; 
+    flex-direction: column; /* Συγχορδία ΠΑΝΩ, Στίχος ΚΑΤΩ */
+    margin-right: 4px; 
+    align-items: flex-start; /* Στοίχιση αριστερά */
+}
+.chord { 
+    color: var(--chord-color); 
+    font-size: calc(var(--lyric-size) * 0.85); 
+    font-weight: bold; 
+    margin-bottom: 0px; 
+    line-height: 1.2;
+    min-height: 1.2em; /* Κρατάει χώρο ακόμα και αν είναι κενό */
+}
+.lyric { 
+    color: var(--text-main); 
+    font-size: var(--lyric-size); 
+    white-space: pre; 
+    line-height: 1.2; 
+}
+
+/* Sticky Note Style */
+.sticky-note {
+    background: #ffeb3b;
+    color: #222;
+    padding: 15px;
+    padding-top: 25px; /* Χώρος για την καρφίτσα */
+    border-radius: 2px;
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+    position: relative;
+    font-family: 'Comic Sans MS', cursive, sans-serif; /* Χειρόγραφο στυλ */
+    font-size: 0.9rem;
+    transform: rotate(-1deg);
+    max-width: 300px;
+    margin: 10px auto;
+}
+.sticky-note .note-pin {
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 1.2rem;
+    color: #d32f2f;
+}
+
+/* Sidebar Recordings */
+.side-rec-item {
+    background: var(--input-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 8px;
+    display: flex; flex-direction: column; gap: 5px;
+}
+.side-rec-meta { display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; color: var(--text-muted); }
+.side-rec-label { color: var(--accent); font-weight: bold; font-size: 0.85rem; }
+
+/* Mobile Nav Animation */
+.mobile-nav { transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); }
+.mobile-nav.hidden { transform: translateY(100%); }
+
+/* Grid Colors */
+.cell.bass.active { background: #e57373; box-shadow: 0 0 8px #e57373; border-color:#ff8a80; }
+.cell.snare.active { background: #fff176; box-shadow: 0 0 8px #fff176; border-color:#ffffa8; }
+.cell.hihat.active { background: #ffb74d; box-shadow: 0 0 8px #ffb74d; border-color:#ffcc80; }

@@ -324,3 +324,46 @@ body.lyrics-mode .line-row {
     color: #000 !important;
     border-color: var(--accent) !important;
 }
+
+/* =========================================
+   MODAL & BUTTON STYLING IMPROVEMENTS
+   ========================================= */
+
+/* 1. Το κουτί του Modal (Πιο ευρύχωρο) */
+#importChoiceModal .modal-box {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;          /* ΠΟΛΥΣ ΑΕΡΑΣ ανάμεσα στα κουμπιά */
+    padding: 30px;      /* Περισσότερο εσωτερικό περιθώριο */
+    min-width: 320px;   /* Ελάχιστο πλάτος για να μην είναι στενό */
+    max-width: 450px;   /* Μέγιστο πλάτος */
+}
+
+/* 2. Τα Κουμπιά (Μεγαλύτερα και Μακρύτερα) */
+.modal-btn {
+    width: 80%;        /* Να πιάνει το 80% του πλάτους */
+    padding: 16px 20px; /* Ψηλότερα κουμπιά (μεγάλο πάτημα) */
+    font-size: 1.15rem; /* Μεγαλύτερα γράμματα */
+    font-weight: bold;  /* Πιο έντονα */
+    border-radius: 8px; /* Ωραίες γωνίες */
+    
+    /* Στοίχιση εικονιδίων */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;          /* Απόσταση εικονιδίου από το κείμενο */
+    
+    transition: transform 0.1s, background 0.2s;
+}
+
+.modal-btn:active {
+    transform: scale(0.98); /* Εφέ πατήματος */
+}
+
+/* Ειδικά για το κουμπί Cancel να ξεχωρίζει λίγο */
+.modal-btn.cancel {
+    margin-top: 10px;
+    padding: 12px;      /* Λίγο πιο μικρό από τα κύρια */
+    font-size: 1rem;
+    opacity: 0.8;
+}

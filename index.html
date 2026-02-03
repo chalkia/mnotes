@@ -4,11 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>mNotes Pro</title>
-    
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="icon-192.png">
     <meta name="theme-color" content="#121212">
-    
     <link rel="stylesheet" href="fa/css/all.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
@@ -23,7 +21,7 @@
         
         <aside class="col-nav" id="sidebar">
             <div class="sidebar-header">
-                <div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
+                <div style="display: flex; flex-direction: column; gap: 5px; width: 100%;">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <span class="logo-text">mNotes <span id="songCount" style="font-size:0.8rem; opacity:0.6;">0</span></span>
                         <div class="sidebar-actions">
@@ -32,6 +30,7 @@
                             <button id="btnShareSetlist" onclick="exportSetlist()" class="action-btn" title="QR Λίστας" style="display:none;"><i class="fas fa-qrcode"></i></button>
                         </div>
                     </div>
+                    <div id="userDisplayName" style="font-size: 0.8rem; color: var(--accent); font-weight: bold; min-height: 1.2em; margin-left: 2px;"></div>
                     <div class="sidebar-tabs">
                         <button id="tab-library" class="tab-btn active" onclick="switchSidebarTab('library')">Library</button>
                         <button id="tab-setlist" class="tab-btn" onclick="switchSidebarTab('setlist')">Setlist</button>
@@ -64,9 +63,13 @@
         <main class="col-stage" id="mainZone">
             <div id="view-player" class="view-section active-view">
                 <div class="player-header-container">
-                    <div class="player-header">
-                        <h1 id="p-title" class="song-h1">Select a Song</h1>
-                        <span id="p-artist" class="meta-label">-</span>
+                    </div>
+
+                <div id="stickyNotesArea" style="display:none; padding:10px 15px;">
+                    <div class="sticky-note">
+                        <div class="note-pin"><i class="fas fa-thumbtack"></i></div>
+                        <div id="conductorNoteText" style="font-weight:bold; margin-bottom:5px; color:#222;"></div>
+                        <div id="personalNoteText" style="font-style:italic; color:#444; border-top:1px dashed #666; padding-top:5px; margin-top:5px;"></div>
                     </div>
                 </div>
 
@@ -93,7 +96,17 @@
                 </div>
                 <div class="editor-body">
                     <input id="inpTitle" class="inp title-inp" placeholder="Τίτλος Τραγουδιού">
-                    <details><summary>Artist & Notes</summary><div class="details-content"><input id="inpArtist" class="inp" placeholder="Artist"><textarea id="inpNotes" class="inp" placeholder="Notes"></textarea></div></details>
+                    <details><summary>Metadata & Notes</summary>
+                        <div class="details-content">
+                            <input id="inpArtist" class="inp" placeholder="Artist">
+                            <input id="inpVideo" class="inp" placeholder="YouTube URL (Video)">
+                            <div style="display:flex; gap:10px; margin-top:10px;">
+                                <textarea id="inpConductorNotes" class="inp" placeholder="Conductor Notes (Public)" style="flex:1; height:60px;"></textarea>
+                                <textarea id="inpPersonalNotes" class="inp" placeholder="My Personal Notes (Private)" style="flex:1; height:60px; border-color:var(--accent);"></textarea>
+                            </div>
+                        </div>
+                    </details>
+                    
                     <div style="display:flex; gap:10px;">
                         <input id="inpKey" class="inp" placeholder="Key" style="width:80px;">
                         <div style="flex:1;">
@@ -107,7 +120,6 @@
                     </div>
                     <input id="inpIntro" class="inp" placeholder="Intro">
                     <input id="inpInter" class="inp" placeholder="Interlude">
-                    <input id="inpVideo" class="inp desktop-only-video" placeholder="YouTube URL">
                     <textarea id="inpBody" class="inp txt-area" placeholder="Στίχοι & Συγχορδίες..."></textarea>
                 </div>
             </div>
@@ -125,18 +137,23 @@
                 </div>
                 <div style="display:flex; gap:10px; justify-content: center;">
                     <button id="btnRecord" onclick="toggleRecording()" class="round-btn" style="border-color:var(--danger); color:var(--danger); width:50px; height:50px; font-size:1.2rem;"><i class="fas fa-microphone"></i></button>
-                    <button id="btnLinkRec" onclick="uploadAndLinkCurrent()" class="round-btn" style="display:none; border-color:var(--accent); color:var(--accent); width:50px; height:50px; font-size:1.2rem;" title="Upload & Save Take"><i class="fas fa-link"></i></button>
+                    <button id="btnLinkRec" onclick="uploadAndLinkCurrent()" class="round-btn" style="display:none; border-color:var(--accent); color:var(--accent); width:50px; height:50px; font-size:1.2rem;" title="Upload & Save"><i class="fas fa-link"></i></button>
                     <a id="btnDownloadRec" class="round-btn" target="_blank" style="border-color:#555; color:#555; display:flex; align-items:center; justify-content:center; width:40px; height:40px; font-size:1rem; opacity:0.5; pointer-events:none;"><i class="fas fa-download"></i></a>
                 </div>
                 <audio id="audioPreview" controls style="width:100%; min-width:200px; margin-top:15px; height:35px; display:none;"></audio>
+            </div>
+
+            <div id="sideRecordingsBox" style="display:none; padding: 15px; border-bottom: 1px solid #333; background: var(--bg-panel);">
+                <label style="color:var(--text-muted); font-size:0.8rem; font-weight:bold; margin-bottom:10px; display:block;"><i class="fas fa-save"></i> SAVED TAKES</label>
+                <div id="sideRecList" style="display:flex; flex-direction:column; gap:8px;"></div>
             </div>
 
             <div class="rhythm-panel">
                 <div class="ctl-row main-play" style="justify-content: space-between; margin-bottom: 20px;">
                     <button id="btnPlayRhythm" class="big-play-btn"><i class="fas fa-play"></i></button>
                     <div class="bpm-box" style="text-align:right;">
-                        <label style="font-size:0.8rem; color:#888;">BPM: <span id="dispBpm" style="color:var(--accent);">120</span></label>
-                        <input type="range" id="rngBpm" min="40" max="200" value="120" style="width:100%;">
+                        <label style="font-size:0.8rem; color:#888;">BPM: <span id="dispBpm" style="color:var(--accent);">100</span></label>
+                        <input type="range" id="rngBpm" min="40" max="200" value="100" style="width:100%;">
                     </div>
                 </div>
 
@@ -155,93 +172,55 @@
                     <label>Load:</label>
                     <select id="selRhythm" class="inp" style="padding:5px;" onchange="loadPreset(this.value)">
                         <option value="">-- Preset --</option>
-                        <option value="zeibekiko">Ζεϊμέκικο</option>
-                        <option value="kalamatianos">Καλαματιανός</option>
-                        <option value="chasapiko">Χασάπικο</option>
-                        <option value="tsifteteli">Τσιφτετέλι</option>
+                        <option value="zeibekiko">Ζεϊμέκικο (9/8)</option>
+                        <option value="kalamatianos">Καλαματιανός (7/8)</option>
+                        <option value="chasapiko">Χασάπικο (4/4)</option>
+                        <option value="tsifteteli">Τσιφτετέλι (4/4)</option>
                     </select>
                 </div>
-
-                <button onclick="openSettings()" class="settings-full-btn"><i class="fas fa-cog"></i> Settings</button>
             </div>
+
+            <div id="video-sidebar-container" style="padding:15px; border-top:1px solid #333; margin-top:auto; display:none;">
+                <label style="color:#888; font-size:0.8rem; display:block; margin-bottom:5px;"><i class="fab fa-youtube"></i> REFERENCE</label>
+                <div id="video-embed-box" class="video-responsive"></div>
+            </div>
+
+            <button onclick="openSettings()" class="settings-full-btn"><i class="fas fa-cog"></i> Settings</button>
         </aside>
 
         <nav class="mobile-nav">
             <button class="tab-btn-mob" onclick="switchMobileTab('library')"><i class="fas fa-list"></i><span>Λίστα</span></button>
-            <button class="tab-btn-mob active" onclick="switchMobileTab('stage')"><i class="fas fa-microphone-alt"></i><span>Πρόβα</span></button>
+            <button class="tab-btn-mob active" onclick="switchMobileTab('stage')"><i class="fas fa-microphone-alt"></i><span>Εκτέλεση</span></button>
             <button class="tab-btn-mob" onclick="switchMobileTab('tools')"><i class="fas fa-drum"></i><span>Ρυθμός</span></button>
         </nav>
-    </div>
-
-    <div id="importChoiceModal" class="modal-overlay">
-        <div class="modal-box" style="display:flex; flex-direction:column; gap:10px;">
-            <h3>Import</h3>
-            <button onclick="selectImport('file')" class="modal-btn">File (.json)</button>
-            <button onclick="selectImport('url')" class="modal-btn"><i class="fas fa-link"></i> URL</button>
-            <button onclick="selectImport('qr')" class="modal-btn">Scan QR</button>
-            <button onclick="document.getElementById('importChoiceModal').style.display='none'" class="modal-btn cancel">Cancel</button>
-        </div>
-    </div>
-    
-    <div id="qrModal" class="modal-overlay">
-        <div class="modal-box"><h3>QR Code</h3><div id="qr-output" class="qr-display"></div><button onclick="document.getElementById('qrModal').style.display='none'" class="modal-btn accent">OK</button></div>
-    </div>
-    
-    <div id="scanModal" class="modal-overlay">
-        <div class="modal-box"><h3>Scan QR</h3><div id="reader"></div><button onclick="closeScan()" class="modal-btn danger">Close</button></div>
+        
+        <div id="navTrigger" onclick="showMobileNav()" style="position:fixed; bottom:0; left:0; width:100%; height:40px; z-index:90; display:none;"></div>
     </div>
 
     <div id="authModal" class="modal-overlay">
         <div class="modal-box">
-            <h3>Login / Sign Up</h3>
-            <button onclick="loginWithGoogle()" class="modal-btn" style="background:white; color:#333; margin-bottom:15px; display:flex; align-items:center; justify-content:center; gap:10px;">
-    <img src="https://www.svgrepo.com/show/475656/google-color.svg" width="20" alt="G">
-    Sign in with Google
-</button>
-
-<div style="display:flex; align-items:center; gap:10px; margin-bottom:15px; width:100%;">
-    <div style="flex:1; height:1px; background:#444;"></div>
-    <span style="font-size:0.8rem; color:#888;">OR EMAIL</span>
-    <div style="flex:1; height:1px; background:#444;"></div>
-</div>
-            <input type="email" id="authEmail" class="inp" placeholder="Email" style="width:100%; margin-bottom:10px;">
-            <input type="password" id="authPass" class="inp" placeholder="Password" style="width:100%; margin-bottom:20px;">
-            <button onclick="doLogin()" class="modal-btn accent">Login</button>
-            <button onclick="doSignUp()" class="modal-btn" style="margin-top:5px;">Sign Up (New User)</button>
-            <button onclick="document.getElementById('authModal').style.display='none'" class="modal-btn cancel">Close</button>
-            <div id="authMsg" style="margin-top:10px; font-size:0.9rem; color:#cf6679;"></div>
+             <h3>Login / Sign Up</h3>
+             <button onclick="loginWithGoogle()" class="modal-btn" style="background:white; color:#333; margin-bottom:15px; display:flex; align-items:center; justify-content:center; gap:10px;">
+                <img src="https://www.svgrepo.com/show/475656/google-color.svg" width="20" alt="G"> Sign in with Google
+             </button>
+             <div style="display:flex; align-items:center; gap:10px; margin-bottom:15px; width:100%;"><div style="flex:1; height:1px; background:#444;"></div><span style="font-size:0.8rem; color:#888;">OR EMAIL</span><div style="flex:1; height:1px; background:#444;"></div></div>
+             <input type="email" id="authEmail" class="inp" placeholder="Email" style="width:100%; margin-bottom:10px;">
+             <input type="password" id="authPass" class="inp" placeholder="Password" style="width:100%; margin-bottom:20px;">
+             <button onclick="doLogin()" class="modal-btn accent">Login</button>
+             <button onclick="doSignUp()" class="modal-btn" style="margin-top:5px;">Sign Up (New User)</button>
+             <button onclick="document.getElementById('authModal').style.display='none'" class="modal-btn cancel">Close</button>
+             <div id="authMsg" style="margin-top:10px; font-size:0.9rem; color:#cf6679;"></div>
         </div>
     </div>
-
-    <div id="settingsModal" class="modal-overlay">
-        <div class="modal-box" style="text-align:left; max-height: 85vh; overflow-y: auto;">
-            <h3 style="text-align:center;">Settings</h3>
-            <label class="ctl-label">Scroll Speed</label><div style="display:flex; align-items:center; gap:10px; margin-bottom:15px;"><i class="fas fa-hare"></i><input type="range" id="setScroll" min="10" max="200" step="10" style="flex:1"><i class="fas fa-tortoise"></i></div>
-            <label class="ctl-label">Intro Size</label><div style="display:flex; align-items:center; gap:10px; margin-bottom:15px; background:var(--input-bg); padding:5px; border-radius:5px;"><button onclick="changeIntroSizeSettings(-1)" style="width:30px; background:none; border:none; color:white;">-</button><span id="dispIntroSize" style="flex:1; text-align:center; color:var(--accent);">100%</span><button onclick="changeIntroSizeSettings(1)" style="width:30px; background:none; border:none; color:white;">+</button></div>
-            <label class="ctl-label">Max Capo</label><input type="number" id="setMaxCapo" class="inp" style="width:100%; margin-bottom:15px;" min="0" max="12">
-            <div class="chk-row"><label>Backup Reminder</label><input type="checkbox" id="setBackup"></div>
-            <div class="chk-row"><label>Hide Demo</label><input type="checkbox" id="setHideDemo"></div>
-            <div class="chk-row"><label>Keep Screen On</label><input type="checkbox" id="setWakeLock"></div>
-            <label class="ctl-label">Theme</label><select id="setTheme" class="inp" style="width:100%; margin-bottom:10px;" onchange="toggleCustomColors(this.value)"><option value="theme-dark">Dark</option><option value="theme-slate">Slate</option><option value="theme-light">Light</option><option value="theme-custom">Custom</option></select>
-            <div id="customColorArea" style="display:none; border:1px solid #333; padding:10px; border-radius:5px; margin-bottom:20px;"><div class="color-picker-row"><label>Background</label><input type="color" id="colBgMain"></div><div class="color-picker-row"><label>Panel</label><input type="color" id="colBgPanel"></div><div class="color-picker-row"><label>Text</label><input type="color" id="colTextMain"></div><div class="color-picker-row"><label>Accent</label><input type="color" id="colAccent"></div><div class="color-picker-row"><label>Chord</label><input type="color" id="colChord"></div></div>
-            <div style="display:flex; gap:10px;"><button onclick="saveSettings()" class="modal-btn accent">Save</button><button onclick="document.getElementById('settingsModal').style.display='none'" class="modal-btn cancel">Cancel</button></div>
-        </div>
-    </div>
-    
-    <input type="file" id="hiddenFileInput" style="display:none" accept=".json,.mnote">
-    <div id="toast"></div>
-
     <script src="js/sortable.min.js"></script>
     <script src="js/qrcodegen.js"></script>
     <script src="js/html5-qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
     <script src="js/data.js"></script>
     <script src="js/storage.js"></script>
-    <script src="js/logic.js"></script>
-    <script src="js/audio.js"></script>
     <script src="js/supabase-client.js"></script> 
-    <script src="js/ui.js?v=13.0"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/logic.js"></script>
+    <script src="js/ui.js?v=14.0"></script>
 </body>
 </html>
-

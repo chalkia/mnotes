@@ -17,8 +17,8 @@
     --intro-size: 1.1rem;
     
     /* Grid Variables */
-    --nav-width: 260px;
-    --tools-width: 320px;
+    --nav-width: 350px;
+    --tools-width: 340px;
 }
 
 body.theme-slate {
@@ -220,3 +220,4 @@ body {
 .chk-row label { font-size: 0.9rem; color: var(--text-muted); }
 .color-picker-row { display: flex; justify-content: space-between; margin-bottom: 8px; padding: 5px; background: rgba(255,255,255,0.05); border-radius: 4px; }
 .color-picker-row input { border: none; background: none; width: 30px; height: 30px; }
+

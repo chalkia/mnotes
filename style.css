@@ -220,4 +220,51 @@ body {
 .chk-row label { font-size: 0.9rem; color: var(--text-muted); }
 .color-picker-row { display: flex; justify-content: space-between; margin-bottom: 8px; padding: 5px; background: rgba(255,255,255,0.05); border-radius: 4px; }
 .color-picker-row input { border: none; background: none; width: 30px; height: 30px; }
+/* --- RHYTHM EDITOR GRID --- */
+.rhythm-grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(20px, 1fr)); /* Αυτόματο πλάτος */
+    gap: 2px;
+    background: #111;
+    padding: 10px;
+    border: 1px solid #333;
+    border-radius: 5px;
+    overflow-x: auto; /* Για να σκρολάρει αν είναι μεγάλο */
+}
+
+/* Κάθε βήμα (Step) είναι μια κάθετη στήλη */
+.step-col {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    align-items: center;
+    min-width: 18px; 
+}
+
+/* Τα κουτάκια */
+.cell {
+    width: 100%;
+    height: 25px;
+    background: #333;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: background 0.1s;
+}
+
+.cell:hover { filter: brightness(1.2); }
+
+/* Χρώματα ενεργοποίησης */
+.cell.bass.active { background: #e57373; box-shadow: 0 0 5px #e57373; } /* Doum */
+.cell.snare.active { background: #fff176; box-shadow: 0 0 5px #fff176; } /* Tak */
+.cell.hihat.active { background: #64b5f6; box-shadow: 0 0 5px #64b5f6; } /* Tik */
+
+/* Highlight όταν παίζει */
+.step-col.playing .cell {
+    border: 1px solid white;
+}
+
+/* Marker για την αρχή του μέτρου */
+.step-col:nth-child(4n+1) {
+    margin-left: 2px; /* Λίγο κενό κάθε 4 βήματα */
+}
 

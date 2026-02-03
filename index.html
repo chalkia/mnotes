@@ -14,7 +14,6 @@
 </head>
 <body class="theme-dark"> 
     <script>
-        // Γρήγορος έλεγχος για theme κινητού
         (function() {
             if (window.innerWidth <= 768) document.body.className = 'theme-slate';
         })();
@@ -26,19 +25,12 @@
             <div class="sidebar-header">
                 <div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span class="logo-text">
-                            mNotes <span id="songCount" style="font-size:0.8rem; opacity:0.6;">0</span>
-                        </span>
+                        <span class="logo-text">mNotes <span id="songCount" style="font-size:0.8rem; opacity:0.6;">0</span></span>
                         <div class="sidebar-actions">
-                            <button id="btnAddSong" onclick="createNewSong()" class="action-btn" title="Προσθήκη">
-                                <i class="fas fa-plus"></i>
-                            </button>
-                            <button id="btnShareSetlist" onclick="exportSetlist()" class="action-btn" title="QR Λίστας" style="display:none;">
-                                <i class="fas fa-qrcode"></i>
-                             </button>
+                            <button id="btnAddSong" onclick="createNewSong()" class="action-btn" title="Προσθήκη"><i class="fas fa-plus"></i></button>
+                            <button id="btnShareSetlist" onclick="exportSetlist()" class="action-btn" title="QR Λίστας" style="display:none;"><i class="fas fa-qrcode"></i></button>
                         </div>
                     </div>
-
                     <div class="sidebar-tabs">
                         <button id="tab-library" class="tab-btn active" onclick="switchSidebarTab('library')">Library</button>
                         <button id="tab-setlist" class="tab-btn" onclick="switchSidebarTab('setlist')">Setlist</button>
@@ -48,34 +40,26 @@
             
             <div class="sidebar-search">
                 <input id="searchInp" type="text" placeholder="Αναζήτηση..." oninput="applyFilters()">
-                <select id="tagFilter" onchange="applyFilters()">
-                     <option value="">All Tags</option>
-                </select>
+                <select id="tagFilter" onchange="applyFilters()"><option value="">All Tags</option></select>
                 <select id="sortFilter" onchange="applySortAndRender()" style="margin-top:5px; background:var(--input-bg); color:var(--text-main); border:1px solid var(--border-color); padding:5px; border-radius:5px; width:100%; font-size:0.9rem;">
                     <option value="alpha">🔤 Αλφαβητικά</option>
-                    <option value="created">✨ Νεότερα (Δημιουργία)</option>
-                    <option value="modified">✏️ Πρόσφατα (Αλλαγή)</option>
+                    <option value="created">✨ Νεότερα</option>
+                    <option value="modified">✏️ Πρόσφατα</option>
                 </select>
             </div>
             
             <ul id="songList" class="song-list"></ul>
             
             <div class="sidebar-footer">
-                <button id="btnLang" onclick="toggleLanguage()" class="footer-btn small">
-                    <i class="fas fa-globe"></i>
-                </button>
-                <button onclick="document.getElementById('importChoiceModal').style.display='flex'" class="footer-btn">
-                    <i class="fas fa-file-import"></i> Import
-                </button>
-                <button onclick="exportJSON()" class="footer-btn icon-only" title="Export">
-                    <i class="fas fa-file-export"></i>
-                </button>
-                <button onclick="clearLibrary()" class="footer-btn icon-only danger">
-                    <i class="fas fa-trash"></i>
-                </button>
+                <button id="btnLang" onclick="toggleLanguage()" class="footer-btn small"><i class="fas fa-globe"></i></button>
+                <button onclick="document.getElementById('importChoiceModal').style.display='flex'" class="footer-btn"><i class="fas fa-file-import"></i> Import</button>
+                <button onclick="exportJSON()" class="footer-btn icon-only" title="Export"><i class="fas fa-file-export"></i></button>
+                <button onclick="clearLibrary()" class="footer-btn icon-only danger"><i class="fas fa-trash"></i></button>
             </div>
         </aside>
+
         <div class="resizer" id="dragMeLeft"></div>
+
         <main class="col-stage" id="mainZone">
             
             <div id="view-player" class="view-section active-view">
@@ -90,70 +74,26 @@
                 <div id="scroll-container" class="scroll-lyrics" ondblclick="toggleAutoScroll()"></div>
 
                 <div class="player-footer">
-                    <div class="ctl-group mic-control">
-                        <span class="ctl-label">Lyrics</span>
-                        <button id="btnLyrics" onclick="toggleLyricsMode()" class="round-btn">
-                            <i class="fas fa-scroll"></i>
-                        </button>
-                    </div>
-
-                    <div class="ctl-group">
-                        <span class="ctl-label">Transpose</span>
-                        <div class="stepper">
-                            <button onclick="changeTranspose(-1)">-</button>
-                            <span id="val-t">0</span>
-                            <button onclick="changeTranspose(1)">+</button>
-                        </div>
-                    </div>
-                    
-                    <div class="ctl-group">
-                        <span class="ctl-label">Capo</span>
-                        <div class="stepper">
-                            <button onclick="changeCapo(-1)">-</button>
-                            <span id="val-c">0</span>
-                            <button onclick="changeCapo(1)">+</button>
-                        </div>
-                    </div>
-
-                    <div class="ctl-group">
-                        <span class="ctl-label">Smart</span>
-                        <button onclick="autoCapo()" class="round-btn accent-btn">
-                            <i class="fas fa-magic"></i>
-                        </button>
-                    </div>
-                    
-                    <div class="ctl-group">
-                         <span class="ctl-label">Edit</span>
-                         <button id="btnEditSong" onclick="switchToEditor()" class="round-btn">
-                                <i class="fas fa-pen"></i>
-                         </button>
-                    </div>
+                    <div class="ctl-group"><span class="ctl-label">Lyrics</span><button id="btnLyrics" onclick="toggleLyricsMode()" class="round-btn"><i class="fas fa-scroll"></i></button></div>
+                    <div class="ctl-group"><span class="ctl-label">Transpose</span><div class="stepper"><button onclick="changeTranspose(-1)">-</button><span id="val-t">0</span><button onclick="changeTranspose(1)">+</button></div></div>
+                    <div class="ctl-group"><span class="ctl-label">Capo</span><div class="stepper"><button onclick="changeCapo(-1)">-</button><span id="val-c">0</span><button onclick="changeCapo(1)">+</button></div></div>
+                    <div class="ctl-group"><span class="ctl-label">Smart</span><button onclick="autoCapo()" class="round-btn accent-btn"><i class="fas fa-magic"></i></button></div>
+                    <div class="ctl-group"><span class="ctl-label">Edit</span><button id="btnEditSong" onclick="switchToEditor()" class="round-btn"><i class="fas fa-pen"></i></button></div>
                 </div>
             </div>
 
             <div id="view-editor" class="view-section">
                 <div class="editor-toolbar">
-                    <button onclick="exitEditor()" class="text-btn">
-                        <i class="fas fa-times"></i> Cancel
-                    </button>
-                    
+                    <button onclick="exitEditor()" class="text-btn"><i class="fas fa-times"></i> Cancel</button>
                     <div style="display:flex; gap:15px; align-items:center;">
                         <button onclick="deleteCurrentSong()" class="icon-btn danger" title="Delete"><i class="fas fa-trash-alt"></i></button>
                         <button onclick="generateQRFromEditor()" class="icon-btn" title="QR Code"><i class="fas fa-qrcode"></i></button>
                         <button onclick="saveEdit()" class="icon-btn accent" title="Save"><i class="fas fa-save"></i></button>
                     </div>
                 </div>
-<div class="editor-body">
+                <div class="editor-body">
                     <input id="inpTitle" class="inp title-inp" placeholder="Τίτλος Τραγουδιού">
-                    
-                    <details>
-                        <summary>Artist & Notes</summary>
-                        <div class="details-content">
-                            <input id="inpArtist" class="inp" placeholder="Artist">
-                            <textarea id="inpNotes" class="inp" placeholder="Notes"></textarea>
-                        </div>
-                    </details>
-
+                    <details><summary>Artist & Notes</summary><div class="details-content"><input id="inpArtist" class="inp" placeholder="Artist"><textarea id="inpNotes" class="inp" placeholder="Notes"></textarea></div></details>
                     <div style="display:flex; gap:10px;">
                         <input id="inpKey" class="inp" placeholder="Key" style="width:80px;">
                         <div style="flex:1;">
@@ -165,21 +105,18 @@
                             <input id="inpTags" type="hidden">
                         </div>
                     </div>
-
                     <input id="inpIntro" class="inp" placeholder="Intro">
                     <input id="inpInter" class="inp" placeholder="Interlude">
                     <input id="inpVideo" class="inp desktop-only-video" placeholder="YouTube URL">
-                    
                     <textarea id="inpBody" class="inp txt-area" placeholder="Στίχοι & Συγχορδίες..."></textarea>
                 </div>
-            </div> </main> <div class="resizer" id="dragMeRight"></div>
+            </div>
+        </main>
+
+        <div class="resizer" id="dragMeRight"></div>
 
         <aside class="col-tools" id="rhythmTools">
-            <div class="tools-header">
-                <h3>RHYTHM</h3>
-                <span class="badge-pro">PRO</span>
-            </div>
-            
+            <div class="tools-header"><h3>RHYTHM</h3><span class="badge-pro">PRO</span></div>
             <div class="rhythm-panel">
                 <div class="ctl-row main-play" style="justify-content: space-between; margin-bottom: 20px;">
                     <button id="btnPlayRhythm" class="big-play-btn"><i class="fas fa-play"></i></button>
@@ -194,9 +131,7 @@
                     <div style="display:flex; gap:5px;">
                         <button onclick="clearGrid()" style="padding:2px 8px; font-size:0.7rem; background:#333; color:white; border:none;">Clear</button>
                         <select id="beatCount" onchange="updateGridSize()" style="padding:2px; font-size:0.7rem; background:#222; color:white; border:1px solid #444;">
-                            <option value="4">4/4 (16)</option>
-                            <option value="9">9/8 (18)</option>
-                            <option value="7">7/8 (14)</option>
+                            <option value="4">4/4 (16)</option><option value="9">9/8 (18)</option><option value="7">7/8 (14)</option>
                         </select>
                     </div>
                 </div>
@@ -206,17 +141,11 @@
                 <div class="ctl-row" style="margin-top:20px; border-top:1px solid #333; padding-top:15px;">
                     <label>Load:</label>
                     <select id="selRhythm" class="inp" style="padding:5px;" onchange="loadPreset(this.value)">
-                        <option value="">-- Preset --</option>
-                        <option value="zeibekiko">Ζεϊμέκικο</option>
-                        <option value="kalamatianos">Καλαματιανός</option>
-                        <option value="chasapiko">Χασάπικο</option>
-                        <option value="tsifteteli">Τσιφτετέλι</option>
+                        <option value="">-- Preset --</option><option value="zeibekiko">Ζεϊμέκικο</option><option value="kalamatianos">Καλαματιανός</option><option value="chasapiko">Χασάπικο</option><option value="tsifteteli">Τσιφτετέλι</option>
                     </select>
                 </div>
 
-                <button onclick="openSettings()" class="settings-full-btn">
-                    <i class="fas fa-cog"></i> Settings
-                </button>
+                <button onclick="openSettings()" class="settings-full-btn"><i class="fas fa-cog"></i> Settings</button>
             </div>
         </aside>
 
@@ -226,8 +155,7 @@
             <button class="tab-btn-mob" onclick="switchMobileTab('tools')"><i class="fas fa-drum"></i><span>Ρυθμός</span></button>
         </nav>
 
-    </div> ```
-    <div id="importChoiceModal" class="modal-overlay">
+    </div> <div id="importChoiceModal" class="modal-overlay">
         <div class="modal-box">
             <h3>Import</h3>
             <button onclick="selectImport('file')" class="modal-btn">File (.json)</button>
@@ -260,9 +188,7 @@
             
             <label class="ctl-label">Scroll Speed</label>
             <div style="display:flex; align-items:center; gap:10px; margin-bottom:15px;">
-                <i class="fas fa-hare"></i>
-                <input type="range" id="setScroll" min="10" max="200" step="10" style="flex:1">
-                <i class="fas fa-tortoise"></i>
+                <i class="fas fa-hare"></i><input type="range" id="setScroll" min="10" max="200" step="10" style="flex:1"><i class="fas fa-tortoise"></i>
             </div>
 
             <label class="ctl-label">Intro Size</label>
@@ -281,10 +207,7 @@
 
             <label class="ctl-label">Theme</label>
             <select id="setTheme" class="inp" style="width:100%; margin-bottom:10px;" onchange="toggleCustomColors(this.value)">
-                <option value="theme-dark">Dark</option>
-                <option value="theme-slate">Slate</option>
-                <option value="theme-light">Light</option>
-                <option value="theme-custom">Custom</option>
+                <option value="theme-dark">Dark</option><option value="theme-slate">Slate</option><option value="theme-light">Light</option><option value="theme-custom">Custom</option>
             </select>
 
             <div id="customColorArea" style="display:none; border:1px solid #333; padding:10px; border-radius:5px; margin-bottom:20px;">
@@ -312,10 +235,6 @@
     <script src="js/data.js"></script>
     <script src="js/storage.js"></script>
     <script src="js/logic.js"></script>
-    <script src="js/audio.js"></script> <script src="js/ui.js?v=8.0"></script>
-    
-</body>
+    <script src="js/audio.js"></script> 
+    <script src="js/ui.js?v=9.1"></script> </body>
 </html>
-
-
-

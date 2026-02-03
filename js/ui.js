@@ -201,21 +201,51 @@ async function toggleRecording() {
 }
 
 async function uploadAndLinkCurrent() {
+    // 1. Βασικοί έλεγχοι
     if (!currentRecordedBlob) { showToast("No recording found!"); return; }
     if (!currentSongId) { showToast("Select a song first!"); return; }
     if (!currentUser) { document.getElementById('authModal').style.display='flex'; return; }
-    const btnLink = document.getElementById('btnLinkRec'); const originalIcon = btnLink.innerHTML;
-    btnLink.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+    // 2. Βρίσκουμε το τραγούδι για να πάρουμε τον τίτλο του
     const s = library.find(x => x.id === currentSongId);
+    if (!s) return;
+
+    // 👇 3. ΕΠΙΒΕΒΑΙΩΣΗ ΧΡΗΣΤΗ (Η ΑΛΛΑΓΗ)
+    const choice = confirm(`Θέλετε να αποθηκεύσετε την εγγραφή στο τραγούδι:\n\n"${s.title}"\n\nΤο αρχείο θα ανέβει στο Cloud.`);
+    if (!choice) return; // Αν πατήσει Cancel, σταματάμε εδώ.
+
+    // 4. Προετοιμασία UI
+    const btnLink = document.getElementById('btnLinkRec');
+    const originalIcon = btnLink.innerHTML;
+    btnLink.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    btnLink.style.opacity = '0.7'; // Visual feedback ότι δουλεύει
+    
+    // 5. Δημιουργία ονόματος και λίστας
     if (!s.recordings) s.recordings = [];
     const takeNum = s.recordings.length + 1;
     const filename = `Song_${currentSongId}_Take${takeNum}_${Date.now()}.webm`;
+
+    // 6. Upload
     const cloudUrl = await uploadAudioToCloud(currentRecordedBlob, filename);
+
     if (cloudUrl) {
-        s.recordings.push({ url: cloudUrl, label: `Take ${takeNum}`, date: Date.now() });
-        saveData(); showToast(`Take ${takeNum} Saved! ☁️`);
-        btnLink.style.display = 'none'; renderPlayer(s);
-    } else { btnLink.innerHTML = originalIcon; }
+        // Επιτυχία -> Προσθήκη στη λίστα
+        s.recordings.push({
+            url: cloudUrl,
+            label: `Take ${takeNum}`,
+            date: Date.now()
+        });
+        
+        saveData();
+        showToast(`Take ${takeNum} Saved! ☁️`);
+        
+        btnLink.style.display = 'none'; // Κρύβουμε το κουμπί
+        renderPlayer(s); // Ανανεώνουμε τον Player
+    } else {
+        // Αποτυχία -> Επαναφορά κουμπιού
+        btnLink.innerHTML = originalIcon;
+        btnLink.style.opacity = '1';
+    }
 }
 
 function deleteRecording(songId, index) {

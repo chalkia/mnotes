@@ -194,6 +194,16 @@
     <div id="authModal" class="modal-overlay">
         <div class="modal-box">
             <h3>Login / Sign Up</h3>
+            <button onclick="loginWithGoogle()" class="modal-btn" style="background:white; color:#333; margin-bottom:15px; display:flex; align-items:center; justify-content:center; gap:10px;">
+    <img src="https://www.svgrepo.com/show/475656/google-color.svg" width="20" alt="G">
+    Sign in with Google
+</button>
+
+<div style="display:flex; align-items:center; gap:10px; margin-bottom:15px; width:100%;">
+    <div style="flex:1; height:1px; background:#444;"></div>
+    <span style="font-size:0.8rem; color:#888;">OR EMAIL</span>
+    <div style="flex:1; height:1px; background:#444;"></div>
+</div>
             <input type="email" id="authEmail" class="inp" placeholder="Email" style="width:100%; margin-bottom:10px;">
             <input type="password" id="authPass" class="inp" placeholder="Password" style="width:100%; margin-bottom:20px;">
             <button onclick="doLogin()" class="modal-btn accent">Login</button>
@@ -234,3 +244,4 @@
     <script src="js/ui.js?v=13.0"></script>
 </body>
 </html>
+

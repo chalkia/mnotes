@@ -1,23 +1,24 @@
 /* =========================================
-   UI & APP LOGIC (js/ui.js) - v9.0 FINAL
+   UI & APP LOGIC (js/ui.js) - v10.0 FINAL
    ========================================= */
 
+// --- 1. GLOBAL VARIABLES & SAFEGUARDS ---
 if(typeof library === 'undefined') var library = [];
 if(typeof state === 'undefined') var state = { t: 0, c: 0, meta: {}, parsedChords: [] };
 if(typeof currentSongId === 'undefined') var currentSongId = null;
+
 var visiblePlaylist = [];
 var sortableInstance = null;
 var editorTags = [];
 var scrollTimer = null;
-var html5QrCodeScanner = null;
-
+var html5QrCodeScanner = null; // Για το QR Scanner
 var liveSetlist = JSON.parse(localStorage.getItem('mnotes_setlist')) || [];
 var viewMode = 'library'; 
 var isLyricsMode = false; 
 var wakeLock = null; 
 var newlyImportedIds = []; 
 
-// --- SETTINGS DEFAULT ---
+// Default Settings
 var userSettings = JSON.parse(localStorage.getItem('mnotes_settings')) || {
     scrollSpeed: 50,
     maxCapo: 12,
@@ -25,43 +26,44 @@ var userSettings = JSON.parse(localStorage.getItem('mnotes_settings')) || {
     hideDemo: false,
     theme: 'theme-dark',
     introScale: 0,
+    keepScreenOn: false,
+    sortMethod: 'alpha',
     customColors: { 
-        '--bg-main': '#000000',
-        '--bg-panel': '#222222',
-        '--text-main': '#ffffff',
-        '--accent': '#00ff00',
-        '--chord-color': '#ffff00'
-    },
-   keepScreenOn: false
+        '--bg-main': '#000000', 
+        '--bg-panel': '#222222', 
+        '--text-main': '#ffffff', 
+        '--accent': '#00ff00', 
+        '--chord-color': '#ffff00' 
+    }
 };
-
 var tempIntroScale = 0; 
 
-// --- INIT ---
+// --- 2. INITIALIZATION ---
 window.addEventListener('load', function() {
+    console.log("🚀 mNotes Pro Initializing...");
+    
     applyTheme(); 
     applyTranslations(); 
-    loadLibrary();
-    setupEvents();
-    setupGestures();
+    loadLibrary();     // Φορτώνει τα τραγούδια
+    setupEvents();     // Συνδέει τα κουμπιά
+    setupGestures();   // Zoom με δάχτυλα
     checkBackupReminder();
+    initResizers();    // Ενεργοποιεί τα διαχωριστικά στηλών
     
-    // Νέα λειτουργικότητα: Resizable Columns
-    initResizers();
-
-    // Mobile Check
+    // Mobile Check: Αν είναι κινητό, πάνε στη καρτέλα Library
     if (window.innerWidth <= 768) {
         if(typeof switchMobileTab === 'function') switchMobileTab('library');
     }
 });
 
+// --- 3. THEME & TRANSLATIONS ---
 function toggleLanguage() {
     currentLang = (currentLang === 'en') ? 'el' : 'en';
     localStorage.setItem('mnotes_lang', currentLang);
     applyTranslations();
     renderSidebar(); 
     populateTags(); 
-    if(currentSongId === 'demo_instruction') loadSong(currentSongId);
+    if(currentSongId && currentSongId.includes('demo')) loadSong(currentSongId);
 }
 
 function applyTranslations() {
@@ -88,118 +90,68 @@ function applyTheme() {
     } else {
         ['--bg-main','--bg-panel','--text-main','--accent','--chord-color'].forEach(k => root.style.removeProperty(k));
     }
-    var scale = userSettings.introScale || 0;
-    var newSize = 1.1 + (scale * 0.11);
-    if (newSize < 0.5) newSize = 0.5; 
+    var newSize = 1.1 + ((userSettings.introScale || 0) * 0.11);
     root.style.setProperty('--intro-size', newSize.toFixed(2) + "rem");
 }
 
+// --- 4. LIBRARY MANAGEMENT ---
 function loadLibrary() {
     var saved = localStorage.getItem('mnotes_data');
     if (saved) { try { library = JSON.parse(saved); } catch(e) { library = []; } }
     
-    var demoExists = library.some(s => s.id === "demo_instruction" || (s.id && s.id.includes("demo")));
+    // Load Demo if empty
+    var demoExists = library.some(s => s.id && s.id.includes("demo"));
     if (!demoExists && typeof DEFAULT_DATA !== 'undefined') {
-        var demo = JSON.parse(JSON.stringify(DEFAULT_DATA[0]));
-        library.unshift(demo); saveData();
+        library.unshift(JSON.parse(JSON.stringify(DEFAULT_DATA[0]))); 
+        saveData();
     }
-    library = library.map(ensureSongStructure);
+    
+    library = library.map(ensureSongStructure); // From logic.js
     liveSetlist = liveSetlist.filter(id => library.some(s => s.id === id));
     
     populateTags(); 
-    const currentSort = userSettings.sortMethod || 'alpha';
-    const sortDropdown = document.getElementById('sortFilter');
-    if (sortDropdown) sortDropdown.value = currentSort;
     
-    if (typeof sortLibrary === 'function') sortLibrary(currentSort);
+    // Sort
+    if (typeof sortLibrary === 'function') sortLibrary(userSettings.sortMethod || 'alpha');
+    
+    // UI Updates
+    const sortDropdown = document.getElementById('sortFilter');
+    if (sortDropdown) sortDropdown.value = userSettings.sortMethod || 'alpha';
     
     renderSidebar();
     
+    // Load first song
     if (library.length > 0) {
         if (userSettings.hideDemo && library.length > 1) {
-             var firstReal = library.find(s => s.id !== 'demo_instruction');
+             var firstReal = library.find(s => !s.id.includes('demo'));
              currentSongId = firstReal ? firstReal.id : library[0].id;
         } else {
              if(!currentSongId) currentSongId = library[0].id;
         }
         loadSong(currentSongId);
-        if (userSettings.keepScreenOn) requestWakeLock();
-    } else { createNewSong(); }
+    } else { 
+        createNewSong(); 
+    }
 }
 
 function clearLibrary() {
     if(confirm(t('msg_clear_confirm'))) {
-        var demo = JSON.parse(JSON.stringify(DEFAULT_DATA[0]));
-        library = [ensureSongStructure(demo)];
+        library = [ensureSongStructure(JSON.parse(JSON.stringify(DEFAULT_DATA[0])))];
         liveSetlist = [];
         localStorage.setItem('mnotes_setlist', JSON.stringify(liveSetlist));
         saveData(); 
         document.getElementById('searchInp').value = "";
-        document.getElementById('tagFilter').value = "";
         applyFilters();
         loadSong(library[0].id);
     }
 }
 
-function populateTags() {
-    var tagSet = new Set();
-    library.forEach(s => {
-        if(s.playlists && Array.isArray(s.playlists)) { s.playlists.forEach(tag => tagSet.add(tag)); }
-    });
-    var select = document.getElementById('tagFilter');
-    if(select) {
-        select.innerHTML = `<option value="">${t('lbl_all_tags')}</option>`; 
-        select.innerHTML += `<option value="__no_demo">${t('lbl_no_demo')}</option>`; 
-        Array.from(tagSet).sort().forEach(tag => {
-            var opt = document.createElement('option');
-            opt.value = tag; opt.innerText = tag;
-            select.appendChild(opt);
-        });
-    }
-}
-
-function applyFilters() { renderSidebar(); }
-
-function applySortAndRender() {
-    var sortVal = document.getElementById('sortFilter').value;
-    userSettings.sortMethod = sortVal;
-    localStorage.setItem('mnotes_settings', JSON.stringify(userSettings));
-    sortLibrary(sortVal);
-    renderSidebar();
-}
-
-function switchSidebarTab(mode) {
-    viewMode = mode;
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById('tab-' + mode).classList.add('active');
-    
-    var searchBox = document.querySelector('.sidebar-search');
-    if (searchBox) searchBox.style.display = (mode === 'setlist') ? 'none' : 'flex';
-    
-    var btnShare = document.getElementById('btnShareSetlist');
-    var btnAdd = document.getElementById('btnAddSong');
-    
-    if (mode === 'setlist') { 
-        if(btnShare) btnShare.style.display = 'inline-block'; 
-        if(btnAdd) btnAdd.style.display = 'none'; 
-    } else { 
-        if(btnShare) btnShare.style.display = 'none'; 
-        if(btnAdd) btnAdd.style.display = 'inline-block'; 
-    }
-    renderSidebar();
-}
-
-function toggleSetlistSong(e, id) {
-    e.stopPropagation(); 
-    var idx = liveSetlist.indexOf(id);
-    if (idx > -1) { liveSetlist.splice(idx, 1); } else { liveSetlist.push(id); }
-    localStorage.setItem('mnotes_setlist', JSON.stringify(liveSetlist));
-    renderSidebar();
-}
-
-// --- NEW RENDER SIDEBAR (With Key Button Logic) ---
+// --- 5. SIDEBAR RENDERING (BOLD TITLE / KEY BUTTON) ---
 function renderSidebar() {
-    var list = document.getElementById('songList'); list.innerHTML = ""; visiblePlaylist = [];
+    var list = document.getElementById('songList'); 
+    if(!list) return;
+    list.innerHTML = ""; 
+    visiblePlaylist = [];
     
     // Filter Logic
     if (viewMode === 'setlist') {
@@ -207,22 +159,22 @@ function renderSidebar() {
     } else {
         var txt = document.getElementById('searchInp') ? document.getElementById('searchInp').value.toLowerCase() : "";
         var tag = document.getElementById('tagFilter') ? document.getElementById('tagFilter').value : "";
+        
         visiblePlaylist = library.filter(s => {
-            if (userSettings.hideDemo && s.id === 'demo_instruction' && library.length > 1) return false;
+            if (userSettings.hideDemo && s.id.includes("demo") && library.length > 1) return false;
             
-            // Ψάχνουμε και στο Key για να δουλεύει το φίλτρο κλίμακας
             var matchTxt = s.title.toLowerCase().includes(txt) || 
                            (s.artist && s.artist.toLowerCase().includes(txt)) ||
-                           (s.key && s.key.toLowerCase() === txt); // Ακριβές ταίριασμα για κλίμακα
-
-            var matchTag = true;
-            if (tag === "__no_demo") { matchTag = !s.id.includes("demo"); } 
-            else if (tag !== "") { matchTag = (s.playlists && s.playlists.includes(tag)); }
+                           (s.key && s.key.toLowerCase() === txt); // Key Filter support
+            
+            var matchTag = (tag === "__no_demo") ? !s.id.includes("demo") : (tag === "" || (s.playlists && s.playlists.includes(tag)));
+            
             return matchTxt && matchTag;
         });
     }
     
-    document.getElementById('songCount').innerText = visiblePlaylist.length;
+    const countEl = document.getElementById('songCount');
+    if(countEl) countEl.innerText = visiblePlaylist.length;
     
     visiblePlaylist.forEach(s => {
         var li = document.createElement('li');
@@ -232,84 +184,87 @@ function renderSidebar() {
         li.className = itemClass;
         li.setAttribute('data-id', s.id);
         
+        // Click Event (Load Song)
         li.onclick = (e) => { 
             if(e.target.classList.contains('song-action') || e.target.classList.contains('song-key-btn')) return; 
             loadSong(s.id); 
         };
         
-        var displayTitle = (s.id === 'demo_instruction') ? t('demo_title') : s.title;
-        var displayArtist = s.artist || "-";
+        var displayTitle = (s.id.includes('demo')) ? t('demo_title') : s.title;
         var displayKey = s.key || "-";
         
-        // Icon Logic
+        // Icon (Setlist status)
         var actionIcon = "far fa-circle";
         if (viewMode === 'setlist') actionIcon = "fas fa-minus-circle";
         else if (liveSetlist.includes(s.id)) actionIcon = "fas fa-check-circle in-setlist";
         
-        var handleHtml = (viewMode === 'setlist') ? `<i class="fas fa-grip-vertical song-handle"></i>` : ``;
-
-        // ΝΕΑ ΔΟΜΗ HTML (Τίτλος - Καλλιτέχνης - Κουμπί Κλίμακας)
+        // HTML Structure
         li.innerHTML = `
             <i class="${actionIcon} song-action" onclick="toggleSetlistSong(event, '${s.id}')"></i>
-            
             <div class="song-info">
                 <div class="song-title">${displayTitle}</div>
-                <div class="song-artist">${displayArtist}</div>
+                <div class="song-artist">${s.artist || "-"}</div>
                 <div class="song-meta-row">
                     <div class="song-key-btn" onclick="filterByKey(event, '${displayKey}')">${displayKey}</div>
                 </div>
             </div>
-            
-            ${handleHtml}
+            ${viewMode === 'setlist' ? `<i class="fas fa-grip-vertical song-handle"></i>` : ``}
         `;
         list.appendChild(li);
     });
     
+    // Sortable JS (Drag & Drop)
     if (sortableInstance) sortableInstance.destroy();
-    sortableInstance = new Sortable(list, {
-        animation: 150, ghostClass: 'active', handle: '.song-handle', disabled: (viewMode !== 'setlist'),
-        onEnd: function (evt) { if (viewMode === 'setlist') { var movedId = liveSetlist.splice(evt.oldIndex, 1)[0]; liveSetlist.splice(evt.newIndex, 0, movedId); localStorage.setItem('mnotes_setlist', JSON.stringify(liveSetlist)); } }
-    });
-}
-
-function filterByKey(e, key) {
-    e.stopPropagation();
-    var searchInp = document.getElementById('searchInp');
-    if (searchInp) {
-        searchInp.value = key;
-        applyFilters(); // Τρέχει την renderSidebar με το νέο φίλτρο
-        showToast("Φίλτρο: " + key);
+    if(typeof Sortable !== 'undefined') {
+        sortableInstance = new Sortable(list, {
+            animation: 150, 
+            handle: '.song-handle', 
+            disabled: (viewMode !== 'setlist'),
+            onEnd: function (evt) { 
+                if (viewMode === 'setlist') { 
+                    var movedId = liveSetlist.splice(evt.oldIndex, 1)[0]; 
+                    liveSetlist.splice(evt.newIndex, 0, movedId); 
+                    localStorage.setItem('mnotes_setlist', JSON.stringify(liveSetlist)); 
+                } 
+            }
+        });
     }
 }
 
+// --- 6. PLAYER LOGIC ---
 function loadSong(id) {
     if(typeof scrollTimer !== 'undefined' && scrollTimer) toggleAutoScroll(); 
     
     currentSongId = id; 
     var s = library.find(x => x.id === id); if(!s) return;
     
+    // Reset Player State
     state.t = 0; state.c = 0; 
-    parseSongLogic(s); 
+    parseSongLogic(s); // From logic.js
     renderPlayer(s);
     
-    // Rhythm Loading
+    // Rhythm Loading (Audio Engine)
     if (s.rhythm && s.rhythm.style && typeof loadPreset === 'function') {
         loadPreset(s.rhythm.style);
         if(s.rhythm.bpm && typeof updateBpm === 'function') {
             updateBpm(s.rhythm.bpm);
-            document.getElementById('rngBpm').value = s.rhythm.bpm;
+            const rng = document.getElementById('rngBpm');
+            if(rng) rng.value = s.rhythm.bpm;
         }
     }
 
+    // Switch View
     document.getElementById('view-player').classList.add('active-view');
     document.getElementById('view-editor').classList.remove('active-view');
     
+    // Highlight in List
     document.querySelectorAll('.song-item').forEach(i => i.classList.remove('active'));
     var activeItem = document.querySelector(`.song-item[data-id="${id}"]`); 
     if(activeItem) activeItem.classList.add('active');
     
     if(typeof requestWakeLock === 'function') requestWakeLock();
 
+    // Mobile Auto-Switch
     if (window.innerWidth <= 768 && typeof switchMobileTab === 'function') {
         switchMobileTab('stage');
     }
@@ -318,26 +273,29 @@ function loadSong(id) {
 function renderPlayer(s) {
     if (!s) return;
 
-    const headerHTML = `
+    // Header
+    const headerContainer = document.querySelector('.player-header-container');
+    if (headerContainer) {
+        headerContainer.innerHTML = `
         <div class="player-header">
             <h1 id="p-title" class="song-h1">${s.title}</h1>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
                 <span class="meta-label">${s.artist || ""}</span>
                 <span class="key-badge">${getNote(s.key || "-", state.t)}</span>
             </div>
-        </div>
-    `;
-    const headerContainer = document.querySelector('.player-header-container');
-    if (headerContainer) headerContainer.innerHTML = headerHTML;
+        </div>`;
+    }
 
+    // Transpose Values
     if(document.getElementById('val-t')) document.getElementById('val-t').innerText = (state.t > 0 ? "+" : "") + state.t;
     if(document.getElementById('val-c')) document.getElementById('val-c').innerText = state.c;
 
-    var split = splitSongBody(s.body || "");
+    // Lyrics
+    var split = splitSongBody(s.body || ""); // From logic.js
     renderArea('fixed-container', split.fixed); 
     renderArea('scroll-container', split.scroll);
 
-    // Video
+    // Video Embed
     var oldVideo = document.getElementById('video-embed-container');
     if (oldVideo) oldVideo.remove();
     var oldTitle = document.querySelector('.video-title-separator');
@@ -399,6 +357,7 @@ function createToken(c, l) {
     return d; 
 }
 
+// --- 7. EDITOR LOGIC ---
 function switchToEditor() {
     document.getElementById('view-player').classList.remove('active-view');
     document.getElementById('view-editor').classList.add('active-view');
@@ -423,7 +382,7 @@ function switchToEditor() {
 function saveEdit() { 
     let bodyArea = document.getElementById('inpBody');
     if (bodyArea) bodyArea.value = fixTrailingChords(bodyArea.value);
-    saveSong(); 
+    saveSong(); // From logic.js
     populateTags(); 
     applyFilters(); 
 }
@@ -437,49 +396,51 @@ function fixTrailingChords(text) {
     }).join('\n');
 }
 
-function toggleLyricsMode() {
-    isLyricsMode = !isLyricsMode; var btn = document.getElementById('btnLyrics');
-    if (isLyricsMode) {
-        document.body.classList.add('lyrics-mode'); if(btn) btn.classList.add('lyrics-btn-active');
-        showToast(t('msg_lyrics_mode_on')); if(currentSongId) renderPlayer(library.find(x => x.id === currentSongId));
-    } else {
-        document.body.classList.remove('lyrics-mode'); if(btn) btn.classList.remove('lyrics-btn-active');
-        showToast(t('msg_lyrics_mode_off')); if(currentSongId) renderPlayer(library.find(x => x.id === currentSongId));
+function createNewSong() { 
+    currentSongId = null; 
+    document.querySelectorAll('.inp').forEach(e => e.value = ""); 
+    editorTags = []; 
+    if(typeof renderTagChips === 'function') renderTagChips(); 
+    
+    document.getElementById('view-player').classList.remove('active-view'); 
+    document.getElementById('view-editor').classList.add('active-view'); 
+}
+
+function exitEditor() { 
+    if (currentSongId) loadSong(currentSongId); 
+    else if (library.length > 0) loadSong(library[0].id); 
+}
+
+function deleteCurrentSong() {
+    if(!currentSongId) return;
+    if(confirm(t('msg_delete_confirm') || "Delete this song?")) {
+        library = library.filter(s => s.id !== currentSongId);
+        liveSetlist = liveSetlist.filter(id => id !== currentSongId);
+        localStorage.setItem('mnotes_setlist', JSON.stringify(liveSetlist));
+        saveData();
+        populateTags();
+        applyFilters();
+        if(library.length > 0) loadSong(library[0].id);
+        else createNewSong();
+        showToast("Song Deleted 🗑️");
     }
 }
 
-function autoCapo() {
-    if (!currentSongId) return; var song = library.find(s => s.id === currentSongId); if (!song) return;
-    var best = calculateOptimalCapo(song.key, song.body);
-    if (best === state.c) { showToast(t('msg_capo_perfect')); } else { state.c = best; renderPlayer(song); showToast(t('msg_capo_found') + best); }
-}
-
-function changeTranspose(n) { state.t += n; if (state.t > 6) state.t = 6; if (state.t < -6) state.t = -6; renderPlayer(library.find(s=>s.id===currentSongId)); }
-function changeCapo(n) { state.c += n; if(state.c<0)state.c=0; renderPlayer(library.find(s=>s.id===currentSongId)); }
-function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
-function saveData() { localStorage.setItem('mnotes_data', JSON.stringify(library)); }
-function toggleAutoScroll() {
-    var el = document.getElementById('scroll-container');
-    if (scrollTimer) { clearInterval(scrollTimer); scrollTimer = null; el.style.borderLeft = "none"; } 
-    else {
-        el.style.borderLeft = "3px solid var(--accent)";
-        var speed = userSettings.scrollSpeed || 50; 
-        scrollTimer = setInterval(function() { if (el.scrollTop + el.clientHeight >= el.scrollHeight) toggleAutoScroll(); else el.scrollTop += 1; }, speed);
-    }
-}
-
+// --- 8. EVENTS & LISTENERS ---
 function setupEvents() {
+    // Menu
     var btnMenu = document.getElementById('btnMenu');
     if (btnMenu) btnMenu.onclick = toggleSidebar;
 
+    // File Import
     const fileInput = document.getElementById('hiddenFileInput');
     if(fileInput) {
         fileInput.addEventListener('change', function(e) {
             const file = e.target.files[0]; if (!file) return;
             const reader = new FileReader();
-            reader.onload = function(e) {
+            reader.onload = function(ex) {
                 try {
-                    const imported = JSON.parse(e.target.result);
+                    const imported = JSON.parse(ex.target.result);
                     processImportedData(imported);
                     const modal = document.getElementById('importChoiceModal');
                     if(modal) modal.style.display = 'none';
@@ -490,12 +451,14 @@ function setupEvents() {
         });
     }
 
+    // Close Tag Suggestions
     document.addEventListener('click', function(e) {
         var wrap = document.querySelector('.tag-wrapper');
         var sugg = document.getElementById('tagSuggestions');
         if (wrap && sugg && !wrap.contains(e.target) && !sugg.contains(e.target)) { sugg.style.display = 'none'; }
     });
 
+    // Audio Engine Hooks
     const btnPlay = document.getElementById('btnPlayRhythm');
     if(btnPlay && typeof togglePlay === 'function') btnPlay.onclick = togglePlay;
 
@@ -506,53 +469,198 @@ function setupEvents() {
     if(selRhythm && typeof loadPreset === 'function') selRhythm.onchange = function(e) { loadPreset(e.target.value); };
 }
 
-function setupGestures() {
-    var area = document.getElementById('mainZone'); var startDist = 0; var startSize = 1.3;
-    if(area) {
-        area.addEventListener('touchstart', function(e) { if(e.touches.length === 2) { startDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); var val = getComputedStyle(document.documentElement).getPropertyValue('--lyric-size').trim(); startSize = parseFloat(val) || 1.3; }}, {passive: true});
-        area.addEventListener('touchmove', function(e) { if(e.touches.length === 2) { var dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); if(startDist > 0) { var scale = dist / startDist; var newSize = startSize * scale; if(newSize < 0.8) newSize = 0.8; if(newSize > 3.0) newSize = 3.0; document.documentElement.style.setProperty('--lyric-size', newSize + "rem"); }}}, {passive: true});
-    }
-}
-
-// --- RESIZABLE COLUMNS LOGIC ---
+// --- 9. RESIZERS (NEW) ---
 function initResizers() {
-    const container = document.querySelector('.app-container');
-    const leftResizer = document.querySelectorAll('.resizer')[0]; 
-    const rightResizer = document.querySelectorAll('.resizer')[1]; 
+    const d = document; 
+    const leftResizer = d.getElementById('dragMeLeft'); 
+    const rightResizer = d.getElementById('dragMeRight'); 
 
     if(leftResizer) {
         leftResizer.addEventListener('mousedown', (e) => {
             e.preventDefault();
-            document.addEventListener('mousemove', onMouseMoveLeft);
-            document.addEventListener('mouseup', onMouseUpLeft);
+            d.addEventListener('mousemove', onMouseMoveLeft);
+            d.addEventListener('mouseup', onMouseUpLeft);
         });
     }
     
     if(rightResizer) {
         rightResizer.addEventListener('mousedown', (e) => {
             e.preventDefault();
-            document.addEventListener('mousemove', onMouseMoveRight);
-            document.addEventListener('mouseup', onMouseUpRight);
+            d.addEventListener('mousemove', onMouseMoveRight);
+            d.addEventListener('mouseup', onMouseUpRight);
         });
     }
 
     function onMouseMoveLeft(e) {
         let newWidth = e.clientX;
         if(newWidth < 200) newWidth = 200; if(newWidth > 500) newWidth = 500;
-        document.documentElement.style.setProperty('--nav-width', newWidth + 'px');
+        d.documentElement.style.setProperty('--nav-width', newWidth + 'px');
     }
     
     function onMouseMoveRight(e) {
         let newWidth = window.innerWidth - e.clientX;
         if(newWidth < 250) newWidth = 250; if(newWidth > 600) newWidth = 600;
-        document.documentElement.style.setProperty('--tools-width', newWidth + 'px');
+        d.documentElement.style.setProperty('--tools-width', newWidth + 'px');
     }
 
-    function onMouseUpLeft() { document.removeEventListener('mousemove', onMouseMoveLeft); document.removeEventListener('mouseup', onMouseUpLeft); }
-    function onMouseUpRight() { document.removeEventListener('mousemove', onMouseMoveRight); document.removeEventListener('mouseup', onMouseUpRight); }
+    function onMouseUpLeft() { d.removeEventListener('mousemove', onMouseMoveLeft); d.removeEventListener('mouseup', onMouseUpLeft); }
+    function onMouseUpRight() { d.removeEventListener('mousemove', onMouseMoveRight); d.removeEventListener('mouseup', onMouseUpRight); }
 }
 
-/* --- HELPER FUNCTIONS --- */
+// --- 10. IMPORT / EXPORT FUNCTIONS ---
+function selectImport(type) {
+    const modal = document.getElementById('importChoiceModal');
+    if(modal) modal.style.display = 'none';
+
+    if(type === 'file') {
+        const fi = document.getElementById('hiddenFileInput'); if(fi) fi.click();
+    } else if(type === 'qr') {
+        startScanner();
+    } else if(type === 'url') {
+        importFromURL();
+    }
+}
+
+async function importFromURL() {
+    const url = prompt(t('ph_url_import') || "Enter URL:");
+    if (!url) return;
+    try {
+        const res = await fetch(url);
+        if(!res.ok) throw new Error("Network Error");
+        const data = await res.json();
+        processImportedData(data);
+    } catch (err) { alert("Import Failed: " + err.message); }
+}
+
+function processImportedData(data) {
+    if (data && data.type === "mnotes_setlist") { 
+        if (confirm("Import Setlist?")) { 
+            liveSetlist = data.data; 
+            localStorage.setItem('mnotes_setlist', JSON.stringify(liveSetlist)); 
+            renderSidebar(); 
+            showToast("Setlist Updated ✅"); 
+        } 
+        return; 
+    }
+    
+    const songs = Array.isArray(data) ? data : [data];
+    let added = 0, updated = 0;
+    newlyImportedIds = [];
+
+    songs.forEach(s => { 
+        if (s.body) s.body = s.body.replace(/\[/g, '!').replace(/\]/g, ''); 
+        const imported = ensureSongStructure(s); 
+        const idx = library.findIndex(x => x.id === imported.id); 
+        
+        if (idx !== -1) { 
+            if (imported.updatedAt > library[idx].updatedAt) {
+                library[idx] = imported; updated++; newlyImportedIds.push(imported.id);
+            }
+        } else { 
+            library.push(imported); added++; newlyImportedIds.push(imported.id);
+        } 
+    });
+    
+    if (typeof sortLibrary === 'function') sortLibrary(userSettings.sortMethod || 'alpha');
+    saveData(); populateTags(); applyFilters(); 
+    showToast(`Import: ${added} New, ${updated} Upd`);
+}
+
+function startScanner() {
+    const m = document.getElementById('scanModal'); if(m) m.style.display='flex';
+    if(html5QrCodeScanner) html5QrCodeScanner.clear().catch(e=>{});
+    
+    try {
+        const scanner = new Html5Qrcode("reader");
+        html5QrCodeScanner = scanner;
+        scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, 
+        (txt) => { 
+            scanner.stop().then(() => { 
+                if(m) m.style.display='none'; 
+                try { processImportedData(JSON.parse(txt)); } catch(e){ alert("Invalid QR"); } 
+            }); 
+        }, 
+        (err) => {}).catch(e => { alert("Cam Error: "+e); if(m) m.style.display='none'; });
+    } catch(e) { alert("QR Lib missing"); }
+}
+
+function closeScan() {
+    if(html5QrCodeScanner) html5QrCodeScanner.stop().then(()=>document.getElementById('scanModal').style.display='none').catch(e=>document.getElementById('scanModal').style.display='none');
+    else document.getElementById('scanModal').style.display='none';
+}
+
+function exportJSON() {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(library));
+    const a = document.createElement('a');
+    a.href = dataStr; a.download = "mnotes_backup_" + Date.now() + ".json";
+    document.body.appendChild(a); a.click(); a.remove();
+}
+
+function exportSetlist() {
+    if(liveSetlist.length===0) { showToast("Empty Setlist"); return; }
+    const pkg = { type: "mnotes_setlist", data: liveSetlist };
+    generateQRInternal(JSON.stringify(pkg));
+}
+
+function generateQRFromEditor() {
+    const temp = { 
+        id: currentSongId || "temp_"+Date.now(),
+        title: document.getElementById('inpTitle').value, 
+        artist: document.getElementById('inpArtist').value, 
+        key: document.getElementById('inpKey').value, 
+        body: document.getElementById('inpBody').value, 
+        updatedAt: Date.now()
+    };
+    generateQRInternal(JSON.stringify(temp));
+}
+
+function generateQRInternal(str) {
+    const div = document.getElementById('qr-output');
+    if(!div) return;
+    div.innerHTML = "";
+    try {
+        const qr = qrcode(0, 'M');
+        qr.addData(unescape(encodeURIComponent(str)));
+        qr.make();
+        div.innerHTML = qr.createImgTag(5);
+        document.getElementById('qrModal').style.display='flex';
+    } catch(e) { alert("QR Error"); }
+}
+
+// --- 11. HELPER & UTILS ---
+function toggleLyricsMode() {
+    isLyricsMode = !isLyricsMode; var btn = document.getElementById('btnLyrics');
+    if (isLyricsMode) {
+        document.body.classList.add('lyrics-mode'); if(btn) btn.classList.add('lyrics-btn-active');
+        showToast(t('msg_lyrics_mode_on')); 
+    } else {
+        document.body.classList.remove('lyrics-mode'); if(btn) btn.classList.remove('lyrics-btn-active');
+        showToast(t('msg_lyrics_mode_off')); 
+    }
+    if(currentSongId) renderPlayer(library.find(x => x.id === currentSongId));
+}
+
+function autoCapo() {
+    if (!currentSongId) return; var song = library.find(s => s.id === currentSongId); if (!song) return;
+    var best = calculateOptimalCapo(song.key, song.body); // logic.js
+    if (best === state.c) { showToast(t('msg_capo_perfect')); } else { state.c = best; renderPlayer(song); showToast(t('msg_capo_found') + best); }
+}
+
+function changeTranspose(n) { state.t += n; if (state.t > 6) state.t = 6; if (state.t < -6) state.t = -6; renderPlayer(library.find(s=>s.id===currentSongId)); }
+function changeCapo(n) { state.c += n; if(state.c<0)state.c=0; renderPlayer(library.find(s=>s.id===currentSongId)); }
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
+function saveData() { localStorage.setItem('mnotes_data', JSON.stringify(library)); }
+
+function toggleAutoScroll() {
+    var el = document.getElementById('scroll-container');
+    if (scrollTimer) { clearInterval(scrollTimer); scrollTimer = null; el.style.borderLeft = "none"; } 
+    else {
+        el.style.borderLeft = "3px solid var(--accent)";
+        var speed = userSettings.scrollSpeed || 50; 
+        scrollTimer = setInterval(function() { if (el.scrollTop + el.clientHeight >= el.scrollHeight) toggleAutoScroll(); else el.scrollTop += 1; }, speed);
+    }
+}
+
 function getYoutubeId(url) {
     if (!url) return null;
     var regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
@@ -560,34 +668,13 @@ function getYoutubeId(url) {
     return (match && match[2].length === 11) ? match[2] : null;
 }
 
-function switchMobileTab(tabName) {
-    if (window.innerWidth > 768) return;
-    document.querySelectorAll('.tab-btn-mob').forEach(btn => btn.classList.remove('active'));
-    
-    const btns = document.querySelectorAll('.tab-btn-mob');
-    if(tabName === 'library' && btns[0]) btns[0].classList.add('active');
-    if(tabName === 'stage' && btns[1]) btns[1].classList.add('active');
-    if(tabName === 'tools' && btns[2]) btns[2].classList.add('active');
-
-    var navCol = document.querySelector('.col-nav');
-    var stageCol = document.querySelector('.col-stage');
-    var toolsCol = document.querySelector('.col-tools');
-    
-    if(navCol) navCol.classList.remove('mobile-view-active');
-    if(stageCol) stageCol.classList.remove('mobile-view-active');
-    if(toolsCol) toolsCol.classList.remove('mobile-view-active');
-
-    if(tabName === 'library' && navCol) navCol.classList.add('mobile-view-active');
-    if(tabName === 'stage' && stageCol) stageCol.classList.add('mobile-view-active');
-    if(tabName === 'tools' && toolsCol) toolsCol.classList.add('mobile-view-active');
-}
-
-// Placeholder functions for settings/toast if missed from snippets
 function showToast(msg) { 
     var x = document.getElementById("toast"); 
     if(x) { x.innerText = msg; x.className = "show"; setTimeout(function(){ x.className = x.className.replace("show", ""); }, 3000); } 
 }
+
 function openSettings() { document.getElementById('settingsModal').style.display = 'flex'; }
+
 function saveSettings() {
     userSettings.scrollSpeed = parseInt(document.getElementById('setScroll').value);
     userSettings.maxCapo = parseInt(document.getElementById('setMaxCapo').value);
@@ -613,16 +700,10 @@ function saveSettings() {
     document.getElementById('settingsModal').style.display = 'none';
     showToast(t('msg_settings_saved'));
 }
+
 function changeIntroSizeSettings(dir) { tempIntroScale += dir; updateIntroSizeDisplay(); }
 function updateIntroSizeDisplay() { var pct = 100 + (tempIntroScale * 10); document.getElementById('dispIntroSize').innerText = pct + "%"; }
 function toggleCustomColors(val) { document.getElementById('customColorArea').style.display = (val === 'theme-custom') ? 'block' : 'none'; }
-function navSetlist(dir) {
-    if (!liveSetlist || liveSetlist.length < 2) return;
-    let currentIndex = liveSetlist.indexOf(currentSongId);
-    if (currentIndex === -1) return;
-    let nextIndex = (currentIndex + dir + liveSetlist.length) % liveSetlist.length;
-    loadSong(liveSetlist[nextIndex]);
-}
 function checkBackupReminder() {
     if (userSettings.backupReminder === false) return; 
     const lastBackup = localStorage.getItem('mnotes_last_backup');
@@ -638,3 +719,123 @@ async function requestWakeLock() {
     try { if ('wakeLock' in navigator) { wakeLock = await navigator.wakeLock.request('screen'); } } catch (err) { console.error(err); }
 } 
 document.addEventListener('visibilitychange', async () => { if (wakeLock !== null && document.visibilityState === 'visible' && userSettings.keepScreenOn) await requestWakeLock(); });
+
+function switchMobileTab(tabName) {
+    if (window.innerWidth > 768) return;
+    document.querySelectorAll('.tab-btn-mob').forEach(btn => btn.classList.remove('active'));
+    
+    const btns = document.querySelectorAll('.tab-btn-mob');
+    if(tabName === 'library' && btns[0]) btns[0].classList.add('active');
+    if(tabName === 'stage' && btns[1]) btns[1].classList.add('active');
+    if(tabName === 'tools' && btns[2]) btns[2].classList.add('active');
+
+    var navCol = document.querySelector('.col-nav');
+    var stageCol = document.querySelector('.col-stage');
+    var toolsCol = document.querySelector('.col-tools');
+    
+    if(navCol) navCol.classList.remove('mobile-view-active');
+    if(stageCol) stageCol.classList.remove('mobile-view-active');
+    if(toolsCol) toolsCol.classList.remove('mobile-view-active');
+
+    if(tabName === 'library' && navCol) navCol.classList.add('mobile-view-active');
+    if(tabName === 'stage' && stageCol) stageCol.classList.add('mobile-view-active');
+    if(tabName === 'tools' && toolsCol) toolsCol.classList.add('mobile-view-active');
+}
+
+function filterByKey(e, key) { 
+    e.stopPropagation(); 
+    var inp = document.getElementById('searchInp'); 
+    if(inp) { 
+        inp.value = key; 
+        applyFilters(); 
+        showToast("Filter: " + key); 
+    } 
+}
+
+function toggleSetlistSong(e, id) { 
+    e.stopPropagation(); 
+    var i = liveSetlist.indexOf(id); 
+    if(i > -1) liveSetlist.splice(i,1); 
+    else liveSetlist.push(id); 
+    localStorage.setItem('mnotes_setlist', JSON.stringify(liveSetlist)); 
+    renderSidebar(); 
+}
+
+function populateTags() { 
+    var ts = new Set(); 
+    library.forEach(s => { 
+        if(s.playlists) s.playlists.forEach(t => ts.add(t)); 
+    }); 
+    var sel = document.getElementById('tagFilter'); 
+    if(sel) { 
+        sel.innerHTML = `<option value="">ALL</option>`; 
+        sel.innerHTML += `<option value="__no_demo">No Demo</option>`;
+        Array.from(ts).sort().forEach(t => { 
+            var o = document.createElement('option'); 
+            o.value = t; 
+            o.innerText = t; 
+            sel.appendChild(o); 
+        }); 
+    } 
+}
+
+function applyFilters() { renderSidebar(); }
+function applySortAndRender() { var v = document.getElementById('sortFilter').value; userSettings.sortMethod = v; localStorage.setItem('mnotes_settings', JSON.stringify(userSettings)); sortLibrary(v); renderSidebar(); }
+function switchSidebarTab(m) { viewMode = m; document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); document.getElementById('tab-'+m).classList.add('active'); renderSidebar(); }
+
+// TAG INPUT HANDLERS
+function handleTagInput(inp) {
+    var val = inp.value.toLowerCase(); var sugg = document.getElementById('tagSuggestions'); 
+    if(!val && document.activeElement !== inp) { sugg.style.display = 'none'; return; }
+    
+    var allTags = new Set(); library.forEach(s => { if(s.playlists) s.playlists.forEach(t => allTags.add(t)); });
+    var matches = Array.from(allTags).filter(t => t.toLowerCase().includes(val) && !editorTags.includes(t));
+    
+    sugg.innerHTML = "";
+    if(matches.length > 0) { 
+        matches.forEach(m => { 
+            var div = document.createElement('div'); 
+            div.className = 'tag-suggestion-item'; 
+            div.innerHTML = `<span>${m}</span>`; 
+            div.onclick = function(e) { addTag(m); }; 
+            sugg.appendChild(div); 
+        }); 
+        sugg.style.display = 'block'; 
+    } else { sugg.style.display = 'none'; }
+}
+
+function handleTagKey(e) { 
+    if(e.key === 'Enter') { e.preventDefault(); addTag(e.target.value); } 
+    else if (e.key === 'Backspace' && e.target.value === "" && editorTags.length > 0) { removeTag(editorTags[editorTags.length-1]); } 
+}
+
+function addTag(tag) { 
+    tag = tag.trim(); 
+    if(tag && !editorTags.includes(tag)) { editorTags.push(tag); renderTagChips(); } 
+    document.getElementById('tagInput').value = ""; 
+    document.getElementById('tagSuggestions').style.display = 'none'; 
+}
+
+function removeTag(tag) { editorTags = editorTags.filter(t => t !== tag); renderTagChips(); }
+
+function renderTagChips() { 
+    var container = document.getElementById('tagChips'); if(!container) return; 
+    container.innerHTML = ""; 
+    editorTags.forEach(tag => { 
+        var span = document.createElement('span'); 
+        span.className = 'tag-chip'; 
+        span.innerHTML = `${tag} <i class="fas fa-times" onclick="removeTag('${tag}')" style="cursor:pointer; margin-left:5px;"></i>`; 
+        container.appendChild(span); 
+    }); 
+    updateHiddenTagInput(); 
+}
+
+function updateHiddenTagInput() { var inp = document.getElementById('inpTags'); if(inp) inp.value = editorTags.join(','); }
+
+function setupGestures() {
+    var area = document.getElementById('mainZone'); var startDist = 0; var startSize = 1.3;
+    if(area) {
+        area.addEventListener('touchstart', function(e) { if(e.touches.length === 2) { startDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); var val = getComputedStyle(document.documentElement).getPropertyValue('--lyric-size').trim(); startSize = parseFloat(val) || 1.3; }}, {passive: true});
+        area.addEventListener('touchmove', function(e) { if(e.touches.length === 2) { var dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); if(startDist > 0) { var scale = dist / startDist; var newSize = startSize * scale; if(newSize < 0.8) newSize = 0.8; if(newSize > 3.0) newSize = 3.0; document.documentElement.style.setProperty('--lyric-size', newSize + "rem"); }}}, {passive: true});
+    }
+}

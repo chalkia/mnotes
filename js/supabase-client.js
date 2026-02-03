@@ -103,7 +103,7 @@ async function uploadAudioToCloud(audioBlob, filename) {
     
     // Χρήση του supabaseClient
     const { data, error } = await supabaseClient.storage
-        .from('RECORDINGS')
+        .from('Recordings')
         .upload(filePath, audioBlob, {
             cacheControl: '3600',
             upsert: true
@@ -117,7 +117,7 @@ async function uploadAudioToCloud(audioBlob, filename) {
 
     // Λήψη του Public URL
     const { data: urlData } = supabaseClient.storage
-        .from('RECORDINGS')
+        .from('Recordings')
         .getPublicUrl(filePath);
 
     return urlData.publicUrl;

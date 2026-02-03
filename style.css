@@ -292,3 +292,35 @@ body {
 .tag-suggestion-item:hover { background: var(--accent); color: #000; }
 .color-picker-row { display: flex; justify-content: space-between; margin-bottom: 8px; padding: 5px; background: rgba(255,255,255,0.05); border-radius: 4px; align-items: center; }
 .color-picker-row input { border: none; background: none; width: 30px; height: 30px; cursor: pointer; }
+
+/* =========================================
+   LYRICS MODE (HIDE CHORDS)
+   ========================================= */
+
+/* Όταν το body έχει την κλάση 'lyrics-mode', κρύψε τα chords */
+body.lyrics-mode .chord {
+    display: none !important;
+}
+
+/* Κρύψε και τα highlighted chords στην header */
+body.lyrics-mode .chord-highlight {
+    display: none !important;
+}
+
+/* Διόρθωσε τα κενά όταν λείπουν οι συγχορδίες */
+body.lyrics-mode .token {
+    margin-right: 5px; /* Μικρότερο κενό αφού λείπει η συγχορδία */
+    justify-content: flex-end; /* Στοίχιση κάτω */
+}
+
+body.lyrics-mode .line-row {
+    align-items: center; /* Κεντράρισμα στίχων */
+    line-height: 1.8;
+}
+
+/* Κάνε το κουμπί να φαίνεται πατημένο */
+.lyrics-btn-active {
+    background-color: var(--accent) !important;
+    color: #000 !important;
+    border-color: var(--accent) !important;
+}

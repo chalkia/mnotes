@@ -839,3 +839,97 @@ function setupGestures() {
         area.addEventListener('touchmove', function(e) { if(e.touches.length === 2) { var dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); if(startDist > 0) { var scale = dist / startDist; var newSize = startSize * scale; if(newSize < 0.8) newSize = 0.8; if(newSize > 3.0) newSize = 3.0; document.documentElement.style.setProperty('--lyric-size', newSize + "rem"); }}}, {passive: true});
     }
 }
+/* =========================================
+   AUDIO RECORDER & UPLOAD LOGIC
+   ========================================= */
+
+let mediaRecorder = null;
+let audioChunks = [];
+let recTimerInterval = null;
+let recStartTime = 0;
+
+async function toggleRecording() {
+    const btn = document.getElementById('btnRecord');
+    const timer = document.getElementById('recTimer');
+    const downloadLink = document.getElementById('btnDownloadRec');
+    const audioPlayer = document.getElementById('audioPreview');
+
+    // --- STOP RECORDING ---
+    if (btn.classList.contains('recording-active')) {
+        if(mediaRecorder && mediaRecorder.state !== 'inactive') {
+            mediaRecorder.stop();
+        }
+        
+        btn.classList.remove('recording-active');
+        btn.innerHTML = '<i class="fas fa-microphone"></i>';
+        timer.style.color = "var(--text-muted)";
+        clearInterval(recTimerInterval);
+        return;
+    }
+
+    // --- START RECORDING ---
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+
+        mediaRecorder.ondataavailable = event => { audioChunks.push(event.data); };
+
+        // Όταν σταματήσει η εγγραφή...
+        mediaRecorder.onstop = async () => {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+            const audioUrl = URL.createObjectURL(audioBlob);
+            
+            // Τοπική προεπισκόπηση
+            audioPlayer.src = audioUrl;
+            audioPlayer.style.display = 'block';
+            
+            const date = new Date();
+            const filename = `Rec_${date.getTime()}.webm`;
+
+            // Αν υπάρχει το Supabase client και ο χρήστης είναι συνδεδεμένος
+            if (typeof uploadAudioToCloud === 'function' && typeof currentUser !== 'undefined' && currentUser) {
+                
+                // Ανέβασμα στο Cloud
+                const cloudUrl = await uploadAudioToCloud(audioBlob, filename);
+                
+                if (cloudUrl) {
+                    downloadLink.href = cloudUrl;
+                    downloadLink.innerHTML = '<i class="fas fa-check"></i>'; // Επιτυχία
+                    downloadLink.style.opacity = "1";
+                    downloadLink.style.pointerEvents = "auto";
+                }
+            } else {
+                // Αν δεν είναι συνδεδεμένος -> Απλό κατέβασμα
+                downloadLink.href = audioUrl;
+                downloadLink.setAttribute("download", filename);
+                downloadLink.innerHTML = '<i class="fas fa-download"></i>';
+                downloadLink.style.opacity = "1";
+                downloadLink.style.pointerEvents = "auto";
+                
+                if(!currentUser) showToast("Saved Locally (Login to Upload)");
+            }
+        };
+
+        mediaRecorder.start();
+
+        // UI Updates για την εγγραφή
+        btn.classList.add('recording-active');
+        btn.innerHTML = '<i class="fas fa-stop"></i>';
+        timer.style.color = "var(--danger)";
+        audioPlayer.style.display = 'none';
+        downloadLink.style.opacity = "0.3";
+        downloadLink.style.pointerEvents = "none";
+        
+        recStartTime = Date.now();
+        recTimerInterval = setInterval(() => {
+            const diff = Math.floor((Date.now() - recStartTime) / 1000);
+            const m = Math.floor(diff / 60).toString().padStart(2,'0');
+            const s = (diff % 60).toString().padStart(2,'0');
+            timer.innerText = `${m}:${s}`;
+        }, 1000);
+
+    } catch (err) {
+        alert("Microphone Error: " + err.message);
+    }
+}

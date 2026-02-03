@@ -933,3 +933,60 @@ async function toggleRecording() {
         alert("Microphone Error: " + err.message);
     }
 }
+/* =========================================
+   RHYTHM GRID LOGIC (Dynamic Steps)
+   ========================================= */
+
+function updateGridSize() {
+    const container = document.getElementById('rhythm-grid');
+    const stepsInput = document.getElementById('beatCount');
+    
+    if(!container || !stepsInput) return;
+
+    // Παίρνουμε την τιμή ή βάζουμε 16 αν είναι κενό
+    let steps = parseInt(stepsInput.value) || 16;
+    
+    // Όρια ασφαλείας (ελάχιστο 4, μέγιστο 64)
+    if (steps < 4) steps = 4;
+    if (steps > 64) steps = 64; 
+    stepsInput.value = steps; // Ενημέρωση του input αν άλλαξε
+
+    // Καθαρισμός του παλιού grid
+    container.innerHTML = "";
+    
+    // Ρύθμιση CSS Grid:
+    // repeat(steps, ...) -> Τόσες στήλες όσα τα βήματα
+    // minmax(20px, 1fr) -> Κάθε κουτάκι τουλάχιστον 20px πλάτος
+    container.style.gridTemplateColumns = `repeat(${steps}, minmax(20px, 1fr))`;
+
+    // Δημιουργία Κουτιών (3 Γραμμές: Bass, Snare, HiHat)
+    ['bass', 'snare', 'hihat'].forEach(instr => {
+        for (let i = 0; i < steps; i++) {
+            const cell = document.createElement('div');
+            cell.className = `cell ${instr}`;
+            
+            // Κάθε 4ο κουτί έχει λίγο περιθώριο αριστερά (για να ξεχωρίζουν τα μέτρα)
+            if (i > 0 && i % 4 === 0) {
+                cell.style.marginLeft = "3px";
+            }
+            
+            // Όταν πατάς κλικ, γίνεται active (ανάβει)
+            cell.onclick = function() { this.classList.toggle('active'); };
+            
+            container.appendChild(cell);
+        }
+    });
+}
+
+function clearGrid() {
+    // Σβήνει όλα τα ενεργά κελιά
+    document.querySelectorAll('.cell.active').forEach(c => c.classList.remove('active'));
+}
+
+// Αρχικοποίηση του Grid όταν φορτώνει η σελίδα
+window.addEventListener('load', function() {
+    // ... υπάρχων κώδικας load ...
+    
+    // Πρόσθεσε αυτό στο τέλος της window load:
+    if(typeof updateGridSize === 'function') updateGridSize();
+});

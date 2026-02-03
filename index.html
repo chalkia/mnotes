@@ -27,6 +27,7 @@
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <span class="logo-text">mNotes <span id="songCount" style="font-size:0.8rem; opacity:0.6;">0</span></span>
                         <div class="sidebar-actions">
+                            <button id="btnAuth" onclick="document.getElementById('authModal').style.display='flex'" class="action-btn" title="Login"><i class="fas fa-user"></i></button>
                             <button id="btnAddSong" onclick="createNewSong()" class="action-btn" title="Προσθήκη"><i class="fas fa-plus"></i></button>
                             <button id="btnShareSetlist" onclick="exportSetlist()" class="action-btn" title="QR Λίστας" style="display:none;"><i class="fas fa-qrcode"></i></button>
                         </div>
@@ -248,8 +249,10 @@
     <script src="js/data.js"></script>
     <script src="js/storage.js"></script>
     <script src="js/logic.js"></script>
-    <script src="js/audio.js"></script> 
-    <script src="js/ui.js?v=9.1"></script> </body>
+    <script src="js/audio.js"></script>
+    <script src="js/supabase-client.js"></script> <script src="js/ui.js?v=11.0"></script>
+   </body>
 </html>
+
 
 

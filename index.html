@@ -177,57 +177,55 @@
             </div>
         </main>
 
-        <aside class="col-tools" id="rhythmTools">
-            <div class="tools-header">
-                <h3>RHYTHM</h3>
-                <span class="badge-pro">PRO</span>
-            </div>
-            
-            <div class="rhythm-panel">
-                <div class="visualizer-box">
-                    <canvas id="visualizer" width="300" height="60"></canvas>
-                </div>
-                
-                <div class="ctl-row main-play">
-                    <button id="btnPlayRhythm" class="big-play-btn"><i class="fas fa-play"></i></button>
-                    <div class="bpm-box">
-                        <label>BPM: <span id="dispBpm">120</span></label>
-                        <input type="range" id="rngBpm" min="40" max="200" value="120">
-                    </div>
-                </div>
+      
+       <div class="rhythm-panel">
+    
+    <div class="ctl-row main-play" style="justify-content: space-between; margin-bottom: 20px;">
+        <button id="btnPlayRhythm" class="big-play-btn"><i class="fas fa-play"></i></button>
+        
+        <div class="bpm-box" style="text-align:right;">
+            <label style="font-size:0.8rem; color:#888; font-weight:bold;">BPM: <span id="dispBpm" style="color:var(--accent);">120</span></label>
+            <input type="range" id="rngBpm" min="40" max="200" value="120" style="width:100%;">
+        </div>
+    </div>
 
-                <div class="ctl-row">
-                    <label style="width:50px;">Style</label>
-                    <select id="selRhythm" class="inp" style="padding:5px;">
-                        <option value="zeibekiko">Ζεϊμέκικο (9/4)</option>
-                        <option value="kalamatianos">Καλαματιανός (7/8)</option>
-                        <option value="chasapiko">Χασάπικο (4/4)</option>
-                        <option value="tsifteteli">Τσιφτετέλι (4/4)</option>
-                    </select>
-                </div>
-                
-                <div class="ctl-row">
-                     <label style="width:50px;">Kit</label>
-                     <select id="selKit" class="inp" style="padding:5px;">
-                        <option value="folk">Folk (Greek)</option>
-                        <option value="drums">Standard Drums</option>
-                        <option value="acoustic">Acoustic</option>
-                    </select>
-                </div>
+    <div class="editor-header" style="display:flex; justify-content:space-between; margin-bottom:5px;">
+        <label>RHYTHM EDITOR</label>
+        <div style="display:flex; gap:5px;">
+            <button onclick="clearGrid()" style="padding:2px 8px; font-size:0.7rem; background:#333; color:white; border:none; border-radius:3px;">Clear</button>
+            <select id="beatCount" onchange="updateGridSize()" style="padding:2px; font-size:0.7rem; background:#222; color:white; border:1px solid #444;">
+                <option value="4">4/4 (16 steps)</option>
+                <option value="9">9/8 Ζεϊμπ. (18 steps)</option>
+                <option value="7">7/8 Καλ. (14 steps)</option>
+            </select>
+        </div>
+    </div>
 
-                <div class="widget-box">
-                    <div class="widget-header">
-                        <span>PERSONAL NOTES</span>
-                        <i class="fas fa-lock locked-icon"></i>
-                    </div>
-                    <textarea class="inp locked-textarea" placeholder="Unlock Pro to add private notes..." disabled></textarea>
-                </div>
+    <div id="rhythm-grid" class="rhythm-grid-container">
+        </div>
 
-                <button onclick="openSettings()" class="settings-full-btn">
-                    <i class="fas fa-cog"></i> App Settings
-                </button>
-            </div>
-        </aside>
+    <div class="legend" style="display:flex; gap:10px; font-size:0.75rem; color:#666; margin-top:5px; justify-content:center;">
+        <span style="color:#e57373;">● Doum</span>
+        <span style="color:#fff176;">● Tak</span>
+        <span style="color:#64b5f6;">● Tik</span>
+    </div>
+
+    <div class="ctl-row" style="margin-top:20px; border-top:1px solid #333; padding-top:15px;">
+        <label style="width:60px;">Load:</label>
+        <select id="selRhythm" class="inp" style="padding:5px;" onchange="loadPreset(this.value)">
+            <option value="">-- Επιλογή --</option>
+            <option value="zeibekiko">Ζεϊμέκικο (9/8)</option>
+            <option value="kalamatianos">Καλαματιανός (7/8)</option>
+            <option value="chasapiko">Χασάπικο (4/4)</option>
+            <option value="tsifteteli">Τσιφτετέλι (4/4)</option>
+        </select>
+    </div>
+
+    <button onclick="openSettings()" class="settings-full-btn" style="margin-top:auto;">
+        <i class="fas fa-cog"></i> Settings
+    </button>
+</div>
+       
 
         <nav class="mobile-nav">
             <button class="tab-btn-mob" onclick="switchMobileTab('library')">
@@ -334,4 +332,5 @@
     
 </body>
 </html>
+
 

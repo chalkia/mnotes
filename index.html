@@ -15,7 +15,7 @@
 <body class="theme-dark"> 
     <script>
         (function() {
-            if (window.innerWidth <= 768) document.body.className = 'theme-slate';
+            if (window.innerWidth <= 1024) document.body.className = 'theme-slate';
         })();
     </script>
 
@@ -62,7 +62,6 @@
         <div class="resizer" id="dragMeLeft"></div>
 
         <main class="col-stage" id="mainZone">
-            
             <div id="view-player" class="view-section active-view">
                 <div class="player-header-container">
                     <div class="player-header">
@@ -116,77 +115,65 @@
 
         <div class="resizer" id="dragMeRight"></div>
 
-       <aside class="col-tools" id="rhythmTools">
-    <div class="tools-header"><h3>RHYTHM</h3><span class="badge-pro">PRO</span></div>
+        <aside class="col-tools" id="rhythmTools">
+            <div class="tools-header"><h3>RHYTHM</h3><span class="badge-pro">PRO</span></div>
 
-    <div class="recorder-box" style="padding: 15px; border-bottom: 1px solid #333; background: var(--bg-panel);">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-            <label style="color:var(--text-muted); font-size:0.8rem; font-weight:bold;">RECORDER</label>
-            <span id="recTimer" style="font-family:monospace; color:var(--text-muted); font-size:1rem;">00:00</span>
-        </div>
-        
-        <div style="display:flex; gap:10px; justify-content: center;">
-            <button id="btnRecord" onclick="toggleRecording()" class="round-btn" style="border-color:var(--danger); color:var(--danger); width:50px; height:50px; font-size:1.2rem;">
-                <i class="fas fa-microphone"></i>
-            </button>
-            
-            <button id="btnLinkRec" onclick="uploadAndLinkCurrent()" class="round-btn" style="display:none; border-color:var(--accent); color:var(--accent); width:50px; height:50px; font-size:1.2rem;" title="Upload & Save Take">
-                <i class="fas fa-link"></i>
-            </button>
-
-            <a id="btnDownloadRec" class="round-btn" target="_blank" style="border-color:#555; color:#555; display:flex; align-items:center; justify-content:center; width:40px; height:40px; font-size:1rem; opacity:0.5; pointer-events:none;">
-                <i class="fas fa-download"></i>
-            </a>
-        </div>
-        
-        <audio id="audioPreview" controls style="width:100%; min-width:200px; margin-top:15px; height:35px; display:none;"></audio>
-    </div>
-
-    <div class="rhythm-panel">
-        <div class="ctl-row main-play" style="justify-content: space-between; margin-bottom: 20px;">
-            <button id="btnPlayRhythm" class="big-play-btn"><i class="fas fa-play"></i></button>
-            <div class="bpm-box" style="text-align:right;">
-                <label style="font-size:0.8rem; color:#888;">BPM: <span id="dispBpm" style="color:var(--accent);">120</span></label>
-                <input type="range" id="rngBpm" min="40" max="200" value="120" style="width:100%;">
+            <div class="recorder-box" style="padding: 15px; border-bottom: 1px solid #333; background: var(--bg-panel);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <label style="color:var(--text-muted); font-size:0.8rem; font-weight:bold;">RECORDER</label>
+                    <span id="recTimer" style="font-family:monospace; color:var(--text-muted); font-size:1rem;">00:00</span>
+                </div>
+                <div style="display:flex; gap:10px; justify-content: center;">
+                    <button id="btnRecord" onclick="toggleRecording()" class="round-btn" style="border-color:var(--danger); color:var(--danger); width:50px; height:50px; font-size:1.2rem;"><i class="fas fa-microphone"></i></button>
+                    <button id="btnLinkRec" onclick="uploadAndLinkCurrent()" class="round-btn" style="display:none; border-color:var(--accent); color:var(--accent); width:50px; height:50px; font-size:1.2rem;" title="Upload & Save Take"><i class="fas fa-link"></i></button>
+                    <a id="btnDownloadRec" class="round-btn" target="_blank" style="border-color:#555; color:#555; display:flex; align-items:center; justify-content:center; width:40px; height:40px; font-size:1rem; opacity:0.5; pointer-events:none;"><i class="fas fa-download"></i></a>
+                </div>
+                <audio id="audioPreview" controls style="width:100%; min-width:200px; margin-top:15px; height:35px; display:none;"></audio>
             </div>
-        </div>
 
-        <div class="editor-header" style="display:flex; justify-content:space-between; align-items:center;">
-            <label>EDITOR</label>
-            <div style="display:flex; gap:5px; align-items:center;">
-                <button onclick="clearGrid()" style="padding:4px 8px; font-size:0.7rem; background:#333; color:white; border:none; cursor:pointer;">Clear</button>
-                
-                <label style="font-size:0.7rem; color:#888; margin-left:5px;">Steps:</label>
-                <input type="number" id="beatCount" value="16" min="4" max="64" step="1" onchange="updateGridSize()" 
-                       style="width:45px; padding:2px; font-size:0.8rem; background:#222; color:white; border:1px solid #444; text-align:center;">
+            <div class="rhythm-panel">
+                <div class="ctl-row main-play" style="justify-content: space-between; margin-bottom: 20px;">
+                    <button id="btnPlayRhythm" class="big-play-btn"><i class="fas fa-play"></i></button>
+                    <div class="bpm-box" style="text-align:right;">
+                        <label style="font-size:0.8rem; color:#888;">BPM: <span id="dispBpm" style="color:var(--accent);">120</span></label>
+                        <input type="range" id="rngBpm" min="40" max="200" value="120" style="width:100%;">
+                    </div>
+                </div>
+
+                <div class="editor-header" style="display:flex; justify-content:space-between; align-items:center;">
+                    <label>EDITOR</label>
+                    <div style="display:flex; gap:5px; align-items:center;">
+                        <button onclick="clearGrid()" style="padding:4px 8px; font-size:0.7rem; background:#333; color:white; border:none; cursor:pointer;">Clear</button>
+                        <label style="font-size:0.7rem; color:#888; margin-left:5px;">Steps:</label>
+                        <input type="number" id="beatCount" value="16" min="4" max="64" step="1" onchange="updateGridSize()" style="width:45px; padding:2px; font-size:0.8rem; background:#222; color:white; border:1px solid #444; text-align:center;">
+                    </div>
+                </div>
+
+                <div id="rhythm-grid" class="rhythm-grid-container"></div>
+
+                <div class="ctl-row" style="margin-top:20px; border-top:1px solid #333; padding-top:15px;">
+                    <label>Load:</label>
+                    <select id="selRhythm" class="inp" style="padding:5px;" onchange="loadPreset(this.value)">
+                        <option value="">-- Preset --</option>
+                        <option value="zeibekiko">Ζεϊμέκικο</option>
+                        <option value="kalamatianos">Καλαματιανός</option>
+                        <option value="chasapiko">Χασάπικο</option>
+                        <option value="tsifteteli">Τσιφτετέλι</option>
+                    </select>
+                </div>
+
+                <button onclick="openSettings()" class="settings-full-btn"><i class="fas fa-cog"></i> Settings</button>
             </div>
-        </div>
+        </aside>
 
-        <div id="rhythm-grid" class="rhythm-grid-container"></div>
-
-        <div class="ctl-row" style="margin-top:20px; border-top:1px solid #333; padding-top:15px;">
-            <label>Load:</label>
-            <select id="selRhythm" class="inp" style="padding:5px;" onchange="loadPreset(this.value)">
-                <option value="">-- Preset --</option>
-                <option value="zeibekiko">Ζεϊμέκικο (9/8)</option>
-                <option value="kalamatianos">Καλαματιανός (7/8)</option>
-                <option value="chasapiko">Χασάπικο (4/4)</option>
-                <option value="tsifteteli">Τσιφτετέλι (4/4)</option>
-            </select>
-        </div>
-
-        <button onclick="openSettings()" class="settings-full-btn">
-            <i class="fas fa-cog"></i> Settings
-        </button>
-    </div>
-</aside>
         <nav class="mobile-nav">
             <button class="tab-btn-mob" onclick="switchMobileTab('library')"><i class="fas fa-list"></i><span>Λίστα</span></button>
             <button class="tab-btn-mob active" onclick="switchMobileTab('stage')"><i class="fas fa-microphone-alt"></i><span>Πρόβα</span></button>
             <button class="tab-btn-mob" onclick="switchMobileTab('tools')"><i class="fas fa-drum"></i><span>Ρυθμός</span></button>
         </nav>
+    </div>
 
-    </div> <div id="importChoiceModal" class="modal-overlay">
+    <div id="importChoiceModal" class="modal-overlay">
         <div class="modal-box" style="display:flex; flex-direction:column; gap:10px;">
             <h3>Import</h3>
             <button onclick="selectImport('file')" class="modal-btn">File (.json)</button>
@@ -197,74 +184,37 @@
     </div>
     
     <div id="qrModal" class="modal-overlay">
-        <div class="modal-box">
-            <h3>QR Code</h3>
-            <div id="qr-output" class="qr-display"></div>
-            <p style="color:#888; font-size:0.9rem;">Scan on another device</p>
-            <button onclick="document.getElementById('qrModal').style.display='none'" class="modal-btn accent">OK</button>
-        </div>
+        <div class="modal-box"><h3>QR Code</h3><div id="qr-output" class="qr-display"></div><button onclick="document.getElementById('qrModal').style.display='none'" class="modal-btn accent">OK</button></div>
     </div>
     
     <div id="scanModal" class="modal-overlay">
-        <div class="modal-box" style="max-width:400px;">
-            <h3>Scan QR</h3>
-            <div id="reader"></div>
-            <button onclick="closeScan()" class="modal-btn danger">Close</button>
-        </div>
+        <div class="modal-box"><h3>Scan QR</h3><div id="reader"></div><button onclick="closeScan()" class="modal-btn danger">Close</button></div>
     </div>
-   <div id="authModal" class="modal-overlay">
+
+    <div id="authModal" class="modal-overlay">
         <div class="modal-box">
             <h3>Login / Sign Up</h3>
             <input type="email" id="authEmail" class="inp" placeholder="Email" style="width:100%; margin-bottom:10px;">
             <input type="password" id="authPass" class="inp" placeholder="Password" style="width:100%; margin-bottom:20px;">
-            
             <button onclick="doLogin()" class="modal-btn accent">Login</button>
             <button onclick="doSignUp()" class="modal-btn" style="margin-top:5px;">Sign Up (New User)</button>
             <button onclick="document.getElementById('authModal').style.display='none'" class="modal-btn cancel">Close</button>
-            
             <div id="authMsg" style="margin-top:10px; font-size:0.9rem; color:#cf6679;"></div>
         </div>
     </div>
+
     <div id="settingsModal" class="modal-overlay">
         <div class="modal-box" style="text-align:left; max-height: 85vh; overflow-y: auto;">
             <h3 style="text-align:center;">Settings</h3>
-            
-            <label class="ctl-label">Scroll Speed</label>
-            <div style="display:flex; align-items:center; gap:10px; margin-bottom:15px;">
-                <i class="fas fa-hare"></i><input type="range" id="setScroll" min="10" max="200" step="10" style="flex:1"><i class="fas fa-tortoise"></i>
-            </div>
-
-            <label class="ctl-label">Intro Size</label>
-            <div style="display:flex; align-items:center; gap:10px; margin-bottom:15px; background:var(--input-bg); padding:5px; border-radius:5px;">
-                <button onclick="changeIntroSizeSettings(-1)" style="width:30px; background:none; border:none; color:white;">-</button>
-                <span id="dispIntroSize" style="flex:1; text-align:center; color:var(--accent);">100%</span>
-                <button onclick="changeIntroSizeSettings(1)" style="width:30px; background:none; border:none; color:white;">+</button>
-            </div>
-
-            <label class="ctl-label">Max Capo</label>
-            <input type="number" id="setMaxCapo" class="inp" style="width:100%; margin-bottom:15px;" min="0" max="12">
-            
+            <label class="ctl-label">Scroll Speed</label><div style="display:flex; align-items:center; gap:10px; margin-bottom:15px;"><i class="fas fa-hare"></i><input type="range" id="setScroll" min="10" max="200" step="10" style="flex:1"><i class="fas fa-tortoise"></i></div>
+            <label class="ctl-label">Intro Size</label><div style="display:flex; align-items:center; gap:10px; margin-bottom:15px; background:var(--input-bg); padding:5px; border-radius:5px;"><button onclick="changeIntroSizeSettings(-1)" style="width:30px; background:none; border:none; color:white;">-</button><span id="dispIntroSize" style="flex:1; text-align:center; color:var(--accent);">100%</span><button onclick="changeIntroSizeSettings(1)" style="width:30px; background:none; border:none; color:white;">+</button></div>
+            <label class="ctl-label">Max Capo</label><input type="number" id="setMaxCapo" class="inp" style="width:100%; margin-bottom:15px;" min="0" max="12">
             <div class="chk-row"><label>Backup Reminder</label><input type="checkbox" id="setBackup"></div>
             <div class="chk-row"><label>Hide Demo</label><input type="checkbox" id="setHideDemo"></div>
             <div class="chk-row"><label>Keep Screen On</label><input type="checkbox" id="setWakeLock"></div>
-
-            <label class="ctl-label">Theme</label>
-            <select id="setTheme" class="inp" style="width:100%; margin-bottom:10px;" onchange="toggleCustomColors(this.value)">
-                <option value="theme-dark">Dark</option><option value="theme-slate">Slate</option><option value="theme-light">Light</option><option value="theme-custom">Custom</option>
-            </select>
-
-            <div id="customColorArea" style="display:none; border:1px solid #333; padding:10px; border-radius:5px; margin-bottom:20px;">
-                <div class="color-picker-row"><label>Background</label><input type="color" id="colBgMain"></div>
-                <div class="color-picker-row"><label>Panel</label><input type="color" id="colBgPanel"></div>
-                <div class="color-picker-row"><label>Text</label><input type="color" id="colTextMain"></div>
-                <div class="color-picker-row"><label>Accent</label><input type="color" id="colAccent"></div>
-                <div class="color-picker-row"><label>Chord</label><input type="color" id="colChord"></div>
-            </div>
-
-            <div style="display:flex; gap:10px;">
-                <button onclick="saveSettings()" class="modal-btn accent">Save</button>
-                <button onclick="document.getElementById('settingsModal').style.display='none'" class="modal-btn cancel">Cancel</button>
-            </div>
+            <label class="ctl-label">Theme</label><select id="setTheme" class="inp" style="width:100%; margin-bottom:10px;" onchange="toggleCustomColors(this.value)"><option value="theme-dark">Dark</option><option value="theme-slate">Slate</option><option value="theme-light">Light</option><option value="theme-custom">Custom</option></select>
+            <div id="customColorArea" style="display:none; border:1px solid #333; padding:10px; border-radius:5px; margin-bottom:20px;"><div class="color-picker-row"><label>Background</label><input type="color" id="colBgMain"></div><div class="color-picker-row"><label>Panel</label><input type="color" id="colBgPanel"></div><div class="color-picker-row"><label>Text</label><input type="color" id="colTextMain"></div><div class="color-picker-row"><label>Accent</label><input type="color" id="colAccent"></div><div class="color-picker-row"><label>Chord</label><input type="color" id="colChord"></div></div>
+            <div style="display:flex; gap:10px;"><button onclick="saveSettings()" class="modal-btn accent">Save</button><button onclick="document.getElementById('settingsModal').style.display='none'" class="modal-btn cancel">Cancel</button></div>
         </div>
     </div>
     
@@ -280,11 +230,7 @@
     <script src="js/storage.js"></script>
     <script src="js/logic.js"></script>
     <script src="js/audio.js"></script>
-    <script src="js/supabase-client.js"></script> <script src="js/ui.js?v=11.0"></script>
-   </body>
+    <script src="js/supabase-client.js"></script> 
+    <script src="js/ui.js?v=13.0"></script>
+</body>
 </html>
-
-
-
-
-

@@ -181,7 +181,19 @@
             <button onclick="closeScan()" class="modal-btn danger">Close</button>
         </div>
     </div>
-
+   <div id="authModal" class="modal-overlay">
+        <div class="modal-box">
+            <h3>Login / Sign Up</h3>
+            <input type="email" id="authEmail" class="inp" placeholder="Email" style="width:100%; margin-bottom:10px;">
+            <input type="password" id="authPass" class="inp" placeholder="Password" style="width:100%; margin-bottom:20px;">
+            
+            <button onclick="doLogin()" class="modal-btn accent">Login</button>
+            <button onclick="doSignUp()" class="modal-btn" style="margin-top:5px;">Sign Up (New User)</button>
+            <button onclick="document.getElementById('authModal').style.display='none'" class="modal-btn cancel">Close</button>
+            
+            <div id="authMsg" style="margin-top:10px; font-size:0.9rem; color:#cf6679;"></div>
+        </div>
+    </div>
     <div id="settingsModal" class="modal-overlay">
         <div class="modal-box" style="text-align:left; max-height: 85vh; overflow-y: auto;">
             <h3 style="text-align:center;">Settings</h3>
@@ -231,6 +243,7 @@
     <script src="js/sortable.min.js"></script>
     <script src="js/qrcodegen.js"></script>
     <script src="js/html5-qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script src="js/data.js"></script>
     <script src="js/storage.js"></script>
@@ -238,4 +251,5 @@
     <script src="js/audio.js"></script> 
     <script src="js/ui.js?v=9.1"></script> </body>
 </html>
+
 

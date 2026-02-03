@@ -118,7 +118,24 @@
 
         <aside class="col-tools" id="rhythmTools">
             <div class="tools-header"><h3>RHYTHM</h3><span class="badge-pro">PRO</span></div>
-            <div class="rhythm-panel">
+        
+            <div class="recorder-box" style="padding: 15px; border-bottom: 1px solid #333; background: var(--bg-panel);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <label style="color:var(--text-muted); font-size:0.8rem; font-weight:bold;">RECORDER (CLOUD)</label>
+            <span id="recTimer" style="font-family:monospace; color:var(--text-muted); font-size:1rem;">00:00</span>
+        </div>
+        <div style="display:flex; gap:10px; justify-content: center;">
+            <button id="btnRecord" onclick="toggleRecording()" class="round-btn" style="border-color:var(--danger); color:var(--danger); width:50px; height:50px; font-size:1.2rem;">
+                <i class="fas fa-microphone"></i>
+            </button>
+            <a id="btnDownloadRec" class="round-btn" target="_blank" style="border-color:var(--accent); color:var(--accent); display:flex; align-items:center; justify-content:center; width:50px; height:50px; opacity:0.3; pointer-events:none;">
+                <i class="fas fa-cloud-upload-alt"></i>
+            </a>
+           </div>
+        
+           <audio id="audioPreview" controls style="width:100%; margin-top:15px; height:30px; display:none;"></audio>
+            </div>
+                <div class="rhythm-panel">
                 <div class="ctl-row main-play" style="justify-content: space-between; margin-bottom: 20px;">
                     <button id="btnPlayRhythm" class="big-play-btn"><i class="fas fa-play"></i></button>
                     <div class="bpm-box" style="text-align:right;">
@@ -253,6 +270,7 @@
     <script src="js/supabase-client.js"></script> <script src="js/ui.js?v=11.0"></script>
    </body>
 </html>
+
 
 
 

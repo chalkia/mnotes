@@ -1,5 +1,5 @@
 /* =========================================
-   mNotes AUDIO ENGINE (The BoomBoom Core)
+   mNotes AUDIO ENGINE v2 (Grid Editor)
    ========================================= */
 
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -8,13 +8,14 @@ let currentStep = 0;
 let nextNoteTime = 0.0;
 let timerID = null;
 let tempo = 120;
-let lookahead = 25.0; // ms
-let scheduleAheadTime = 0.1; // sec
-let currentRhythm = []; 
+let stepsPerBeat = 2; // 2 steps = 1 beat (όγδοα) ή 4 steps (δέκατα έκτα)
+// Grid Data: Array of Objects { b: bool, s: bool, h: bool }
+// b=Bass, s=Snare, h=HiHat
+let gridPattern = []; 
+let totalSteps = 16; 
 
-// --- 1. SOUND SYNTHESIS (Γεννήτριες Ήχου) ---
+// --- 1. BETTER SOUND SYNTHESIS ---
 
-// KICK / DOUM (Βαθύ Μπάσο - Ελληνικό στυλ)
 function playKick(time) {
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
@@ -22,53 +23,56 @@ function playKick(time) {
     osc.connect(gain);
     gain.connect(audioCtx.destination);
     
-    osc.frequency.setValueAtTime(100, time);
+    // Πιο "σφιχτό" Kick drum
+    osc.frequency.setValueAtTime(150, time);
     osc.frequency.exponentialRampToValueAtTime(0.01, time + 0.5);
     
-    gain.gain.setValueAtTime(0.8, time);
+    gain.gain.setValueAtTime(1, time);
     gain.gain.exponentialRampToValueAtTime(0.01, time + 0.5);
     
     osc.start(time);
     osc.stop(time + 0.5);
 }
 
-// SNARE / TAK (Οξύς Ήχος - Σαν τσίγκινο)
 function playSnare(time) {
-    const noiseBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.2, audioCtx.sampleRate);
-    const output = noiseBuffer.getChannelData(0);
-    for (let i = 0; i < noiseBuffer.length; i++) {
-        output[i] = Math.random() * 2 - 1;
+    // White Noise με Bandpass Filter για πιο φυσικό "ΤAΚ"
+    const bufferSize = audioCtx.sampleRate * 0.1; // Short burst
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
     }
-    
+
     const noise = audioCtx.createBufferSource();
-    noise.buffer = noiseBuffer;
-    
-    const noiseFilter = audioCtx.createBiquadFilter();
-    noiseFilter.type = 'highpass';
-    noiseFilter.frequency.value = 800; // Λίγο πιο χαμηλά για όγκο
-    
-    const noiseEnvelope = audioCtx.createGain();
-    noiseEnvelope.gain.setValueAtTime(0.6, time);
-    noiseEnvelope.gain.exponentialRampToValueAtTime(0.01, time + 0.2);
-    
-    noise.connect(noiseFilter);
-    noiseFilter.connect(noiseEnvelope);
-    noiseEnvelope.connect(audioCtx.destination);
+    noise.buffer = buffer;
+
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'highpass';
+    filter.frequency.value = 1000;
+
+    const gain = audioCtx.createGain();
+    gain.gain.setValueAtTime(0.5, time);
+    gain.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(audioCtx.destination);
     
     noise.start(time);
-    noise.stop(time + 0.2);
 }
 
-// HIHAT / TIK (Για γεμίσματα)
 function playHiHat(time) {
+    // "ΤΙΚ" - Υψηλές συχνότητες, πολύ σύντομο
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
+    
+    // Χρησιμοποιούμε τετραγωνικό κύμα για μεταλλική χροιά
     osc.type = 'square';
-    osc.frequency.setValueAtTime(800, time);
+    osc.frequency.setValueAtTime(800, time); 
     
     const filter = audioCtx.createBiquadFilter();
-    filter.type = 'bandpass';
-    filter.frequency.value = 10000;
+    filter.type = 'highpass';
+    filter.frequency.value = 4000;
 
     osc.connect(filter);
     filter.connect(gain);
@@ -81,104 +85,173 @@ function playHiHat(time) {
     osc.stop(time + 0.05);
 }
 
-// --- 2. RHYTHM VECTORS (Οι Ρυθμοί) ---
-// 1 = Doum, 2 = Tak, 3 = Tik (fill), 0 = Silence
-// Οι πίνακες είναι βασισμένοι σε δέκατα έκτα (1/16)
-const RHYTHMS = {
-    // 9/4 Ζεϊμέκικο (36 steps of 1/16) - Απλοποιημένη δομή για αρχή
-    zeibekiko: [
-        1,0,0,0, 2,0,0,0, 0,0,2,0, // 1-3
-        1,0,0,0, 2,0,0,0, 0,0,2,0, // 4-6
-        1,0,0,0, 2,0,0,0, 2,0,0,0  // 7-9
-    ],
+// --- 2. GRID LOGIC ---
+
+function initGrid(steps) {
+    totalSteps = steps;
+    gridPattern = [];
+    const container = document.getElementById('rhythm-grid');
+    if(!container) return;
     
-    // 7/8 Καλαματιανός (3-2-2) -> 14 steps of 1/16
-    kalamatianos: [
-        1,0,0,1,0,0, // 3
-        2,0,0,2,     // 2
-        2,0,0,2      // 2
-    ],
+    container.innerHTML = "";
+    container.style.gridTemplateColumns = `repeat(${steps}, 1fr)`;
 
-    // 4/4 Χασάπικο (16 steps)
-    chasapiko: [1, 0, 2, 0, 1, 0, 2, 3, 1, 0, 2, 0, 1, 0, 2, 0],
+    for(let i=0; i<steps; i++) {
+        // Data Init
+        gridPattern.push({ bass: false, snare: false, hihat: false });
 
-    // 4/4 Τσιφτετέλι (16 steps)
-    tsifteteli: [1, 0, 0, 2, 0, 0, 1, 0, 2, 0, 0, 2, 0, 0, 2, 0]
+        // DOM Init
+        const col = document.createElement('div');
+        col.className = 'step-col';
+        col.id = `col-${i}`;
+
+        // Bass Cell (Top)
+        const cellB = createCell(i, 'bass');
+        // Snare Cell (Middle)
+        const cellS = createCell(i, 'snare');
+        // HiHat Cell (Bottom)
+        const cellH = createCell(i, 'hihat');
+
+        col.appendChild(cellH); // Tik πάνω (ή κάτω ανάλογα πως το θες)
+        col.appendChild(cellS); // Tak μέση
+        col.appendChild(cellB); // Doum κάτω
+        
+        container.appendChild(col);
+    }
+}
+
+function createCell(index, type) {
+    const div = document.createElement('div');
+    div.className = `cell ${type}`;
+    div.onclick = function() {
+        // Toggle Logic
+        const isActive = div.classList.toggle('active');
+        gridPattern[index][type] = isActive;
+    };
+    return div;
+}
+
+function updateGridSize() {
+    const val = document.getElementById('beatCount').value;
+    let steps = 16; // default 4/4 (16 δεκατα εκτα)
+    
+    if(val === "9") steps = 18; // 9/8 (18 όγδοα ή δέκατα έκτα ανάλογα την ταχύτητα)
+    if(val === "7") steps = 14; // 7/8 (14 δεκατα εκτα)
+    
+    // Stop if playing
+    if(isPlaying) togglePlay();
+    
+    initGrid(steps);
+}
+
+function clearGrid() {
+    gridPattern.forEach(p => { p.bass = false; p.snare = false; p.hihat = false; });
+    document.querySelectorAll('.cell').forEach(c => c.classList.remove('active'));
+}
+
+// --- 3. PRESETS (Τα "Σωστά" Μοτίβα) ---
+// Εδώ ορίζεις τα Presets ώστε να γεμίζουν το Grid αυτόματα
+const PRESETS = {
+    // 9/8 Ζεϊμπέκικο (18 βήματα)
+    // Δομή: D . . T . . D . . T . . D . . T . .
+    zeibekiko: {
+        steps: 18,
+        data: [
+            {b:1,s:0,h:0}, {b:0,s:0,h:0}, {b:0,s:0,h:1}, // 1
+            {b:0,s:1,h:0}, {b:0,s:0,h:0}, {b:0,s:0,h:1}, // 2
+            {b:1,s:0,h:0}, {b:0,s:0,h:0}, {b:0,s:0,h:1}, // 3
+            {b:0,s:1,h:0}, {b:0,s:0,h:0}, {b:0,s:0,h:1}, // 4
+            {b:1,s:0,h:0}, {b:0,s:0,h:0}, {b:0,s:0,h:1}, // 5...
+            {b:0,s:0,h:0}, {b:0,s:1,h:0}, {b:0,s:0,h:0} 
+        ]
+    },
+    // 4/4 Χασάπικο (16 βήματα) -> D . T . D . T .
+    chasapiko: {
+        steps: 16,
+        data: [
+            {b:1,s:0,h:0}, {b:0,s:0,h:0}, {b:0,s:1,h:0}, {b:0,s:0,h:0},
+            {b:1,s:0,h:0}, {b:0,s:0,h:0}, {b:0,s:1,h:0}, {b:0,s:0,h:1}, // Fill
+            {b:1,s:0,h:0}, {b:0,s:0,h:0}, {b:0,s:1,h:0}, {b:0,s:0,h:0},
+            {b:1,s:0,h:0}, {b:0,s:0,h:0}, {b:0,s:1,h:0}, {b:0,s:0,h:0}
+        ]
+    }
 };
 
-// --- 3. SCHEDULER (Η Μηχανή Χρόνου) ---
+function loadPreset(name) {
+    if(!PRESETS[name]) return;
+    const p = PRESETS[name];
+    
+    // Set Dropdown
+    const sel = document.getElementById('beatCount');
+    if(p.steps === 18) sel.value = "9";
+    else if(p.steps === 14) sel.value = "7";
+    else sel.value = "4";
+    
+    initGrid(p.steps);
+    
+    // Fill Grid
+    for(let i=0; i<p.steps && i<p.data.length; i++) {
+        const step = p.data[i];
+        if(step.b) { gridPattern[i].bass = true; document.querySelector(`#col-${i} .bass`).classList.add('active'); }
+        if(step.s) { gridPattern[i].snare = true; document.querySelector(`#col-${i} .snare`).classList.add('active'); }
+        if(step.h) { gridPattern[i].hihat = true; document.querySelector(`#col-${i} .hihat`).classList.add('active'); }
+    }
+}
+
+// --- 4. SCHEDULER ENGINE ---
 
 function nextNote() {
     const secondsPerBeat = 60.0 / tempo;
-    // Υποθέτουμε ότι κάθε βήμα στον πίνακα είναι 1/16 (τέταρτο του beat)
-    nextNoteTime += 0.25 * secondsPerBeat; 
+    const secondsPerStep = secondsPerBeat / 4; // Υποθέτουμε 16ths (4 steps per beat)
     
+    nextNoteTime += secondsPerStep;
     currentStep++;
-    if (currentStep >= currentRhythm.length) {
+    if (currentStep >= totalSteps) {
         currentStep = 0;
     }
 }
 
-function scheduleNote(beatNumber, time) {
-    // Visualizer Trigger (Draw on Canvas)
-    requestAnimationFrame(() => drawVisualizer(beatNumber));
+function scheduleNote(stepNumber, time) {
+    // Visual Feedback
+    requestAnimationFrame(() => {
+        document.querySelectorAll('.step-col').forEach(c => c.classList.remove('playing'));
+        const activeCol = document.getElementById(`col-${stepNumber}`);
+        if(activeCol) activeCol.classList.add('playing');
+    });
 
-    // Audio Trigger
-    const type = currentRhythm[beatNumber];
-    if (type === 1) playKick(time);
-    if (type === 2) playSnare(time);
-    if (type === 3) playHiHat(time);
+    // Audio Playback
+    if(!gridPattern[stepNumber]) return;
+    
+    if (gridPattern[stepNumber].bass) playKick(time);
+    if (gridPattern[stepNumber].snare) playSnare(time);
+    if (gridPattern[stepNumber].hihat) playHiHat(time);
 }
 
 function scheduler() {
-    // Όσο υπάρχουν νότες που πρέπει να παίξουν σύντομα...
-    while (nextNoteTime < audioCtx.currentTime + scheduleAheadTime) {
+    while (nextNoteTime < audioCtx.currentTime + 0.1) {
         scheduleNote(currentStep, nextNoteTime);
         nextNote();
     }
-    timerID = setTimeout(scheduler, lookahead);
+    timerID = setTimeout(scheduler, 25);
 }
 
-// --- 4. CONTROLS (Σύνδεση με UI) ---
+// --- 5. CONTROLS ---
 
 function togglePlay() {
-    // Resume Audio Context (Browser requirement)
-    if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
-    }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
 
     isPlaying = !isPlaying;
     const btn = document.getElementById('btnPlayRhythm');
 
     if (isPlaying) {
-        // Start
-        if (btn) {
-            btn.innerHTML = '<i class="fas fa-stop"></i>';
-            btn.style.background = "#cf6679"; // Κόκκινο για Stop
-            btn.style.color = "white";
-        }
-        
-        // Load Rhythm
-        const styleSelect = document.getElementById('selRhythm');
-        const style = styleSelect ? styleSelect.value : 'zeibekiko';
-        
-        currentRhythm = RHYTHMS[style] || RHYTHMS['zeibekiko'];
-        
-        // Load Tempo
-        const bpmInput = document.getElementById('rngBpm');
-        if (bpmInput) tempo = parseInt(bpmInput.value);
-
+        if(btn) { btn.innerHTML = '<i class="fas fa-stop"></i>'; btn.classList.add('playing'); }
         currentStep = 0;
         nextNoteTime = audioCtx.currentTime;
         scheduler();
     } else {
-        // Stop
-        if (btn) {
-            btn.innerHTML = '<i class="fas fa-play"></i>';
-            btn.style.background = ""; // Επαναφορά (Accent color από CSS)
-            btn.style.color = "";
-        }
+        if(btn) { btn.innerHTML = '<i class="fas fa-play"></i>'; btn.classList.remove('playing'); }
         clearTimeout(timerID);
+        document.querySelectorAll('.step-col').forEach(c => c.classList.remove('playing'));
     }
 }
 
@@ -188,51 +261,7 @@ function updateBpm(val) {
     if(disp) disp.innerText = val;
 }
 
-function changeRhythmStyle(styleKey) {
-    if (RHYTHMS[styleKey]) {
-        currentRhythm = RHYTHMS[styleKey];
-        currentStep = 0; // Reset για να μην χαθεί το μέτρημα
-    }
-}
-
-// --- 5. VISUALIZER (Canvas) ---
-function drawVisualizer(stepIndex) {
-    const canvas = document.getElementById('visualizer');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    
-    // Clear
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    // Background
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Draw Steps
-    const stepWidth = canvas.width / currentRhythm.length;
-    
-    for (let i = 0; i < currentRhythm.length; i++) {
-        let x = i * stepWidth;
-        let noteType = currentRhythm[i];
-        
-        // Χρώματα
-        if (i === stepIndex) {
-            ctx.fillStyle = '#ffffff'; // Active Highlight (Άσπρο)
-        } else if (noteType === 1) {
-            ctx.fillStyle = '#ff5252'; // Kick (Κόκκινο)
-        } else if (noteType === 2) {
-            ctx.fillStyle = '#ffeb3b'; // Snare (Κίτρινο)
-        } else if (noteType === 3) {
-            ctx.fillStyle = '#448aff'; // HiHat (Μπλε)
-        } else {
-            ctx.fillStyle = '#222'; // Empty (Γκρι σκούρο)
-        }
-
-        // Ύψος μπάρας ανάλογα με τον ήχο
-        let height = (noteType > 0) ? canvas.height : 4;
-        let y = (canvas.height - height) / 2;
-        
-        // Λίγο κενό ανάμεσα στα κουτάκια (width - 1)
-        ctx.fillRect(x, y, stepWidth - 1, height);
-    }
-}
+// Init on Load
+window.addEventListener('load', () => {
+    initGrid(16); // Default 4/4
+});

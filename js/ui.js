@@ -694,8 +694,8 @@ function setupEvents() {
     }
 
     const selRhythm = document.getElementById('selRhythm');
-    if(selRhythm && typeof changeRhythmStyle === 'function') {
-        selRhythm.onchange = function(e) { changeRhythmStyle(e.target.value); };
+    if(selRhythm && typeof loadPreset === 'function') {
+        selRhythm.onchange = function(e) { loadPreset(e.target.value); };
     }
 }
 

@@ -122,3 +122,18 @@ async function uploadAudioToCloud(audioBlob, filename) {
 
     return urlData.publicUrl;
 }
+async function loginWithGoogle() {
+    const { data, error } = await supabaseClient.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+            // Αυτό ξαναφέρνει τον χρήστη στη σελίδα σου μετά το login
+            redirectTo: window.location.href 
+        }
+    });
+    
+    if (error) {
+        alert("Google Login Error: " + error.message);
+    }
+    // Σημείωση: Δεν χρειάζεται "else" εδώ. 
+    // Ο χρήστης θα φύγει από τη σελίδα για να πάει στην Google και θα γυρίσει αυτόματα.
+}

@@ -174,13 +174,27 @@ function loadSong(id) {
 
 function renderPlayer(s) {
     if (!s) return;
-
-    // A. HEADER (Cleaned up - Recs moved to sidebar)
+   // --- ΕΜΦΑΝΙΣΗ INTRO / INTERLUDE (Fix Point 1) ---
+    let metaHtml = "";
+    if (s.intro) metaHtml += `<span class="meta-tag" style="color:#aaa; font-size:0.8rem; margin-right:10px;"><strong>Intro:</strong> ${s.intro}</span>`;
+    if (s.interlude) metaHtml += `<span class="meta-tag" style="color:#aaa; font-size:0.8rem;"><strong>Inter:</strong> ${s.interlude}</span>`;
+    
+    // Header με Intro/Inter
     const headerContainer = document.querySelector('.player-header-container');
     if (headerContainer) {
-        headerContainer.innerHTML = `<div class="player-header"><h1 id="p-title" class="song-h1">${s.title}</h1><div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;"><span class="meta-label">${s.artist || ""}</span><span class="key-badge">${getNote(s.key || "-", state.t)}</span></div></div>`;
+        headerContainer.innerHTML = `
+        <div class="player-header">
+            <h1 id="p-title" class="song-h1">${s.title}</h1>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
+                <span class="meta-label">${s.artist || ""}</span>
+                <span class="key-badge">${getNote(s.key || "-", state.t)}</span>
+            </div>
+            <div style="margin-top:8px; border-top:1px dashed #333; padding-top:5px;">
+                ${metaHtml}
+            </div>
+        </div>`;
     }
-
+ 
     // B. VIDEO SIDEBAR (Moved from scroll-container to right sidebar)
     const vidBox = document.getElementById('video-sidebar-container');
     const embedBox = document.getElementById('video-embed-box');

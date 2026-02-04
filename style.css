@@ -146,17 +146,66 @@ body.lyrics-mode .line-row { align-items: center; line-height: 1.8; }
 .side-rec-item { background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px; display: flex; flex-direction: column; gap: 5px; }
 .side-rec-meta { display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; color: var(--text-muted); }
 .side-rec-label { color: var(--accent); font-weight: bold; font-size: 0.85rem; }
-/* DRAWER STYLES */
-.right-drawer { position: fixed; top: 0; right: 0; width: 260px; height: 100%; background: #1a1a1a; border-left: 1px solid var(--accent); transform: translateX(100%); transition: transform 0.3s ease-in-out; z-index: 2001; display: flex; flex-direction: column; padding: 15px; box-shadow: -5px 0 20px rgba(0,0,0,0.8); }
-.right-drawer.open { transform: translateX(0); }
-#drawerHandle { position: fixed; right: 0; top: 50%; transform: translateY(-50%); width: 30px; height: 60px; background: rgba(0, 0, 0, 0.6); border-top-left-radius: 10px; border-bottom-left-radius: 10px; align-items: center; justify-content: center; color: var(--accent); cursor: pointer; z-index: 2000; }
-.drawer-header { display: flex; justify-content: space-between; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 10px; }
-.drawer-section { margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px; }
-.drawer-section label { font-size: 0.75rem; color: #666; font-weight: bold; }
-.drawer-btn { background: #2a2a2a; border: 1px solid #333; color: #eee; padding: 12px; border-radius: 6px; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 10px; }
-.drawer-btn.active { border-color: var(--accent); color: var(--accent); background: #222; }
-.drawer-row { display: flex; justify-content: space-between; align-items: center; background: #2a2a2a; padding: 5px 10px; border-radius: 6px; border: 1px solid #333; }
+/* =========================================
+   DRAWER STYLES (Διορθωμένο Width & Theme)
+   ========================================= */
+.right-drawer {
+    position: fixed; top: 0; right: 0; 
+    width: 200px; /* Μίκρυνε από 260px */
+    height: 100%;
+    
+    /* Χρήση μεταβλητών για να αλλάζει χρώμα στο Light Theme */
+    background: var(--bg-panel); 
+    border-left: 1px solid var(--border-color);
+    color: var(--text-main);
 
+    transform: translateX(100%); transition: transform 0.3s ease-in-out;
+    z-index: 2001; display: flex; flex-direction: column; padding: 15px;
+    box-shadow: -5px 0 20px rgba(0,0,0,0.5);
+}
+.right-drawer.open { transform: translateX(0); }
+
+#drawerHandle {
+    position: fixed; right: 0; top: 50%; transform: translateY(-50%);
+    width: 30px; height: 60px; 
+    background: var(--bg-panel); /* Να ταιριάζει με το θέμα */
+    border: 1px solid var(--border-color); border-right: none;
+    border-top-left-radius: 10px; border-bottom-left-radius: 10px;
+    align-items: center; justify-content: center;
+    color: var(--accent); cursor: pointer; z-index: 2000;
+    box-shadow: -2px 0 5px rgba(0,0,0,0.2);
+}
+
+/* Στυλ Κουμπιών Συρταριού */
+.drawer-header { 
+    display: flex; justify-content: space-between; margin-bottom: 20px; 
+    border-bottom: 1px solid var(--border-color); padding-bottom: 10px; 
+}
+.drawer-header button { color: var(--text-main) !important; } /* Fix για το Χ στο light theme */
+
+.drawer-section { margin-bottom: 20px; display: flex; flex-direction: column; gap: 8px; }
+.drawer-section label { font-size: 0.75rem; color: var(--text-muted); font-weight: bold; }
+
+.drawer-btn { 
+    background: var(--input-bg); 
+    border: 1px solid var(--border-color); 
+    color: var(--text-main); 
+    padding: 10px; border-radius: 6px; text-align: left; 
+    cursor: pointer; display: flex; align-items: center; gap: 10px; font-size: 0.9rem;
+}
+.drawer-btn.active { 
+    border-color: var(--accent); 
+    color: #000; /* Μαύρα γράμματα όταν είναι ενεργό για αντίθεση */
+    background: var(--accent); 
+    font-weight: bold;
+}
+
+.drawer-row { 
+    display: flex; justify-content: space-between; align-items: center; 
+    background: var(--input-bg); 
+    padding: 5px 10px; border-radius: 6px; border: 1px solid var(--border-color); 
+    color: var(--text-main);
+}
 /* DESKTOP TOOLBAR BASE STYLE */
 .desktop-controls-area { display: flex; gap: 15px; padding: 10px; background: #222; border-top: 1px solid #444; justify-content: center; align-items: center; position: sticky; bottom: 0; z-index: 100; width: 100%; }
 .desktop-controls-area button { transition: color 0.2s; }
@@ -189,3 +238,4 @@ body.lyrics-mode .line-row { align-items: center; line-height: 1.8; }
     .resizer { display: none; }
     .desktop-only-video { display: none; }
 }
+

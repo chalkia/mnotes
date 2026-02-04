@@ -22,15 +22,27 @@ body { background: var(--bg-main); color: var(--text-main); font-family: var(--f
 .resizer { background: var(--bg-sidebar); cursor: col-resize; width: 5px; height: 100%; z-index: 20; border-left: 1px solid var(--border-color); border-right: 1px solid var(--border-color); }
 .resizer:hover { background: var(--accent); }
 
-/* SIDEBAR */
-.col-nav { background: var(--bg-sidebar); display: flex; flex-direction: column; overflow: hidden; z-index: 10; }
-.sidebar-header { padding: 15px; border-bottom: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 10px; }
+/* SIDEBAR (ΔΙΟΡΘΩΜΕΝΟ LAYOUT) */
+.col-nav { 
+    background: var(--bg-sidebar); 
+    display: flex; 
+    flex-direction: column; 
+    overflow: hidden; 
+    z-index: 10;
+    height: 100vh; /* Σημαντικό για να πιάνει όλο το ύψος */
+}
+.sidebar-header { padding: 15px; border-bottom: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; }
 .logo-text { font-size: 1.3rem; font-weight: bold; color: var(--accent); letter-spacing: 1px; }
 .sidebar-actions { display: flex; gap: 10px; }
-.sidebar-search { padding: 10px; border-bottom: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px; background: rgba(255,255,255,0.02); }
+.sidebar-search { padding: 10px; border-bottom: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px; background: rgba(255,255,255,0.02); flex-shrink: 0; }
 .sidebar-search input, .sidebar-search select { background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-main); padding: 8px; border-radius: 4px; font-family: var(--font-ui); font-size: 0.95rem; }
 
-.song-list { list-style: none; padding: 0; margin: 0; flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.song-list { 
+    list-style: none; padding: 0; margin: 0; 
+    flex: 1; /* Αυτό σπρώχνει το footer κάτω */
+    overflow-y: auto; 
+    -webkit-overflow-scrolling: touch; 
+}
 .song-item { padding: 10px 12px; border-bottom: 1px solid var(--border-color); cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background 0.2s; }
 .song-item:hover { background: rgba(255,255,255,0.05); }
 .song-item.active { background: rgba(255, 255, 255, 0.08); border-left: 4px solid var(--accent); }
@@ -44,9 +56,13 @@ body { background: var(--bg-main); color: var(--text-main); font-family: var(--f
 .sidebar-tabs { display: flex; gap: 5px; margin-top: 5px; background: rgba(255,255,255,0.03); padding: 4px; border-radius: 6px; }
 .tab-btn { flex: 1; background: none; border: none; color: var(--text-muted); padding: 8px; cursor: pointer; font-weight: bold; font-size: 0.9rem; border-radius: 4px; transition: 0.3s; }
 .tab-btn.active { background: var(--accent); color: #000; }
-.sidebar-footer { padding: 10px; border-top: 1px solid var(--border-color); display: flex; gap: 8px; }
-.footer-btn { flex: 1; padding: 10px; background: var(--bg-panel); color: var(--text-muted); border: 1px solid var(--border-color); cursor: pointer; border-radius: 4px; display: flex; align-items: center; justify-content: center; gap: 5px; }
 
+.sidebar-footer { 
+    padding: 10px; border-top: 1px solid var(--border-color); 
+    display: flex; gap: 8px; flex-shrink: 0;
+    background: var(--bg-panel); margin-top: auto;
+}
+.footer-btn { flex: 1; padding: 10px; background: var(--bg-panel); color: var(--text-muted); border: 1px solid var(--border-color); cursor: pointer; border-radius: 4px; display: flex; align-items: center; justify-content: center; gap: 5px; }
 /* STAGE */
 .col-stage { background: var(--bg-main); display: flex; flex-direction: column; position: relative; overflow: hidden; }
 .view-section { display: none; height: 100%; flex-direction: column; }
@@ -57,16 +73,14 @@ body { background: var(--bg-main); color: var(--text-main); font-family: var(--f
 .fixed-lyrics { flex-shrink: 0; max-height: 60vh; overflow-y: auto; padding: 10px 15px; border-bottom: 2px dashed var(--border-color); background: rgba(0,0,0,0.05); }
 .scroll-lyrics { flex: 1; overflow-y: auto; padding: 10px 15px; padding-bottom: 100px; min-height: 0; }
 
-.line-row { display: flex; flex-wrap: wrap; align-items: flex-end; margin-bottom: 5px;line-height: 1.1; }
+.line-row { display: flex; flex-wrap: wrap; align-items: flex-end; margin-bottom: 5px; line-height: 1.1; }
 .token { display: flex; flex-direction: column; margin-right: 1px; align-items: flex-start; }
 .chord { color: var(--chord-color); font-size: calc(var(--lyric-size) * 0.85); font-weight: bold; margin-bottom: -2px; z-index: 10; line-height: 1; min-height: 1em; }
 .lyric { color: var(--text-main); font-size: var(--lyric-size); white-space: pre; line-height: 1; padding-top: 2px; }
 
-/* Lyrics Mode */
-body.lyrics-mode .chord, body.lyrics-mode .chord-highlight { display: none !important; }
-body.lyrics-mode .token { margin-right: 5px; justify-content: flex-end; }
+body.lyrics-mode .chord { display: none !important; }
+body.lyrics-mode .token { margin-right: 5px; }
 body.lyrics-mode .line-row { align-items: center; line-height: 1.8; }
-.lyrics-btn-active { background-color: var(--accent) !important; color: #000 !important; border-color: var(--accent) !important; }
 
 .player-footer { height: 70px; background: var(--bg-panel); border-top: 1px solid var(--border-color); display: flex; justify-content: space-around; align-items: center; z-index: 50; flex-shrink: 0; }
 .ctl-group { display: flex; flex-direction: column; align-items: center; }
@@ -95,10 +109,7 @@ body.lyrics-mode .line-row { align-items: center; line-height: 1.8; }
 .cell.bass.active { background: #e57373; box-shadow: 0 0 8px #e57373; border-color:#ff8a80; }
 .cell.snare.active { background: #fff176; box-shadow: 0 0 8px #fff176; border-color:#ffffa8; }
 .cell.hihat.active { background: #64b5f6; box-shadow: 0 0 8px #64b5f6; border-color:#90caf9; }
-.cell[data-col="0"], .cell[data-col="4"], .cell[data-col="8"], .cell[data-col="12"],
-.cell[data-col="16"], .cell[data-col="20"], .cell[data-col="24"], .cell[data-col="28"],
-.cell[data-col="32"], .cell[data-col="36"], .cell[data-col="40"], .cell[data-col="44"],
-.cell[data-col="48"], .cell[data-col="52"], .cell[data-col="56"], .cell[data-col="60"] {margin-left: 6px !important; /* Κενό για διαχωρισμό τετράδων */ border-left: 1px solid #555; /* Προαιρετικά: μια αχνή γραμμή */ }
+.cell[data-col="0"], .cell[data-col="4"], .cell[data-col="8"], .cell[data-col="12"], .cell[data-col="16"], .cell[data-col="20"], .cell[data-col="24"], .cell[data-col="28"], .cell[data-col="32"], .cell[data-col="36"], .cell[data-col="40"], .cell[data-col="44"], .cell[data-col="48"], .cell[data-col="52"], .cell[data-col="56"], .cell[data-col="60"] { margin-left: 6px !important; border-left: 1px solid #555; }
 .cell[data-col="0"] { margin-left: 0 !important; border-left: none; }
 
 /* EDITOR */
@@ -113,127 +124,32 @@ body.lyrics-mode .line-row { align-items: center; line-height: 1.8; }
 .video-responsive { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; background: #000; border-radius: 8px; border: 1px solid #333; margin-bottom: 20px; margin-top: 20px;}
 .video-responsive iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
 
-/* RESPONSIVE */
-.mobile-nav { display: none; }
-@media (max-width: 1024px) {
-    .app-container { display: block; position: relative; }
-    .col-nav, .col-stage, .col-tools { position: absolute; top: 0; left: 0; width: 100%; height: calc(100vh - 60px); display: none; z-index: 10; border: none; }
-    .mobile-view-active { display: flex !important; }
-    .mobile-nav { display: flex; justify-content: space-around; align-items: center; position: fixed; bottom: 0; left: 0; width: 100%; height: 60px; background: var(--bg-panel); border-top: 1px solid var(--border-color); z-index: 100; }
-    .tab-btn-mob { background: none; border: none; color: #666; display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; }
-    .tab-btn-mob.active { color: var(--accent); }
-    .tab-btn-mob i { font-size: 1.4rem; }
-    .tab-btn-mob span { font-size: 0.75rem; }
-    .desktop-only-video { display: none !important; }
-    #inpVideo { display: none; }
-    .resizer { display: none; }
-    .player-footer { padding-bottom: 0; }
+/* MODALS & NOTIFICATIONS */
+.modal, .modal-overlay { 
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+    background: rgba(0, 0, 0, 0.85); z-index: 10000; 
+    display: flex; justify-content: center; align-items: center; 
+    backdrop-filter: blur(5px); 
 }
-
-/* MODALS */
-.modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); align-items: center; justify-content: center; z-index: 2000; backdrop-filter: blur(5px); }
 #importChoiceModal .modal-box { display: flex; flex-direction: column; gap: 20px; padding: 30px; min-width: 320px; max-width: 450px; }
-.modal-box { background: var(--bg-panel); padding: 25px; border-radius: 12px; width: 90%; max-width: 350px; text-align: center; border: 1px solid var(--border-color); }
-.modal-btn { width: 100%; padding: 16px 20px; font-size: 1.15rem; font-weight: bold; border-radius: 8px; display: flex; align-items: center; justify-content: center; gap: 12px; transition: transform 0.1s; background: var(--input-bg); color: var(--text-main); border: 1px solid var(--border-color); cursor: pointer; }
-.modal-btn:active { transform: scale(0.98); }
-.modal-btn.accent { background: var(--accent); color: #000; border: none; }
-.modal-btn.danger { background: var(--danger); color: white; border: none; }
-.modal-btn.cancel { margin-top: 10px; padding: 12px; font-size: 1rem; opacity: 0.8; background: none; border: none; }
+.modal-content, .modal-box { background: #222; padding: 25px; border-radius: 12px; border: 1px solid var(--accent); width: 90%; max-width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 10px; }
+.modal-btn { padding: 12px; border: none; background: #333; color: white; border-radius: 6px; cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center; gap: 10px; }
+.modal-btn:hover { background: #444; }
+.modal-btn.accent { background: var(--accent); color: black; font-weight: bold; }
+.modal-btn.cancel { background: transparent; border: 1px solid #555; color: #888; }
+
 #toast { visibility: hidden; min-width: 200px; background-color: rgba(30, 30, 30, 0.95); color: #fff; text-align: center; border-radius: 8px; padding: 15px; position: fixed; z-index: 3000; left: 50%; bottom: 100px; transform: translateX(-50%); font-size: 1rem; border: 1px solid var(--accent); opacity: 0; transition: opacity 0.3s; }
 #toast.show { visibility: visible; opacity: 1; }
 
-/* Tags / Chords Fix */
-.line-row { 
-    display: flex; 
-    flex-wrap: wrap; 
-    align-items: flex-end; 
-    margin-bottom: 8px; /* Λίγο αέρα ανάμεσα στις γραμμές */
-}
-.token { 
-    display: flex; 
-    flex-direction: column; /* Συγχορδία ΠΑΝΩ, Στίχος ΚΑΤΩ */
-    margin-right: 4px; 
-    align-items: flex-start; /* Στοίχιση αριστερά */
-}
-.chord { 
-    color: var(--chord-color); 
-    font-size: calc(var(--lyric-size) * 0.85); 
-    font-weight: bold; 
-    margin-bottom: 0px; 
-    line-height: 1.2;
-    min-height: 1.2em; /* Κρατάει χώρο ακόμα και αν είναι κενό */
-}
-.lyric { 
-    color: var(--text-main); 
-    font-size: var(--lyric-size); 
-    white-space: pre; 
-    line-height: 1.2; 
-}
-
-/* Sticky Note Style */
-.sticky-note {
-    background: #ffeb3b;
-    color: #222;
-    padding: 15px;
-    padding-top: 25px; /* Χώρος για την καρφίτσα */
-    border-radius: 2px;
-    box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
-    position: relative;
-    font-family: 'Comic Sans MS', cursive, sans-serif; /* Χειρόγραφο στυλ */
-    font-size: 0.9rem;
-    transform: rotate(-1deg);
-    max-width: 300px;
-    margin: 10px auto;
-}
-.sticky-note .note-pin {
-    position: absolute;
-    top: -10px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 1.2rem;
-    color: #d32f2f;
-}
-
-/* Sidebar Recordings */
-.side-rec-item {
-    background: var(--input-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    padding: 8px;
-    display: flex; flex-direction: column; gap: 5px;
-}
+.sticky-note { background: #ffeb3b; color: #222; padding: 15px; padding-top: 25px; border-radius: 2px; box-shadow: 2px 2px 5px rgba(0,0,0,0.3); position: relative; font-family: 'Comic Sans MS', cursive, sans-serif; font-size: 0.9rem; transform: rotate(-1deg); max-width: 300px; margin: 10px auto; }
+.sticky-note .note-pin { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); font-size: 1.2rem; color: #d32f2f; }
+.side-rec-item { background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px; display: flex; flex-direction: column; gap: 5px; }
 .side-rec-meta { display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; color: var(--text-muted); }
 .side-rec-label { color: var(--accent); font-weight: bold; font-size: 0.85rem; }
-
-/* Mobile Nav Animation */
-.mobile-nav { transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); }
-.mobile-nav.hidden { transform: translateY(100%); }
-
-/* Grid Colors */
-.cell.bass.active { background: #e57373; box-shadow: 0 0 8px #e57373; border-color:#ff8a80; }
-.cell.snare.active { background: #fff176; box-shadow: 0 0 8px #fff176; border-color:#ffffa8; }
-.cell.hihat.active { background: #ffb74d; box-shadow: 0 0 8px #ffb74d; border-color:#ffcc80; }
-/* =========================================
-   DRAWER STYLES (Η εμφάνιση του συρταριού)
-   ========================================= */
-.right-drawer {
-    position: fixed; top: 0; right: 0; width: 260px; height: 100%;
-    background: #1a1a1a; border-left: 1px solid var(--accent);
-    transform: translateX(100%); transition: transform 0.3s ease-in-out;
-    z-index: 2001; display: flex; flex-direction: column; padding: 15px;
-    box-shadow: -5px 0 20px rgba(0,0,0,0.8);
-}
+/* DRAWER STYLES */
+.right-drawer { position: fixed; top: 0; right: 0; width: 260px; height: 100%; background: #1a1a1a; border-left: 1px solid var(--accent); transform: translateX(100%); transition: transform 0.3s ease-in-out; z-index: 2001; display: flex; flex-direction: column; padding: 15px; box-shadow: -5px 0 20px rgba(0,0,0,0.8); }
 .right-drawer.open { transform: translateX(0); }
-
-#drawerHandle {
-    position: fixed; right: 0; top: 50%; transform: translateY(-50%);
-    width: 30px; height: 60px; background: rgba(0, 0, 0, 0.6);
-    border-top-left-radius: 10px; border-bottom-left-radius: 10px;
-    align-items: center; justify-content: center;
-    color: var(--accent); cursor: pointer; z-index: 2000;
-}
-
-/* Στυλ Κουμπιών Συρταριού */
+#drawerHandle { position: fixed; right: 0; top: 50%; transform: translateY(-50%); width: 30px; height: 60px; background: rgba(0, 0, 0, 0.6); border-top-left-radius: 10px; border-bottom-left-radius: 10px; align-items: center; justify-content: center; color: var(--accent); cursor: pointer; z-index: 2000; }
 .drawer-header { display: flex; justify-content: space-between; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 10px; }
 .drawer-section { margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px; }
 .drawer-section label { font-size: 0.75rem; color: #666; font-weight: bold; }
@@ -241,73 +157,35 @@ body.lyrics-mode .line-row { align-items: center; line-height: 1.8; }
 .drawer-btn.active { border-color: var(--accent); color: var(--accent); background: #222; }
 .drawer-row { display: flex; justify-content: space-between; align-items: center; background: #2a2a2a; padding: 5px 10px; border-radius: 6px; border: 1px solid #333; }
 
-/* ===========================================================
-   1. DESKTOP TOOLBAR STYLING (Η Εμφάνιση της Κάτω Μπάρας)
-   =========================================================== */
-.desktop-controls-area {
-    display: flex;             /* Ενεργοποίηση Flexbox */
-    gap: 15px;                 /* Κενό μεταξύ κουμπιών */
-    padding: 10px;
-    background: #222;          /* Σκούρο φόντο */
-    border-top: 1px solid #444;
-    justify-content: center;   /* Κεντράρισμα */
-    align-items: center;
-    position: sticky;          /* Κολλημένη στο κάτω μέρος */
-    bottom: 0;
-    z-index: 100;              /* Πάνω από το κείμενο */
-    width: 100%;
-}
+/* DESKTOP TOOLBAR BASE STYLE */
+.desktop-controls-area { display: flex; gap: 15px; padding: 10px; background: #222; border-top: 1px solid #444; justify-content: center; align-items: center; position: sticky; bottom: 0; z-index: 100; width: 100%; }
+.desktop-controls-area button { transition: color 0.2s; }
+.desktop-controls-area button:hover { color: var(--accent) !important; }
 
-/* Στυλ για τα κουμπιά μέσα στην μπάρα */
-.desktop-controls-area button {
-    transition: color 0.2s;
-}
-.desktop-controls-area button:hover {
-    color: var(--accent) !important;
-}
+/* =========================================
+   FINAL MEDIA QUERIES (NO DUPLICATES!)
+   ========================================= */
 
-/* ===========================================================
-   2. MEDIA QUERIES (Διαχωρισμός Mobile vs Desktop)
-   =========================================================== */
-
-/* --- A. DESKTOP & LAPTOP (Οθόνες > 1024px) --- */
+/* A. DESKTOP (> 1024px) */
 @media (min-width: 1025px) {
-    /* ΑΠΟΚΡΥΨΗ: Στοιχεία Mobile */
-    #rightDrawer, #drawerHandle { 
-        display: none !important; 
-    }
+    #rightDrawer, #drawerHandle, .mobile-nav { display: none !important; }
     
-    /* ΕΜΦΑΝΙΣΗ: Στήλες και Μπάρα */
-    .col-stage, .col-tools { display: block !important; }
+    .col-nav { width: var(--nav-width); display: flex !important; flex-direction: column !important; height: 100vh; }
+    .col-tools { width: var(--tools-width); display: block !important; }
+    .col-stage { flex: 1; display: block !important; }
     .desktop-controls-area { display: flex !important; }
-    
-    /* ΔΙΟΡΘΩΣΗ SIDEBAR: Επαναφορά Flex για να μένει το μενού κάτω */
-    .col-nav {
-        display: flex !important;
-        flex-direction: column !important;
-        width: var(--nav-width);
-        height: 100vh; /* Ή όσο ύψος έχει το parent container */
-    }
-
-    /* Layout Στηλών */
-    .col-tools { width: var(--tools-width); }
-    .col-stage { flex: 1; }
 }
 
-/* --- B. DESKTOP & LAPTOP (Οθόνες > 1024px) --- */
-@media (min-width: 1025px) {
-    /* ΑΠΟΚΡΥΨΗ: Στοιχεία Mobile (Συρτάρι & Χερούλι) */
-    #rightDrawer, #drawerHandle { 
-        display: none !important; 
-    }
+/* B. MOBILE (<= 1024px) */
+@media (max-width: 1024px) {
+    .app-container { display: block; position: relative; }
+    .col-nav, .col-stage, .col-tools { position: absolute; top: 0; left: 0; width: 100%; height: 100vh; display: none; z-index: 10; border: none; }
+    .mobile-view-active { display: flex !important; flex-direction: column; }
     
-    /* ΕΜΦΑΝΙΣΗ: Βεβαιωνόμαστε ότι οι στήλες και η μπάρα φαίνονται */
-    .col-nav, .col-stage, .col-tools { display: block !important; }
-    .desktop-controls-area { display: flex !important; }
-    
-    /* Layout Στηλών */
-    .col-nav { width: var(--nav-width); }
-    .col-tools { width: var(--tools-width); }
-    .col-stage { flex: 1; }
+    /* Elements Management */
+    #drawerHandle { display: flex !important; }
+    .desktop-controls-area { display: none !important; }
+    .mobile-nav { display: none !important; }
+    .resizer { display: none; }
+    .desktop-only-video { display: none; }
 }
-

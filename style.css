@@ -289,6 +289,86 @@ body.theme-light .modal-btn {
     .desktop-only-video { display: none; }
 }
 
+/* =========================================
+   STICKY NOTES & EXTRAS
+   ========================================= */
+
+/* 1. Header Title Row (Τίτλος + Κουμπί Notes) - ΝΕΟ */
+.title-row {
+    display: flex; 
+    align-items: center; 
+    justify-content: space-between; 
+}
+
+.note-toggle-btn {
+    background: none; 
+    border: none; 
+    color: var(--text-muted); 
+    font-size: 1.2rem; 
+    cursor: pointer; 
+    padding: 5px 10px;
+    transition: color 0.2s;
+}
+.note-toggle-btn.has-notes {
+    color: var(--accent); /* Αν έχει σημειώσεις, ανάβει το χρώμα */
+    animation: pulse-note 2s infinite;
+}
+.note-toggle-btn:hover { color: #fff; }
+
+/* Ένδειξη στα Meta (μικρό εικονίδιο) - ΝΕΟ */
+.meta-note-badge {
+    background: #ffeb3b; 
+    color: #000; 
+    font-size: 0.7rem; 
+    padding: 2px 6px; 
+    border-radius: 4px; 
+    margin-left: 10px; 
+    font-weight: bold;
+    display: inline-flex; align-items: center; gap: 4px;
+}
+
+@keyframes pulse-note {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.1); opacity: 0.8; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+/* 2. Εμφάνιση "Χαρτάκι Post-it" (ΥΠΗΡΧΕ ΗΔΗ) */
+.sticky-note { 
+    background: #ffeb3b; 
+    color: #222; 
+    padding: 15px; padding-top: 25px; 
+    border-radius: 2px; 
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.3); 
+    position: relative; 
+    font-family: 'Comic Sans MS', cursive, sans-serif; 
+    font-size: 0.9rem; 
+    transform: rotate(-1deg); 
+    max-width: 300px; 
+    margin: 10px auto; 
+}
+.sticky-note .note-pin { 
+    position: absolute; top: -10px; left: 50%; 
+    transform: translateX(-50%); 
+    font-size: 1.2rem; 
+    color: #d32f2f; 
+}
+
+/* 3. Side Recordings (ΥΠΗΡΧΕ ΗΔΗ) */
+.side-rec-item { 
+    background: var(--input-bg); 
+    border: 1px solid var(--border-color); 
+    border-radius: 6px; 
+    padding: 8px; 
+    display: flex; flex-direction: column; gap: 5px; 
+}
+.side-rec-meta { 
+    display: flex; justify-content: space-between; 
+    align-items: center; font-size: 0.75rem; color: var(--text-muted); 
+}
+.side-rec-label { 
+    color: var(--accent); font-weight: bold; font-size: 0.85rem; 
+}
 
 
 

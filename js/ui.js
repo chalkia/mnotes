@@ -18,6 +18,7 @@ var viewMode = 'library';
 var isLyricsMode = false; 
 var wakeLock = null; 
 var newlyImportedIds = []; 
+var drawerIdleTimer = null; // Για το 5s timer
 
 // New Globals (v15+)
 var navHideTimer = null;
@@ -578,9 +579,93 @@ function switchDrawerTab(tabName) {
     // Κλείσιμο του Drawer
     toggleRightDrawer();
 }
+/* ===========================================================
+   SMART DRAWER LOGIC (Swipe, Timer, Outside Click)
+   =========================================================== */
+
 function toggleRightDrawer() {
     const d = document.getElementById('rightDrawer');
-    if(d) {
-        d.classList.toggle('open');
+    if(!d) return;
+    
+    const isOpen = d.classList.contains('open');
+    
+    if (isOpen) {
+        // ΚΛΕΙΣΙΜΟ
+        d.classList.remove('open');
+        stopDrawerTimer();
+        document.removeEventListener('click', closeDrawerOutside);
+    } else {
+        // ΑΝΟΙΓΜΑ
+        d.classList.add('open');
+        resetDrawerTimer(); // Ξεκινάει το χρονόμετρο 5s
+        
+        // Καθυστέρηση για να μην πιάσει το τρέχον κλικ ως "outside"
+        setTimeout(() => { document.addEventListener('click', closeDrawerOutside); }, 100);
+        
+        // Ενεργοποίηση Swipe & Timer Reset
+        setupDrawerListeners(d);
+    }
+}
+
+// 1. Κλείσιμο με κλικ έξω
+function closeDrawerOutside(e) {
+    const d = document.getElementById('rightDrawer');
+    const h = document.getElementById('drawerHandle');
+    // Αν το κλικ ΔΕΝ είναι μέσα στο συρτάρι ΚΑΙ ΔΕΝ είναι στο χερούλι
+    if (d && d.classList.contains('open') && !d.contains(e.target) && !h.contains(e.target)) {
+        toggleRightDrawer();
+    }
+}
+
+// 2. Χρονόμετρο 5 δευτερολέπτων
+function resetDrawerTimer() {
+    stopDrawerTimer();
+    drawerIdleTimer = setTimeout(() => {
+        const d = document.getElementById('rightDrawer');
+        if (d && d.classList.contains('open')) {
+            toggleRightDrawer(); // Κλείνει αυτόματα
+            showToast("Drawer closed (inactive)");
+        }
+    }, 5000); // 5000ms = 5 δευτερόλεπτα
+}
+
+function stopDrawerTimer() {
+    if (drawerIdleTimer) clearTimeout(drawerIdleTimer);
+}
+
+// 3. Swipe Gesture & Interaction Detection
+function setupDrawerListeners(drawer) {
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    // Όταν ακουμπάς το συρτάρι, μηδένισε το χρονόμετρο (είσαι ενεργός)
+    drawer.ontouchstart = (e) => {
+        resetDrawerTimer();
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
+    };
+    
+    drawer.onmousemove = () => { resetDrawerTimer(); };
+    drawer.onclick = () => { resetDrawerTimer(); };
+
+    // Έλεγχος Swipe κατά την άφεση
+    drawer.ontouchend = (e) => {
+        let touchEndX = e.changedTouches[0].screenX;
+        let touchEndY = e.changedTouches[0].screenY;
+        handleDrawerSwipe(touchStartX, touchStartY, touchEndX, touchEndY);
+    };
+}
+
+function handleDrawerSwipe(startX, startY, endX, endY) {
+    const diffX = endX - startX;
+    const diffY = endY - startY;
+
+    // Αν η κίνηση είναι οριζόντια (περισσότερο από κάθετη) και προς τα δεξιά (θετικό diffX)
+    if (Math.abs(diffX) > Math.abs(diffY) && diffX > 50) {
+        toggleRightDrawer(); // Swipe Right -> Close
+    }
+    // Αν είναι προς τα πάνω και δεξιά (διαγώνια)
+    else if (diffX > 30 && diffY < -30) {
+        toggleRightDrawer(); 
     }
 }

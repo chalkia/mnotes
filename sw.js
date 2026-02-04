@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mnotes-ver7.0'; 
+const CACHE_NAME = 'mnotes-ver10.0'; 
 const ASSETS_TO_CACHE = [
     'index.html',
     'style.css',
@@ -68,6 +68,7 @@ self.addEventListener('activate', (event) => {
         })
     );
 });
+
 
 
 

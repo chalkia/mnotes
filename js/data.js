@@ -1,5 +1,5 @@
 /* =========================================
-   DATA & CONFIG (js/data.js) - FINAL v6
+   DATA & CONFIG (js/data.js) - FINAL v7
    ========================================= */
 
 const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
@@ -200,11 +200,11 @@ const DEFAULT_DATA = [
   }
 ];
 
-// Global Variables Initialization
-var library = [];
-var currentSongId = null;
-var visiblePlaylist = [];
-var state = { t: 0, c: 0 };
-var html5QrCodeScanner = null;
+// Global Variables Initialization (Safe check)
+if (typeof library === 'undefined') var library = [];
+if (typeof currentSongId === 'undefined') var currentSongId = null;
+if (typeof visiblePlaylist === 'undefined') var visiblePlaylist = [];
+if (typeof state === 'undefined') var state = { t: 0, c: 0 };
+if (typeof html5QrCodeScanner === 'undefined') var html5QrCodeScanner = null;
 
 console.log("✅ Data & Translations Loaded");

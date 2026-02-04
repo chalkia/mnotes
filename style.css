@@ -376,6 +376,117 @@ body.theme-light .modal-btn {
     color: var(--accent); font-weight: bold; font-size: 0.85rem; 
 }
 
+/* =========================================
+   UNIFIED FOOTERS (Αλφάδι και στις 3 στήλες)
+   ========================================= */
+
+/* 1. Κοινά χαρακτηριστικά για ΟΛΑ τα footers */
+.sidebar-footer, 
+.desktop-controls-area, 
+.tools-footer {
+    height: 70px;             /* ΣΤΑΘΕΡΟ ΥΨΟΣ ΓΙΑ ΕΥΘΥΓΡΑΜΜΙΣΗ */
+    min-height: 70px;
+    background: var(--bg-panel);
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    padding: 0 15px;          /* Ίδιο padding παντού */
+    box-sizing: border-box;
+    flex-shrink: 0;           /* Να μην ζουλιούνται */
+}
+
+/* 2. Ειδικά για Αριστερή & Δεξιά στήλη (Κουμπιά Οριζόντια) */
+.sidebar-footer, .tools-footer {
+    justify-content: space-between;
+    gap: 10px;
+}
+.sidebar-footer .footer-btn, 
+.tools-footer .footer-btn {
+    flex: 1; /* Να πιάνουν όλο το χώρο μισό-μισό */
+    padding: 10px;
+    background: var(--input-bg);
+    color: var(--text-muted);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: 0.2s;
+}
+.footer-btn:hover { background: var(--bg-main); color: var(--text-main); border-color: var(--accent); }
+
+/* 3. Ειδικά για την Κεντρική στήλη (Player Controls) */
+.desktop-controls-area {
+    justify-content: center; /* Κέντραρισμα */
+    gap: 20px;               /* Απόσταση μεταξύ των groups */
+}
+
+/* Στυλ για τα groups (Key/Capo) */
+.control-cluster {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+.cluster-label {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+/* Stepper (Τα κουμπιά - 0 +) */
+.stepper {
+    display: flex;
+    align-items: center;
+    background: var(--input-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 20px; /* Στρογγυλεμένο χάπι */
+    padding: 2px;
+    height: 36px;
+}
+.stepper button {
+    background: none; border: none;
+    color: var(--text-muted);
+    width: 30px; height: 100%;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.8rem;
+}
+.stepper button:hover { color: var(--text-main); }
+.stepper span {
+    min-width: 25px;
+    text-align: center;
+    font-weight: bold;
+    color: var(--accent);
+    font-size: 1rem;
+}
+
+/* Στρογγυλά κουμπιά (Lyrics, Edit, Smart) */
+.round-btn {
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    border: 1px solid var(--border-color);
+    background: var(--input-bg);
+    color: var(--text-main);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    font-size: 1.1rem;
+    transition: 0.2s;
+}
+.round-btn:hover { border-color: var(--accent); color: var(--accent); transform: scale(1.05); }
+
+/* Το Smart Capo κουμπί να ξεχωρίζει */
+.round-btn.accent-btn {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    box-shadow: 0 0 10px rgba(0,0,0,0.3);
+}
+.round-btn.accent-btn:hover {
+    filter: brightness(1.1);
+    transform: scale(1.1);
+}
 
 
 

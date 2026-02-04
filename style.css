@@ -241,36 +241,61 @@ body.lyrics-mode .line-row { align-items: center; line-height: 1.8; }
 .drawer-btn.active { border-color: var(--accent); color: var(--accent); background: #222; }
 .drawer-row { display: flex; justify-content: space-between; align-items: center; background: #2a2a2a; padding: 5px 10px; border-radius: 6px; border: 1px solid #333; }
 
+/* ===========================================================
+   1. DESKTOP TOOLBAR STYLING (Η Εμφάνιση της Κάτω Μπάρας)
+   =========================================================== */
+.desktop-controls-area {
+    display: flex;             /* Ενεργοποίηση Flexbox */
+    gap: 15px;                 /* Κενό μεταξύ κουμπιών */
+    padding: 10px;
+    background: #222;          /* Σκούρο φόντο */
+    border-top: 1px solid #444;
+    justify-content: center;   /* Κεντράρισμα */
+    align-items: center;
+    position: sticky;          /* Κολλημένη στο κάτω μέρος */
+    bottom: 0;
+    z-index: 100;              /* Πάνω από το κείμενο */
+    width: 100%;
+}
 
-/* =========================================
-   MEDIA QUERIES (Ο Διαχωρισμός)
-   ========================================= */
+/* Στυλ για τα κουμπιά μέσα στην μπάρα */
+.desktop-controls-area button {
+    transition: color 0.2s;
+}
+.desktop-controls-area button:hover {
+    color: var(--accent) !important;
+}
 
-/* A. DESKTOP & LAPTOP (Οθόνες > 1024px) */
+/* ===========================================================
+   2. MEDIA QUERIES (Διαχωρισμός Mobile vs Desktop)
+   =========================================================== */
+
+/* --- A. MOBILE & TABLET (Οθόνες <= 1024px) --- */
+@media (max-width: 1024px) {
+    /* ΕΜΦΑΝΙΣΗ: Χερούλι Συρταριού */
+    #drawerHandle { display: flex !important; }
+    
+    /* ΑΠΟΚΡΥΨΗ: Κάτω Μπάρα Desktop & Παλιά Nav */
+    .desktop-controls-area { display: none !important; }
+    .mobile-nav { display: none !important; }
+
+    /* Ρυθμίσεις Συρταριού (αν δεν υπάρχουν παραπάνω) */
+    .right-drawer { display: flex; }
+}
+
+/* --- B. DESKTOP & LAPTOP (Οθόνες > 1024px) --- */
 @media (min-width: 1025px) {
-    /* 1. ΚΡΥΒΟΥΜΕ ΤΑ MOBILE ΣΤΟΙΧΕΙΑ */
+    /* ΑΠΟΚΡΥΨΗ: Στοιχεία Mobile (Συρτάρι & Χερούλι) */
     #rightDrawer, #drawerHandle { 
         display: none !important; 
     }
     
-    /* 2. Επαναφέρουμε τις στήλες (αν είχαν κρυφτεί από JS logic) */
-    .col-nav, .col-stage, .col-tools {
-        display: block !important;
-    }
+    /* ΕΜΦΑΝΙΣΗ: Βεβαιωνόμαστε ότι οι στήλες και η μπάρα φαίνονται */
+    .col-nav, .col-stage, .col-tools { display: block !important; }
+    .desktop-controls-area { display: flex !important; }
     
-    /* 3. Διατηρούμε την κλασική διάταξη στηλών */
+    /* Layout Στηλών */
     .col-nav { width: var(--nav-width); }
     .col-tools { width: var(--tools-width); }
     .col-stage { flex: 1; }
 }
-
-/* B. MOBILE & TABLET (Οθόνες <= 1024px) */
-@media (max-width: 1024px) {
-    /* 1. ΕΜΦΑΝΙΣΗ Mobile Στοιχείων */
-    #drawerHandle { display: flex; }
-    
-    /* 2. Απόκρυψη της παλιάς κάτω μπάρας (αν υπάρχει ακόμα στο HTML) */
-    .mobile-nav { display: none !important; }
-}
-
-

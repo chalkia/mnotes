@@ -83,6 +83,32 @@
                     <div class="ctl-group"><span class="ctl-label">Smart</span><button onclick="autoCapo()" class="round-btn accent-btn"><i class="fas fa-magic"></i></button></div>
                     <div class="ctl-group"><span class="ctl-label">Edit</span><button id="btnEditSong" onclick="switchToEditor()" class="round-btn"><i class="fas fa-pen"></i></button></div>
                 </div>
+                <div class="desktop-controls-area">
+    <div class="stepper">
+        <button onclick="changeTranspose(-1)">-</button>
+        <span id="val-t" style="color:var(--accent); min-width:20px; text-align:center;">0</span>
+        <button onclick="changeTranspose(1)">+</button>
+    </div>
+    
+    <div class="stepper">
+        <span>Capo:</span>
+        <span id="val-c" style="color:var(--accent); margin-left:5px;">0</span>
+        <div style="display:flex; flex-direction:column; margin-left:2px;">
+             <button onclick="changeCapo(1)" style="font-size:0.6rem; padding:0 2px;">▲</button>
+             <button onclick="changeCapo(-1)" style="font-size:0.6rem; padding:0 2px;">▼</button>
+        </div>
+    </div>
+
+    <button onclick="autoCapo()" title="Smart Capo" style="background:none; border:none; color:#ddd; cursor:pointer; font-size:1.1rem;">
+        <i class="fas fa-magic"></i>
+    </button>
+    <button onclick="toggleLyricsMode()" title="Lyrics Only" style="background:none; border:none; color:#ddd; cursor:pointer; font-size:1.1rem;">
+        <i class="fas fa-scroll"></i>
+    </button>
+    <button onclick="switchToEditor()" title="Edit" style="background:none; border:none; color:#ddd; cursor:pointer; font-size:1.1rem;">
+        <i class="fas fa-pen"></i>
+    </button>
+</div>
             </div>
 
             <div id="view-editor" class="view-section">
@@ -272,4 +298,5 @@
     <script src="js/ui.js?v=14.0"></script>
 </body>
 </html>
+
 

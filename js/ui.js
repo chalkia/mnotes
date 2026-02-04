@@ -132,7 +132,12 @@ function renderSidebar() {
         var li = document.createElement('li');
         let itemClass = `song-item ${currentSongId === s.id ? 'active' : ''}`; if (newlyImportedIds.includes(s.id)) itemClass += ' new-import';
         li.className = itemClass; li.setAttribute('data-id', s.id);
-        li.onclick = (e) => { if(e.target.classList.contains('song-action') || e.target.classList.contains('song-key-btn')) return; loadSong(s.id); };
+       li.onclick = (e) => {
+          if(e.target.classList.contains('song-action') || e.target.classList.contains('song-key-btn')) return; loadSong(s.id);
+          // ΝΕΟ: Αν είμαστε σε κινητό, κλείσε το Drawer
+          if(window.innerWidth <= 1024) {const d = document.getElementById('rightDrawer');if(d && d.classList.contains('open')) toggleRightDrawer();}
+    }; 
+       
         var displayTitle = (s.id.includes('demo')) ? t('demo_title') : s.title; var displayKey = s.key || "-";
         var actionIcon = "far fa-circle"; if (viewMode === 'setlist') actionIcon = "fas fa-minus-circle"; else if (liveSetlist.includes(s.id)) actionIcon = "fas fa-check-circle in-setlist";
         li.innerHTML = `<i class="${actionIcon} song-action" onclick="toggleSetlistSong(event, '${s.id}')"></i><div class="song-info"><div class="song-title">${displayTitle}</div><div class="song-meta-row"><span class="song-artist">${s.artist || "-"}</span><span class="song-key-badge" onclick="filterByKey(event, '${displayKey}')">${displayKey}</span></div></div>${viewMode === 'setlist' ? `<i class="fas fa-grip-vertical song-handle"></i>` : ``}`;
@@ -187,7 +192,15 @@ function loadSong(id) {
     if(typeof requestWakeLock === 'function') requestWakeLock();
     
     // Mobile: Auto Switch to Stage via Drawer Logic
-if (window.innerWidth <= 1024 && typeof switchDrawerTab === 'function') { switchDrawerTab('stage'); }
+    if (window.innerWidth <= 1024) {
+        document.querySelector('.col-nav').classList.remove('mobile-view-active');
+        document.querySelector('.col-tools').classList.remove('mobile-view-active');
+        document.querySelector('.col-stage').classList.add('mobile-view-active');
+        
+        document.querySelectorAll('.tab-btn-mob').forEach(b => b.classList.remove('active'));
+        const stageBtn = document.querySelectorAll('.tab-btn-mob')[1]; 
+        if(stageBtn) stageBtn.classList.add('active');
+    }
 }
 
 function renderPlayer(s) {
@@ -234,6 +247,16 @@ function renderPlayer(s) {
     if(document.getElementById('val-t')) document.getElementById('val-t').innerText = (state.t > 0 ? "+" : "") + state.t;
     if(document.getElementById('val-c')) document.getElementById('val-c').innerText = state.c;
     var split = splitSongBody(s.body || ""); renderArea('fixed-container', split.fixed); renderArea('scroll-container', split.scroll);
+    // --- NEW: Ενημέρωση Ενδείξεων DRAWER ---
+    const drT = document.getElementById('drawer-val-t');
+    const drC = document.getElementById('drawer-val-c');
+    if (drT) drT.innerText = (state.t > 0 ? "+" : "") + state.t;
+    if (drC) drC.innerText = state.c;
+    // ΕΝΗΜΕΡΩΣΗ ΑΡΙΘΜΩΝ DRAWER
+    const mValT = document.getElementById('drawer-val-t');
+    const mValC = document.getElementById('drawer-val-c');
+    if(mValT) mValT.innerText = (state.t > 0 ? "+" : "") + state.t;
+    if(mValC) mValC.innerText = state.c;
 }
 
 function renderArea(elemId, text) { var container = document.getElementById(elemId); if (!container) return; container.innerHTML = ""; var lines = text.split('\n'); lines.forEach(line => { var row = document.createElement('div'); row.className = 'line-row'; if (line.indexOf('!') === -1) { row.innerHTML = `<span class="lyric">${line || "&nbsp;"}</span>`; } else { var parts = line.split('!'); if (parts[0]) row.appendChild(createToken("", parts[0])); for (var i = 1; i < parts.length; i++) { var m = parts[i].match(/^([A-G][b#]?[m]?[maj7|sus4|7|add9|dim|0-9]*(\/[A-G][b#]?)?)\s?(.*)/); if (m) row.appendChild(createToken(getNote(m[1], state.t - state.c), m[3] || "")); else row.appendChild(createToken("", parts[i] || "")); } } container.appendChild(row); }); }
@@ -528,7 +551,26 @@ function removeTag(tag) { editorTags = editorTags.filter(t => t !== tag); render
 function renderTagChips() { var container = document.getElementById('tagChips'); if(!container) return; container.innerHTML = ""; editorTags.forEach(tag => { var span = document.createElement('span'); span.className = 'tag-chip'; span.innerHTML = `${tag} <i class="fas fa-times" onclick="removeTag('${tag}')" style="cursor:pointer; margin-left:5px;"></i>`; container.appendChild(span); }); updateHiddenTagInput(); }
 function updateHiddenTagInput() { var inp = document.getElementById('inpTags'); if(inp) inp.value = editorTags.join(','); }
 function toggleLyricsMode() { isLyricsMode = !isLyricsMode; var btn = document.getElementById('btnLyrics'); if (isLyricsMode) { document.body.classList.add('lyrics-mode'); if(btn) btn.classList.add('lyrics-btn-active'); showToast(t('msg_lyrics_mode_on')); } else { document.body.classList.remove('lyrics-mode'); if(btn) btn.classList.remove('lyrics-btn-active'); showToast(t('msg_lyrics_mode_off')); } if(currentSongId) renderPlayer(library.find(x => x.id === currentSongId)); }
-function autoCapo() { if (!currentSongId) return; var song = library.find(s => s.id === currentSongId); if (!song) return; var best = calculateOptimalCapo(song.key, song.body); if (best === state.c) { showToast(t('msg_capo_perfect')); } else { state.c = best; renderPlayer(song); showToast(t('msg_capo_found') + best); } }
+function autoCapo() { 
+    if (!currentSongId) return; 
+    var song = library.find(s => s.id === currentSongId); 
+    if (!song) return; 
+    
+    var best = calculateOptimalCapo(song.key, song.body); 
+    
+    // Ετικέτα στο Drawer
+    const lbl = document.getElementById('drawer-smart-capo-result');
+    
+    if (best === state.c) { 
+        showToast(t('msg_capo_perfect')); 
+        if(lbl) lbl.innerText = "✅ " + t('msg_capo_perfect');
+    } else { 
+        state.c = best; 
+        renderPlayer(song); 
+        showToast(t('msg_capo_found') + best); 
+        if(lbl) lbl.innerText = "👌 " + t('msg_capo_found') + best;
+    } 
+}
 function changeTranspose(n) { state.t += n; if (state.t > 6) state.t = 6; if (state.t < -6) state.t = -6; renderPlayer(library.find(s=>s.id===currentSongId)); }
 function changeCapo(n) { state.c += n; if(state.c<0)state.c=0; renderPlayer(library.find(s=>s.id===currentSongId)); }
 function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }

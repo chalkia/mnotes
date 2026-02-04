@@ -659,7 +659,7 @@ function closeDrawerOutside(e) {
     }
 }
 
-// 2. Χρονόμετρο 5 δευτερολέπτων
+// 2. Χρονόμετρο 6 δευτερολέπτων
 function resetDrawerTimer() {
     stopDrawerTimer();
     drawerIdleTimer = setTimeout(() => {
@@ -668,7 +668,7 @@ function resetDrawerTimer() {
             toggleRightDrawer(); // Κλείνει αυτόματα
             showToast("Drawer closed (inactive)");
         }
-    }, 5000); // 5000ms = 5 δευτερόλεπτα
+    }, 6000); // 6000ms = 6 δευτερόλεπτα
 }
 
 function stopDrawerTimer() {

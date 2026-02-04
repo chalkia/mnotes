@@ -222,7 +222,57 @@
         
         <div id="navTrigger" onclick="showMobileNav()" style="position:fixed; bottom:0; left:0; width:100%; height:40px; z-index:90; display:none;"></div>
     </div>
+<div id="importChoiceModal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <h3>Import Song</h3>
+        <button onclick="selectImport('url')" class="modal-btn"><i class="fas fa-link"></i> From URL</button>
+        <button onclick="selectImport('file')" class="modal-btn"><i class="fas fa-file-upload"></i> From File (JSON)</button>
+        <button onclick="selectImport('qr')" class="modal-btn"><i class="fas fa-qrcode"></i> Scan QR</button>
+        <button onclick="document.getElementById('importChoiceModal').style.display='none'" class="modal-btn cancel">Cancel</button>
+    </div>
+</div>
 
+<div id="scanModal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <div id="reader" style="width:100%"></div>
+        <button onclick="closeScan()" class="modal-btn cancel">Close</button>
+    </div>
+</div>
+
+<div id="qrModal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <h3>Song QR Code</h3>
+        <div id="qr-output" style="text-align:center; margin:10px;"></div>
+        <button onclick="document.getElementById('qrModal').style.display='none'" class="modal-btn cancel">Close</button>
+    </div>
+</div>
+
+<div id="settingsModal" class="modal" style="display:none;">
+    <div class="modal-content settings-content">
+        <h3>Settings</h3>
+        <label>Theme: <select id="setTheme" onchange="toggleCustomColors(this.value)"><option value="theme-dark">Dark</option><option value="theme-light">Light</option><option value="theme-custom">Custom</option></select></label>
+        
+        <div id="customColorArea" style="display:none; border:1px solid #444; padding:10px; margin:10px 0;">
+            <label>Bg: <input type="color" id="colBgMain" value="#000000"></label>
+            <label>Text: <input type="color" id="colTextMain" value="#ffffff"></label>
+            <label>Accent: <input type="color" id="colAccent" value="#00ff00"></label>
+            <label>Chord: <input type="color" id="colChord" value="#ffff00"></label>
+        </div>
+
+        <label>Scroll Speed: <input type="range" id="setScroll" min="10" max="200"></label>
+        <label>Max Capo: <input type="number" id="setMaxCapo" value="12"></label>
+        <label><input type="checkbox" id="setBackup"> Backup Reminder</label>
+        <label><input type="checkbox" id="setHideDemo"> Hide Demo</label>
+        <label><input type="checkbox" id="setWakeLock"> Keep Screen On</label>
+        
+        <div style="margin-top:15px; display:flex; gap:10px;">
+            <button onclick="saveSettings()" class="modal-btn accent">Save</button>
+            <button onclick="document.getElementById('settingsModal').style.display='none'" class="modal-btn cancel">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<input type="file" id="hiddenFileInput" style="display:none;" accept=".json">
     <div id="authModal" class="modal-overlay">
         <div class="modal-box">
              <h3>Login / Sign Up</h3>
@@ -298,5 +348,6 @@
     <script src="js/ui.js?v=14.0"></script>
 </body>
 </html>
+
 
 

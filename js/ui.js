@@ -216,31 +216,40 @@ function loadSong(id) {
         if(controlsDiv) controlsDiv.style.display = 'flex';
     }
 }
-
 function renderPlayer(s) {
     if (!s) return;
-   // --- ΕΜΦΑΝΙΣΗ INTRO / INTERLUDE (Fix Point 1) ---
+    
+    // Έλεγχος αν υπάρχουν σημειώσεις (για να χρωματίσουμε το κουμπί)
+    const personalNotesMap = JSON.parse(localStorage.getItem('mnotes_personal_notes') || '{}');
+    const hasNotes = (s.conductorNotes && s.conductorNotes.trim().length > 0) || (personalNotesMap[s.id] && personalNotesMap[s.id].trim().length > 0);
+    
+    // 1. Header Logic
     let metaHtml = "";
     if (s.intro) metaHtml += `<span class="meta-tag" style="color:#aaa; font-size:0.8rem; margin-right:10px;"><strong>Intro:</strong> ${s.intro}</span>`;
     if (s.interlude) metaHtml += `<span class="meta-tag" style="color:#aaa; font-size:0.8rem;"><strong>Inter:</strong> ${s.interlude}</span>`;
+    // Ένδειξη στα Meta (ζητούμενο)
+    if (hasNotes) metaHtml += `<span class="meta-note-badge"><i class="fas fa-sticky-note"></i> Note</span>`;
     
-    // Header με Intro/Inter
     const headerContainer = document.querySelector('.player-header-container');
     if (headerContainer) {
         headerContainer.innerHTML = `
         <div class="player-header">
-            <h1 id="p-title" class="song-h1">${s.title}</h1>
+            <div class="title-row">
+                <h1 id="p-title" class="song-h1" style="flex:1;">${s.title}</h1>
+                <button onclick="toggleStickyNotes()" class="note-toggle-btn ${hasNotes ? 'has-notes' : ''}" title="Toggle Notes">
+                    <i class="fas fa-sticky-note"></i>
+                </button>
+            </div>
+            
             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
                 <span class="meta-label">${s.artist || ""}</span>
                 <span class="key-badge">${getNote(s.key || "-", state.t)}</span>
             </div>
-            <div style="margin-top:8px; border-top:1px dashed #333; padding-top:5px;">
-                ${metaHtml}
-            </div>
+            <div style="margin-top:8px; border-top:1px dashed #333; padding-top:5px;">${metaHtml}</div>
         </div>`;
     }
- 
-    // B. VIDEO SIDEBAR (Moved from scroll-container to right sidebar)
+
+    // 2. Video Sidebar
     const vidBox = document.getElementById('video-sidebar-container');
     const embedBox = document.getElementById('video-embed-box');
     if (vidBox && embedBox) {
@@ -253,24 +262,18 @@ function renderPlayer(s) {
         } else { vidBox.style.display = 'none'; }
     }
 
-    // C. NEW HELPERS
+    // 3. Extras
     renderSideRecordings(s);
-    renderStickyNotes(s);
+    renderStickyNotes(s); // Καλούμε τη νέα συνάρτηση (που δεν ανοίγει αυτόματα)
 
-    // D. LYRICS
-    if(document.getElementById('val-t')) document.getElementById('val-t').innerText = (state.t > 0 ? "+" : "") + state.t;
-    if(document.getElementById('val-c')) document.getElementById('val-c').innerText = state.c;
+    // 4. Update Numbers
+    const dValT = document.getElementById('val-t'); const dValC = document.getElementById('val-c');
+    if(dValT) dValT.innerText = (state.t > 0 ? "+" : "") + state.t; if(dValC) dValC.innerText = state.c;
+    const mValT = document.getElementById('drawer-val-t'); const mValC = document.getElementById('drawer-val-c');
+    if(mValT) mValT.innerText = (state.t > 0 ? "+" : "") + state.t; if(mValC) mValC.innerText = state.c;
+
+    // 5. Lyrics
     var split = splitSongBody(s.body || ""); renderArea('fixed-container', split.fixed); renderArea('scroll-container', split.scroll);
-    // --- NEW: Ενημέρωση Ενδείξεων DRAWER ---
-    const drT = document.getElementById('drawer-val-t');
-    const drC = document.getElementById('drawer-val-c');
-    if (drT) drT.innerText = (state.t > 0 ? "+" : "") + state.t;
-    if (drC) drC.innerText = state.c;
-    // ΕΝΗΜΕΡΩΣΗ ΑΡΙΘΜΩΝ DRAWER
-    const mValT = document.getElementById('drawer-val-t');
-    const mValC = document.getElementById('drawer-val-c');
-    if(mValT) mValT.innerText = (state.t > 0 ? "+" : "") + state.t;
-    if(mValC) mValC.innerText = state.c;
 }
 
 function renderArea(elemId, text) { var container = document.getElementById(elemId); if (!container) return; container.innerHTML = ""; var lines = text.split('\n'); lines.forEach(line => { var row = document.createElement('div'); row.className = 'line-row'; if (line.indexOf('!') === -1) { row.innerHTML = `<span class="lyric">${line || "&nbsp;"}</span>`; } else { var parts = line.split('!'); if (parts[0]) row.appendChild(createToken("", parts[0])); for (var i = 1; i < parts.length; i++) { var m = parts[i].match(/^([A-G][b#]?[m]?[maj7|sus4|7|add9|dim|0-9]*(\/[A-G][b#]?)?)\s?(.*)/); if (m) row.appendChild(createToken(getNote(m[1], state.t - state.c), m[3] || "")); else row.appendChild(createToken("", parts[i] || "")); } } container.appendChild(row); }); }
@@ -496,14 +499,39 @@ function renderStickyNotes(s) {
     const stickyArea = document.getElementById('stickyNotesArea');
     const condText = document.getElementById('conductorNoteText');
     const persText = document.getElementById('personalNoteText');
+    
+    // Ανάκτηση προσωπικών σημειώσεων
     const personalNotesMap = JSON.parse(localStorage.getItem('mnotes_personal_notes') || '{}');
     const myNote = personalNotesMap[s.id] || "";
 
-    if (s.conductorNotes || myNote) {
-        stickyArea.style.display = 'block';
-        if (s.conductorNotes) { condText.style.display = 'block'; condText.innerHTML = `<b><i class="fas fa-bullhorn"></i> Info:</b> ${s.conductorNotes}`; } else { condText.style.display = 'none'; }
-        if (myNote) { persText.style.display = 'block'; persText.innerHTML = `<b><i class="fas fa-user-secret"></i> My Notes:</b> ${myNote}`; } else { persText.style.display = 'none'; }
-    } else { stickyArea.style.display = 'none'; }
+    // Κρύβουμε αρχικά την περιοχή (θα ανοίξει μόνο με το κουμπί)
+    stickyArea.style.display = 'none';
+
+    // Γεμίζουμε τα περιεχόμενα
+    if (s.conductorNotes) { 
+        condText.style.display = 'block'; 
+        condText.innerHTML = `<b><i class="fas fa-bullhorn"></i> Info:</b> ${s.conductorNotes}`; 
+    } else { 
+        condText.style.display = 'none'; 
+    }
+
+    if (myNote) { 
+        persText.style.display = 'block'; 
+        persText.innerHTML = `<b><i class="fas fa-user-secret"></i> My Notes:</b> ${myNote}`; 
+    } else { 
+        persText.style.display = 'none'; 
+    }
+}
+function toggleStickyNotes() {
+    const area = document.getElementById('stickyNotesArea');
+    if (area) {
+        // Αν είναι ανοιχτό -> κλείσε, αλλιώς άνοιξε
+        if (area.style.display === 'none' || area.style.display === '') {
+            area.style.display = 'block';
+        } else {
+            area.style.display = 'none';
+        }
+    }
 }
 
 function renderSideRecordings(s) {

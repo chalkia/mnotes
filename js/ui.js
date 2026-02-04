@@ -36,7 +36,7 @@ var tempIntroScale = 0;
 
 // --- INITIALIZATION ---
 window.addEventListener('load', function() {
-    console.log("🚀 mNotes Pro v16.0 Initializing...");
+    console.log("🚀 mNotes Pro v17.0 (Drawer) Loaded");
     applyTheme(); 
     applyTranslations(); 
     loadLibrary(); 
@@ -44,14 +44,15 @@ window.addEventListener('load', function() {
     setupGestures(); 
     checkBackupReminder(); 
     initResizers();
-    
-    // Mobile Priority (Stage)
-    if (window.innerWidth <= 1024) { 
-        if(typeof switchMobileTab === 'function') switchMobileTab('stage'); 
-    }
-    
-    // Rhythm Init (New BoomBoom Grid)
     initRhythmUI();
+
+    // MOBILE SETUP: Εμφάνιση Handle & Default Tab
+    if (window.innerWidth <= 1024) {
+        const h = document.getElementById('drawerHandle');
+        if(h) h.style.display = 'flex';
+        // Ξεκινάμε στο Stage
+        if(typeof switchDrawerTab === 'function') switchDrawerTab('stage'); 
+    }
 });
 
 // --- THEME & TRANSLATIONS ---
@@ -168,8 +169,8 @@ function loadSong(id) {
     document.querySelectorAll('.song-item').forEach(i => i.classList.remove('active')); var activeItem = document.querySelector(`.song-item[data-id="${id}"]`); if(activeItem) activeItem.classList.add('active');
     if(typeof requestWakeLock === 'function') requestWakeLock();
     
-    // Mobile: Auto Switch to Stage
-    if (window.innerWidth <= 1024 && typeof switchMobileTab === 'function') { switchMobileTab('stage'); }
+    // Mobile: Auto Switch to Stage via Drawer Logic
+if (window.innerWidth <= 1024 && typeof switchDrawerTab === 'function') { switchDrawerTab('stage'); }
 }
 
 function renderPlayer(s) {
@@ -560,4 +561,10 @@ function switchDrawerTab(tabName) {
 
     // Κλείσιμο του Drawer
     toggleRightDrawer();
+}
+function toggleRightDrawer() {
+    const d = document.getElementById('rightDrawer');
+    if(d) {
+        d.classList.toggle('open');
+    }
 }

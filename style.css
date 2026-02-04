@@ -336,23 +336,29 @@ body.theme-light .modal-btn {
 /* 2. Εμφάνιση "Χαρτάκι Post-it" (ΥΠΗΡΧΕ ΗΔΗ) */
 .sticky-note { 
     background: #ffeb3b; 
-    color: #222; 
-    padding: 15px; padding-top: 25px; 
-    border-radius: 2px; 
-    box-shadow: 2px 2px 5px rgba(0,0,0,0.3); 
-    position: relative; 
-    font-family: 'Comic Sans MS', cursive, sans-serif; 
-    font-size: 0.9rem; 
-    transform: rotate(-1deg); 
-    max-width: 300px; 
-    margin: 10px auto; 
+    color: #111; 
+   /* Διαστάσεις & Στοίχιση */
+    padding: 12px 15px; 
+    margin: 10px 0 15px 0; /* Λίγο κενό από κάτω */
+    width: 100%; /* Να πιάνει όλο το πλάτος */
+    max-width: 100%;
+    box-sizing: border-box;
+
+    /* Εμφάνιση */
+    border-radius: 6px; /* Ελαφρώς στρογγυλεμένο */
+    border-left: 5px solid #fbc02d; /* Μια πιο σκούρα κίτρινη λωρίδα αριστερά για στυλ */
+    
+    /* Γραμματοσειρά (ίδια με την εφαρμογή) */
+    font-family: var(--font-ui); 
+    font-size: 1rem;
+    line-height: 1.4;
+    
+    /* Αφαίρεση των "Post-it" εφέ */
+    box-shadow: none; 
+    transform: none;
 }
 .sticky-note .note-pin { 
-    position: absolute; top: -10px; left: 50%; 
-    transform: translateX(-50%); 
-    font-size: 1.2rem; 
-    color: #d32f2f; 
-}
+    display: none;}
 
 /* 3. Side Recordings (ΥΠΗΡΧΕ ΗΔΗ) */
 .side-rec-item { 
@@ -369,6 +375,7 @@ body.theme-light .modal-btn {
 .side-rec-label { 
     color: var(--accent); font-weight: bold; font-size: 0.85rem; 
 }
+
 
 
 

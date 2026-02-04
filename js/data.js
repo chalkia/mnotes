@@ -47,7 +47,7 @@ const TRANSLATIONS = {
         ph_body: "Write lyrics & chords here...\nExample: !AmHello !Gfriend",
         
         modal_import_title: "Import",
-        modal_btn_file: "File (.json)",
+        modal_btn_file: "File (.mnotes/.json)",
         modal_btn_url: "From URL",
         modal_btn_qr: "Scan QR Code",
         modal_btn_cancel: "Cancel",
@@ -134,7 +134,7 @@ const TRANSLATIONS = {
         ph_body: "Γράψτε στίχους & συγχορδίες...\nΠαράδειγμα: !AmΚαλημέρα !Gφίλε",
 
         modal_import_title: "Εισαγωγή",
-        modal_btn_file: "Αρχείο (.json)",
+        modal_btn_file: "Αρχείο (.mnotes/.json)",
         modal_btn_url: "Από σύνδεσμο (URL)", 
         modal_btn_qr: "Σάρωση QR",
         modal_btn_cancel: "Ακύρωση",

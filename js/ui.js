@@ -79,20 +79,36 @@ function applyTheme() {
 // --- LIBRARY LOGIC ---
 function loadLibrary() {
     var saved = localStorage.getItem('mnotes_data');
-    if (saved) { try { library = JSON.parse(saved); } catch(e) { library = []; } }
-    var demoExists = library.some(s => s.id && s.id.includes("demo"));
-    if (!demoExists && typeof DEFAULT_DATA !== 'undefined') { library.unshift(JSON.parse(JSON.stringify(DEFAULT_DATA[0]))); saveData(); }
+    if (saved) { 
+        try { library = JSON.parse(saved); } catch(e) { library = []; } 
+    }
+
+    // 1. Αν η βιβλιοθήκη είναι άδεια, βάλε το Demo
+    if (library.length === 0 && typeof DEFAULT_DATA !== 'undefined') { 
+        library.push(ensureSongStructure(JSON.parse(JSON.stringify(DEFAULT_DATA[0])))); 
+        saveData(); 
+    }
+
     library = library.map(ensureSongStructure);
     liveSetlist = liveSetlist.filter(id => library.some(s => s.id === id));
+    
     populateTags(); 
     if (typeof sortLibrary === 'function') sortLibrary(userSettings.sortMethod || 'alpha');
     const sortDropdown = document.getElementById('sortFilter'); if (sortDropdown) sortDropdown.value = userSettings.sortMethod || 'alpha';
+    
     renderSidebar();
+
+    // 2. ΦΟΡΤΩΣΗ ΣΤΟΝ PLAYER (Fix για να μην είναι κενή η οθόνη)
     if (library.length > 0) {
-        if (userSettings.hideDemo && library.length > 1) { var firstReal = library.find(s => !s.id.includes('demo')); currentSongId = firstReal ? firstReal.id : library[0].id; } else { if(!currentSongId) currentSongId = library[0].id; }
-        // Δεν φορτώνουμε αυτόματα τραγούδι αν είμαστε σε mobile για να μην γεμίζει η μνήμη, εκτός αν πατηθεί
-        // loadSong(currentSongId); 
-    } else { createNewSong(); }
+        // Αν δεν έχει επιλεγεί τραγούδι, πάρε το πρώτο (συνήθως το Demo)
+        if (!currentSongId) currentSongId = library[0].id;
+        
+        // Φόρτωσέ το αμέσως
+        loadSong(currentSongId);
+    } else { 
+        // Αν αποτύχουν όλα, φτιάξε κενό
+        createNewSong(); 
+    }
 }
 
 function clearLibrary() { if(confirm(t('msg_clear_confirm'))) { library = [ensureSongStructure(JSON.parse(JSON.stringify(DEFAULT_DATA[0])))]; liveSetlist = []; localStorage.setItem('mnotes_setlist', JSON.stringify(liveSetlist)); saveData(); document.getElementById('searchInp').value = ""; applyFilters(); loadSong(library[0].id); } }

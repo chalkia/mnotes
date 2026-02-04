@@ -526,3 +526,38 @@ function toggleCustomColors(val) { document.getElementById('customColorArea').st
 function checkBackupReminder() { if (userSettings.backupReminder === false) return; const lastBackup = localStorage.getItem('mnotes_last_backup'); if (!lastBackup) { localStorage.setItem('mnotes_last_backup', Date.now()); return; } const now = Date.now(); if (now - parseInt(lastBackup) > 30 * 24 * 60 * 60 * 1000) { if (confirm(t('msg_backup_reminder'))) { exportJSON(); } else { localStorage.setItem('mnotes_last_backup', now); } } }
 async function requestWakeLock() { if (!userSettings.keepScreenOn) { if (wakeLock !== null) { await wakeLock.release(); wakeLock = null; } return; } try { if ('wakeLock' in navigator) { wakeLock = await navigator.wakeLock.request('screen'); } } catch (err) { console.error(err); } } 
 document.addEventListener('visibilitychange', async () => { if (wakeLock !== null && document.visibilityState === 'visible' && userSettings.keepScreenOn) await requestWakeLock(); });
+function switchDrawerTab(tabName) {
+    // Αν είμαστε σε PC, δεν κάνουμε τίποτα (οι στήλες είναι όλες ανοιχτές)
+    if (window.innerWidth > 1024) return;
+
+    // 1. UI Updates (Active Buttons στο Drawer)
+    document.querySelectorAll('.drawer-btn').forEach(btn => btn.classList.remove('active'));
+    
+    // Επιλογή σωστού κουμπιού (απλή λογική index)
+    const btns = document.querySelectorAll('.drawer-section .drawer-btn');
+    if(tabName === 'library' && btns[0]) btns[0].classList.add('active'); 
+    if(tabName === 'stage' && btns[1]) btns[1].classList.add('active'); 
+    if(tabName === 'tools' && btns[2]) btns[2].classList.add('active');
+
+    // 2. Show/Hide Columns (ΜΟΝΟ ΓΙΑ MOBILE)
+    var navCol = document.querySelector('.col-nav'); 
+    var stageCol = document.querySelector('.col-stage'); 
+    var toolsCol = document.querySelector('.col-tools');
+
+    if(navCol) navCol.classList.remove('mobile-view-active'); 
+    if(stageCol) stageCol.classList.remove('mobile-view-active'); 
+    if(toolsCol) toolsCol.classList.remove('mobile-view-active');
+
+    if(tabName === 'library' && navCol) navCol.classList.add('mobile-view-active'); 
+    if(tabName === 'stage' && stageCol) stageCol.classList.add('mobile-view-active'); 
+    if(tabName === 'tools' && toolsCol) toolsCol.classList.add('mobile-view-active');
+
+    // 3. Εμφάνιση Controls στο Drawer
+    const controlsDiv = document.getElementById('drawer-player-controls');
+    if(controlsDiv) {
+        controlsDiv.style.display = (tabName === 'stage') ? 'flex' : 'none';
+    }
+
+    // Κλείσιμο του Drawer
+    toggleRightDrawer();
+}

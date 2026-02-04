@@ -233,7 +233,7 @@ body.theme-light .modal-btn {
 }
 .drawer-header button { color: var(--text-main) !important; } /* Fix για το Χ στο light theme */
 
-.drawer-section { margin-bottom: 20px; display: flex; flex-direction: column; gap: 8px; }
+.drawer-section { margin-bottom: 60px; display: flex; flex-direction: column; gap: 10px; }
 .drawer-section label { font-size: 0.75rem; color: var(--text-muted); font-weight: bold; }
 
 .drawer-btn { 
@@ -288,5 +288,6 @@ body.theme-light .modal-btn {
     .resizer { display: none; }
     .desktop-only-video { display: none; }
 }
+
 
 

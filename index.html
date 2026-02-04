@@ -212,6 +212,54 @@
              <div id="authMsg" style="margin-top:10px; font-size:0.9rem; color:#cf6679;"></div>
         </div>
     </div>
+    <div id="drawerHandle" onclick="toggleRightDrawer()">
+    <i class="fas fa-bars"></i>
+</div>
+
+<aside id="rightDrawer" class="right-drawer">
+    <div class="drawer-header">
+        <span style="font-weight:bold; color:var(--accent);">MENU</span>
+        <button onclick="toggleRightDrawer()" style="background:none; border:none; color:white; font-size:1.2rem;"><i class="fas fa-times"></i></button>
+    </div>
+    
+    <div class="drawer-section">
+        <label>NAVIGATION</label>
+        <button class="drawer-btn active" onclick="switchDrawerTab('library')"><i class="fas fa-list"></i> Library</button>
+        <button class="drawer-btn" onclick="switchDrawerTab('stage')"><i class="fas fa-microphone-alt"></i> Stage</button>
+        <button class="drawer-btn" onclick="switchDrawerTab('tools')"><i class="fas fa-drum"></i> Rhythm & Tools</button>
+    </div>
+
+    <div id="drawer-player-controls" class="drawer-section" style="display:none;">
+        <label>CONTROLS</label>
+        <button class="drawer-btn" onclick="toggleLyricsMode()"><i class="fas fa-scroll"></i> Lyrics Mode</button>
+        
+        <div class="drawer-row">
+            <span>Transpose:</span>
+            <div class="stepper">
+                <button onclick="changeTranspose(-1)">-</button>
+                <span id="drawer-val-t" style="color:var(--accent); min-width:20px; text-align:center;">0</span>
+                <button onclick="changeTranspose(1)">+</button>
+            </div>
+        </div>
+        
+        <div class="drawer-row">
+            <span>Capo:</span>
+            <div class="stepper">
+                <button onclick="changeCapo(-1)">-</button>
+                <span id="drawer-val-c" style="color:var(--accent); min-width:20px; text-align:center;">0</span>
+                <button onclick="changeCapo(1)">+</button>
+            </div>
+        </div>
+        
+        <button class="drawer-btn" onclick="autoCapo()"><i class="fas fa-magic"></i> Smart Capo</button>
+        <button class="drawer-btn" onclick="switchToEditor()"><i class="fas fa-pen"></i> Edit Song</button>
+    </div>
+
+    <div class="drawer-section" style="margin-top:auto; border-top:1px solid #333; padding-top:10px;">
+        <button class="drawer-btn" onclick="openSettings()"><i class="fas fa-cog"></i> Settings</button>
+        <button class="drawer-btn" onclick="document.getElementById('authModal').style.display='flex'"><i class="fas fa-user"></i> Account</button>
+    </div>
+</aside>
     <script src="js/sortable.min.js"></script>
     <script src="js/qrcodegen.js"></script>
     <script src="js/html5-qrcode.min.js"></script>
@@ -224,3 +272,4 @@
     <script src="js/ui.js?v=14.0"></script>
 </body>
 </html>
+

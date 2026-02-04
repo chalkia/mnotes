@@ -57,10 +57,10 @@ body { background: var(--bg-main); color: var(--text-main); font-family: var(--f
 .fixed-lyrics { flex-shrink: 0; max-height: 60vh; overflow-y: auto; padding: 10px 15px; border-bottom: 2px dashed var(--border-color); background: rgba(0,0,0,0.05); }
 .scroll-lyrics { flex: 1; overflow-y: auto; padding: 10px 15px; padding-bottom: 100px; min-height: 0; }
 
-.line-row { display: flex; flex-wrap: wrap; align-items: flex-end; margin-bottom: 6px; }
-.token { display: flex; flex-direction: column; margin-right: 4px; }
-.chord { color: var(--chord-color); font-size: calc(var(--lyric-size) * 0.85); font-weight: bold; margin-bottom: -4px; z-index: 10; line-height: 1; }
-.lyric { color: var(--text-main); font-size: var(--lyric-size); white-space: pre; line-height: 1.2; padding-top: 2px; }
+.line-row { display: flex; flex-wrap: wrap; align-items: flex-end; margin-bottom: 5px;line-height: 1.1; }
+.token { display: flex; flex-direction: column; margin-right: 1px; align-items: flex-start; }
+.chord { color: var(--chord-color); font-size: calc(var(--lyric-size) * 0.85); font-weight: bold; margin-bottom: -2px; z-index: 10; line-height: 1; min-height: 1em; }
+.lyric { color: var(--text-main); font-size: var(--lyric-size); white-space: pre; line-height: 1; padding-top: 2px; }
 
 /* Lyrics Mode */
 body.lyrics-mode .chord, body.lyrics-mode .chord-highlight { display: none !important; }
@@ -95,6 +95,11 @@ body.lyrics-mode .line-row { align-items: center; line-height: 1.8; }
 .cell.bass.active { background: #e57373; box-shadow: 0 0 8px #e57373; border-color:#ff8a80; }
 .cell.snare.active { background: #fff176; box-shadow: 0 0 8px #fff176; border-color:#ffffa8; }
 .cell.hihat.active { background: #64b5f6; box-shadow: 0 0 8px #64b5f6; border-color:#90caf9; }
+.cell[data-col="0"], .cell[data-col="4"], .cell[data-col="8"], .cell[data-col="12"],
+.cell[data-col="16"], .cell[data-col="20"], .cell[data-col="24"], .cell[data-col="28"],
+.cell[data-col="32"], .cell[data-col="36"], .cell[data-col="40"], .cell[data-col="44"],
+.cell[data-col="48"], .cell[data-col="52"], .cell[data-col="56"], .cell[data-col="60"] {margin-left: 6px !important; /* Κενό για διαχωρισμό τετράδων */ border-left: 1px solid #555; /* Προαιρετικά: μια αχνή γραμμή */ }
+.cell[data-col="0"] { margin-left: 0 !important; border-left: none; }
 
 /* EDITOR */
 .editor-toolbar { padding: 10px 15px; background: var(--bg-panel); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); }
@@ -208,3 +213,4 @@ body.lyrics-mode .line-row { align-items: center; line-height: 1.8; }
 .cell.bass.active { background: #e57373; box-shadow: 0 0 8px #e57373; border-color:#ff8a80; }
 .cell.snare.active { background: #fff176; box-shadow: 0 0 8px #fff176; border-color:#ffffa8; }
 .cell.hihat.active { background: #ffb74d; box-shadow: 0 0 8px #ffb74d; border-color:#ffcc80; }
+

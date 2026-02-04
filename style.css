@@ -270,17 +270,28 @@ body.lyrics-mode .line-row { align-items: center; line-height: 1.8; }
    2. MEDIA QUERIES (Διαχωρισμός Mobile vs Desktop)
    =========================================================== */
 
-/* --- A. MOBILE & TABLET (Οθόνες <= 1024px) --- */
-@media (max-width: 1024px) {
-    /* ΕΜΦΑΝΙΣΗ: Χερούλι Συρταριού */
-    #drawerHandle { display: flex !important; }
+/* --- A. DESKTOP & LAPTOP (Οθόνες > 1024px) --- */
+@media (min-width: 1025px) {
+    /* ΑΠΟΚΡΥΨΗ: Στοιχεία Mobile */
+    #rightDrawer, #drawerHandle { 
+        display: none !important; 
+    }
     
-    /* ΑΠΟΚΡΥΨΗ: Κάτω Μπάρα Desktop & Παλιά Nav */
-    .desktop-controls-area { display: none !important; }
-    .mobile-nav { display: none !important; }
+    /* ΕΜΦΑΝΙΣΗ: Στήλες και Μπάρα */
+    .col-stage, .col-tools { display: block !important; }
+    .desktop-controls-area { display: flex !important; }
+    
+    /* ΔΙΟΡΘΩΣΗ SIDEBAR: Επαναφορά Flex για να μένει το μενού κάτω */
+    .col-nav {
+        display: flex !important;
+        flex-direction: column !important;
+        width: var(--nav-width);
+        height: 100vh; /* Ή όσο ύψος έχει το parent container */
+    }
 
-    /* Ρυθμίσεις Συρταριού (αν δεν υπάρχουν παραπάνω) */
-    .right-drawer { display: flex; }
+    /* Layout Στηλών */
+    .col-tools { width: var(--tools-width); }
+    .col-stage { flex: 1; }
 }
 
 /* --- B. DESKTOP & LAPTOP (Οθόνες > 1024px) --- */
@@ -299,3 +310,4 @@ body.lyrics-mode .line-row { align-items: center; line-height: 1.8; }
     .col-tools { width: var(--tools-width); }
     .col-stage { flex: 1; }
 }
+

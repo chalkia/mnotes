@@ -213,4 +213,64 @@ body.lyrics-mode .line-row { align-items: center; line-height: 1.8; }
 .cell.bass.active { background: #e57373; box-shadow: 0 0 8px #e57373; border-color:#ff8a80; }
 .cell.snare.active { background: #fff176; box-shadow: 0 0 8px #fff176; border-color:#ffffa8; }
 .cell.hihat.active { background: #ffb74d; box-shadow: 0 0 8px #ffb74d; border-color:#ffcc80; }
+/* =========================================
+   DRAWER STYLES (Η εμφάνιση του συρταριού)
+   ========================================= */
+.right-drawer {
+    position: fixed; top: 0; right: 0; width: 260px; height: 100%;
+    background: #1a1a1a; border-left: 1px solid var(--accent);
+    transform: translateX(100%); transition: transform 0.3s ease-in-out;
+    z-index: 2001; display: flex; flex-direction: column; padding: 15px;
+    box-shadow: -5px 0 20px rgba(0,0,0,0.8);
+}
+.right-drawer.open { transform: translateX(0); }
+
+#drawerHandle {
+    position: fixed; right: 0; top: 50%; transform: translateY(-50%);
+    width: 30px; height: 60px; background: rgba(0, 0, 0, 0.6);
+    border-top-left-radius: 10px; border-bottom-left-radius: 10px;
+    align-items: center; justify-content: center;
+    color: var(--accent); cursor: pointer; z-index: 2000;
+}
+
+/* Στυλ Κουμπιών Συρταριού */
+.drawer-header { display: flex; justify-content: space-between; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 10px; }
+.drawer-section { margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px; }
+.drawer-section label { font-size: 0.75rem; color: #666; font-weight: bold; }
+.drawer-btn { background: #2a2a2a; border: 1px solid #333; color: #eee; padding: 12px; border-radius: 6px; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 10px; }
+.drawer-btn.active { border-color: var(--accent); color: var(--accent); background: #222; }
+.drawer-row { display: flex; justify-content: space-between; align-items: center; background: #2a2a2a; padding: 5px 10px; border-radius: 6px; border: 1px solid #333; }
+
+
+/* =========================================
+   MEDIA QUERIES (Ο Διαχωρισμός)
+   ========================================= */
+
+/* A. DESKTOP & LAPTOP (Οθόνες > 1024px) */
+@media (min-width: 1025px) {
+    /* 1. ΚΡΥΒΟΥΜΕ ΤΑ MOBILE ΣΤΟΙΧΕΙΑ */
+    #rightDrawer, #drawerHandle { 
+        display: none !important; 
+    }
+    
+    /* 2. Επαναφέρουμε τις στήλες (αν είχαν κρυφτεί από JS logic) */
+    .col-nav, .col-stage, .col-tools {
+        display: block !important;
+    }
+    
+    /* 3. Διατηρούμε την κλασική διάταξη στηλών */
+    .col-nav { width: var(--nav-width); }
+    .col-tools { width: var(--tools-width); }
+    .col-stage { flex: 1; }
+}
+
+/* B. MOBILE & TABLET (Οθόνες <= 1024px) */
+@media (max-width: 1024px) {
+    /* 1. ΕΜΦΑΝΙΣΗ Mobile Στοιχείων */
+    #drawerHandle { display: flex; }
+    
+    /* 2. Απόκρυψη της παλιάς κάτω μπάρας (αν υπάρχει ακόμα στο HTML) */
+    .mobile-nav { display: none !important; }
+}
+
 

@@ -191,15 +191,29 @@ function loadSong(id) {
     document.querySelectorAll('.song-item').forEach(i => i.classList.remove('active')); var activeItem = document.querySelector(`.song-item[data-id="${id}"]`); if(activeItem) activeItem.classList.add('active');
     if(typeof requestWakeLock === 'function') requestWakeLock();
     
-    // Mobile: Auto Switch to Stage via Drawer Logic
+        // --- MOBILE SAFE SWITCH (Ενημέρωση UI χωρίς άνοιγμα Drawer) ---
     if (window.innerWidth <= 1024) {
+        // 1. Αλλαγή κεντρικής οθόνης
         document.querySelector('.col-nav').classList.remove('mobile-view-active');
         document.querySelector('.col-tools').classList.remove('mobile-view-active');
         document.querySelector('.col-stage').classList.add('mobile-view-active');
         
+        // 2. Ενημέρωση Κάτω Μπάρας (Mobile Nav)
         document.querySelectorAll('.tab-btn-mob').forEach(b => b.classList.remove('active'));
         const stageBtn = document.querySelectorAll('.tab-btn-mob')[1]; 
         if(stageBtn) stageBtn.classList.add('active');
+
+        // 3. ΕΝΗΜΕΡΩΣΗ DRAWER (Κρυφή προετοιμασία)
+        // Ξε-μαρκάρουμε όλα τα κουμπιά του Drawer
+        document.querySelectorAll('.drawer-btn').forEach(b => b.classList.remove('active'));
+        
+        // Βρίσκουμε το κουμπί 'Stage' (συνήθως το 2ο στη σειρά, index 1)
+        const drawerBtns = document.querySelectorAll('.drawer-section .drawer-btn');
+        if(drawerBtns[1]) drawerBtns[1].classList.add('active'); 
+
+        // Εμφανίζουμε τα Controls μέσα στο Drawer (ώστε όταν ανοίξει να είναι εκεί)
+        const controlsDiv = document.getElementById('drawer-player-controls');
+        if(controlsDiv) controlsDiv.style.display = 'flex';
     }
 }
 

@@ -155,7 +155,7 @@ function renderSidebar() {
     }
 }
 
-}
+
 
 // --- UTILS & RESIZERS ---
 function initResizers() {

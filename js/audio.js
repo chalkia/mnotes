@@ -1,6 +1,8 @@
 /* =========================================
-   AUDIO ENGINE v3 (BoomBoom Precision)
+   AUDIO ENGINE & UPLOAD HANDLER (js/audio.js)
    ========================================= */
+
+// --- PART A: METRONOME & RHYTHM ENGINE ---
 
 const AudioEngine = {
     ctx: null,
@@ -69,21 +71,12 @@ const AudioEngine = {
         setTimeout(() => {
             document.querySelectorAll('.cell').forEach(c => c.classList.remove('highlight'));
             // Highlight current step column
-            // (Assuming grid is rendered row-by-row, simple implementation logic here for columns)
             // Εδώ απλοποιούμε: Δεν φωτίζουμε όλη τη στήλη, απλά τα ενεργά κουτιά
-            const activeCells = document.querySelectorAll(`.cell:nth-child(${stepNumber + 1})`); 
-            // Επειδή είναι CSS Grid, το nth-child είναι πολύπλοκο. 
-            // Αφήνουμε το highlight για μελλοντική βελτίωση ή απλό blink.
+            // (Προσοχή: Αυτός ο selector μπορεί να θέλει βελτίωση αν αλλάξει το HTML grid)
+             const activeCells = document.querySelectorAll(`.cell[data-step="${stepNumber}"]`); 
         }, drawTime > 0 ? drawTime : 0);
 
         // Sound Logic
-        // Έχουμε 3 γραμμές (instruments) στο Grid: 0=Bass, 1=Snare(Chord), 2=HiHat(Alt)
-        // Το gridData είναι μονοδιάστατο στο boomboom, αλλά εδώ έχουμε 3 rows στο UI.
-        // Πρέπει να διαβάσουμε το Grid από το DOM ή από εσωτερική δομή.
-        // Για συμβατότητα με το boomboom.html που έχει 1 γραμμή με 3 τιμές, 
-        // ας προσαρμόσουμε τη λογική μας:
-        
-        // Στο mNotes έχουμε 3 ανεξάρτητες γραμμές. Θα παίξουμε ό,τι είναι ενεργό.
         const container = document.getElementById('rhythm-grid');
         if(!container) return;
         
@@ -156,6 +149,85 @@ const AudioEngine = {
     }
 };
 
-// Global hooks
+// Global hooks for HTML buttons
 function togglePlay() { AudioEngine.togglePlay(); }
 function updateBpm(val) { AudioEngine.setBpm(val); document.getElementById('dispBpm').innerText = val; }
+
+
+// --- PART B: CLOUD UPLOAD LOGIC ---
+
+async function uploadAudioToCloud(inputElement) {
+    const file = inputElement.files[0];
+    if (!file) return;
+
+    if (!currentUser) {
+        showToast("Please login to upload audio!", "error");
+        return;
+    }
+
+    // UI Updates (Progress Bar)
+    const progressBox = document.getElementById('uploadProgressBox');
+    const progressBar = document.getElementById('uploadBar');
+    const uploadText = document.getElementById('uploadText');
+    const btnLabel = document.querySelector('.upload-btn-styled');
+    
+    if(progressBox) progressBox.style.display = 'block';
+    if(btnLabel) btnLabel.style.opacity = '0.5';
+    if(uploadText) uploadText.innerText = "Uploading 0%";
+
+    try {
+        // 1. Δημιουργία Μοναδικού Ονόματος
+        const safeName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
+        const fileName = `${currentUser.id}/${Date.now()}_${safeName}`;
+
+        // 2. Upload στο Supabase (Bucket: audio_files)
+        const { data, error } = await supabaseClient
+            .storage
+            .from('audio_files') // <--- ΣΩΣΤΟ BUCKET NAME
+            .upload(fileName, file, {
+                cacheControl: '3600',
+                upsert: false
+            });
+
+        if (error) throw error;
+
+        // 3. Λήψη του Public Link
+        const { data: { publicUrl } } = supabaseClient
+            .storage
+            .from('audio_files')
+            .getPublicUrl(fileName);
+
+        if(uploadText) uploadText.innerText = "Saving to library...";
+        if(progressBar) progressBar.style.width = "100%";
+
+        // 4. Αποθήκευση στη Βάση (Πίνακας personal_overrides)
+        const newRecording = {
+            id: Date.now(),
+            name: file.name,
+            url: publicUrl,
+            date: new Date().toISOString()
+        };
+
+        // Καλούμε τη συνάρτηση αποθήκευσης στο logic.js
+        if (typeof addRecordingToCurrentSong === 'function') {
+            await addRecordingToCurrentSong(newRecording);
+        } else {
+            console.error("addRecordingToCurrentSong function missing in logic.js");
+        }
+
+        showToast("Audio uploaded successfully! ☁️");
+        inputElement.value = ""; // Καθαρισμός input
+
+    } catch (err) {
+        console.error("Upload failed:", err);
+        showToast("Upload failed: " + err.message, "error");
+    } finally {
+        // Απόκρυψη μπάρας μετά από λίγο
+        if(progressBox) setTimeout(() => progressBox.style.display = 'none', 2000);
+        if(btnLabel) btnLabel.style.opacity = '1';
+    }
+}
+
+// COMPATIBILITY BRIDGE
+// Επειδή στο HTML μπορεί να έχει μείνει το 'importAudioFile' αντί για 'uploadAudioToCloud'
+window.importAudioFile = uploadAudioToCloud;

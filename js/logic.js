@@ -1,5 +1,5 @@
 /* =========================================
-   CORE LOGIC & PARSING (js/logic.js) - FINAL v6
+   CORE LOGIC & PARSING (js/logic.js) - FINAL v7
    ========================================= */
 
 // Global State
@@ -7,7 +7,6 @@ let userProfile = null;   // { id, subscription_tier: 'free'/'basic'... }
 let myGroups = [];        // Λίστα με τα groups που ανήκω
 let currentGroupId = 'personal'; // 'personal' ή UUID του group
 let currentRole = 'owner'; // 'owner' (αν είναι personal) ή 'admin'/'viewer' (αν είναι group)
-
 
 // Helper translation function (safe check)
 if (typeof window.t === 'undefined') {
@@ -18,6 +17,7 @@ if (typeof window.t === 'undefined') {
         return key;
     };
 }
+
 /* =========================================
    USER & GROUP MANAGEMENT
    ========================================= */
@@ -43,13 +43,12 @@ async function initUserData() {
 
     // 2. Φόρτωση Groups
     await fetchMyGroups();
+
+    // 3. Φόρτωση Τραγουδιών (Initial Load)
+    await loadLibrarySongs();
 }
 
 async function fetchMyGroups() {
-    // Φέρνουμε τα Groups και τον ρόλο μας σε αυτά
-    // Χρειαζόμαστε join, αλλά για απλότητα κάνουμε 2 calls ή χρησιμοποιούμε το view
-    // Εδώ κάνουμε το απλό query στον πίνακα members
-    
     const { data: memberships, error } = await supabaseClient
         .from('group_members')
         .select('role, group_id, groups(id, name, owner_id)');
@@ -81,44 +80,140 @@ function updateGroupDropdown() {
     myGroups.forEach(g => {
         const opt = document.createElement('option');
         opt.value = g.id;
-        opt.innerText = `${g.name} (${g.role})`; // π.χ. The Band (admin)
+        opt.innerText = `${g.name} (${g.role})`;
         sel.appendChild(opt);
     });
+    
+    // Set active
+    sel.value = currentGroupId;
 }
+
 async function switchGroup(groupId) {
     currentGroupId = groupId;
     
     if (groupId === 'personal') {
         currentRole = 'owner';
         showToast("Switched to Personal Library");
-        // Εδώ πρέπει να φορτώσουμε τα προσωπικά τραγούδια (Local + Private Cloud)
-        // loadSongsFromStorage(); 
     } else {
         // Βρες τον ρόλο μου στο Group
         const group = myGroups.find(g => g.id === groupId);
         if (group) {
             currentRole = group.role;
             showToast(`Switched to Group: ${group.name}`);
-            // Εδώ θα φορτώσουμε τα τραγούδια του Group από Supabase
-            // await loadGroupSongs(groupId);
         }
     }
     
-    // Ενημέρωση UI ανάλογα με τον ρόλο (π.χ. κρύψιμο κουμπιών Edit αν είσαι viewer)
+    // Φόρτωση δεδομένων βάσει επιλογής
+    await loadLibrarySongs();
+
+    // Ενημέρωση UI ανάλογα με τον ρόλο
     updateUIForRole();
 }
 
 function updateUIForRole() {
-    // Παράδειγμα: Αν είμαι viewer, κρύβω το Delete
-    const btnDel = document.getElementById('btnDelSetlist'); // ή άλλα κουμπιά
-    if(btnDel) {
-        if (currentRole === 'viewer') btnDel.style.display = 'none';
-        else btnDel.style.display = 'inline-block';
+    const btnDel = document.getElementById('btnDelSetlist'); 
+    const btnAdd = document.getElementById('btnAddSong');
+
+    // Αν είσαι Viewer σε Group -> Κρύψε τα Add/Delete
+    if (currentGroupId !== 'personal' && currentRole === 'viewer') {
+        if(btnDel) btnDel.style.display = 'none';
+        if(btnAdd) btnAdd.style.display = 'none';
+    } else {
+        if(btnDel) btnDel.style.display = 'inline-block';
+        if(btnAdd) btnAdd.style.display = 'flex';
     }
 }
+
+// --- NEW: CLOUD LOADING LOGIC ---
+async function loadLibrarySongs() {
+    const listEl = document.getElementById('songList');
+    // Δείχνουμε loading indicator
+    if(listEl) listEl.innerHTML = '<div style="padding:20px; text-align:center; color:#888;">Loading...</div>';
+    
+    let query = supabaseClient
+        .from('songs')
+        .select('id, title, artist, group_id, user_id, updated_at')
+        .order('title', { ascending: true });
+
+    if (currentGroupId === 'personal') {
+        // Φέρε ΜΟΝΟ τα δικά μου που ΔΕΝ ανήκουν σε group
+        query = query.is('group_id', null).eq('user_id', currentUser.id);
+    } else {
+        // Φέρε τα τραγούδια του Group
+        query = query.eq('group_id', currentGroupId);
+    }
+
+    const { data: songs, error } = await query;
+
+    if (error) {
+        console.error("Error fetching songs:", error);
+        if(listEl) listEl.innerHTML = '<div style="color:var(--danger)">Error loading songs</div>';
+        return;
+    }
+
+    // Ενημέρωση της τοπικής λίστας (library) για να δουλεύει το Search/Filter
+    library = songs.map(s => ensureSongStructure(s));
+
+    // Κλήση της UI function για εμφάνιση
+    if (typeof renderSongList === 'function') {
+        // Χρησιμοποιούμε renderSidebar ή renderSongList ανάλογα με το τι έχεις στο ui.js
+        // Εδώ υποθέτουμε ότι το applyFilters/renderSidebar κάνει τη δουλειά
+        if (typeof applyFilters === 'function') applyFilters(); 
+        else renderSongList(library);
+    }
+}
+
+// --- NEW: AUDIO RECORDING SAVING ---
+async function addRecordingToCurrentSong(recordingObj) {
+    if (!currentSongId) {
+        showToast("No active song selected!", "error");
+        return;
+    }
+
+    // 1. Φέρνουμε τα υπάρχοντα overrides
+    const { data: existingData } = await supabaseClient
+        .from('personal_overrides')
+        .select('personal_recordings')
+        .eq('song_id', currentSongId)
+        .eq('user_id', currentUser.id)
+        .maybeSingle();
+
+    let currentRecs = existingData?.personal_recordings || [];
+    
+    // Προσθήκη νέου
+    currentRecs.push(recordingObj);
+
+    // 2. Upsert στη βάση
+    const { error } = await supabaseClient
+        .from('personal_overrides')
+        .upsert({
+            user_id: currentUser.id,
+            song_id: currentSongId,
+            personal_recordings: currentRecs
+        }, { onConflict: 'user_id, song_id' });
+
+    if (error) {
+        console.error("DB Save Error:", error);
+        throw error;
+    }
+    
+    // Ενημέρωση UI λίστας
+    if (typeof renderRecordingsList === 'function') {
+        renderRecordingsList(currentRecs);
+    }
+}
+
+/* =========================================
+   HELPER FUNCTIONS & PARSING
+   ========================================= */
+
+// MERGED & FIXED ensureSongStructure
 function ensureSongStructure(song) {
     if (!song) song = {};
-    if (!song.id) song.id = "s_" + Date.now(); 
+    
+    // ID Generation
+    if (!song.id) song.id = "s_" + Date.now() + Math.random().toString(16).slice(2); 
+    
     if (!song.updatedAt) song.updatedAt = Date.now();
     if (!song.title) song.title = "Untitled";
     if (!song.artist) song.artist = "";
@@ -127,12 +222,15 @@ function ensureSongStructure(song) {
     if (!song.intro) song.intro = "";
     if (!song.interlude) song.interlude = "";
     if (!song.notes) song.notes = "";
+    
+    // Tags / Playlists normalization
     if (!song.playlists) song.playlists = [];
     if (song.tags && Array.isArray(song.tags)) song.playlists = song.tags; 
+    
     return song;
 }
 
-// --- STRICT TOKENIZER PARSING (FIXED SPACING) ---
+// --- STRICT TOKENIZER PARSING ---
 function parseSongLogic(song) {
     // Βεβαίωση ότι το state υπάρχει
     if (typeof state === 'undefined') window.state = { t: 0, c: 0, meta: {}, parsedChords: [] };
@@ -163,27 +261,25 @@ function parseSongLogic(song) {
             var char = line[i];
 
             if (char === '!') {
-                // Αν υπάρχει κείμενο πριν, αποθήκευσέ το
                 if (buffer.length > 0) {
                     tokens.push({ c: "", t: buffer });
                     buffer = "";
                 }
 
-                i++; // Προσπερνάμε το '!'
+                i++; 
                 var chordBuf = "";
                 var stopChord = false;
 
                 while (i < line.length && !stopChord) {
                     var c = line[i];
-                    var isBang = (c === '!');    
-                    var isSpace = (c === ' ');  
+                    var isBang = (c === '!');     
+                    var isSpace = (c === ' ');   
                     var isGreek = (c >= '\u0370' && c <= '\u03FF') || (c >= '\u1F00' && c <= '\u1FFF');
 
                     if (isBang) {
-                        stopChord = true; // Τερματισμός στο επόμενο !
+                        stopChord = true; 
                     } else if (isSpace || isGreek) {
                         stopChord = true;
-                        // FIX: Αν σταματήσαμε λόγω κενού, το "τρώμε" (skip) ώστε να μην μπει στους στίχους
                         if (isSpace) i++; 
                     } else {
                         chordBuf += c;
@@ -209,27 +305,7 @@ function parseSongLogic(song) {
         state.parsedChords.push({ type: 'mixed', tokens: tokens });
     });
 }
-/* =========================================
-   HELPER FUNCTIONS (ΠΡΟΣΘΗΚΗ)
-   ========================================= */
 
-function ensureSongStructure(song) {
-    if (!song) return null;
-    
-    // Αν δεν υπάρχει ID, φτιάχνουμε ένα προσωρινό
-    if (!song.id) song.id = 's' + Date.now() + Math.random().toString(16).slice(2);
-    
-    // Αν δεν υπάρχει τίτλος
-    if (!song.title) song.title = "Untitled";
-    
-    // Αν δεν υπάρχουν στίχοι
-    if (!song.lyrics) song.lyrics = "";
-    
-    // Αν δεν υπάρχουν Meta tags
-    if (!song.meta) song.meta = {};
-
-    return song;
-}
 function splitSongBody(body) {
     if (!body) return { fixed: "", scroll: "" };
     var cleanBody = body.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
@@ -272,10 +348,9 @@ function getNote(note, semitones) {
     return newRoot + suffix;
 }
 
-// SMART CAPO (Uses User Settings)
+// SMART CAPO
 function calculateOptimalCapo(currentKey, songBody) {
     var chordsFound = new Set();
-   // ΑΝΤΙΚΑΤΑΣΤΑΣΗ
     var chordRegex = /!([A-G][b#]?[m]?[maj7|sus4|7|add9|dim|0-9]*(\/[A-G][b#]?)?)/g;
     var match;
     while ((match = chordRegex.exec(songBody)) !== null) {
@@ -287,7 +362,6 @@ function calculateOptimalCapo(currentKey, songBody) {
     var bestCapo = 0;
     var maxScore = -1000;
 
-    // Load maxCapo from settings (default 12)
     var userSettings = JSON.parse(localStorage.getItem('mnotes_settings')) || {};
     var maxFret = (userSettings.maxCapo !== undefined) ? parseInt(userSettings.maxCapo) : 12;
 
@@ -320,16 +394,11 @@ function saveSong() {
     var title = document.getElementById('inpTitle').value;
     var artist = document.getElementById('inpArtist').value;
     var key = document.getElementById('inpKey').value;
-    
-    // --- ΝΕΟ: Ανάγνωση URL βίντεο ---
-    // Ελέγχουμε αν υπάρχει το πεδίο (γιατί στο mobile μπορεί να λείπει)
     var videoUrl = document.getElementById('inpVideo') ? document.getElementById('inpVideo').value : "";
-
     var tagsInput = document.getElementById('inpTags') ? document.getElementById('inpTags').value : ""; 
-    
     var intro = document.getElementById('inpIntro').value;
     var interlude = document.getElementById('inpInter').value;
-    var notes = document.getElementById('inpNotes').value;
+    var notes = document.getElementById('inpNotes') ? document.getElementById('inpNotes').value : "";
     
     var rawBody = document.getElementById('inpBody').value;
     var body = convertBracketsToBang(rawBody); 
@@ -340,16 +409,14 @@ function saveSong() {
     var newSongObj = {
         title: title, artist: artist, key: key, body: body,
         intro: intro, interlude: interlude, notes: notes, playlists: tagsArray,
-        video: videoUrl, // <--- ΑΠΟΘΗΚΕΥΣΗ ΤΟΥ VIDEO LINK
+        video: videoUrl,
         updatedAt: Date.now()
     };
      
      if (!currentSongId) {
-        // Νέο τραγούδι
         var s = ensureSongStructure(newSongObj);
         library.push(s); currentSongId = s.id;
     } else {
-        // Επεξεργασία: Διατήρηση σταθερού ID
         var oldIdx = library.findIndex(s => s.id === currentSongId);
         if (oldIdx > -1) {
             library[oldIdx] = { ...library[oldIdx], ...newSongObj, id: currentSongId };
@@ -377,21 +444,19 @@ function deleteCurrentSong() {
     }
 }
 
-// --- SMART EXPORT (Share on Mobile, Download on Desktop) ---
+// --- SMART EXPORT ---
 async function exportJSON() {
     if (!library || library.length === 0) {
         alert("Library is empty!");
         return;
     }
 
-    // Save timestamp for Reminder
     localStorage.setItem('mnotes_last_backup', Date.now()); 
 
     const jsonStr = JSON.stringify(library, null, 2);
     const date = new Date().toISOString().slice(0,10);
     const fileName = "mNotes_backup_" + date + ".mnote";
 
-    // Try Share API (Mobile)
     try {
         const file = new File([jsonStr], fileName, { type: "application/json" });
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -406,7 +471,6 @@ async function exportJSON() {
         console.log("Share API failed, falling back to download", e);
     }
 
-    // Fallback: Download Link (Desktop)
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(jsonStr);
     const downloadAnchorNode = document.createElement('a');
     downloadAnchorNode.setAttribute("href", dataStr);
@@ -415,35 +479,31 @@ async function exportJSON() {
     downloadAnchorNode.click();
     downloadAnchorNode.remove();
 }
+
 // --- SORTING LOGIC ---
-// method: 'alpha' (Α-Ω), 'created' (Νεότερα IDs), 'modified' (Πρόσφατα Save)
 function sortLibrary(method) {
     if (!library) return;
 
     library.sort((a, b) => {
         if (method === 'created') {
-            // 1. Ταξινόμηση με βάση την Ημ. Δημιουργίας (από το ID)
-            // Τα IDs είναι της μορφής "s_1738...", οπότε παίρνουμε το αριθμητικό μέρος
             let timeA = parseInt(a.id.split('_')[1]) || 0;
             let timeB = parseInt(b.id.split('_')[1]) || 0;
-            return timeB - timeA; // Φθίνουσα (Τα πιο καινούργια πάνω)
+            return timeB - timeA; 
             
         } else if (method === 'modified') {
-            // 2. Ταξινόμηση με βάση την Τελευταία Αλλαγή
-            // Αν δεν υπάρχει updatedAt, χρησιμοποιούμε το ID ως fallback
             let timeA = a.updatedAt || parseInt(a.id.split('_')[1]) || 0;
             let timeB = b.updatedAt || parseInt(b.id.split('_')[1]) || 0;
-            return timeB - timeA; // Φθίνουσα (Τα πιο πρόσφατα αλλαγμένα πάνω)
+            return timeB - timeA; 
             
         } else {
-            // 3. Default: Αλφαβητική Ταξινόμηση (Ελληνικά -> Αγγλικά)
             return a.title.localeCompare(b.title, 'el', { sensitivity: 'base' });
         }
     });
 }
+
 function transposeBodyText(body, semitones) {
     if (semitones === 0 || !body) return body;
     return body.replace(/!([A-G][b#]?[m]?[maj7|sus4|7|add9|dim|0-9]*(\/[A-G][b#]?)?)/g, function(match, chord) {
-    return "!" + getNote(chord, semitones);
-});
-    }
+        return "!" + getNote(chord, semitones);
+    });
+}

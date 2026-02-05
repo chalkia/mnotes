@@ -161,101 +161,90 @@
         <div class="resizer" id="dragMeRight"></div>
 
 <aside class="col-tools" id="rhythmTools">
-    <div class="sidebar-header" style="padding:10px; border-bottom:none;">
-        <div class="tools-tabs">
-            <button id="tab-rhythm-btn" class="tab-btn active" onclick="switchToolTab('rhythm')">
-                <i class="fas fa-drum"></i> Rhythm
-            </button>
-            <button id="tab-media-btn" class="tab-btn" onclick="switchToolTab('media')">
-                <i class="fas fa-compact-disc"></i> Media
-            </button>
-        </div>
+    <div class="sidebar-header" style="padding:10px; border-bottom:1px solid var(--border-color); min-height:50px;">
+        <span style="font-weight:bold; color:var(--text-muted); font-size:0.9rem;">TOOLS & ASSETS</span>
     </div>
 
-    <div id="panel-rhythm" class="tool-panel active-panel">
+    <div class="tool-panel">
         
-        <div class="recorder-box" style="padding: 15px; border-bottom: 1px solid var(--border-color); background: var(--bg-panel);">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <label style="color:var(--text-muted); font-size:0.8rem; font-weight:bold;">RECORDER</label>
-                <span id="recTimer" style="font-family:monospace; color:var(--text-muted); font-size:1rem;">00:00</span>
-            </div>
-            <div style="display:flex; gap:10px; justify-content: center;">
-                <button id="btnRecord" onclick="toggleRecording()" class="round-btn" style="border-color:var(--danger); color:var(--danger); width:50px; height:50px; font-size:1.2rem;"><i class="fas fa-microphone"></i></button>
-                <button id="btnLinkRec" onclick="uploadAndLinkCurrent()" class="round-btn" style="display:none; border-color:var(--accent); color:var(--accent); width:50px; height:50px; font-size:1.2rem;" title="Upload & Save"><i class="fas fa-link"></i></button>
-                <a id="btnDownloadRec" class="round-btn" target="_blank" style="border-color:#555; color:#555; display:flex; align-items:center; justify-content:center; width:40px; height:40px; font-size:1rem; opacity:0.5; pointer-events:none;"><i class="fas fa-download"></i></a>
-            </div>
-            <audio id="audioPreview" controls style="width:100%; min-width:200px; margin-top:15px; height:35px; display:none;"></audio>
-        </div>
-
-        <div class="rhythm-panel">
-            <div class="ctl-row main-play" style="justify-content: space-between; margin-bottom: 20px;">
-                <button id="btnPlayRhythm" class="big-play-btn"><i class="fas fa-play"></i></button>
-                <div class="bpm-box" style="text-align:right;">
-                    <label style="font-size:0.8rem; color:#888;">BPM: <span id="dispBpm" style="color:var(--accent);">100</span></label>
-                    <input type="range" id="rngBpm" min="40" max="200" value="100" style="width:100%;">
-                </div>
-            </div>
-
-            <div class="editor-header" style="display:flex; justify-content:space-between; align-items:center;">
-                <label>EDITOR</label>
-                <div style="display:flex; gap:5px; align-items:center;">
-                    <button onclick="clearGrid()" style="padding:4px 8px; font-size:0.7rem; background:#333; color:white; border:none; cursor:pointer;">Clear</button>
-                    <label style="font-size:0.7rem; color:#888; margin-left:5px;">Steps:</label>
-                    <input type="number" id="beatCount" value="16" min="4" max="64" step="1" onchange="updateGridSize()" style="width:45px; padding:2px; font-size:0.8rem; background:#222; color:white; border:1px solid #444; text-align:center;">
-                </div>
-            </div>
-
-            <div id="rhythm-grid" class="rhythm-grid-container"></div>
-
-            <div class="ctl-row" style="margin-top:20px; border-top:1px solid #333; padding-top:15px;">
-                <label>Preset:</label>
-                <select id="selRhythm" class="inp" style="padding:5px;" onchange="loadPreset(this.value)">
-                    <option value="">-- Select --</option>
-                    <option value="zeibekiko">Ζεϊμπέκικο (9/8)</option>
-                    <option value="kalamatianos">Καλαματιανός (7/8)</option>
-                    <option value="chasapiko">Χασάπικο (4/4)</option>
-                    <option value="tsifteteli">Τσιφτετέλι (4/4)</option>
-                </select>
-            </div>
-        </div>
-    </div>
-
-    <div id="panel-media" class="tool-panel" style="display:none;">
-        <div class="assets-container" style="padding:20px;">
+        <div class="tool-section">
+            <div class="section-title"><i class="fas fa-microphone-alt"></i> AUDIO HUB</div>
             
-            <div id="sideRecordingsBox" style="display:none; margin-bottom:20px;">
-                <h3 style="font-size:0.9rem; color:var(--text-muted); border-bottom:1px solid var(--border-color); padding-bottom:5px; margin-bottom:10px;">
-                    <i class="fas fa-microphone"></i> AUDIO TAKES
-                </h3>
-                <div id="sideRecList" style="display:flex; flex-direction:column; gap:8px;"></div>
+            <div class="recorder-compact">
+                <span id="recTimer" class="rec-timer">00:00</span>
+                <button id="btnRecord" onclick="toggleRecording()" class="rec-btn" title="Record"><i class="fas fa-circle"></i></button>
+                <button id="btnLinkRec" onclick="uploadAndLinkCurrent()" class="save-rec-btn" style="display:none;" title="Save to Song"><i class="fas fa-cloud-upload-alt"></i></button>
             </div>
 
-            <div class="asset-group">
-                <h3 style="font-size:0.9rem; color:var(--text-muted); border-bottom:1px solid var(--border-color); padding-bottom:5px; margin-bottom:10px;">
-                    <i class="fas fa-file-pdf"></i> SHEETS & DOCS
-                </h3>
-                <div id="list-sheets" class="file-list">
-                    <div class="empty-state" style="color:#666; font-style:italic; font-size:0.9rem;">No attachments yet.</div>
+            <audio id="masterAudio" controls class="master-player"></audio>
+            
+            <div class="audio-list-container">
+                <label style="font-size:0.7rem; color:#666; font-weight:bold; margin-bottom:5px; display:block;">TRACKS:</label>
+                <div id="sideRecList" class="compact-list">
+                    <div class="empty-state">No recordings yet</div> 
                 </div>
-                <button class="add-asset-btn" style="width:100%; margin-top:10px; padding:8px; background:transparent; border:1px dashed #666; color:#888; cursor:pointer;" onclick="document.getElementById('inpPdfUpload').click()">
-                    <i class="fas fa-plus"></i> Add PDF/Image
+            </div>
+        </div>
+
+        <hr class="sep">
+
+        <details class="tool-group" open>
+            <summary><i class="fas fa-folder-open"></i> FILES & SHEETS</summary>
+            <div class="group-content">
+                <div id="list-sheets" class="file-list compact">
+                    <div class="empty-state">No attachments</div>
+                </div>
+                <button class="add-mini-btn" onclick="document.getElementById('inpPdfUpload').click()">
+                    <i class="fas fa-plus"></i> Add File
                 </button>
                 <input type="file" id="inpPdfUpload" accept="application/pdf, image/*" style="display:none">
             </div>
+        </details>
 
-            <div id="video-sidebar-container" style="margin-top:25px; display:none;">
-                <h3 style="font-size:0.9rem; color:var(--text-muted); border-bottom:1px solid var(--border-color); padding-bottom:5px; margin-bottom:10px;">
-                    <i class="fab fa-youtube"></i> REFERENCE
-                </h3>
+        <hr class="sep">
+
+        <details class="tool-group" open>
+            <summary><i class="fas fa-drum"></i> METRONOME</summary>
+            <div class="group-content">
+                <div class="bpm-row">
+                    <button id="btnPlayRhythm" class="play-mini-btn"><i class="fas fa-play"></i></button>
+                    <div class="bpm-display">
+                        <span id="dispBpm">100</span> <span style="font-size:0.7rem; color:#666;">BPM</span>
+                    </div>
+                </div>
+                <input type="range" id="rngBpm" min="40" max="200" value="100" class="compact-range">
+                
+                <select id="selRhythm" class="compact-select" onchange="loadPreset(this.value)">
+                    <option value="">-- Rhythm Style --</option>
+                    <option value="zeibekiko">Zeibekiko (9/8)</option>
+                    <option value="kalamatianos">Kalamatianos (7/8)</option>
+                    <option value="chasapiko">Chasapiko (4/4)</option>
+                </select>
+
+                <button onclick="document.getElementById('grid-editor-area').style.display = document.getElementById('grid-editor-area').style.display=='none'?'block':'none'" class="toggle-grid-btn">
+                    <i class="fas fa-th"></i> Edit Pattern
+                </button>
+                
+                <div id="grid-editor-area" style="display:none; margin-top:10px;">
+                     <div id="rhythm-grid" class="rhythm-grid-container small-grid"></div>
+                </div>
+            </div>
+        </details>
+
+        <hr class="sep">
+
+        <details class="tool-group">
+            <summary><i class="fab fa-youtube"></i> VIDEO REFERENCE</summary>
+            <div class="group-content" id="video-sidebar-container" style="display:none;">
                 <div id="video-embed-box" class="video-responsive"></div>
             </div>
+        </details>
 
-        </div>
     </div>
 
     <div class="tools-footer">
-        <button class="footer-btn" onclick="openSettings()"><i class="fas fa-cog"></i> Settings</button>
-        <button class="footer-btn" onclick="document.getElementById('authModal').style.display='flex'"><i class="fas fa-user"></i> Account</button>  
+        <button class="footer-btn" onclick="openSettings()"><i class="fas fa-cog"></i></button>
+        <button class="footer-btn" onclick="document.getElementById('authModal').style.display='flex'"><i class="fas fa-user"></i> Account</button>
     </div>
 </aside>
 
@@ -403,6 +392,7 @@
     <script src="js/ui.js?v=14.0"></script>
 </body>
 </html>
+
 
 
 

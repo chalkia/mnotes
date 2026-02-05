@@ -1,5 +1,5 @@
 /* =========================================
-   SUPABASE CLIENT BRIDGE
+   SUPABASE CLIENT BRIDGE (js/supabase-client.js)
    ========================================= */
 
 // 1. ΑΣΦΑΛΗΣ ΛΗΨΗ ΚΛΕΙΔΙΩΝ ΑΠΟ ΤΟ CONFIG.JS
@@ -12,13 +12,12 @@ if (typeof CONFIG === 'undefined') {
 const SUPABASE_URL = CONFIG.SUPABASE_URL; 
 const SUPABASE_KEY = CONFIG.SUPABASE_KEY; 
 
-// ΑΛΛΑΓΗ ΟΝΟΜΑΤΟΣ: Από 'supabase' σε 'supabaseClient'
 let supabaseClient = null;
 var currentUser = null; // Global variable
 
 // Initialization
 if (typeof window.supabase !== 'undefined') {
-    // Δημιουργία του Client με τα κλειδιά του Config
+    // Δημιουργία του Client
     supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     
     // Έλεγχος αν υπάρχει ήδη συνδεδεμένος χρήστης
@@ -27,6 +26,8 @@ if (typeof window.supabase !== 'undefined') {
             currentUser = response.data.user;
             console.log("✅ Logged in:", currentUser.email);
             updateAuthUI(true);
+            // Αν είναι ήδη συνδεδεμένος κατά το φόρτωμα, τρέξε την αρχικοποίηση
+            if (typeof initUserData === 'function') initUserData();
         }
     });
 } else {
@@ -42,7 +43,6 @@ async function doLogin() {
     
     msg.innerText = "Connecting...";
     
-    // Χρήση του supabaseClient
     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
     
     if (error) {
@@ -62,7 +62,6 @@ async function doSignUp() {
 
     msg.innerText = "Creating account...";
     
-    // Χρήση του supabaseClient
     const { data, error } = await supabaseClient.auth.signUp({ email, password });
     
     if (error) {
@@ -73,25 +72,23 @@ async function doSignUp() {
 }
 
 async function doLogout() {
-    // Χρήση του supabaseClient
     await supabaseClient.auth.signOut();
     currentUser = null;
     updateAuthUI(false);
     showToast("Logged out");
-    // Προαιρετικά: Reload για πλήρη καθαρισμό
     // window.location.reload(); 
 }
+
 function updateAuthUI(isLoggedIn) {
-    // Ψάχνουμε και τα δύο πιθανά κουμπιά (Αριστερά και Κάτω)
-    const buttonIDs = ['btnAuth', 'btnAuthBottom'];
+    // ΔΙΟΡΘΩΣΗ: Προστέθηκε το 'btnAuthDrawer' για το κινητό
+    const buttonIDs = ['btnAuth', 'btnAuthBottom', 'btnAuthDrawer'];
 
     buttonIDs.forEach(id => {
         const btn = document.getElementById(id);
-        if (!btn) return; // Αν δεν βρεθεί, πάμε στο επόμενο
+        if (!btn) return; 
 
         if (isLoggedIn) {
             // ΣΥΝΔΕΔΕΜΕΝΟΣ
-            // Κρατάμε το " Account" κείμενο επειδή είναι footer-btn
             btn.innerHTML = '<i class="fas fa-user-check"></i> Account';
             btn.style.color = 'var(--accent)';
             btn.onclick = function() { 
@@ -108,8 +105,8 @@ function updateAuthUI(isLoggedIn) {
     });
 }
 
-// --- UPLOAD FUNCTION ---
-
+// --- UPLOAD FUNCTION (LEGACY / HELPER) ---
+// Σημείωση: Η κύρια λειτουργία upload είναι πλέον στο audio.js
 async function uploadAudioToCloud(audioBlob, filename) {
     if (!currentUser) {
         alert("Please Login to upload!");
@@ -121,9 +118,9 @@ async function uploadAudioToCloud(audioBlob, filename) {
 
     const filePath = `${currentUser.id}/${filename}`;
     
-    // Χρήση του supabaseClient
+    // ΔΙΟΡΘΩΣΗ: Χρήση του σωστού bucket name 'audio_files'
     const { data, error } = await supabaseClient.storage
-        .from('Recordings')
+        .from('audio_files')
         .upload(filePath, audioBlob, {
             cacheControl: '3600',
             upsert: true
@@ -137,7 +134,7 @@ async function uploadAudioToCloud(audioBlob, filename) {
 
     // Λήψη του Public URL
     const { data: urlData } = supabaseClient.storage
-        .from('Recordings')
+        .from('audio_files')
         .getPublicUrl(filePath);
 
     return urlData.publicUrl;
@@ -146,7 +143,6 @@ async function uploadAudioToCloud(audioBlob, filename) {
 // --- GOOGLE AUTH ---
 
 async function loginWithGoogle() {
-    // Έλεγχος αν ο client έχει φορτώσει
     if (!supabaseClient) {
         alert("System Error: Database connection failed.");
         return;
@@ -155,7 +151,6 @@ async function loginWithGoogle() {
     const { data, error } = await supabaseClient.auth.signInWithOAuth({
         provider: 'google',
         options: {
-            // Κρατάμε το href όπως ζήτησες για να δουλεύει στο GitHub Pages
             redirectTo: window.location.href 
         }
     });
@@ -163,5 +158,30 @@ async function loginWithGoogle() {
     if (error) {
         alert("Google Login Error: " + error.message);
     }
-    // Δεν χρειάζεται else, φεύγει για Google
 }
+
+// --- GLOBAL AUTH STATE LISTENER ---
+
+supabaseClient.auth.onAuthStateChange((event, session) => {
+    console.log("Auth State Change:", event);
+    
+    if (session) {
+        currentUser = session.user;
+        updateAuthUI(true);
+        
+        // --- ΠΡΟΣΘΗΚΗ: Αρχικοποίηση δεδομένων χρήστη ---
+        if (typeof initUserData === 'function') {
+            initUserData(); 
+        }
+        
+    } else {
+        currentUser = null;
+        userProfile = null; 
+        currentGroupId = 'personal';
+        updateAuthUI(false);
+        
+        // Καθαρισμός λίστας
+        const listEl = document.getElementById('songList');
+        if(listEl) listEl.innerHTML = '';
+    }
+});

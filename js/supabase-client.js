@@ -81,22 +81,31 @@ async function doLogout() {
     // Προαιρετικά: Reload για πλήρη καθαρισμό
     // window.location.reload(); 
 }
-
 function updateAuthUI(isLoggedIn) {
-    const btn = document.getElementById('btnAuth'); // Κουμπί στο footer (αν υπάρχει με αυτό το ID)
-    // Αν έχεις το κουμπί στο sidebar-footer ή tools-footer, ίσως χρειάζεται προσαρμογή του selector
-    // Αλλά αφήνω τον κώδικά σου όπως ήταν:
-    if(!btn) return;
-    
-    if(isLoggedIn) {
-        btn.innerHTML = '<i class="fas fa-user-check"></i>';
-        btn.style.color = 'var(--accent)';
-        btn.onclick = function() { if(confirm("Log out?")) doLogout(); };
-    } else {
-        btn.innerHTML = '<i class="fas fa-user"></i>';
-        btn.style.color = 'var(--text-muted)';
-        btn.onclick = function() { document.getElementById('authModal').style.display = 'flex'; };
-    }
+    // Ψάχνουμε και τα δύο πιθανά κουμπιά (Αριστερά και Κάτω)
+    const buttonIDs = ['btnAuth', 'btnAuthBottom'];
+
+    buttonIDs.forEach(id => {
+        const btn = document.getElementById(id);
+        if (!btn) return; // Αν δεν βρεθεί, πάμε στο επόμενο
+
+        if (isLoggedIn) {
+            // ΣΥΝΔΕΔΕΜΕΝΟΣ
+            // Κρατάμε το " Account" κείμενο επειδή είναι footer-btn
+            btn.innerHTML = '<i class="fas fa-user-check"></i> Account';
+            btn.style.color = 'var(--accent)';
+            btn.onclick = function() { 
+                if(confirm(`Log out from ${currentUser.email}?`)) doLogout(); 
+            };
+        } else {
+            // ΑΠΟΣΥΝΔΕΔΕΜΕΝΟΣ
+            btn.innerHTML = '<i class="fas fa-user"></i> Account';
+            btn.style.color = 'var(--text-muted)'; // ή 'inherit'
+            btn.onclick = function() { 
+                document.getElementById('authModal').style.display = 'flex'; 
+            };
+        }
+    });
 }
 
 // --- UPLOAD FUNCTION ---

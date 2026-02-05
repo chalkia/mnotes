@@ -2,6 +2,13 @@
    CORE LOGIC & PARSING (js/logic.js) - FINAL v6
    ========================================= */
 
+// Global State
+let userProfile = null;   // { id, subscription_tier: 'free'/'basic'... }
+let myGroups = [];        // Λίστα με τα groups που ανήκω
+let currentGroupId = 'personal'; // 'personal' ή UUID του group
+let currentRole = 'owner'; // 'owner' (αν είναι personal) ή 'admin'/'viewer' (αν είναι group)
+
+
 // Helper translation function (safe check)
 if (typeof window.t === 'undefined') {
     window.t = function(key) {
@@ -11,7 +18,104 @@ if (typeof window.t === 'undefined') {
         return key;
     };
 }
+/* =========================================
+   USER & GROUP MANAGEMENT
+   ========================================= */
 
+async function initUserData() {
+    if (!currentUser) return;
+
+    // 1. Φόρτωση Προφίλ (Συνδρομή)
+    const { data: profile } = await supabaseClient
+        .from('profiles')
+        .select('*')
+        .eq('id', currentUser.id)
+        .single();
+    
+    if (profile) {
+        userProfile = profile;
+        console.log("👤 Profile Loaded:", userProfile.subscription_tier);
+    } else {
+        // Αν δεν υπάρχει προφίλ, φτιάχνουμε ένα Free αυτόματα
+        await supabaseClient.from('profiles').insert([{ id: currentUser.id, email: currentUser.email }]);
+        userProfile = { id: currentUser.id, subscription_tier: 'free' };
+    }
+
+    // 2. Φόρτωση Groups
+    await fetchMyGroups();
+}
+
+async function fetchMyGroups() {
+    // Φέρνουμε τα Groups και τον ρόλο μας σε αυτά
+    // Χρειαζόμαστε join, αλλά για απλότητα κάνουμε 2 calls ή χρησιμοποιούμε το view
+    // Εδώ κάνουμε το απλό query στον πίνακα members
+    
+    const { data: memberships, error } = await supabaseClient
+        .from('group_members')
+        .select('role, group_id, groups(id, name, owner_id)');
+        
+    if (error) {
+        console.error("Error fetching groups:", error);
+        return;
+    }
+
+    // Καθαρισμός δεδομένων
+    myGroups = memberships.map(m => ({
+        id: m.groups.id,
+        name: m.groups.name,
+        role: m.role,
+        ownerId: m.groups.owner_id
+    }));
+
+    updateGroupDropdown();
+}
+
+function updateGroupDropdown() {
+    const sel = document.getElementById('selGroup');
+    if (!sel) return;
+
+    // Καθαρισμός (κρατάμε μόνο το Personal)
+    sel.innerHTML = '<option value="personal">My Personal Library</option>';
+
+    // Προσθήκη Groups
+    myGroups.forEach(g => {
+        const opt = document.createElement('option');
+        opt.value = g.id;
+        opt.innerText = `${g.name} (${g.role})`; // π.χ. The Band (admin)
+        sel.appendChild(opt);
+    });
+}
+async function switchGroup(groupId) {
+    currentGroupId = groupId;
+    
+    if (groupId === 'personal') {
+        currentRole = 'owner';
+        showToast("Switched to Personal Library");
+        // Εδώ πρέπει να φορτώσουμε τα προσωπικά τραγούδια (Local + Private Cloud)
+        // loadSongsFromStorage(); 
+    } else {
+        // Βρες τον ρόλο μου στο Group
+        const group = myGroups.find(g => g.id === groupId);
+        if (group) {
+            currentRole = group.role;
+            showToast(`Switched to Group: ${group.name}`);
+            // Εδώ θα φορτώσουμε τα τραγούδια του Group από Supabase
+            // await loadGroupSongs(groupId);
+        }
+    }
+    
+    // Ενημέρωση UI ανάλογα με τον ρόλο (π.χ. κρύψιμο κουμπιών Edit αν είσαι viewer)
+    updateUIForRole();
+}
+
+function updateUIForRole() {
+    // Παράδειγμα: Αν είμαι viewer, κρύβω το Delete
+    const btnDel = document.getElementById('btnDelSetlist'); // ή άλλα κουμπιά
+    if(btnDel) {
+        if (currentRole === 'viewer') btnDel.style.display = 'none';
+        else btnDel.style.display = 'inline-block';
+    }
+}
 function ensureSongStructure(song) {
     if (!song) song = {};
     if (!song.id) song.id = "s_" + Date.now(); 

@@ -622,4 +622,39 @@ details[open] summary::after { transform: rotate(180deg); color: var(--accent); 
     position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; 
     background: #000; border-radius: 6px; border: 1px solid #333; 
 }
-.video-responsive iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+.video-responsive iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+/* --- UPLOAD BUTTON STYLING --- */
+.upload-btn-styled {
+    display: inline-block;
+    width: 100%;
+    padding: 12px;
+    background: #1e1e1e;
+    color: var(--text-main);
+    border: 2px dashed #444; /* Διακριτικό περίγραμμα */
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    text-align: center;
+    margin-top: 5px;
+}
+
+.upload-btn-styled:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--accent); /* Χρώμα θέματος στο hover */
+    color: var(--accent);
+}
+
+.upload-btn-styled i {
+    margin-right: 8px;
+    font-size: 1.1rem;
+}
+
+/* Γραμμή Προόδου */
+#uploadProgressBox {
+    margin-top: 8px;
+    background: #111;
+    border-radius: 4px;
+    padding: 2px;
+}
+

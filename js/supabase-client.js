@@ -1,68 +1,40 @@
 /* =========================================
-   SUPABASE CLIENT BRIDGE (FULL VERSION)
+   SUPABASE CLIENT BRIDGE
    ========================================= */
 
-// 1. Έλεγχος CONFIG 
+// 1. ΑΣΦΑΛΗΣ ΛΗΨΗ ΚΛΕΙΔΙΩΝ ΑΠΟ ΤΟ CONFIG.JS
 if (typeof CONFIG === 'undefined') {
-    console.error("CRITICAL: Το αρχείο js/config.js λείπει ή έχει λάθος σύνταξη.");
-    alert("System Error: Configuration file missing.");
+    console.error("❌ CRITICAL: Το αρχείο js/config.js δεν βρέθηκε ή έχει λάθος!");
+    alert("System Error: Configuration file missing (js/config.js).");
 }
 
-// 2. Μεταβλητές (Global)
-const SUPABASE_URL = CONFIG.SUPABASE_URL;
-const SUPABASE_KEY = CONFIG.SUPABASE_KEY;
+// Χρήση των κλειδιών από το αρχείο ρυθμίσεων
+const SUPABASE_URL = CONFIG.SUPABASE_URL; 
+const SUPABASE_KEY = CONFIG.SUPABASE_KEY; 
 
-// Ορίζουμε τον client global για να τον βλέπουν όλοι
-var supabaseClient = null; 
-var currentUser = null; 
+// ΑΛΛΑΓΗ ΟΝΟΜΑΤΟΣ: Από 'supabase' σε 'supabaseClient'
+let supabaseClient = null;
+var currentUser = null; // Global variable
 
-// 3. Αρχικοποίηση (Initialization)
+// Initialization
 if (typeof window.supabase !== 'undefined') {
-    // Δημιουργία Client
+    // Δημιουργία του Client με τα κλειδιά του Config
     supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     
-    // Ακροατής αλλαγής κατάστασης (Σημαντικό για το Google Login Redirect)
-    supabaseClient.auth.onAuthStateChange((event, session) => {
-        if (session) {
-            currentUser = session.user;
-            console.log("✅ Auth State Change: Logged in as", currentUser.email);
+    // Έλεγχος αν υπάρχει ήδη συνδεδεμένος χρήστης
+    supabaseClient.auth.getUser().then(response => {
+        if(response.data.user) {
+            currentUser = response.data.user;
+            console.log("✅ Logged in:", currentUser.email);
             updateAuthUI(true);
-        } else {
-            currentUser = null;
-            console.log("💤 Auth State Change: Logged out");
-            updateAuthUI(false);
         }
     });
-
 } else {
     console.error("❌ Supabase Library not loaded! Check index.html");
-    alert("Supabase library missing.");
 }
 
+// --- AUTH FUNCTIONS ---
 
-/* =========================================
-   AUTH FUNCTIONS
-   ========================================= */
-
-// --- GOOGLE LOGIN (FIXED) ---
-async function loginWithGoogle() {
-    if (!supabaseClient) return;
-    
-    console.log("Attempting Google Login...");
-    const { data, error } = await supabaseClient.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-            redirectTo: window.location.location.href 
-        }
-    });
-    
-    if (error) {
-        alert("Google Login Error: " + error.message);
-        console.error(error);
-    }
-}
-
-// --- EMAIL / PASSWORD LOGIN ---
 async function doLogin() {
     const email = document.getElementById('authEmail').value;
     const password = document.getElementById('authPass').value;
@@ -70,18 +42,19 @@ async function doLogin() {
     
     msg.innerText = "Connecting...";
     
+    // Χρήση του supabaseClient
     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
     
     if (error) {
         msg.innerText = "Error: " + error.message;
     } else {
-        // Το onAuthStateChange θα αναλάβει τα υπόλοιπα
+        currentUser = data.user;
         document.getElementById('authModal').style.display = 'none';
-        showToast("Welcome back! 👋");
+        showToast("Welcome! 👋");
+        updateAuthUI(true);
     }
 }
 
-// --- SIGN UP ---
 async function doSignUp() {
     const email = document.getElementById('authEmail').value;
     const password = document.getElementById('authPass').value;
@@ -89,56 +62,44 @@ async function doSignUp() {
 
     msg.innerText = "Creating account...";
     
+    // Χρήση του supabaseClient
     const { data, error } = await supabaseClient.auth.signUp({ email, password });
     
     if (error) {
         msg.innerText = "Error: " + error.message;
     } else {
-        msg.innerText = "Success! Check your email to confirm.";
+        msg.innerText = "Success! Check your email.";
     }
 }
 
-// --- LOGOUT ---
 async function doLogout() {
+    // Χρήση του supabaseClient
     await supabaseClient.auth.signOut();
-    // Το onAuthStateChange θα καθαρίσει το UI
+    currentUser = null;
+    updateAuthUI(false);
     showToast("Logged out");
-    // Προαιρετικά κάνουμε reload για να καθαρίσουν όλα τελείως
-    setTimeout(() => window.location.reload(), 500);
+    // Προαιρετικά: Reload για πλήρη καθαρισμό
+    // window.location.reload(); 
 }
 
-// --- UI UPDATER ---
 function updateAuthUI(isLoggedIn) {
-    const btn = document.getElementById('btnAuth'); // Το κουμπί στο sidebar-footer ή tools-footer
+    const btn = document.getElementById('btnAuth'); // Κουμπί στο footer (αν υπάρχει με αυτό το ID)
+    // Αν έχεις το κουμπί στο sidebar-footer ή tools-footer, ίσως χρειάζεται προσαρμογή του selector
+    // Αλλά αφήνω τον κώδικά σου όπως ήταν:
     if(!btn) return;
     
-    // Ενημέρωση και του εικονιδίου στο Sidebar (αν υπάρχει ξεχωριστά)
-    const sidebarIcon = document.querySelector('.fa-user'); 
-    
     if(isLoggedIn) {
-        // Κουμπί Sidebar
         btn.innerHTML = '<i class="fas fa-user-check"></i>';
         btn.style.color = 'var(--accent)';
-        btn.title = `Logged in as ${currentUser.email}`;
-        btn.onclick = function() { if(confirm(`Log out from ${currentUser.email}?`)) doLogout(); };
-        
-        // Αν υπάρχει άλλο εικονίδιο user κάπου αλλού
-        if(sidebarIcon) sidebarIcon.style.color = 'var(--accent)';
-        
+        btn.onclick = function() { if(confirm("Log out?")) doLogout(); };
     } else {
-        btn.innerHTML = '<i class="fas fa-user"></i> Account'; // Ή σκέτο εικονίδιο αν δεν χωράει
+        btn.innerHTML = '<i class="fas fa-user"></i>';
         btn.style.color = 'var(--text-muted)';
-        btn.title = "Login / Sign up";
         btn.onclick = function() { document.getElementById('authModal').style.display = 'flex'; };
-        
-        if(sidebarIcon) sidebarIcon.style.color = 'inherit';
     }
 }
 
-
-/* =========================================
-   STORAGE / UPLOAD FUNCTIONS
-   ========================================= */
+// --- UPLOAD FUNCTION ---
 
 async function uploadAudioToCloud(audioBlob, filename) {
     if (!currentUser) {
@@ -149,12 +110,11 @@ async function uploadAudioToCloud(audioBlob, filename) {
 
     showToast("Uploading... ☁️");
 
-    // Δημιουργία μοναδικού ονόματος για να μην έχουμε conflicts
-    // φάκελος_χρήστη/timestamp_όνομα
-    const filePath = `${currentUser.id}/${Date.now()}_${filename}`;
+    const filePath = `${currentUser.id}/${filename}`;
     
+    // Χρήση του supabaseClient
     const { data, error } = await supabaseClient.storage
-        .from('Recordings') // Βεβαιώσου ότι το Bucket λέγεται 'Recordings' στο Supabase
+        .from('Recordings')
         .upload(filePath, audioBlob, {
             cacheControl: '3600',
             upsert: true
@@ -172,4 +132,27 @@ async function uploadAudioToCloud(audioBlob, filename) {
         .getPublicUrl(filePath);
 
     return urlData.publicUrl;
+}
+
+// --- GOOGLE AUTH ---
+
+async function loginWithGoogle() {
+    // Έλεγχος αν ο client έχει φορτώσει
+    if (!supabaseClient) {
+        alert("System Error: Database connection failed.");
+        return;
+    }
+
+    const { data, error } = await supabaseClient.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+            // Κρατάμε το href όπως ζήτησες για να δουλεύει στο GitHub Pages
+            redirectTo: window.location.href 
+        }
+    });
+    
+    if (error) {
+        alert("Google Login Error: " + error.message);
+    }
+    // Δεν χρειάζεται else, φεύγει για Google
 }

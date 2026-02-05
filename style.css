@@ -92,18 +92,12 @@ body.lyrics-mode .line-row { align-items: center; line-height: 1.8; }
 .round-btn.accent-btn { border-color: var(--accent); color: var(--accent); }
 
 /* TOOLS & GRID */
-.tool-panel {
-    /* Αυτό είναι το μυστικό: Το panel τεντώνει για να πιάσει όλο τον κενό χώρο */
-    flex: 1; 
-    overflow-y: auto; /* Το scroll γίνεται ΜΕΣΑ στο panel */
-    display: flex;
-    flex-direction: column;
-}
+.col-tools { background: var(--bg-sidebar); display: flex; flex-direction: column; border-left: 1px solid var(--border-color); }
+.tools-header { padding: 15px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
 .badge-pro { background: var(--accent); color: black; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; }
-.recording-active { background-color: var(--danger) !important; color: #fff !important; animation: pulse-red 1.5s infinite; }
-@keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(207, 102, 121, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(207, 102, 121, 0); } 100% { box-shadow: 0 0 0 0 rgba(207, 102, 121, 0); } }
-.settings-full-btn { padding: 12px; background: var(--bg-panel); color: var(--text-muted); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; margin-top: auto; display: flex; align-items: center; justify-content: center; gap: 10px; }
+.recorder-box { background: var(--bg-panel); border-bottom: 1px solid var(--border-color); }
 
+.settings-full-btn { ... }
 
 /* EDITOR */
 .editor-toolbar { padding: 10px 15px; background: var(--bg-panel); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); }
@@ -263,7 +257,7 @@ body.theme-light .modal-btn {
     #rightDrawer, #drawerHandle, .mobile-nav { display: none !important; }
     
     .col-nav { width: var(--nav-width); display: flex !important; flex-direction: column !important; height: 100vh; }
-    .col-tools { width: var(--tools-width); display: block !important; }
+    .col-tools { width: var(--tools-width); display: flex !important; flex-direction: column !important; height: 100vh !important;}
     .col-stage { flex: 1; display: block !important; }
     .desktop-controls-area { display: flex !important; }
 }
@@ -482,28 +476,47 @@ body.theme-light .modal-btn {
 }
 
 /* =========================================
-   NEW COMPACT RIGHT COLUMN (Unified)
+   FINAL RIGHT COLUMN (COMPACT + STICKY FOOTER)
    ========================================= */
 
-/* 1. ΒΑΣΙΚΗ ΔΟΜΗ ΣΤΗΛΗΣ (Για να πατάει σωστά το footer) */
+/* 1. LAYOUT ΣΤΗΛΗΣ (Για να πατάει το Footer κάτω) */
 .col-tools {
-    height: 100vh;           /* Κλειδί για την ευθυγράμμιση */
+    height: 100vh;              /* Κλειδί: Πιάνει όλο το ύψος */
     display: flex;
     flex-direction: column;
     background: var(--bg-sidebar);
     border-left: 1px solid var(--border-color);
     overflow: hidden;
+    position: relative;
+    box-sizing: border-box;
 }
 
 .tool-panel {
-    flex: 1;                 /* Πιάνει όλο τον διαθέσιμο χώρο */
-    overflow-y: auto;        /* Scroll μόνο εδώ, όχι στο footer */
+    flex: 1;                    /* Κλειδί: Πιάνει όλο τον κενό χώρο */
+    overflow-y: auto;           /* Scroll μόνο εδώ μέσα */
     display: flex;
     flex-direction: column;
     padding-bottom: 20px;
 }
 
-/* 2. SECTION STYLING (Γενικά) */
+.tools-footer {
+    height: 70px;               /* Σταθερό ύψος */
+    min-height: 70px;
+    background: var(--bg-panel);
+    border-top: 1px solid var(--border-color);
+    margin-top: auto;           /* Ασφάλεια: Σπρώχνει τέρμα κάτω */
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 15px;
+    box-sizing: border-box;
+}
+.tools-footer .footer-btn {
+    flex: 1; margin: 0 5px; justify-content: center;
+}
+
+/* 2. COMPACT STYLING (Recorder, Player, Lists) */
 .tool-section { padding: 15px; }
 .section-title { 
     font-size: 0.85rem; font-weight: bold; color: var(--accent); 
@@ -511,7 +524,7 @@ body.theme-light .modal-btn {
 }
 .sep { border: 0; border-top: 1px solid var(--border-color); margin: 0; }
 
-/* 3. AUDIO HUB (Compact Recorder & Player) */
+/* Recorder Box */
 .recorder-compact {
     display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
     background: var(--input-bg); padding: 5px 10px; 
@@ -524,12 +537,12 @@ body.theme-light .modal-btn {
     transition: transform 0.2s;
 }
 .rec-btn:hover { transform: scale(1.1); }
-.save-rec-btn {
-    border: none; background: none; color: var(--accent); font-size: 1.1rem; cursor: pointer;
-}
+.save-rec-btn { border: none; background: none; color: var(--accent); font-size: 1.1rem; cursor: pointer; }
+
+/* Unified Player */
 .master-player { width: 100%; height: 30px; margin-bottom: 10px; outline: none; }
 
-/* Playlist (Takes) */
+/* Track List */
 .audio-list-container { margin-top: 5px; }
 .compact-list { display: flex; flex-direction: column; gap: 4px; max-height: 150px; overflow-y: auto; }
 .track-item {
@@ -541,35 +554,29 @@ body.theme-light .modal-btn {
 .track-item:hover { background: rgba(255,255,255,0.08); color: var(--text-main); }
 .track-item.playing { 
     border-left-color: var(--accent); 
-    background: rgba(var(--accent-rgb), 0.1); /* Αν υποστηρίζεται, αλλιώς #333 */
-    color: var(--accent); 
-    font-weight: bold;
+    background: rgba(var(--accent-rgb), 0.1); 
+    color: var(--accent); font-weight: bold;
 }
 .empty-state { font-style: italic; color: var(--text-muted); font-size: 0.8rem; padding: 5px; }
 
-
-/* 4. ACCORDION (Details & Summary) */
+/* 3. ACCORDION (Πτυσσόμενα) */
 details.tool-group { padding: 0; transition: 0.3s; }
 details.tool-group summary {
     padding: 12px 15px; cursor: pointer; font-size: 0.85rem; font-weight: bold; color: var(--text-muted);
-    list-style: none; /* Κρύβει το default τριγωνάκι */
-    display: flex; align-items: center; gap: 8px;
-    transition: color 0.2s;
-    user-select: none;
+    list-style: none; display: flex; align-items: center; gap: 8px;
+    transition: color 0.2s; user-select: none;
 }
 details.tool-group summary:hover { color: var(--text-main); background: rgba(255,255,255,0.02); }
-details.tool-group summary::-webkit-details-marker { display: none; } /* Chrome fix */
+details.tool-group summary::-webkit-details-marker { display: none; }
 details.tool-group summary::after {
-    content: '\f078'; /* FontAwesome Chevron Down */
-    font-family: "Font Awesome 5 Free"; font-weight: 900;
+    content: '\f078'; font-family: "Font Awesome 5 Free"; font-weight: 900;
     margin-left: auto; font-size: 0.7rem; transition: transform 0.2s;
 }
 details[open] summary::after { transform: rotate(180deg); color: var(--accent); }
 .group-content { padding: 0 15px 15px 15px; animation: fadeIn 0.3s ease; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 
-
-/* 5. METRONOME & GRID (Compact) */
+/* 4. METRONOME & EXTRAS */
 .bpm-row { display: flex; align-items: center; gap: 15px; margin-bottom: 5px; }
 .play-mini-btn {
     width: 40px; height: 40px; border-radius: 50%; background: var(--accent); border: none; cursor: pointer;
@@ -590,24 +597,21 @@ details[open] summary::after { transform: rotate(180deg); color: var(--accent); 
 }
 .toggle-grid-btn:hover { border-color: var(--accent); color: var(--accent); }
 
-/* Rhythm Grid (Smaller cells) */
+/* Rhythm Grid */
 .rhythm-grid-container { 
     display: grid; gap: 2px; row-gap: 4px; 
     background: #111; padding: 8px; 
-    border: 1px solid var(--border-color); border-radius: 5px; 
-    overflow-x: auto; 
+    border: 1px solid var(--border-color); border-radius: 5px; overflow-x: auto; 
 }
 .cell { 
-    height: 20px; /* Μικρότερο ύψος */
-    background: #2a2a2a; border-radius: 2px; cursor: pointer; border: 1px solid #333; min-width: 15px; 
+    height: 20px; background: #2a2a2a; border-radius: 2px; cursor: pointer; border: 1px solid #333; min-width: 15px; 
 }
 .cell:hover { filter: brightness(1.3); }
-.cell.bass.active { background: #e57373; border-color:#ff8a80; box-shadow: 0 0 5px #e57373; }
-.cell.snare.active { background: #fff176; border-color:#ffffa8; box-shadow: 0 0 5px #fff176; }
-.cell.hihat.active { background: #64b5f6; border-color:#90caf9; box-shadow: 0 0 5px #64b5f6; }
+.cell.bass.active { background: #e57373; box-shadow: 0 0 5px #e57373; }
+.cell.snare.active { background: #fff176; box-shadow: 0 0 5px #fff176; }
+.cell.hihat.active { background: #64b5f6; box-shadow: 0 0 5px #64b5f6; }
 
-
-/* 6. FILES & VIDEO */
+/* Files & Video */
 .add-mini-btn {
     width: 100%; margin-top: 5px; background: rgba(255,255,255,0.05); border: none; color: var(--text-muted);
     padding: 8px; font-size: 0.8rem; cursor: pointer; border-radius: 4px;
@@ -619,36 +623,3 @@ details[open] summary::after { transform: rotate(180deg); color: var(--accent); 
     background: #000; border-radius: 6px; border: 1px solid #333; 
 }
 .video-responsive iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
-
-
-/* 7. MEDIA OVERLAY (Για να βλέπεις τα PDF) */
-.media-overlay {
-    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-    background: rgba(0, 0, 0, 0.95); z-index: 10000;
-    display: flex; justify-content: center; align-items: center;
-}
-.close-overlay-btn {
-    position: absolute; top: 15px; right: 20px;
-    background: none; border: none; color: #fff;
-    font-size: 2.5rem; cursor: pointer; z-index: 10002;
-}
-.overlay-content { width: 100%; height: 100%; display: flex; flex-direction: column; background: #111; }
-#overlayTitle { padding: 10px; background: #222; text-align: center; color: #fff; margin: 0; border-bottom: 1px solid #444; }
-#overlayBody { flex: 1; overflow: auto; display: flex; justify-content: center; padding: 10px; }
-#overlayBody img { max-width: 100%; object-fit: contain; }
-#overlayBody iframe { width: 100%; height: 100%; border: none; }
-
-/* Desktop PiP (Picture in Picture) Style */
-@media (min-width: 1025px) {
-    .media-overlay {
-        background: rgba(0,0,0,0.3); pointer-events: none; /* Κλικ πίσω από το παράθυρο */
-        justify-content: flex-end; align-items: flex-start;
-        padding-top: 80px; padding-right: 20px;
-    }
-    .overlay-content {
-        pointer-events: auto; width: 45vw; height: 80vh;
-        border: 1px solid var(--accent); border-radius: 12px;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.6); resize: both; overflow: hidden;
-    }
-    .close-overlay-btn { font-size: 1.5rem; top: 5px; right: 10px; }
-}

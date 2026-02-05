@@ -619,7 +619,25 @@ function toggleSetlistSong(e, id) { e.stopPropagation(); var i = liveSetlist.ind
 function populateTags() { var ts = new Set(); library.forEach(s => { if(s.playlists) s.playlists.forEach(t => ts.add(t)); }); var sel = document.getElementById('tagFilter'); if(sel) { sel.innerHTML = `<option value="">ALL</option>`; sel.innerHTML += `<option value="__no_demo">No Demo</option>`; Array.from(ts).sort().forEach(t => { var o = document.createElement('option'); o.value = t; o.innerText = t; sel.appendChild(o); }); } }
 function applyFilters() { renderSidebar(); }
 function applySortAndRender() { var v = document.getElementById('sortFilter').value; userSettings.sortMethod = v; localStorage.setItem('mnotes_settings', JSON.stringify(userSettings)); sortLibrary(v); renderSidebar(); }
-function switchSidebarTab(m) { viewMode = m; document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); document.getElementById('tab-'+m).classList.add('active'); renderSidebar(); }
+function switchSidebarTab(mode) {
+    viewMode = mode;
+    
+    // 1. Ενημέρωση Κουμπιών Tab
+    document.querySelectorAll('.sidebar-tabs .tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(`tab-${mode}`).classList.add('active');
+
+    // 2. Εναλλαγή UI (Search vs Setlist Tools)
+    if (mode === 'setlist') {
+        document.getElementById('library-controls').style.display = 'none';
+        document.getElementById('setlist-controls').style.display = 'block';
+        updateSetlistDropdown(); 
+    } else {
+        document.getElementById('library-controls').style.display = 'flex';
+        document.getElementById('setlist-controls').style.display = 'none';
+    }
+
+    renderSidebar();
+}
 function handleTagInput(inp) { var val = inp.value.toLowerCase(); var sugg = document.getElementById('tagSuggestions'); if(!val && document.activeElement !== inp) { sugg.style.display = 'none'; return; } var allTags = new Set(); library.forEach(s => { if(s.playlists) s.playlists.forEach(t => allTags.add(t)); }); var matches = Array.from(allTags).filter(t => t.toLowerCase().includes(val) && !editorTags.includes(t)); sugg.innerHTML = ""; if(matches.length > 0) { matches.forEach(m => { var div = document.createElement('div'); div.className = 'tag-suggestion-item'; div.innerHTML = `<span>${m}</span>`; div.onclick = function(e) { addTag(m); }; sugg.appendChild(div); }); sugg.style.display = 'block'; } else { sugg.style.display = 'none'; } }
 function handleTagKey(e) { if(e.key === 'Enter') { e.preventDefault(); addTag(e.target.value); } else if (e.key === 'Backspace' && e.target.value === "" && editorTags.length > 0) { removeTag(editorTags[editorTags.length-1]); } }
 function addTag(tag) { tag = tag.trim(); if(tag && !editorTags.includes(tag)) { editorTags.push(tag); renderTagChips(); } document.getElementById('tagInput').value = ""; document.getElementById('tagSuggestions').style.display = 'none'; }
@@ -807,4 +825,184 @@ function closeMediaOverlay() {
 // Placeholder functions for Nav (Phase 2 implementation)
 function navSetlist(dir) {
     showToast("Setlist Nav: " + (dir > 0 ? "Next" : "Prev") + " (Coming Phase 2)");
+}
+
+/* =========================================
+   PHASE 2: FUNCTIONALITY (Setlists, Nav, Audio)
+   ========================================= */
+
+// --- 1. SETLIST MANAGER (Shared vs Local) ---
+
+// Φόρτωση ή Δημιουργία
+var allSetlists = JSON.parse(localStorage.getItem('mnotes_all_setlists')) || {};
+if (Object.keys(allSetlists).length === 0) {
+    allSetlists["My Setlist"] = { type: 'local', songs: [] };
+}
+// Migration παλιών δεδομένων
+Object.keys(allSetlists).forEach(key => {
+    if (Array.isArray(allSetlists[key])) allSetlists[key] = { type: 'local', songs: allSetlists[key] };
+});
+
+var currentSetlistName = localStorage.getItem('mnotes_active_setlist_name') || Object.keys(allSetlists)[0];
+if (!allSetlists[currentSetlistName]) currentSetlistName = Object.keys(allSetlists)[0];
+liveSetlist = allSetlists[currentSetlistName].songs || [];
+
+function updateSetlistDropdown() {
+    const sel = document.getElementById('selSetlistName');
+    if(!sel) return;
+    sel.innerHTML = "";
+    Object.keys(allSetlists).forEach(name => {
+        const listObj = allSetlists[name];
+        const opt = document.createElement('option');
+        opt.value = name;
+        const icon = listObj.type === 'shared' ? '☁️' : '🏠';
+        opt.innerText = `${icon} ${name} (${listObj.songs.length})`;
+        if(name === currentSetlistName) opt.selected = true;
+        sel.appendChild(opt);
+    });
+    updateSetlistButtons();
+}
+
+function updateSetlistButtons() {
+    const isShared = (allSetlists[currentSetlistName].type === 'shared');
+    const btnDel = document.getElementById('btnDelSetlist');
+    const btnRen = document.getElementById('btnRenSetlist');
+    if(btnDel) { btnDel.disabled = isShared; btnDel.style.opacity = isShared?'0.3':'1'; }
+    if(btnRen) { btnRen.disabled = isShared; btnRen.style.opacity = isShared?'0.3':'1'; }
+}
+
+function switchSetlist(name) {
+    if(!allSetlists[name]) return;
+    currentSetlistName = name;
+    liveSetlist = allSetlists[name].songs || [];
+    localStorage.setItem('mnotes_active_setlist_name', name);
+    renderSidebar();
+    updateSetlistButtons();
+}
+
+function createSetlist() {
+    const name = prompt("New Setlist Name:");
+    if (name && !allSetlists[name]) {
+        allSetlists[name] = { type: 'local', songs: [] };
+        saveSetlists();
+        switchSetlist(name);
+        updateSetlistDropdown();
+    } else if (allSetlists[name]) alert("Exists already!");
+}
+
+function renameSetlist() {
+    if (allSetlists[currentSetlistName].type === 'shared') return;
+    const newName = prompt("Rename to:", currentSetlistName);
+    if (newName && newName !== currentSetlistName && !allSetlists[newName]) {
+        allSetlists[newName] = allSetlists[currentSetlistName];
+        delete allSetlists[currentSetlistName];
+        currentSetlistName = newName;
+        saveSetlists();
+        updateSetlistDropdown();
+    }
+}
+
+function deleteSetlist() {
+    if (allSetlists[currentSetlistName].type === 'shared' || Object.keys(allSetlists).length <= 1) return;
+    if (confirm(`Delete "${currentSetlistName}"?`)) {
+        delete allSetlists[currentSetlistName];
+        switchSetlist(Object.keys(allSetlists)[0]);
+        saveSetlists();
+        updateSetlistDropdown();
+    }
+}
+
+function saveSetlists() {
+    if(allSetlists[currentSetlistName]) allSetlists[currentSetlistName].songs = liveSetlist;
+    localStorage.setItem('mnotes_all_setlists', JSON.stringify(allSetlists));
+    localStorage.setItem('mnotes_active_setlist_name', currentSetlistName);
+}
+
+// Override Toggle Song to save
+function toggleSetlistSong(e, id) { 
+    e.stopPropagation(); 
+    var i = liveSetlist.indexOf(id); 
+    if(i > -1) liveSetlist.splice(i,1); else liveSetlist.push(id); 
+    saveSetlists();
+    renderSidebar(); 
+    if(viewMode === 'setlist') updateSetlistDropdown(); 
+}
+
+// --- 2. NAVIGATION (Next/Prev) ---
+
+function navSetlist(dir) {
+    // Δουλεύει μόνο αν έχουμε setlist και τραγούδια
+    if (!liveSetlist || liveSetlist.length === 0) {
+        showToast("Setlist is empty!");
+        return;
+    }
+
+    let currentIndex = -1;
+    if (currentSongId) {
+        currentIndex = liveSetlist.indexOf(currentSongId);
+    }
+
+    let newIndex = currentIndex + dir;
+
+    // Bounds Check (Να μην βγει εκτός ορίων)
+    if (newIndex >= 0 && newIndex < liveSetlist.length) {
+        loadSong(liveSetlist[newIndex]);
+        
+        // Highlight active song in sidebar
+        setTimeout(() => {
+            const activeItem = document.querySelector(`.song-item[onclick*="${liveSetlist[newIndex]}"]`);
+            if(activeItem) activeItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
+    } else {
+        showToast(dir > 0 ? "End of Setlist" : "Start of Setlist");
+    }
+}
+
+
+// --- 3. UNIFIED AUDIO PLAYER (Right Sidebar) ---
+
+function renderSideRecordings(s) {
+    const list = document.getElementById('sideRecList');
+    if (!list) return;
+
+    // Migration old audio
+    if (s.audioRec && (!s.recordings || s.recordings.length === 0)) { 
+        s.recordings = [{ url: s.audioRec, label: "Original Rec", date: 0 }]; 
+    }
+
+    if (!s.recordings || s.recordings.length === 0) { 
+        list.innerHTML = '<div class="empty-state">No tracks</div>'; 
+        return; 
+    }
+
+    list.innerHTML = "";
+    s.recordings.forEach((rec, index) => {
+        const div = document.createElement('div');
+        div.className = 'track-item';
+        div.onclick = (e) => {
+            if(e.target.tagName === 'BUTTON' || e.target.tagName === 'I') return;
+            playTrackInMaster(rec.url, div);
+        };
+        div.innerHTML = `
+            <div style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                <i class="fas fa-play" style="font-size:0.6rem; margin-right:5px; opacity:0.5;"></i> ${rec.label}
+            </div>
+            <button onclick="deleteRecording('${s.id}', ${index})" style="background:none; border:none; color:#666; cursor:pointer;">
+                <i class="fas fa-trash"></i>
+            </button>
+        `;
+        list.appendChild(div);
+    });
+}
+
+function playTrackInMaster(url, itemDiv) {
+    const player = document.getElementById('masterAudio');
+    if(!player) return;
+    
+    // UI Update
+    document.querySelectorAll('.track-item').forEach(d => d.classList.remove('playing'));
+    if(itemDiv) itemDiv.classList.add('playing');
+
+    player.src = url;
+    player.play();
 }

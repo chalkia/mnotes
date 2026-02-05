@@ -105,7 +105,27 @@ function parseSongLogic(song) {
         state.parsedChords.push({ type: 'mixed', tokens: tokens });
     });
 }
+/* =========================================
+   HELPER FUNCTIONS (ΠΡΟΣΘΗΚΗ)
+   ========================================= */
 
+function ensureSongStructure(song) {
+    if (!song) return null;
+    
+    // Αν δεν υπάρχει ID, φτιάχνουμε ένα προσωρινό
+    if (!song.id) song.id = 's' + Date.now() + Math.random().toString(16).slice(2);
+    
+    // Αν δεν υπάρχει τίτλος
+    if (!song.title) song.title = "Untitled";
+    
+    // Αν δεν υπάρχουν στίχοι
+    if (!song.lyrics) song.lyrics = "";
+    
+    // Αν δεν υπάρχουν Meta tags
+    if (!song.meta) song.meta = {};
+
+    return song;
+}
 function splitSongBody(body) {
     if (!body) return { fixed: "", scroll: "" };
     var cleanBody = body.replace(/\r\n/g, "\n").replace(/\r/g, "\n");

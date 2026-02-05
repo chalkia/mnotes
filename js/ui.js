@@ -534,22 +534,56 @@ function toggleStickyNotes() {
     }
 }
 
+// UPDATED FOR UNIFIED PLAYER
 function renderSideRecordings(s) {
-    const box = document.getElementById('sideRecordingsBox');
     const list = document.getElementById('sideRecList');
-    if (!box || !list) return;
+    if (!list) return;
 
-    if (s.audioRec && (!s.recordings || s.recordings.length === 0)) { s.recordings = [{ url: s.audioRec, label: "Original Rec", date: 0 }]; }
-    if (!s.recordings || s.recordings.length === 0) { box.style.display = 'none'; return; }
+    // Συγχώνευση παλιού audioRec με τη νέα λίστα (backward compatibility)
+    if (s.audioRec && (!s.recordings || s.recordings.length === 0)) { 
+        s.recordings = [{ url: s.audioRec, label: "Original Rec", date: 0 }]; 
+    }
 
-    box.style.display = 'block'; list.innerHTML = "";
+    if (!s.recordings || s.recordings.length === 0) { 
+        list.innerHTML = '<div class="empty-state">No tracks</div>'; 
+        return; 
+    }
+
+    list.innerHTML = "";
+    
+    // Γέμισμα λίστας
     s.recordings.forEach((rec, index) => {
-        let timeStr = "";
-        if (rec.date > 0) { const d = new Date(rec.date); timeStr = `${d.getDate()}/${d.getMonth()+1} ${d.getHours()}:${d.getMinutes().toString().padStart(2,'0')}`; }
-        const div = document.createElement('div'); div.className = 'side-rec-item';
-        div.innerHTML = `<div class="side-rec-meta"><span class="side-rec-label">${rec.label}</span><span>${timeStr}</span></div><audio controls src="${rec.url}" preload="none" style="width:100%; height:30px; margin-top:5px;"></audio><div style="text-align:right; margin-top:2px;"><button onclick="deleteRecording('${s.id}', ${index})" style="background:none; border:none; color:var(--danger); font-size:0.8rem; cursor:pointer;"><i class="fas fa-trash"></i> Delete</button></div>`;
+        const div = document.createElement('div');
+        div.className = 'track-item';
+        // Κλικ στο όνομα -> Παίζει στον Master Player
+        div.onclick = (e) => {
+            if(e.target.tagName === 'BUTTON' || e.target.tagName === 'I') return;
+            playTrackInMaster(rec.url, div);
+        };
+
+        div.innerHTML = `
+            <div style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                <i class="fas fa-play" style="font-size:0.6rem; margin-right:5px; opacity:0.5;"></i> ${rec.label}
+            </div>
+            <button onclick="deleteRecording('${s.id}', ${index})" style="background:none; border:none; color:#666; hover:color:red; cursor:pointer; padding:2px;">
+                <i class="fas fa-trash"></i>
+            </button>
+        `;
         list.appendChild(div);
     });
+}
+
+// Νέα Helper Function για τον Unified Player
+function playTrackInMaster(url, itemDiv) {
+    const player = document.getElementById('masterAudio');
+    if(!player) return;
+    
+    // Highlighting
+    document.querySelectorAll('.track-item').forEach(d => d.classList.remove('playing'));
+    if(itemDiv) itemDiv.classList.add('playing');
+
+    player.src = url;
+    player.play();
 }
 
 // --- EVENTS & UTILS ---

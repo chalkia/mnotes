@@ -145,6 +145,16 @@ function renderSidebar() {
     });
     if (sortableInstance) sortableInstance.destroy();
     if(typeof Sortable !== 'undefined') { sortableInstance = new Sortable(list, { animation: 150, handle: '.song-handle', disabled: (viewMode !== 'setlist'), onEnd: function (evt) { if (viewMode === 'setlist') { var movedId = liveSetlist.splice(evt.oldIndex, 1)[0]; liveSetlist.splice(evt.newIndex, 0, movedId); localStorage.setItem('mnotes_setlist', JSON.stringify(liveSetlist)); } } }); }
+// --- ΠΡΟΣΘΗΚΗ ΓΙΑ AUTH ---
+    // Ελέγχουμε αν η Supabase μας λέει ότι είμαστε συνδεδεμένοι
+    if (typeof currentUser !== 'undefined' && currentUser) {
+        // Καλούμε τη συνάρτηση του supabase-client.js για να φτιάξει το κουμπί
+        if (typeof updateAuthUI === 'function') {
+            updateAuthUI(true); 
+        }
+    }
+}
+
 }
 
 // --- UTILS & RESIZERS ---

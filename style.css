@@ -12,6 +12,28 @@
     --lyric-size: 1.3rem; --intro-size: 1.1rem;
     --nav-width: 300px; --tools-width: 300px;
 }
+/* --- GLOBAL ICON SETTINGS --- */
+
+/* 1. Όλα τα εικονίδια κληρονομούν το χρώμα του κειμένου */
+i, .fas, .fab {
+    color: inherit; 
+    transition: color 0.2s ease; /* Ωραίο εφέ όταν αλλάζουν */
+}
+
+/* 2. Εξαίρεση: Εικονίδια που θέλουμε να έχουν πάντα το χρώμα του θέματος (Accent) */
+.icon-accent, .text-accent i {
+    color: var(--accent) !important;
+}
+
+/* 3. Εξαίρεση: Εικονίδια κινδύνου (Delete) */
+.icon-danger, .text-danger i {
+    color: var(--danger) !important;
+}
+
+/* 4. Διόρθωση για τα κουμπιά */
+button i {
+    pointer-events: none; /* Για να μην εμποδίζουν το κλικ */
+}
 body.theme-slate { --bg-main: #2c3d50; --bg-panel: #34495e; --bg-sidebar: #22313f; --text-main: #ecf0f1; --text-muted: #bdc3c7; --accent: #f1c40f; --chord-color: #f1c40f; --input-bg: #34495e; --border-color: #465f75; }
 body.theme-light { --bg-main: #f5f5f5; --bg-panel: #ffffff; --bg-sidebar: #e0e0e0; --text-main: #333333; --text-muted: #666; --accent: #2980b9; --chord-color: #d35400; --input-bg: #fff; --border-color: #ccc; }
 
@@ -657,4 +679,5 @@ details[open] summary::after { transform: rotate(180deg); color: var(--accent); 
     border-radius: 4px;
     padding: 2px;
 }
+
 

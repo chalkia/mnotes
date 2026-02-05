@@ -753,3 +753,24 @@ function handleDrawerSwipe(startX, startY, endX, endY) {
         toggleRightDrawer(); 
     }
 }
+// --- PHASE 1: UI SWITCHING ---
+function switchToolTab(tabName) {
+    // 1. Buttons Update
+    document.querySelectorAll('.tools-tabs .tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(`tab-${tabName}-btn`).classList.add('active');
+
+    // 2. Panels Update
+    document.getElementById('panel-rhythm').style.display = 'none';
+    document.getElementById('panel-media').style.display = 'none';
+    
+    document.getElementById(`panel-${tabName}`).style.display = 'flex';
+}
+
+function closeMediaOverlay() {
+    document.getElementById('mediaOverlay').style.display = 'none';
+}
+
+// Placeholder functions for Nav (Phase 2 implementation)
+function navSetlist(dir) {
+    showToast("Setlist Nav: " + (dir > 0 ? "Next" : "Prev") + " (Coming Phase 2)");
+}

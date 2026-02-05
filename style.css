@@ -92,8 +92,15 @@ body.lyrics-mode .line-row { align-items: center; line-height: 1.8; }
 .round-btn.accent-btn { border-color: var(--accent); color: var(--accent); }
 
 /* TOOLS & GRID */
-.col-tools { background: var(--bg-sidebar); display: flex; flex-direction: column; border-left: 1px solid var(--border-color); }
+.col-tools { overflow:hidden; height: 100vh; background: var(--bg-sidebar); display: flex; flex-direction: column; border-left: 1px solid var(--border-color); }
 .tools-header { padding: 15px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+.tool-panel {
+    /* Αυτό είναι το μυστικό: Το panel τεντώνει για να πιάσει όλο τον κενό χώρο */
+    flex: 1; 
+    overflow-y: auto; /* Το scroll γίνεται ΜΕΣΑ στο panel */
+    display: flex;
+    flex-direction: column;
+}
 .badge-pro { background: var(--accent); color: black; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; }
 .recorder-box { background: var(--bg-panel); border-bottom: 1px solid var(--border-color); }
 .recording-active { background-color: var(--danger) !important; color: #fff !important; animation: pulse-red 1.5s infinite; }
@@ -385,7 +392,7 @@ body.theme-light .modal-btn {
 .desktop-controls-area, 
 .tools-footer {
     height: 70px;             /* ΣΤΑΘΕΡΟ ΥΨΟΣ ΓΙΑ ΕΥΘΥΓΡΑΜΜΙΣΗ */
-    min-height: 70px;
+    margin-top: auto;
     background: var(--bg-panel);
     border-top: 1px solid var(--border-color);
     display: flex;
@@ -487,6 +494,7 @@ body.theme-light .modal-btn {
     filter: brightness(1.1);
     transform: scale(1.1);
 }
+
 
 
 

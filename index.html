@@ -48,17 +48,31 @@
                 </select>
             </div>
 
-            <div id="setlist-controls" class="sidebar-search" style="display:none; border-bottom: 2px solid var(--accent);">
-                    <label style="font-size:0.75rem; color:#888; font-weight:bold; margin-bottom:5px;">ACTIVE SETLIST</label>
-    
-    <                select id="selSetlistName" onchange="switchSetlist(this.value)" style="width:100%; padding:8px; margin-bottom:8px; background:var(--input-bg); color:var(--accent); font-weight:bold; border:1px solid var(--accent); border-radius:4px;">
-                            <option value="Default">Default Setlist</option>
+            <div id="setlist-controls" class="sidebar-search" style="display:none; border-bottom: 2px solid var(--accent); display:flex; flex-direction:column; gap:10px;">
+                
+                <div>
+                    <label style="font-size:0.75rem; color:#888; font-weight:bold; margin-bottom:5px; display:block;">
+                        <i class="fas fa-users"></i> ACTIVE GROUP
+                    </label>
+                    <select id="selGroup" onchange="switchGroup(this.value)" style="width:100%; padding:8px; background:var(--bg-body); color:var(--text-main); border:1px solid #555; border-radius:4px;">
+                        <option value="personal">My Personal Library</option>
                     </select>
+                </div>
 
-                <div style="display:flex; gap:5px;">
-                    <button onclick="createSetlist()" style="flex:1; background:#333; color:#fff; border:1px solid #555; padding:5px; border-radius:4px; cursor:pointer;" title="New List"><i class="fas fa-plus"></i></button>
-                    <button id="btnRenSetlist" onclick="renameSetlist()" style="flex:1; background:#333; color:#fff; border:1px solid #555; padding:5px; border-radius:4px; cursor:pointer;" title="Rename"><i class="fas fa-edit"></i></button>
-                    <button id="btnDelSetlist" onclick="deleteSetlist()" style="flex:0.5; background:var(--danger); color:#fff; border:none; padding:5px; border-radius:4px; cursor:pointer;" title="Delete"><i class="fas fa-trash"></i></button>
+                <div id="setlist-area">
+                    <label style="font-size:0.75rem; color:#888; font-weight:bold; margin-bottom:5px; display:block;">
+                        <i class="fas fa-list"></i> ACTIVE SETLIST
+                    </label>
+                    
+                    <select id="selSetlistName" onchange="switchSetlist(this.value)" style="width:100%; padding:8px; margin-bottom:5px; background:var(--input-bg); color:var(--accent); font-weight:bold; border:1px solid var(--accent); border-radius:4px;">
+                        <option value="Default">Default Setlist</option>
+                    </select>
+            
+                    <div style="display:flex; gap:5px;">
+                        <button onclick="createSetlist()" style="flex:1; background:#333; color:#fff; border:1px solid #555; padding:5px; border-radius:4px; cursor:pointer;" title="New List"><i class="fas fa-plus"></i></button>
+                        <button id="btnRenSetlist" onclick="renameSetlist()" style="flex:1; background:#333; color:#fff; border:1px solid #555; padding:5px; border-radius:4px; cursor:pointer;" title="Rename"><i class="fas fa-edit"></i></button>
+                        <button id="btnDelSetlist" onclick="deleteSetlist()" style="flex:0.5; background:var(--danger); color:#fff; border:none; padding:5px; border-radius:4px; cursor:pointer;" title="Delete"><i class="fas fa-trash"></i></button>
+                    </div>
                 </div>
             </div>
             
@@ -73,7 +87,6 @@
         </aside>
 
         <div class="resizer" id="dragMeLeft"></div>
-
         <main class="col-stage" id="mainZone">
             <div id="view-player" class="view-section active-view">
                 <div class="player-header-container">
@@ -90,49 +103,47 @@
                 <div id="fixed-container" class="fixed-lyrics"></div>
                 <div id="scroll-container" class="scroll-lyrics" ondblclick="toggleAutoScroll()"></div>
 
-<div class="desktop-controls-area">
-    <button id="btnPrevSong" onclick="navSetlist(-1)" class="round-btn" title="Previous Song" style="margin-right:auto;">
-        <i class="fas fa-step-backward"></i>
-    </button>
+                <div class="desktop-controls-area">
+                    <button id="btnPrevSong" onclick="navSetlist(-1)" class="round-btn" title="Previous Song" style="margin-right:auto;">
+                        <i class="fas fa-step-backward"></i>
+                    </button>
 
-    <button id="btnLyrics" onclick="toggleLyricsMode()" class="round-btn" title="Lyrics Mode">
-        <i class="fas fa-scroll"></i>
-    </button>
+                    <button id="btnLyrics" onclick="toggleLyricsMode()" class="round-btn" title="Lyrics Mode">
+                        <i class="fas fa-scroll"></i>
+                    </button>
 
-    <div class="control-cluster">
-        <span class="cluster-label">KEY</span>
-        <div class="stepper">
-            <button onclick="changeTranspose(-1)"><i class="fas fa-minus"></i></button>
-            <span id="val-t">0</span>
-            <button onclick="changeTranspose(1)"><i class="fas fa-plus"></i></button>
-        </div>
-    </div>
+                    <div class="control-cluster">
+                        <span class="cluster-label">KEY</span>
+                        <div class="stepper">
+                            <button onclick="changeTranspose(-1)"><i class="fas fa-minus"></i></button>
+                            <span id="val-t">0</span>
+                            <button onclick="changeTranspose(1)"><i class="fas fa-plus"></i></button>
+                        </div>
+                    </div>
 
-    <div class="control-cluster">
-        <span class="cluster-label">CAPO</span>
-        <div class="stepper">
-            <button onclick="changeCapo(-1)"><i class="fas fa-minus"></i></button>
-            <span id="val-c">0</span>
-            <button onclick="changeCapo(1)"><i class="fas fa-plus"></i></button>
-        </div>
-    </div>
+                    <div class="control-cluster">
+                        <span class="cluster-label">CAPO</span>
+                        <div class="stepper">
+                            <button onclick="changeCapo(-1)"><i class="fas fa-minus"></i></button>
+                            <span id="val-c">0</span>
+                            <button onclick="changeCapo(1)"><i class="fas fa-plus"></i></button>
+                        </div>
+                    </div>
 
-    <button onclick="autoCapo()" class="round-btn accent-btn" title="Smart Capo">
-        <i class="fas fa-lightbulb"></i>
-    </button>
+                    <button onclick="autoCapo()" class="round-btn accent-btn" title="Smart Capo">
+                        <i class="fas fa-lightbulb"></i>
+                    </button>
 
-    <button id="btnEditSong" onclick="switchToEditor()" class="round-btn" title="Edit Song">
-        <i class="fas fa-pen"></i>
-    </button>
+                    <button id="btnEditSong" onclick="switchToEditor()" class="round-btn" title="Edit Song">
+                        <i class="fas fa-pen"></i>
+                    </button>
 
-    <button id="btnNextSong" onclick="navSetlist(1)" class="round-btn" title="Next Song" style="margin-left:auto;">
-        <i class="fas fa-step-forward"></i>
-    </button>
-</div>
-                
+                    <button id="btnNextSong" onclick="navSetlist(1)" class="round-btn" title="Next Song" style="margin-left:auto;">
+                        <i class="fas fa-step-forward"></i>
+                    </button>
+                </div>
             </div>
-
-            <div id="view-editor" class="view-section">
+<div id="view-editor" class="view-section">
                 <div class="editor-toolbar">
                     <button onclick="exitEditor()" class="text-btn"><i class="fas fa-times"></i> Cancel</button>
                     <div style="display:flex; gap:15px; align-items:center;">
@@ -173,96 +184,99 @@
         </main>
 
         <div class="resizer" id="dragMeRight"></div>
-
-<aside class="col-tools" id="rhythmTools">
-    <div class="sidebar-header" style="padding:10px; border-bottom:1px solid var(--border-color); min-height:50px;">
-        <span style="font-weight:bold; color:var(--text-muted); font-size:0.9rem;">TOOLS & ASSETS</span>
-    </div>
-
-    <div class="tool-panel">
-        
-        <div class="tool-section">
-            <div class="section-title"><i class="fas fa-microphone-alt"></i> AUDIO HUB</div>
-            
-            <div class="recorder-compact">
-                <span id="recTimer" class="rec-timer">00:00</span>
-                <button id="btnRecord" onclick="toggleRecording()" class="rec-btn" title="Record"><i class="fas fa-circle"></i></button>
-                <button id="btnLinkRec" onclick="uploadAndLinkCurrent()" class="save-rec-btn" style="display:none;" title="Save to Song"><i class="fas fa-cloud-upload-alt"></i></button>
+        <aside class="col-tools" id="rhythmTools">
+            <div class="sidebar-header" style="padding:10px; border-bottom:1px solid var(--border-color); min-height:50px;">
+                <span style="font-weight:bold; color:var(--text-muted); font-size:0.9rem;">TOOLS & ASSETS</span>
             </div>
 
-            <audio id="masterAudio" controls class="master-player"></audio>
-            
-            <div class="audio-list-container">
-                <label style="font-size:0.7rem; color:#666; font-weight:bold; margin-bottom:5px; display:block;">TRACKS:</label>
-                <div id="sideRecList" class="compact-list">
-                    <div class="empty-state">No recordings yet</div> 
-                </div>
-            </div>
-        </div>
+            <div class="tool-panel">
+                
+                <div class="tool-section">
+                    <div class="section-title"><i class="fas fa-microphone-alt"></i> AUDIO HUB</div>
+                    
+                    <div class="recorder-compact">
+                        <span id="recTimer" class="rec-timer">00:00</span>
+                        <button id="btnRecord" onclick="toggleRecording()" class="rec-btn" title="Record"><i class="fas fa-circle"></i></button>
+                        <button id="btnLinkRec" onclick="uploadAndLinkCurrent()" class="save-rec-btn" style="display:none;" title="Save to Song"><i class="fas fa-cloud-upload-alt"></i></button>
+                    </div>
 
-        <hr class="sep">
+                    <input type="file" id="inpImportAudio" accept="audio/*" style="display:none;" onchange="importAudioFile(this)">
+                    <button class="round-btn" onclick="document.getElementById('inpImportAudio').click()" title="Import Audio" style="width:100%; margin-top:5px; background:#333; font-size:0.8rem;">
+                        <i class="fas fa-file-upload"></i> Import Audio File
+                    </button>
 
-        <details class="tool-group" open>
-            <summary><i class="fas fa-folder-open"></i> FILES & SHEETS</summary>
-            <div class="group-content">
-                <div id="list-sheets" class="file-list compact">
-                    <div class="empty-state">No attachments</div>
-                </div>
-                <button class="add-mini-btn" onclick="document.getElementById('inpPdfUpload').click()">
-                    <i class="fas fa-plus"></i> Add File
-                </button>
-                <input type="file" id="inpPdfUpload" accept="application/pdf, image/*" style="display:none">
-            </div>
-        </details>
-
-        <hr class="sep">
-
-        <details class="tool-group" open>
-            <summary><i class="fas fa-drum"></i> METRONOME</summary>
-            <div class="group-content">
-                <div class="bpm-row">
-                    <button id="btnPlayRhythm" class="play-mini-btn"><i class="fas fa-play"></i></button>
-                    <div class="bpm-display">
-                        <span id="dispBpm">100</span> <span style="font-size:0.7rem; color:#666;">BPM</span>
+                    <audio id="masterAudio" controls class="master-player" style="margin-top:10px;"></audio>
+                    
+                    <div class="audio-list-container">
+                        <label style="font-size:0.7rem; color:#666; font-weight:bold; margin-bottom:5px; display:block;">TRACKS:</label>
+                        <div id="sideRecList" class="compact-list">
+                            <div class="empty-state">No recordings yet</div> 
+                        </div>
                     </div>
                 </div>
-                <input type="range" id="rngBpm" min="40" max="200" value="100" class="compact-range">
-                
-                <select id="selRhythm" class="compact-select" onchange="loadPreset(this.value)">
-                    <option value="">-- Rhythm Style --</option>
-                    <option value="zeibekiko">Zeibekiko (9/8)</option>
-                    <option value="kalamatianos">Kalamatianos (7/8)</option>
-                    <option value="chasapiko">Chasapiko (4/4)</option>
-                </select>
 
-                <button onclick="document.getElementById('grid-editor-area').style.display = document.getElementById('grid-editor-area').style.display=='none'?'block':'none'" class="toggle-grid-btn">
-                    <i class="fas fa-th"></i> Edit Pattern
-                </button>
-                
-                <div id="grid-editor-area" style="display:none; margin-top:10px;">
-                     <div id="rhythm-grid" class="rhythm-grid-container small-grid"></div>
-                </div>
+                <hr class="sep">
+
+                <details class="tool-group" open>
+                    <summary><i class="fas fa-folder-open"></i> FILES & SHEETS</summary>
+                    <div class="group-content">
+                        <div id="list-sheets" class="file-list compact">
+                            <div class="empty-state">No attachments</div>
+                        </div>
+                        <button class="add-mini-btn" onclick="document.getElementById('inpPdfUpload').click()">
+                            <i class="fas fa-plus"></i> Add File
+                        </button>
+                        <input type="file" id="inpPdfUpload" accept="application/pdf, image/*" style="display:none">
+                    </div>
+                </details>
+
+                <hr class="sep">
+
+                <details class="tool-group" open>
+                    <summary><i class="fas fa-drum"></i> METRONOME</summary>
+                    <div class="group-content">
+                        <div class="bpm-row">
+                            <button id="btnPlayRhythm" class="play-mini-btn"><i class="fas fa-play"></i></button>
+                            <div class="bpm-display">
+                                <span id="dispBpm">100</span> <span style="font-size:0.7rem; color:#666;">BPM</span>
+                            </div>
+                        </div>
+                        <input type="range" id="rngBpm" min="40" max="200" value="100" class="compact-range">
+                        
+                        <select id="selRhythm" class="compact-select" onchange="loadPreset(this.value)">
+                            <option value="">-- Rhythm Style --</option>
+                            <option value="zeibekiko">Zeibekiko (9/8)</option>
+                            <option value="kalamatianos">Kalamatianos (7/8)</option>
+                            <option value="chasapiko">Chasapiko (4/4)</option>
+                        </select>
+
+                        <button onclick="document.getElementById('grid-editor-area').style.display = document.getElementById('grid-editor-area').style.display=='none'?'block':'none'" class="toggle-grid-btn">
+                            <i class="fas fa-th"></i> Edit Pattern
+                        </button>
+                        
+                        <div id="grid-editor-area" style="display:none; margin-top:10px;">
+                             <div id="rhythm-grid" class="rhythm-grid-container small-grid"></div>
+                        </div>
+                    </div>
+                </details>
+
+                <hr class="sep">
+
+                <details class="tool-group">
+                    <summary><i class="fab fa-youtube"></i> VIDEO REFERENCE</summary>
+                    <div class="group-content" id="video-sidebar-container" style="display:none;">
+                        <div id="video-embed-box" class="video-responsive"></div>
+                    </div>
+                </details>
+
             </div>
-        </details>
 
-        <hr class="sep">
-
-        <details class="tool-group">
-            <summary><i class="fab fa-youtube"></i> VIDEO REFERENCE</summary>
-            <div class="group-content" id="video-sidebar-container" style="display:none;">
-                <div id="video-embed-box" class="video-responsive"></div>
+             <div class="tools-footer">
+                <button class="footer-btn" onclick="openSettings()"><i class="fas fa-cog"></i></button>
+                <button id="btnAuthBottom" class="footer-btn" onclick="document.getElementById('authModal').style.display='flex'">
+                    <i class="fas fa-user"></i> Account </button>
             </div>
-        </details>
-
-    </div>
-
-     <div class="tools-footer">
-        <button class="footer-btn" onclick="openSettings()"><i class="fas fa-cog"></i></button>
-        <button id="btnAuthBottom" class="footer-btn" onclick="document.getElementById('authModal').style.display='flex'">
-            <i class="fas fa-user"></i> Account </button>
-    </div>
-</aside>
-
+        </aside>
         <nav class="mobile-nav">
             <button class="tab-btn-mob" onclick="switchMobileTab('library')"><i class="fas fa-list"></i><span>Λίστα</span></button>
             <button class="tab-btn-mob active" onclick="switchMobileTab('stage')"><i class="fas fa-microphone-alt"></i><span>Εκτέλεση</span></button>
@@ -271,57 +285,59 @@
         
         <div id="navTrigger" onclick="showMobileNav()" style="position:fixed; bottom:0; left:0; width:100%; height:40px; z-index:90; display:none;"></div>
     </div>
-<div id="importChoiceModal" class="modal" style="display:none;">
-    <div class="modal-content">
-        <h3>Import Song</h3>
-        <button onclick="selectImport('url')" class="modal-btn"><i class="fas fa-link"></i> From URL</button>
-        <button onclick="selectImport('file')" class="modal-btn"><i class="fas fa-file-upload"></i> From File (JSON)</button>
-        <button onclick="selectImport('qr')" class="modal-btn"><i class="fas fa-qrcode"></i> Scan QR</button>
-        <button onclick="document.getElementById('importChoiceModal').style.display='none'" class="modal-btn cancel">Cancel</button>
-    </div>
-</div>
 
-<div id="scanModal" class="modal" style="display:none;">
-    <div class="modal-content">
-        <div id="reader" style="width:100%"></div>
-        <button onclick="closeScan()" class="modal-btn cancel">Close</button>
-    </div>
-</div>
-
-<div id="qrModal" class="modal" style="display:none;">
-    <div class="modal-content">
-        <h3>Song QR Code</h3>
-        <div id="qr-output" style="text-align:center; margin:10px;"></div>
-        <button onclick="document.getElementById('qrModal').style.display='none'" class="modal-btn cancel">Close</button>
-    </div>
-</div>
-
-<div id="settingsModal" class="modal" style="display:none;">
-    <div class="modal-content settings-content">
-        <h3>Settings</h3>
-        <label>Theme: <select id="setTheme" onchange="toggleCustomColors(this.value)"><option value="theme-dark">Dark</option><option value="theme-light">Light</option><option value="theme-custom">Custom</option></select></label>
-        
-        <div id="customColorArea" style="display:none; border:1px solid #444; padding:10px; margin:10px 0;">
-            <label>Bg: <input type="color" id="colBgMain" value="#000000"></label>
-            <label>Text: <input type="color" id="colTextMain" value="#ffffff"></label>
-            <label>Accent: <input type="color" id="colAccent" value="#00ff00"></label>
-            <label>Chord: <input type="color" id="colChord" value="#ffff00"></label>
-        </div>
-
-        <label>Scroll Speed: <input type="range" id="setScroll" min="10" max="200"></label>
-        <label>Max Capo: <input type="number" id="setMaxCapo" value="12"></label>
-        <label><input type="checkbox" id="setBackup"> Backup Reminder</label>
-        <label><input type="checkbox" id="setHideDemo"> Hide Demo</label>
-        <label><input type="checkbox" id="setWakeLock"> Keep Screen On</label>
-        
-        <div style="margin-top:15px; display:flex; gap:10px;">
-            <button onclick="saveSettings()" class="modal-btn accent">Save</button>
-            <button onclick="document.getElementById('settingsModal').style.display='none'" class="modal-btn cancel">Cancel</button>
+    <div id="importChoiceModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <h3>Import Song</h3>
+            <button onclick="selectImport('url')" class="modal-btn"><i class="fas fa-link"></i> From URL</button>
+            <button onclick="selectImport('file')" class="modal-btn"><i class="fas fa-file-upload"></i> From File (JSON)</button>
+            <button onclick="selectImport('qr')" class="modal-btn"><i class="fas fa-qrcode"></i> Scan QR</button>
+            <button onclick="document.getElementById('importChoiceModal').style.display='none'" class="modal-btn cancel">Cancel</button>
         </div>
     </div>
-</div>
 
-<input type="file" id="hiddenFileInput" style="display:none;" accept=".json, .mnote, .mnotes">
+    <div id="scanModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <div id="reader" style="width:100%"></div>
+            <button onclick="closeScan()" class="modal-btn cancel">Close</button>
+        </div>
+    </div>
+
+    <div id="qrModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <h3>Song QR Code</h3>
+            <div id="qr-output" style="text-align:center; margin:10px;"></div>
+            <button onclick="document.getElementById('qrModal').style.display='none'" class="modal-btn cancel">Close</button>
+        </div>
+    </div>
+
+    <div id="settingsModal" class="modal" style="display:none;">
+        <div class="modal-content settings-content">
+            <h3>Settings</h3>
+            <label>Theme: <select id="setTheme" onchange="toggleCustomColors(this.value)"><option value="theme-dark">Dark</option><option value="theme-light">Light</option><option value="theme-custom">Custom</option></select></label>
+            
+            <div id="customColorArea" style="display:none; border:1px solid #444; padding:10px; margin:10px 0;">
+                <label>Bg: <input type="color" id="colBgMain" value="#000000"></label>
+                <label>Text: <input type="color" id="colTextMain" value="#ffffff"></label>
+                <label>Accent: <input type="color" id="colAccent" value="#00ff00"></label>
+                <label>Chord: <input type="color" id="colChord" value="#ffff00"></label>
+            </div>
+
+            <label>Scroll Speed: <input type="range" id="setScroll" min="10" max="200"></label>
+            <label>Max Capo: <input type="number" id="setMaxCapo" value="12"></label>
+            <label><input type="checkbox" id="setBackup"> Backup Reminder</label>
+            <label><input type="checkbox" id="setHideDemo"> Hide Demo</label>
+            <label><input type="checkbox" id="setWakeLock"> Keep Screen On</label>
+            
+            <div style="margin-top:15px; display:flex; gap:10px;">
+                <button onclick="saveSettings()" class="modal-btn accent">Save</button>
+                <button onclick="document.getElementById('settingsModal').style.display='none'" class="modal-btn cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <input type="file" id="hiddenFileInput" style="display:none;" accept=".json, .mnote, .mnotes">
+    
     <div id="authModal" class="modal-overlay" style="display:none;">
         <div class="modal-box">
              <h3>Login / Sign Up</h3>
@@ -337,64 +353,86 @@
              <div id="authMsg" style="margin-top:10px; font-size:0.9rem; color:#cf6679;"></div>
         </div>
     </div>
+
     <div id="drawerHandle" onclick="toggleRightDrawer()">
-    <i class="fas fa-bars"></i>
-</div>
-
-<aside id="rightDrawer" class="right-drawer">
-    <div class="drawer-header">
-        <span style="font-weight:bold; color:var(--accent);">MENU</span>
-        <button onclick="toggleRightDrawer()" style="background:none; border:none; color:white; font-size:1.2rem;"><i class="fas fa-times"></i></button>
-    </div>
-    
-    <div class="drawer-section">
-        <label>NAVIGATION</label>
-        <button class="drawer-btn active" onclick="switchDrawerTab('library')"><i class="fas fa-list"></i> Library</button>
-        <button class="drawer-btn" onclick="switchDrawerTab('stage')"><i class="fas fa-microphone-alt"></i> Stage</button>
-        <button class="drawer-btn" onclick="switchDrawerTab('tools')"><i class="fas fa-drum"></i> Rhythm & Tools</button>
+        <i class="fas fa-bars"></i>
     </div>
 
-    <div id="drawer-player-controls" class="drawer-section" style="display:none;">
-        <label>CONTROLS</label>
-        <button class="drawer-btn" onclick="toggleLyricsMode()"><i class="fas fa-scroll"></i> Lyrics Mode</button>
-        
-        <div class="drawer-row">
-            <span>Transpose:</span>
-            <div class="stepper">
-                <button onclick="changeTranspose(-1)">-</button>
-                <span id="drawer-val-t" style="color:var(--accent); min-width:20px; text-align:center;">0</span>
-                <button onclick="changeTranspose(1)">+</button>
-            </div>
+    <aside id="rightDrawer" class="right-drawer">
+        <div class="drawer-header">
+            <span style="font-weight:bold; color:var(--accent);">MENU</span>
+            <button onclick="toggleRightDrawer()" style="background:none; border:none; color:white; font-size:1.2rem;"><i class="fas fa-times"></i></button>
         </div>
         
-        <div class="drawer-row">
-            <span>Capo:</span>
-            <div class="stepper">
-                <button onclick="changeCapo(-1)">-</button>
-                <span id="drawer-val-c" style="color:var(--accent); min-width:20px; text-align:center;">0</span>
-                <button onclick="changeCapo(1)">+</button>
+        <div class="drawer-section">
+            <label>NAVIGATION</label>
+            <button class="drawer-btn active" onclick="switchDrawerTab('library')"><i class="fas fa-list"></i> Library</button>
+            <button class="drawer-btn" onclick="switchDrawerTab('stage')"><i class="fas fa-microphone-alt"></i> Stage</button>
+            <button class="drawer-btn" onclick="switchDrawerTab('tools')"><i class="fas fa-drum"></i> Rhythm & Tools</button>
+        </div>
+
+        <div id="drawer-player-controls" class="drawer-section" style="display:none;">
+            <label>CONTROLS</label>
+            <button class="drawer-btn" onclick="toggleLyricsMode()"><i class="fas fa-scroll"></i> Lyrics Mode</button>
+            
+            <div class="drawer-row">
+                <span>Transpose:</span>
+                <div class="stepper">
+                    <button onclick="changeTranspose(-1)">-</button>
+                    <span id="drawer-val-t" style="color:var(--accent); min-width:20px; text-align:center;">0</span>
+                    <button onclick="changeTranspose(1)">+</button>
+                </div>
+            </div>
+            
+            <div class="drawer-row">
+                <span>Capo:</span>
+                <div class="stepper">
+                    <button onclick="changeCapo(-1)">-</button>
+                    <span id="drawer-val-c" style="color:var(--accent); min-width:20px; text-align:center;">0</span>
+                    <button onclick="changeCapo(1)">+</button>
+                </div>
+            </div>
+            
+            <button class="drawer-btn" onclick="autoCapo()"><i class="fas fa-lightbulb"></i> Smart Capo</button>
+            <button class="drawer-btn" onclick="switchToEditor()"><i class="fas fa-pen"></i> Edit Song</button>
+        </div>
+
+        <div id="drawer-tools" class="drawer-section" style="display:none;">
+            <label>AUDIO & RECORDING</label>
+            
+            <div class="audio-controls" style="display:flex; gap:10px; align-items:center; justify-content:center; margin-bottom:15px;">
+                <button id="btnRecordDrawer" class="round-btn" onclick="toggleRecording()" style="width:50px; height:50px; font-size:1.2rem;">
+                    <i class="fas fa-microphone"></i>
+                </button>
+                
+                <input type="file" id="inpImportAudioDrawer" accept="audio/*" style="display:none;" onchange="importAudioFile(this)">
+                <button class="round-btn" onclick="document.getElementById('inpImportAudioDrawer').click()" title="Import File" style="background:var(--text-muted);">
+                    <i class="fas fa-file-upload"></i>
+                </button>
+            </div>
+            
+             <label>METRONOME</label>
+            <div style="text-align:center; padding:10px; color:#666;">
+                (Use Desktop for full Metronome)
             </div>
         </div>
-        
-        <button class="drawer-btn" onclick="autoCapo()"><i class="fas fa-Lightbulb"></i> Smart Capo</button>
-        <button class="drawer-btn" onclick="switchToEditor()"><i class="fas fa-pen"></i> Edit Song</button>
-    </div>
 
-    <div class="drawer-section" style="margin-top:auto; border-top:1px solid #333; padding-top:10px;">
-        <button class="drawer-btn" onclick="openSettings()"><i class="fas fa-cog"></i> Settings</button>
-        <button class="drawer-btn" onclick="document.getElementById('authModal').style.display='flex'"><i class="fas fa-user"></i> Account</button>
-    </div>
+        <div class="drawer-section" style="margin-top:auto; border-top:1px solid #333; padding-top:10px;">
+            <button class="drawer-btn" onclick="openSettings()"><i class="fas fa-cog"></i> Settings</button>
+            <button id="btnAuthDrawer" class="drawer-btn" onclick="document.getElementById('authModal').style.display='flex'">
+                <i class="fas fa-user"></i> Account
+            </button>
+        </div>
+    </aside>
 
-<div id="mediaOverlay" class="media-overlay" style="display:none;" onclick="closeMediaOverlay()">
-    <button class="close-overlay-btn" onclick="closeMediaOverlay()">&times;</button>
-    <div class="overlay-content" onclick="event.stopPropagation()">
-        <h3 id="overlayTitle">Document View</h3>
-        <div id="overlayBody">
-            </div>
+    <div id="mediaOverlay" class="media-overlay" style="display:none;" onclick="closeMediaOverlay()">
+        <button class="close-overlay-btn" onclick="closeMediaOverlay()">&times;</button>
+        <div class="overlay-content" onclick="event.stopPropagation()">
+            <h3 id="overlayTitle">Document View</h3>
+            <div id="overlayBody"></div>
+        </div>
     </div>
-  </div>
     
-</aside>
     <script src="js/sortable.min.js"></script>
     <script src="js/qrcodegen.js"></script>
     <script src="js/html5-qrcode.min.js"></script>
@@ -405,19 +443,7 @@
     <script src="js/supabase-client.js"></script> 
     <script src="js/audio.js"></script>
     <script src="js/logic.js"></script>
-    <script src="js/ui.js?v=14.0"></script>
+    <script src="js/ui.js?v=17.0"></script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
+           

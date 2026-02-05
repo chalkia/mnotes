@@ -495,6 +495,108 @@ body.theme-light .modal-btn {
     transform: scale(1.1);
 }
 
+/* =========================================
+   PHASE 1: TABS, MEDIA & OVERLAY
+   ========================================= */
+
+/* TABS (Right Sidebar) */
+.tools-tabs {
+    display: flex;
+    background: var(--input-bg);
+    padding: 4px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    width: 100%;
+}
+.tools-tabs .tab-btn {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    padding: 8px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: 0.2s;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.tools-tabs .tab-btn.active {
+    background: var(--bg-panel);
+    color: var(--accent);
+    font-weight: bold;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+.tool-panel { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+.tool-panel[style*="display:none"] { display: none !important; }
+
+/* MEDIA LIST ITEMS */
+.file-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.file-item {
+    background: var(--input-bg);
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.file-item:hover { border-color: var(--accent); color: var(--accent); }
+.file-item i { color: #e74c3c; margin-right: 8px; }
+
+/* MEDIA OVERLAY (Default: Mobile Fullscreen) */
+.media-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: rgba(0, 0, 0, 0.95);
+    z-index: 10000;
+    display: flex; justify-content: center; align-items: center;
+    backdrop-filter: blur(5px);
+}
+.close-overlay-btn {
+    position: absolute; top: 15px; right: 15px;
+    background: none; border: none; color: #fff;
+    font-size: 2.5rem; cursor: pointer; z-index: 10002;
+}
+.overlay-content {
+    width: 100%; height: 100%;
+    background: #222;
+    display: flex; flex-direction: column;
+}
+#overlayTitle {
+    padding: 10px; background: var(--bg-panel); color: var(--text-main);
+    margin: 0; text-align: center; border-bottom: 1px solid var(--border-color);
+}
+#overlayBody {
+    flex: 1; overflow: auto; display: flex; justify-content: center; align-items: flex-start;
+    padding: 10px; background: #000;
+}
+#overlayBody img { max-width: 100%; height: auto; }
+#overlayBody iframe { width: 100%; height: 100%; border: none; }
+
+/* DESKTOP MEDIA OVERLAY (PiP Window) */
+@media (min-width: 1025px) {
+    .media-overlay {
+        background: rgba(0, 0, 0, 0.3); /* Transparent Dim */
+        pointer-events: none; /* Click through to lyrics */
+        justify-content: flex-end; /* Align right */
+        align-items: flex-start;
+        padding-top: 80px; padding-right: 20px;
+    }
+    .overlay-content {
+        pointer-events: auto; /* Enable clicks inside window */
+        width: 45vw; height: 80vh;
+        border: 1px solid var(--accent);
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+        resize: both; overflow: hidden;
+        min-width: 320px;
+    }
+    .close-overlay-btn {
+        position: absolute; top: 5px; right: 10px; font-size: 1.5rem;
+    }
+}
 
 
 

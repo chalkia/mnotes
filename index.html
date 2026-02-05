@@ -77,6 +77,10 @@
                 <div id="scroll-container" class="scroll-lyrics" ondblclick="toggleAutoScroll()"></div>
 
 <div class="desktop-controls-area">
+    <button id="btnPrevSong" onclick="navSetlist(-1)" class="round-btn" title="Previous Song" style="display:none; margin-right:auto;">
+        <i class="fas fa-step-backward"></i>
+    </button>
+
     <button id="btnLyrics" onclick="toggleLyricsMode()" class="round-btn" title="Lyrics Mode">
         <i class="fas fa-scroll"></i>
     </button>
@@ -105,6 +109,10 @@
 
     <button id="btnEditSong" onclick="switchToEditor()" class="round-btn" title="Edit Song">
         <i class="fas fa-pen"></i>
+    </button>
+
+    <button id="btnNextSong" onclick="navSetlist(1)" class="round-btn" title="Next Song" style="display:none; margin-left:auto;">
+        <i class="fas fa-step-forward"></i>
     </button>
 </div>
                 
@@ -152,74 +160,104 @@
 
         <div class="resizer" id="dragMeRight"></div>
 
-        <aside class="col-tools" id="rhythmTools">
-            <div class="tools-header"><h3>RHYTHM</h3><span class="badge-pro">PRO</span></div>
+<aside class="col-tools" id="rhythmTools">
+    <div class="sidebar-header" style="padding:10px; border-bottom:none;">
+        <div class="tools-tabs">
+            <button id="tab-rhythm-btn" class="tab-btn active" onclick="switchToolTab('rhythm')">
+                <i class="fas fa-drum"></i> Rhythm
+            </button>
+            <button id="tab-media-btn" class="tab-btn" onclick="switchToolTab('media')">
+                <i class="fas fa-compact-disc"></i> Media
+            </button>
+        </div>
+    </div>
 
-            <div class="recorder-box" style="padding: 15px; border-bottom: 1px solid #333; background: var(--bg-panel);">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                    <label style="color:var(--text-muted); font-size:0.8rem; font-weight:bold;">RECORDER</label>
-                    <span id="recTimer" style="font-family:monospace; color:var(--text-muted); font-size:1rem;">00:00</span>
+    <div id="panel-rhythm" class="tool-panel active-panel">
+        
+        <div class="recorder-box" style="padding: 15px; border-bottom: 1px solid var(--border-color); background: var(--bg-panel);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <label style="color:var(--text-muted); font-size:0.8rem; font-weight:bold;">RECORDER</label>
+                <span id="recTimer" style="font-family:monospace; color:var(--text-muted); font-size:1rem;">00:00</span>
+            </div>
+            <div style="display:flex; gap:10px; justify-content: center;">
+                <button id="btnRecord" onclick="toggleRecording()" class="round-btn" style="border-color:var(--danger); color:var(--danger); width:50px; height:50px; font-size:1.2rem;"><i class="fas fa-microphone"></i></button>
+                <button id="btnLinkRec" onclick="uploadAndLinkCurrent()" class="round-btn" style="display:none; border-color:var(--accent); color:var(--accent); width:50px; height:50px; font-size:1.2rem;" title="Upload & Save"><i class="fas fa-link"></i></button>
+                <a id="btnDownloadRec" class="round-btn" target="_blank" style="border-color:#555; color:#555; display:flex; align-items:center; justify-content:center; width:40px; height:40px; font-size:1rem; opacity:0.5; pointer-events:none;"><i class="fas fa-download"></i></a>
+            </div>
+            <audio id="audioPreview" controls style="width:100%; min-width:200px; margin-top:15px; height:35px; display:none;"></audio>
+        </div>
+
+        <div class="rhythm-panel">
+            <div class="ctl-row main-play" style="justify-content: space-between; margin-bottom: 20px;">
+                <button id="btnPlayRhythm" class="big-play-btn"><i class="fas fa-play"></i></button>
+                <div class="bpm-box" style="text-align:right;">
+                    <label style="font-size:0.8rem; color:#888;">BPM: <span id="dispBpm" style="color:var(--accent);">100</span></label>
+                    <input type="range" id="rngBpm" min="40" max="200" value="100" style="width:100%;">
                 </div>
-                <div style="display:flex; gap:10px; justify-content: center;">
-                    <button id="btnRecord" onclick="toggleRecording()" class="round-btn" style="border-color:var(--danger); color:var(--danger); width:50px; height:50px; font-size:1.2rem;"><i class="fas fa-microphone"></i></button>
-                    <button id="btnLinkRec" onclick="uploadAndLinkCurrent()" class="round-btn" style="display:none; border-color:var(--accent); color:var(--accent); width:50px; height:50px; font-size:1.2rem;" title="Upload & Save"><i class="fas fa-link"></i></button>
-                    <a id="btnDownloadRec" class="round-btn" target="_blank" style="border-color:#555; color:#555; display:flex; align-items:center; justify-content:center; width:40px; height:40px; font-size:1rem; opacity:0.5; pointer-events:none;"><i class="fas fa-download"></i></a>
-                </div>
-                <audio id="audioPreview" controls style="width:100%; min-width:200px; margin-top:15px; height:35px; display:none;"></audio>
             </div>
 
-            <div id="sideRecordingsBox" style="display:none; padding: 15px; border-bottom: 1px solid #333; background: var(--bg-panel);">
-                <label style="color:var(--text-muted); font-size:0.8rem; font-weight:bold; margin-bottom:10px; display:block;"><i class="fas fa-save"></i> SAVED TAKES</label>
+            <div class="editor-header" style="display:flex; justify-content:space-between; align-items:center;">
+                <label>EDITOR</label>
+                <div style="display:flex; gap:5px; align-items:center;">
+                    <button onclick="clearGrid()" style="padding:4px 8px; font-size:0.7rem; background:#333; color:white; border:none; cursor:pointer;">Clear</button>
+                    <label style="font-size:0.7rem; color:#888; margin-left:5px;">Steps:</label>
+                    <input type="number" id="beatCount" value="16" min="4" max="64" step="1" onchange="updateGridSize()" style="width:45px; padding:2px; font-size:0.8rem; background:#222; color:white; border:1px solid #444; text-align:center;">
+                </div>
+            </div>
+
+            <div id="rhythm-grid" class="rhythm-grid-container"></div>
+
+            <div class="ctl-row" style="margin-top:20px; border-top:1px solid #333; padding-top:15px;">
+                <label>Preset:</label>
+                <select id="selRhythm" class="inp" style="padding:5px;" onchange="loadPreset(this.value)">
+                    <option value="">-- Select --</option>
+                    <option value="zeibekiko">Ζεϊμπέκικο (9/8)</option>
+                    <option value="kalamatianos">Καλαματιανός (7/8)</option>
+                    <option value="chasapiko">Χασάπικο (4/4)</option>
+                    <option value="tsifteteli">Τσιφτετέλι (4/4)</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div id="panel-media" class="tool-panel" style="display:none;">
+        <div class="assets-container" style="padding:20px;">
+            
+            <div id="sideRecordingsBox" style="display:none; margin-bottom:20px;">
+                <h3 style="font-size:0.9rem; color:var(--text-muted); border-bottom:1px solid var(--border-color); padding-bottom:5px; margin-bottom:10px;">
+                    <i class="fas fa-microphone"></i> AUDIO TAKES
+                </h3>
                 <div id="sideRecList" style="display:flex; flex-direction:column; gap:8px;"></div>
             </div>
 
-            <div class="rhythm-panel">
-                <div class="ctl-row main-play" style="justify-content: space-between; margin-bottom: 20px;">
-                    <button id="btnPlayRhythm" class="big-play-btn"><i class="fas fa-play"></i></button>
-                    <div class="bpm-box" style="text-align:right;">
-                        <label style="font-size:0.8rem; color:#888;">BPM: <span id="dispBpm" style="color:var(--accent);">100</span></label>
-                        <input type="range" id="rngBpm" min="40" max="200" value="100" style="width:100%;">
-                    </div>
+            <div class="asset-group">
+                <h3 style="font-size:0.9rem; color:var(--text-muted); border-bottom:1px solid var(--border-color); padding-bottom:5px; margin-bottom:10px;">
+                    <i class="fas fa-file-pdf"></i> SHEETS & DOCS
+                </h3>
+                <div id="list-sheets" class="file-list">
+                    <div class="empty-state" style="color:#666; font-style:italic; font-size:0.9rem;">No attachments yet.</div>
                 </div>
-
-                <div class="editor-header" style="display:flex; justify-content:space-between; align-items:center;">
-                    <label>EDITOR</label>
-                    <div style="display:flex; gap:5px; align-items:center;">
-                        <button onclick="clearGrid()" style="padding:4px 8px; font-size:0.7rem; background:#333; color:white; border:none; cursor:pointer;">Clear</button>
-                        <label style="font-size:0.7rem; color:#888; margin-left:5px;">Steps:</label>
-                        <input type="number" id="beatCount" value="16" min="4" max="64" step="1" onchange="updateGridSize()" style="width:45px; padding:2px; font-size:0.8rem; background:#222; color:white; border:1px solid #444; text-align:center;">
-                    </div>
-                </div>
-
-                <div id="rhythm-grid" class="rhythm-grid-container"></div>
-
-                <div class="ctl-row" style="margin-top:20px; border-top:1px solid #333; padding-top:15px;">
-                    <label>Load:</label>
-                    <select id="selRhythm" class="inp" style="padding:5px;" onchange="loadPreset(this.value)">
-                        <option value="">-- Preset --</option>
-                        <option value="zeibekiko">Ζεϊμέκικο (9/8)</option>
-                        <option value="kalamatianos">Καλαματιανός (7/8)</option>
-                        <option value="chasapiko">Χασάπικο (4/4)</option>
-                        <option value="tsifteteli">Τσιφτετέλι (4/4)</option>
-                    </select>
-                </div>
-                   <div class="tools-footer">
-                      <button class="footer-btn" onclick="openSettings()">
-                         <i class="fas fa-cog"></i> Settings
-                      </button>
-                      <button class="footer-btn" onclick="document.getElementById('authModal').style.display='flex'">
-                         <i class="fas fa-user"></i> Account
-                      </button>  
-                </div>
+                <button class="add-asset-btn" style="width:100%; margin-top:10px; padding:8px; background:transparent; border:1px dashed #666; color:#888; cursor:pointer;" onclick="document.getElementById('inpPdfUpload').click()">
+                    <i class="fas fa-plus"></i> Add PDF/Image
+                </button>
+                <input type="file" id="inpPdfUpload" accept="application/pdf, image/*" style="display:none">
             </div>
 
-            <div id="video-sidebar-container" style="padding:15px; border-top:1px solid #333; margin-top:auto; display:none;">
-                <label style="color:#888; font-size:0.8rem; display:block; margin-bottom:5px;"><i class="fab fa-youtube"></i> REFERENCE</label>
+            <div id="video-sidebar-container" style="margin-top:25px; display:none;">
+                <h3 style="font-size:0.9rem; color:var(--text-muted); border-bottom:1px solid var(--border-color); padding-bottom:5px; margin-bottom:10px;">
+                    <i class="fab fa-youtube"></i> REFERENCE
+                </h3>
                 <div id="video-embed-box" class="video-responsive"></div>
             </div>
 
-            <button onclick="openSettings()" class="settings-full-btn"><i class="fas fa-cog"></i> Settings</button>
-        </aside>
+        </div>
+    </div>
+
+    <div class="tools-footer">
+        <button class="footer-btn" onclick="openSettings()"><i class="fas fa-cog"></i> Settings</button>
+        <button class="footer-btn" onclick="document.getElementById('authModal').style.display='flex'"><i class="fas fa-user"></i> Account</button>  
+    </div>
+</aside>
 
         <nav class="mobile-nav">
             <button class="tab-btn-mob" onclick="switchMobileTab('library')"><i class="fas fa-list"></i><span>Λίστα</span></button>
@@ -342,6 +380,16 @@
         <button class="drawer-btn" onclick="openSettings()"><i class="fas fa-cog"></i> Settings</button>
         <button class="drawer-btn" onclick="document.getElementById('authModal').style.display='flex'"><i class="fas fa-user"></i> Account</button>
     </div>
+
+<div id="mediaOverlay" class="media-overlay" style="display:none;" onclick="closeMediaOverlay()">
+    <button class="close-overlay-btn" onclick="closeMediaOverlay()">&times;</button>
+    <div class="overlay-content" onclick="event.stopPropagation()">
+        <h3 id="overlayTitle">Document View</h3>
+        <div id="overlayBody">
+            </div>
+    </div>
+  </div>
+    
 </aside>
     <script src="js/sortable.min.js"></script>
     <script src="js/qrcodegen.js"></script>
@@ -355,6 +403,7 @@
     <script src="js/ui.js?v=14.0"></script>
 </body>
 </html>
+
 
 
 

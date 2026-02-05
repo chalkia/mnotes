@@ -200,10 +200,22 @@
                         <button id="btnLinkRec" onclick="uploadAndLinkCurrent()" class="save-rec-btn" style="display:none;" title="Save to Song"><i class="fas fa-cloud-upload-alt"></i></button>
                     </div>
 
-                    <input type="file" id="inpImportAudio" accept="audio/*" style="display:none;" onchange="importAudioFile(this)">
-                    <button class="round-btn" onclick="document.getElementById('inpImportAudio').click()" title="Import Audio" style="width:100%; margin-top:5px; background:#333; font-size:0.8rem;">
-                        <i class="fas fa-file-upload"></i> Import Audio File
-                    </button>
+                    <div class="upload-wrapper" style="text-align:center; margin-top:10px; margin-bottom:10px;">
+    
+    <input type="file" id="inpImportAudio" accept="audio/*, .mp3, .m4a, .wav" style="display:none;" onchange="uploadAudioToCloud(this)">
+    
+    <label for="inpImportAudio" class="upload-btn-styled">
+        <i class="fas fa-cloud-upload-alt"></i> Upload Backing Track
+    </label>
+    
+    <div id="uploadProgressBox" style="display:none;">
+        <div style="height:4px; background:#333; border-radius:2px; overflow:hidden; margin-bottom:2px;">
+            <div id="uploadBar" style="height:100%; width:0%; background:var(--accent); transition:width 0.2s;"></div>
+        </div>
+        <span id="uploadText" style="font-size:0.7rem; color:#888;">Uploading...</span>
+    </div>
+
+</div>
 
                     <audio id="masterAudio" controls class="master-player" style="margin-top:10px;"></audio>
                     
@@ -447,3 +459,4 @@
 </body>
 </html>
            
+

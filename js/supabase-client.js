@@ -52,8 +52,7 @@ async function loginWithGoogle() {
     const { data, error } = await supabaseClient.auth.signInWithOAuth({
         provider: 'google',
         options: {
-            // Χρησιμοποιούμε origin για να αποφύγουμε παραμέτρους URL που μπερδεύουν
-            redirectTo: window.location.origin 
+            redirectTo: window.location.location.href 
         }
     });
     

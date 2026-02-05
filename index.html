@@ -38,14 +38,28 @@
                 </div>
             </div>
             
-            <div class="sidebar-search">
-                <input id="searchInp" type="text" placeholder="Αναζήτηση..." oninput="applyFilters()">
+            <div id="library-controls" class="sidebar-search">
+               <input id="searchInp" type="text" placeholder="Αναζήτηση..." oninput="applyFilters()">
                 <select id="tagFilter" onchange="applyFilters()"><option value="">All Tags</option></select>
                 <select id="sortFilter" onchange="applySortAndRender()" style="margin-top:5px; background:var(--input-bg); color:var(--text-main); border:1px solid var(--border-color); padding:5px; border-radius:5px; width:100%; font-size:0.9rem;">
                     <option value="alpha">🔤 Αλφαβητικά</option>
                     <option value="created">✨ Νεότερα</option>
                     <option value="modified">✏️ Πρόσφατα</option>
                 </select>
+            </div>
+
+            <div id="setlist-controls" class="sidebar-search" style="display:none; border-bottom: 2px solid var(--accent);">
+                    <label style="font-size:0.75rem; color:#888; font-weight:bold; margin-bottom:5px;">ACTIVE SETLIST</label>
+    
+    <                select id="selSetlistName" onchange="switchSetlist(this.value)" style="width:100%; padding:8px; margin-bottom:8px; background:var(--input-bg); color:var(--accent); font-weight:bold; border:1px solid var(--accent); border-radius:4px;">
+                            <option value="Default">Default Setlist</option>
+                    </select>
+
+                <div style="display:flex; gap:5px;">
+                    <button onclick="createSetlist()" style="flex:1; background:#333; color:#fff; border:1px solid #555; padding:5px; border-radius:4px; cursor:pointer;" title="New List"><i class="fas fa-plus"></i></button>
+                    <button id="btnRenSetlist" onclick="renameSetlist()" style="flex:1; background:#333; color:#fff; border:1px solid #555; padding:5px; border-radius:4px; cursor:pointer;" title="Rename"><i class="fas fa-edit"></i></button>
+                    <button id="btnDelSetlist" onclick="deleteSetlist()" style="flex:0.5; background:var(--danger); color:#fff; border:none; padding:5px; border-radius:4px; cursor:pointer;" title="Delete"><i class="fas fa-trash"></i></button>
+                </div>
             </div>
             
             <ul id="songList" class="song-list"></ul>
@@ -77,7 +91,7 @@
                 <div id="scroll-container" class="scroll-lyrics" ondblclick="toggleAutoScroll()"></div>
 
 <div class="desktop-controls-area">
-    <button id="btnPrevSong" onclick="navSetlist(-1)" class="round-btn" title="Previous Song" style="display:none; margin-right:auto;">
+    <button id="btnPrevSong" onclick="navSetlist(-1)" class="round-btn" title="Previous Song" style="margin-right:auto;">
         <i class="fas fa-step-backward"></i>
     </button>
 
@@ -111,7 +125,7 @@
         <i class="fas fa-pen"></i>
     </button>
 
-    <button id="btnNextSong" onclick="navSetlist(1)" class="round-btn" title="Next Song" style="display:none; margin-left:auto;">
+    <button id="btnNextSong" onclick="navSetlist(1)" class="round-btn" title="Next Song" style="margin-left:auto;">
         <i class="fas fa-step-forward"></i>
     </button>
 </div>
@@ -393,6 +407,7 @@
     <script src="js/ui.js?v=14.0"></script>
 </body>
 </html>
+
 
 
 

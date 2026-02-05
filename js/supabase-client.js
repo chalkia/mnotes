@@ -2,7 +2,7 @@
    SUPABASE CLIENT BRIDGE (FULL VERSION)
    ========================================= */
 
-// 1. Έλεγχος CONFIG (Για να μην σκάει αν λείπει το αρχείο)
+// 1. Έλεγχος CONFIG 
 if (typeof CONFIG === 'undefined') {
     console.error("CRITICAL: Το αρχείο js/config.js λείπει ή έχει λάθος σύνταξη.");
     alert("System Error: Configuration file missing.");

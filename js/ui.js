@@ -96,7 +96,7 @@ function loadLibrary() {
     populateTags(); 
     if (typeof sortLibrary === 'function') sortLibrary(userSettings.sortMethod || 'alpha');
     const sortDropdown = document.getElementById('sortFilter'); if (sortDropdown) sortDropdown.value = userSettings.sortMethod || 'alpha';
-    
+    if(typeof switchSidebarTab === 'function') switchSidebarTab(viewMode);
     renderSidebar();
 
     if (library.length > 0) {

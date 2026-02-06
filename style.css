@@ -87,12 +87,12 @@ body { background: var(--bg-main); color: var(--text-main); font-family: var(--f
     background: var(--bg-panel); margin-top: auto;
 }
 .footer-btn { flex: 1; padding: 10px; background: var(--bg-panel); color: var(--text-muted); border: 1px solid var(--border-color); cursor: pointer; border-radius: 4px; display: flex; align-items: center; justify-content: center; gap: 5px; }
+
 /* STAGE */
 .col-stage { background: var(--bg-main); display: flex; flex-direction: column; position: relative; overflow: hidden; }
 .view-section { display: none; height: 100%; flex-direction: column; }
 .view-section.active-view { display: flex; }
 .player-header { display: flex; flex-direction: column; background: var(--bg-panel); padding: 10px 15px; width: 100%; border-bottom: 1px solid var(--border-color); flex-shrink: 0; box-sizing: border-box; }
-.song-h1 { margin: 0; font-size: 1.6rem; color: var(--accent); line-height: 1.1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; margin-right: 15px; }
 .meta-label { font-size: 0.9rem; color: var(--text-muted); }
 .fixed-lyrics { flex-shrink: 0; max-height: 60vh; overflow-y: auto; padding: 10px 15px; border-bottom: 2px dashed var(--border-color); background: rgba(0,0,0,0.05); }
 .scroll-lyrics { flex: 1; overflow-y: auto; padding: 10px 15px; padding-bottom: 100px; min-height: 0; }
@@ -133,25 +133,41 @@ body.lyrics-mode .line-row { align-items: center; line-height: 1.8; }
 .icon-btn.danger { color: var(--danger); }
 .icon-btn.accent { color: var(--accent); font-size: 1.5rem; }
 .video-responsive { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; background: #000; border-radius: 8px; border: 1px solid #333; margin-bottom: 20px; margin-top: 20px;}
+
 /* --- PLAYER HEADER (Τίτλος & Καλλιτέχνης) --- */
 .player-header-container {
     text-align: center;
     padding: 10px 0 20px 0;
     border-bottom: 1px solid var(--border-color);
     margin-bottom: 15px;
+    /* Εξασφαλίζει ότι το περιεχόμενο δεν θα βγει έξω */
+    overflow: hidden; 
 }
-.song-title {
-    font-size: 1.8rem;
+
+.song-h1 {
+    /* 1. Στοίχιση & Περιθώρια */
+    margin: 0;
+    margin-bottom: 5px;
+    margin-right: 15px; /* Απόσταση από το κουμπάκι Notes */
+    
+    /* 2. Εμφάνιση Κειμένου */
+    font-size: 1.4rem !important; /* Το μέγεθος που συμφωνήσαμε (Μικρότερο) */
     font-weight: bold;
     color: var(--accent);
     line-height: 1.2;
-    margin-bottom: 5px;
+
+    /* 3. Αποκοπή μεγάλων τίτλων (...) */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
+
 .song-artist {
     font-size: 1.2rem;
     color: var(--text-main);
     font-weight: 500;
 }
+
 .song-meta {
     font-size: 0.85rem;
     color: var(--text-muted);
@@ -744,47 +760,3 @@ details[open] summary::after { transform: rotate(180deg); color: var(--accent); 
     display: flex; align-items: center; justify-content: center; gap: 6px;
 }
 .add-mini-btn:hover { background: var(--accent); color: #000; }
-.video-responsive { 
-    position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; 
-    background: #000; border-radius: 6px; border: 1px solid #333; 
-}
-.video-responsive iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
-/* --- UPLOAD BUTTON STYLING --- */
-.upload-btn-styled {
-    display: inline-block;
-    width: 100%;
-    padding: 12px;
-    background: var(--input-bg);     
-    color: var(--text-main);         
-    border: 2px dashed var(--border-color);
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    transition: all 0.3s ease;
-    text-align: center;
-    margin-top: 5px;
-}
-
-.upload-btn-styled:hover {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: var(--accent); /* Χρώμα θέματος στο hover */
-    color: var(--accent);
-}
-
-.upload-btn-styled i {
-    margin-right: 8px;
-    font-size: 1.1rem;
-}
-
-/* Γραμμή Προόδου */
-#uploadProgressBox {
-    margin-top: 8px;
-    background: #111;
-    border-radius: 4px;
-    padding: 2px;
-}
-
-
-
-
-

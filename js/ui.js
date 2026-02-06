@@ -270,30 +270,43 @@ function loadSong(id) {
     }
 }
 
+/* --- ΑΝΤΙΚΑΤΑΣΤΑΣΗ ΤΗΣ ΣΥΝΑΡΤΗΣΗΣ renderPlayer --- */
 function renderPlayer(s) {
     if (!s) return;
     const personalNotesMap = JSON.parse(localStorage.getItem('mnotes_personal_notes') || '{}');
     const hasNotes = (s.conductorNotes && s.conductorNotes.trim().length > 0) || (personalNotesMap[s.id] && personalNotesMap[s.id].trim().length > 0);
     
-    // Επιλογή κλάσης ανάλογα με το introSizeLevel (0, 1, 2)
-    const sizeClass = `intro-size-${introSizeLevel}`;
+    // --- ΛΟΓΙΚΗ INTRO/INTER ---
+    const sizeClass = `intro-size-${introSizeLevel}`; // Η κλάση CSS (0, 1 ή 2)
     
-    // Δημιουργία HTML για Intro/Inter
+    // ΤΟ ΚΟΥΜΠΙ ΜΕ ΤΟ ID ΤΟΥ
+    const btnHtml = `<button id="btnIntroToggle" onclick="cycleIntroSize()" class="size-toggle-btn" title="Change Text Size"><i class="fas fa-text-height"></i></button>`;
+    
     let metaHtml = "";
     if (s.intro || s.interlude) {
-        // Κουμπάκι δίπλα στα στοιχεία
-        const btnHtml = `<button onclick="cycleIntroSize()" class="size-toggle-btn" title="Change Text Size"><i class="fas fa-text-height"></i></button>`;
+        metaHtml += `<div class="meta-info-box">`;
         
-        metaHtml += `<div class="meta-info-box ${sizeClass}">`;
+        if (s.intro) {
+            // Κουμπί ΜΠΡΟΣΤΑ, Κείμενο ΜΕΤΑ
+            metaHtml += `<div class="meta-row ${sizeClass}">
+                            ${btnHtml} <span><strong>Intro:</strong> ${s.intro}</span>
+                         </div>`;
+        }
         
-        if (s.intro)     metaHtml += `<div style="display:flex; align-items:center;"><span><strong>Intro:</strong> ${s.intro}</span> ${btnHtml}</div>`;
-        if (s.interlude) metaHtml += `<div style="display:flex; align-items:center;"><span><strong>Inter:</strong> ${s.interlude}</span> ${(s.intro ? '' : btnHtml)}</div>`; // Αν δεν έχει Intro, βάζουμε το κουμπί στο Inter
+        if (s.interlude) {
+            // Αν δεν υπάρχει Intro, βάζουμε το κουμπί στο Inter. Αλλιώς βάζουμε κενό (spacer) για ευθυγράμμιση.
+            const showBtnHere = (!s.intro) ? btnHtml : '<span class="spacer-btn"></span>'; 
+            metaHtml += `<div class="meta-row ${sizeClass}">
+                            ${showBtnHere} <span><strong>Inter:</strong> ${s.interlude}</span>
+                         </div>`;
+        }
         
         metaHtml += `</div>`;
     }
     
     if (hasNotes) metaHtml += `<div style="margin-top:5px;"><span class="meta-note-badge"><i class="fas fa-sticky-note"></i> Note</span></div>`;
     
+    // --- PLAYER HEADER ---
     const headerContainer = document.querySelector('.player-header-container');
     if (headerContainer) {
         headerContainer.innerHTML = `
@@ -312,7 +325,7 @@ function renderPlayer(s) {
         </div>`;
     }
 
-    /* ... (Το υπόλοιπο της συνάρτησης για Video, Audio και Στίχους παραμένει ίδιο) ... */
+    // --- EXTRAS (Video, Audio, Lyrics) ---
     const vidBox = document.getElementById('video-sidebar-container');
     const embedBox = document.getElementById('video-embed-box');
     if (vidBox && embedBox) {
@@ -362,6 +375,7 @@ function renderArea(elemId, text) {
         container.appendChild(row); 
     }); 
 }
+
 function createToken(c, l) { var d = document.createElement('div'); d.className = 'token'; d.innerHTML = `<span class="chord">${c || ""}</span><span class="lyric">${l || ""}</span>`; return d; }
 
 // ===========================================================

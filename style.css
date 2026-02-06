@@ -779,8 +779,8 @@ details[open] summary::after { transform: rotate(180deg); color: var(--accent); 
 
 /* Τα 3 μεγέθη γραμματοσειράς */
 .intro-size-0 { font-size: 0.9rem; color: var(--text-muted); } /* Small */
-.intro-size-1 { font-size: 1.3rem; color: var(--text-main); font-weight: bold; } /* Medium */
-.intro-size-2 { font-size: 1.8rem; color: var(--accent);    font-weight: 900; line-height: 1.2; } /* Large */
+.intro-size-1 { font-size: 1.1rem; color: var(--text-main); font-weight: bold; } /* Medium */
+.intro-size-2 { font-size: 1.3rem; color: var(--accent);    font-weight: 900; line-height: 1.2; } /* Large */
 
 /* Το κουμπάκι */
 .size-toggle-btn {
@@ -807,4 +807,5 @@ details[open] summary::after { transform: rotate(180deg); color: var(--accent); 
     height: 30px; 
     display: inline-block;
 }
+
 

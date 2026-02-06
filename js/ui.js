@@ -544,43 +544,62 @@ function toggleStickyNotes() {
     }
 }
 
-// UPDATED FOR UNIFIED PLAYER
-function renderSideRecordings(s) {
-    const list = document.getElementById('sideRecList');
-    if (!list) return;
-
-    // Συγχώνευση παλιού audioRec με τη νέα λίστα (backward compatibility)
-    if (s.audioRec && (!s.recordings || s.recordings.length === 0)) { 
-        s.recordings = [{ url: s.audioRec, label: "Original Rec", date: 0 }]; 
-    }
-
-    if (!s.recordings || s.recordings.length === 0) { 
-        list.innerHTML = '<div class="empty-state">No tracks</div>'; 
-        return; 
-    }
-
-    list.innerHTML = "";
+function renderRecordingsList(personalRecs = [], publicRecs = []) {
+    const listEl = document.getElementById('sideRecList');
+    if (!listEl) return;
     
-    // Γέμισμα λίστας
-    s.recordings.forEach((rec, index) => {
-        const div = document.createElement('div');
-        div.className = 'track-item';
-        // Κλικ στο όνομα -> Παίζει στον Master Player
-        div.onclick = (e) => {
-            if(e.target.tagName === 'BUTTON' || e.target.tagName === 'I') return;
-            playTrackInMaster(rec.url, div);
-        };
+    listEl.innerHTML = '';
+    let hasItems = false;
 
-        div.innerHTML = `
-            <div style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-                <i class="fas fa-play" style="font-size:0.6rem; margin-right:5px; opacity:0.5;"></i> ${rec.label}
+    // Helper function για δημιουργία γραμμής (DRY principle)
+    const appendTrack = (rec, type) => {
+        const el = document.createElement('div');
+        el.className = 'track-item';
+        
+        // Χρήση CSS Variables για τα χρώματα (Theme Aware)
+        const colorVar = type === 'private' ? 'var(--rec-private)' : 'var(--rec-public)';
+        const iconClass = type === 'private' ? 'fas fa-lock' : 'fas fa-globe';
+        const tooltip = type === 'private' ? 'Private' : 'Public';
+
+        el.style.borderLeft = `3px solid ${type === 'private' ? '#ffb74d' : '#4db6ac'}`; // Fallback color
+        // Override with CSS var via style attribute if supported directly or let CSS class handle it
+        // Πιο καθαρό: Βάζουμε το border color inline με var
+        el.style.cssText = `display:flex; justify-content:space-between; align-items:center; background:var(--input-bg); padding:8px; margin-bottom:5px; border-radius:4px; border-left: 3px solid ${colorVar};`;
+
+        el.innerHTML = `
+            <div onclick="playAudio('${rec.url}')" style="cursor:pointer; flex:1; display:flex; align-items:center; overflow:hidden;">
+                <i class="${iconClass}" title="${tooltip}" style="color:${colorVar}; margin-right:8px;"></i>
+                <span style="font-size:0.85rem; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${rec.name || rec.label}</span>
             </div>
-            <button onclick="deleteRecording('${s.id}', ${index})" style="background:none; border:none; color:#666; hover:color:red; cursor:pointer; padding:2px;">
-                <i class="fas fa-trash"></i>
+            <button onclick="deleteRecording(${rec.id}, '${type}')" style="background:none; border:none; color:var(--text-muted); cursor:pointer; padding:0 5px;" title="Delete">
+                <i class="fas fa-times"></i>
             </button>
         `;
-        list.appendChild(div);
-    });
+        listEl.appendChild(el);
+        hasItems = true;
+    };
+
+    // 1. PUBLIC
+    if (publicRecs && publicRecs.length > 0) publicRecs.forEach(r => appendTrack(r, 'public'));
+
+    // 2. PRIVATE
+    if (personalRecs && personalRecs.length > 0) {
+        if (hasItems) { // Διαχωριστικό αν υπάρχουν και τα δύο
+            const sep = document.createElement('div');
+            sep.style.cssText = "font-size:0.7rem; color:var(--text-muted); margin:5px 0; border-top:1px solid var(--border-color); padding-top:2px; text-align:center;";
+            sep.innerText = "MY TRACKS";
+            listEl.appendChild(sep);
+        }
+        personalRecs.forEach(r => appendTrack(r, 'private'));
+    }
+
+    if (!hasItems) listEl.innerHTML = '<div class="empty-state">No recordings yet</div>';
+}
+
+// Helper για τον Player (Χρειάζεται γιατί την καλεί το HTML)
+function playAudio(url) {
+    const audio = document.getElementById('masterAudio');
+    if(audio) { audio.src = url; audio.play(); }
 }
 
 // Νέα Helper Function για τον Unified Player
@@ -971,45 +990,11 @@ function navSetlist(dir) {
 
 // --- 3. UNIFIED AUDIO PLAYER (Right Sidebar) ---
 
-function renderSideRecordings(s) {
-    const list = document.getElementById('sideRecList');
-    if (!list) return;
-
-    // Migration old audio
-    if (s.audioRec && (!s.recordings || s.recordings.length === 0)) { 
-        s.recordings = [{ url: s.audioRec, label: "Original Rec", date: 0 }]; 
-    }
-
-    if (!s.recordings || s.recordings.length === 0) { 
-        list.innerHTML = '<div class="empty-state">No tracks</div>'; 
-        return; 
-    }
-
-    list.innerHTML = "";
-    s.recordings.forEach((rec, index) => {
-        const div = document.createElement('div');
-        div.className = 'track-item';
-        div.onclick = (e) => {
-            if(e.target.tagName === 'BUTTON' || e.target.tagName === 'I') return;
-            playTrackInMaster(rec.url, div);
-        };
-        div.innerHTML = `
-            <div style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-                <i class="fas fa-play" style="font-size:0.6rem; margin-right:5px; opacity:0.5;"></i> ${rec.label}
-            </div>
-            <button onclick="deleteRecording('${s.id}', ${index})" style="background:none; border:none; color:#666; cursor:pointer;">
-                <i class="fas fa-trash"></i>
-            </button>
-        `;
-        list.appendChild(div);
-    });
-}
 
 function playTrackInMaster(url, itemDiv) {
     const player = document.getElementById('masterAudio');
     if(!player) return;
     
-    // UI Update
     document.querySelectorAll('.track-item').forEach(d => d.classList.remove('playing'));
     if(itemDiv) itemDiv.classList.add('playing');
 

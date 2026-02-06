@@ -760,3 +760,51 @@ details[open] summary::after { transform: rotate(180deg); color: var(--accent); 
     display: flex; align-items: center; justify-content: center; gap: 6px;
 }
 .add-mini-btn:hover { background: var(--accent); color: #000; }
+/* --- CSS ΓΙΑ INTRO/INTER (Final) --- */
+
+.meta-info-box {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--border-color);
+}
+
+.meta-row {
+    display: flex;
+    align-items: center; /* Κάθετη στοίχιση στο κέντρο */
+    gap: 10px;           /* Απόσταση κουμπιού από κείμενο */
+}
+
+/* Τα 3 μεγέθη γραμματοσειράς */
+.intro-size-0 { font-size: 0.9rem; color: var(--text-muted); } /* Small */
+.intro-size-1 { font-size: 1.3rem; color: var(--text-main); font-weight: bold; } /* Medium */
+.intro-size-2 { font-size: 1.8rem; color: var(--accent);    font-weight: 900; line-height: 1.2; } /* Large */
+
+/* Το κουμπάκι */
+.size-toggle-btn {
+    background: rgba(255,255,255,0.1); 
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-muted);
+    cursor: pointer;
+    width: 30px;
+    height: 30px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+}
+.size-toggle-btn:hover { 
+    color: var(--accent); 
+    border-color: var(--accent); 
+    background: rgba(255,255,255,0.15);
+}
+
+/* Spacer (αόρατο κουμπί) για ευθυγράμμιση όταν λείπει το Intro */
+.spacer-btn {
+    width: 30px; 
+    height: 30px; 
+    display: inline-block;
+}
+

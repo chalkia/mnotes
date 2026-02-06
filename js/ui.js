@@ -725,7 +725,7 @@ function switchDrawerTab(tabName) {
 }
 
 // ===========================================================
-// 12. UTILS & MUSIC THEORY
+// 12. UTILS & MUSIC THEORY (FINAL CORRECTED VERSION)
 // ===========================================================
 
 function getYoutubeId(url) { if (!url) return null; var regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/; var match = url.match(regExp); return (match && match[2].length === 11) ? match[2] : null; }
@@ -734,18 +734,31 @@ function toggleSidebar() { document.getElementById('sidebar').classList.toggle('
 function saveData() { localStorage.setItem('mnotes_data', JSON.stringify(library)); }
 function filterByKey(e, key) { e.stopPropagation(); var inp = document.getElementById('searchInp'); if(inp) { inp.value = key; applyFilters(); showToast("Filter: " + key); } }
 
+/* ΔΙΟΡΘΩΣΗ: Χρήση των μεταβλητών όπως ορίζονται στο data.js 
+   NOTES = Διέσεις
+   NOTES_FLAT = Υφέσεις
+*/
 function getNote(note, semitones) {
     if (!note || note === "-" || note === "") return note;
     let root = note.match(/^[A-G][#b]?/)[0];
     let suffix = note.substring(root.length);
-    let scale = (root.includes("b") || note.includes("F")) ? NOTES_FLAT : NOTES_SHARP;
+    
+    // Ασφαλής ανάκτηση από το data.js (NOTES αντί για NOTES_SHARP)
+    const SHARP = (typeof NOTES !== 'undefined') ? NOTES : ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+    const FLAT  = (typeof NOTES_FLAT !== 'undefined') ? NOTES_FLAT : ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
+    
+    let scale = (root.includes("b") || note.includes("F")) ? FLAT : SHARP;
     let index = -1;
-    if (NOTES_SHARP.includes(root)) index = NOTES_SHARP.indexOf(root);
-    else if (NOTES_FLAT.includes(root)) index = NOTES_FLAT.indexOf(root);
+    
+    if (SHARP.includes(root)) index = SHARP.indexOf(root);
+    else if (FLAT.includes(root)) index = FLAT.indexOf(root);
+    
     if (index === -1) return note;
+    
     let newIndex = (index + semitones) % 12;
     if (newIndex < 0) newIndex += 12;
-    let outScale = (semitones < 0) ? NOTES_FLAT : NOTES_SHARP;
+    
+    let outScale = (semitones < 0) ? FLAT : SHARP;
     return outScale[newIndex] + suffix;
 }
 

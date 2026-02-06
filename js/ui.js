@@ -275,10 +275,24 @@ function renderPlayer(s) {
     const personalNotesMap = JSON.parse(localStorage.getItem('mnotes_personal_notes') || '{}');
     const hasNotes = (s.conductorNotes && s.conductorNotes.trim().length > 0) || (personalNotesMap[s.id] && personalNotesMap[s.id].trim().length > 0);
     
+    // Επιλογή κλάσης ανάλογα με το introSizeLevel (0, 1, 2)
+    const sizeClass = `intro-size-${introSizeLevel}`;
+    
+    // Δημιουργία HTML για Intro/Inter
     let metaHtml = "";
-    if (s.intro) metaHtml += `<span class="meta-tag" style="color:var(--text-muted); font-size:0.8rem; margin-right:10px;"><strong>Intro:</strong> ${s.intro}</span>`;
-    if (s.interlude) metaHtml += `<span class="meta-tag" style="color:var(--text-muted); font-size:0.8rem;"><strong>Inter:</strong> ${s.interlude}</span>`;
-    if (hasNotes) metaHtml += `<span class="meta-note-badge"><i class="fas fa-sticky-note"></i> Note</span>`;
+    if (s.intro || s.interlude) {
+        // Κουμπάκι δίπλα στα στοιχεία
+        const btnHtml = `<button onclick="cycleIntroSize()" class="size-toggle-btn" title="Change Text Size"><i class="fas fa-text-height"></i></button>`;
+        
+        metaHtml += `<div class="meta-info-box ${sizeClass}">`;
+        
+        if (s.intro)     metaHtml += `<div style="display:flex; align-items:center;"><span><strong>Intro:</strong> ${s.intro}</span> ${btnHtml}</div>`;
+        if (s.interlude) metaHtml += `<div style="display:flex; align-items:center;"><span><strong>Inter:</strong> ${s.interlude}</span> ${(s.intro ? '' : btnHtml)}</div>`; // Αν δεν έχει Intro, βάζουμε το κουμπί στο Inter
+        
+        metaHtml += `</div>`;
+    }
+    
+    if (hasNotes) metaHtml += `<div style="margin-top:5px;"><span class="meta-note-badge"><i class="fas fa-sticky-note"></i> Note</span></div>`;
     
     const headerContainer = document.querySelector('.player-header-container');
     if (headerContainer) {
@@ -294,10 +308,11 @@ function renderPlayer(s) {
                 <span class="meta-label">${s.artist || ""}</span>
                 <span class="key-badge">${typeof getNote === 'function' ? getNote(s.key || "-", state.t) : s.key}</span>
             </div>
-            <div style="margin-top:8px; border-top:1px dashed var(--border-color); padding-top:5px;">${metaHtml}</div>
+            ${metaHtml}
         </div>`;
     }
 
+    /* ... (Το υπόλοιπο της συνάρτησης για Video, Audio και Στίχους παραμένει ίδιο) ... */
     const vidBox = document.getElementById('video-sidebar-container');
     const embedBox = document.getElementById('video-embed-box');
     if (vidBox && embedBox) {
@@ -629,6 +644,20 @@ function loadPreset(type) {
 // 10. VISUAL HELPERS (Sticky, Audio List)
 // ===========================================================
 
+// Global Variable για το μέγεθος (0=Small, 1=Medium, 2=Large)
+var introSizeLevel = parseInt(localStorage.getItem('mnotes_intro_size')) || 0;
+
+function cycleIntroSize() {
+    // Αλλαγή: 0 -> 1 -> 2 -> 0
+    introSizeLevel = (introSizeLevel + 1) % 3;
+    localStorage.setItem('mnotes_intro_size', introSizeLevel);
+    
+    // Ξαναφορτώνουμε τον Player για να φανεί η αλλαγή άμεσα
+    if (currentSongId) {
+        var s = library.find(x => x.id === currentSongId);
+        if (s) renderPlayer(s);
+    }
+}
 function deleteRecording(songId, typeOrIndex) {
     const s = library.find(x => x.id === songId); if (!s || !s.recordings) return;
     if (!confirm(`Delete recording?`)) return;

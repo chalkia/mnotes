@@ -308,19 +308,102 @@ body.theme-light .modal-btn {
     .desktop-controls-area { display: flex !important; }
 }
 
-/* B. MOBILE (<= 1024px) */
+/* =========================================
+   MOBILE VIEW & NAVIGATION (max-width: 1024px)
+   ========================================= */
+
 @media (max-width: 1024px) {
-    .app-container { display: block; position: relative; }
-    .col-nav, .col-stage, .col-tools { position: absolute; top: 0; left: 0; width: 100%; height: 100vh; display: none; z-index: 10; border: none; }
-    .mobile-view-active { display: flex !important; flex-direction: column; }
     
-    /* Elements Management */
-    #drawerHandle { display: flex !important; }
+    /* 1. ΒΑΣΙΚΗ ΔΙΑΤΑΞΗ: Container */
+    .app-container { 
+        display: block; 
+        position: relative; 
+        width: 100vw;
+        height: 100vh; 
+        overflow: hidden; 
+    }
+
+    /* 2. ΚΡΥΨΙΜΟ ΣΤΗΛΩΝ (Default State) */
+    /* Όλες οι βασικές στήλες είναι κρυμμένες αρχικά */
+    .col-nav, 
+    .col-stage, 
+    .col-tools { 
+        display: none !important; /* Force hide */
+        position: absolute; 
+        top: 0; 
+        left: 0; 
+        width: 100%; 
+        height: calc(100% - 60px); /* Αφήνουμε χώρο για την μπάρα κάτω */
+        z-index: 10;
+        border: none;
+        background: var(--bg-main); /* Σημαντικό για να μην είναι διάφανα */
+    }
+
+    /* 3. ΕΝΕΡΓΗ ΟΘΟΝΗ (Αυτή που εμφανίζεται) */
+    /* Το JavaScript προσθέτει αυτή την κλάση σε όποια στήλη επιλέξεις */
+    .mobile-view-active { 
+        display: flex !important; /* Force show */
+        flex-direction: column; 
+        z-index: 20; /* Πάνω από τα άλλα */
+    }
+
+    /* 4. NAVBAR ΚΑΤΩ (Mobile Navigation Bar) */
+    .mobile-nav { 
+        display: flex !important; /* Σιγουρεύουμε ότι φαίνεται */
+        position: fixed; 
+        bottom: 0; 
+        left: 0; 
+        width: 100%; 
+        height: 60px; 
+        background: var(--bg-panel); 
+        border-top: 1px solid var(--border-color); 
+        z-index: 1000; 
+        justify-content: space-around; 
+        align-items: center;
+        padding-bottom: env(safe-area-inset-bottom); /* Fix για iPhone */
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
+    }
+
+    /* Στυλ Κουμπιών Μπάρας */
+    .tab-btn-mob {
+        background: none; border: none;
+        color: var(--text-muted);
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        font-size: 0.7rem; gap: 4px;
+        flex: 1; height: 100%;
+        cursor: pointer;
+        transition: color 0.2s, background 0.2s;
+    }
+    .tab-btn-mob i { font-size: 1.2rem; margin-bottom: 2px; }
+    
+    .tab-btn-mob.active { 
+        color: var(--accent); 
+        background: rgba(255,255,255,0.05); /* Ελαφρύ φόντο στο ενεργό */
+        border-top: 2px solid var(--accent); /* Γραμμή πάνω για έμφαση */
+    }
+
+    /* 5. ΕΙΔΙΚΕΣ ΡΥΘΜΙΣΕΙΣ ΓΙΑ ΤΙΣ ΣΤΗΛΕΣ ΣΕ ΚΙΝΗΤΟ */
+    
+    /* Sidebar: Να πιάνει όλο το πλάτος */
+    .col-nav { width: 100% !important; }
+    
+    /* Tools: Να πιάνει όλο το πλάτος */
+    .col-tools { 
+        width: 100% !important; 
+        border-left: none; 
+    }
+
+    /* 6. ΑΠΟΚΡΥΨΗ DESKTOP ΣΤΟΙΧΕΙΩΝ */
+    .resizer { display: none !important; }
     .desktop-controls-area { display: none !important; }
-    .mobile-nav { display: none !important; }
-    .resizer { display: none; }
-    .desktop-only-video { display: none; }
+    
+    /* Εμφάνιση του Burger Menu (πάνω δεξιά) */
+    #drawerHandle { display: flex !important; } 
+    
+    /* Drawer (Menu): Πιο πλατύ στα κινητά */
+    .right-drawer { width: 280px; }
 }
+
 
 /* =========================================
    STICKY NOTES & EXTRAS
@@ -700,6 +783,7 @@ details[open] summary::after { transform: rotate(180deg); color: var(--accent); 
     border-radius: 4px;
     padding: 2px;
 }
+
 
 
 

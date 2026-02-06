@@ -104,7 +104,55 @@ function loadLibrary() {
         loadSong(currentSongId);
     } else { createNewSong(); }
 }
+/* --- MISSING LIBRARY HELPERS (Add this block) --- */
 
+function ensureSongStructure(s) {
+    if (!s.playlists) s.playlists = [];
+    if (!s.recordings) s.recordings = [];
+    if (!s.id) s.id = Date.now().toString();
+    return s;
+}
+
+function populateTags() {
+    const select = document.getElementById('tagFilter');
+    if(!select) return;
+    const currentVal = select.value;
+    select.innerHTML = '<option value="">All Tags</option><option value="__no_demo">No Demo</option>';
+    
+    const allTags = new Set();
+    library.forEach(s => {
+        if(s.playlists && Array.isArray(s.playlists)) {
+            s.playlists.forEach(t => allTags.add(t));
+        }
+    });
+    
+    Array.from(allTags).sort().forEach(tag => {
+        const opt = document.createElement('option');
+        opt.value = tag;
+        opt.innerText = tag;
+        select.appendChild(opt);
+    });
+    select.value = currentVal;
+}
+
+function applyFilters() {
+    renderSidebar();
+}
+
+function sortLibrary(method) {
+    if(!method) method = 'alpha';
+    if (method === 'alpha') {
+        library.sort((a, b) => a.title.localeCompare(b.title));
+    } else if (method === 'created') {
+        library.sort((a, b) => b.createdAt - a.createdAt);
+    } else if (method === 'modified') {
+        library.sort((a, b) => b.updatedAt - a.updatedAt);
+    }
+    userSettings.sortMethod = method;
+    localStorage.setItem('mnotes_settings', JSON.stringify(userSettings));
+    renderSidebar();
+}
+/* --- END OF HELPERS --- */
 function clearLibrary() { 
     if(confirm(t('msg_clear_confirm'))) { 
         const safeEnsure = (typeof ensureSongStructure === 'function') ? ensureSongStructure : (s) => s;

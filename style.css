@@ -11,6 +11,8 @@
     --font-ui: 'Roboto Condensed', sans-serif;
     --lyric-size: 1.3rem; --intro-size: 1.1rem;
     --nav-width: 300px; --tools-width: 300px;
+    --rec-private: #ffb74d;  /* Πορτοκαλί για Dark Mode */
+    --rec-public: #4db6ac;   /* Τυρκουάζ για Dark Mode */
 }
 /* --- GLOBAL ICON SETTINGS --- */
 
@@ -35,7 +37,7 @@ button i {
     pointer-events: none; /* Για να μην εμποδίζουν το κλικ */
 }
 body.theme-slate { --bg-main: #2c3d50; --bg-panel: #34495e; --bg-sidebar: #22313f; --text-main: #ecf0f1; --text-muted: #bdc3c7; --accent: #f1c40f; --chord-color: #f1c40f; --input-bg: #34495e; --border-color: #465f75; }
-body.theme-light { --bg-main: #f5f5f5; --bg-panel: #ffffff; --bg-sidebar: #e0e0e0; --text-main: #333333; --text-muted: #666; --accent: #2980b9; --chord-color: #d35400; --input-bg: #fff; --border-color: #ccc; }
+body.theme-light { --bg-main: #f5f5f5; --bg-panel: #ffffff; --bg-sidebar: #e0e0e0; --text-main: #333333; --text-muted: #666; --accent: #2980b9; --chord-color: #d35400; --input-bg: #fff; --border-color: #ccc; --rec-private: #e65100; --rec-public: #00695c; --rec-public: #00695c; }
 
 body { background: var(--bg-main); color: var(--text-main); font-family: var(--font-ui); margin: 0; height: 100vh; width: 100vw; overflow: hidden; transition: background 0.3s, color 0.3s; }
 
@@ -131,6 +133,31 @@ body.lyrics-mode .line-row { align-items: center; line-height: 1.8; }
 .icon-btn.danger { color: var(--danger); }
 .icon-btn.accent { color: var(--accent); font-size: 1.5rem; }
 .video-responsive { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; background: #000; border-radius: 8px; border: 1px solid #333; margin-bottom: 20px; margin-top: 20px;}
+/* --- PLAYER HEADER (Τίτλος & Καλλιτέχνης) --- */
+.player-header-container {
+    text-align: center;
+    padding: 10px 0 20px 0;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 15px;
+}
+.song-title {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: var(--accent);
+    line-height: 1.2;
+    margin-bottom: 5px;
+}
+.song-artist {
+    font-size: 1.2rem;
+    color: var(--text-main);
+    font-weight: 500;
+}
+.song-meta {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-top: 5px;
+}
+
 
 /* =========================================
    MODALS & NOTIFICATIONS (INVERTED COLORS)
@@ -199,9 +226,6 @@ body.theme-light .modal-btn {
 /* TOAST & EXTRAS (Όπως ήταν) */
 #toast { visibility: hidden; min-width: 200px; background-color: rgba(30, 30, 30, 0.95); color: #fff; text-align: center; border-radius: 8px; padding: 15px; position: fixed; z-index: 3000; left: 50%; bottom: 100px; transform: translateX(-50%); font-size: 1rem; border: 1px solid var(--accent); opacity: 0; transition: opacity 0.3s; }
 #toast.show { visibility: visible; opacity: 1; }
-
-.sticky-note { background: #ffeb3b; color: #222; padding: 15px; padding-top: 25px; border-radius: 2px; box-shadow: 2px 2px 5px rgba(0,0,0,0.3); position: relative; font-family: 'Comic Sans MS', cursive, sans-serif; font-size: 0.9rem; transform: rotate(-1deg); max-width: 300px; margin: 10px auto; }
-.sticky-note .note-pin { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); font-size: 1.2rem; color: #d32f2f; }
 .side-rec-item { background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px; display: flex; flex-direction: column; gap: 5px; }
 .side-rec-meta { display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; color: var(--text-muted); }
 .side-rec-label { color: var(--accent); font-weight: bold; font-size: 0.85rem; }
@@ -344,31 +368,28 @@ body.theme-light .modal-btn {
 
 /* 2. Εμφάνιση "Χαρτάκι Post-it" (ΥΠΗΡΧΕ ΗΔΗ) */
 .sticky-note { 
-    background: #ffeb3b; 
-    color: #111; 
-   /* Διαστάσεις & Στοίχιση */
+    background: #fff9c4; /* Ανοιχτό Κίτρινο Post-it */
+    color: #333 !important; /* Σκούρα γράμματα πάντα */
     padding: 12px 15px; 
-    margin: 10px 0 15px 0; /* Λίγο κενό από κάτω */
-    width: 100%; /* Να πιάνει όλο το πλάτος */
-    max-width: 100%;
+    margin: 10px 0 15px 0;
+    width: 100%; 
     box-sizing: border-box;
-
-    /* Εμφάνιση */
-    border-radius: 6px; /* Ελαφρώς στρογγυλεμένο */
-    border-left: 5px solid #fbc02d; /* Μια πιο σκούρα κίτρινη λωρίδα αριστερά για στυλ */
-    
-    /* Γραμματοσειρά (ίδια με την εφαρμογή) */
+    border-radius: 4px;
+    border-left: 5px solid #fbc02d; 
     font-family: var(--font-ui); 
     font-size: 1rem;
     line-height: 1.4;
-    
-    /* Αφαίρεση των "Post-it" εφέ */
-    box-shadow: none; 
-    transform: none;
+    position: relative;
 }
 .sticky-note .note-pin { 
-    display: none;}
-
+    position: absolute; top: -8px; right: -5px; 
+    font-size: 1.2rem; color: #d32f2f; transform: rotate(15deg);
+    display: block; /* Ενεργοποίησέ το αν θες την πινέζα */
+}
+#personalNoteText {
+    margin-top: 8px; padding-top: 8px; border-top: 1px dashed #999;
+    font-style: italic; font-size: 0.9rem; color: #555 !important;
+}
 /* 3. Side Recordings (ΥΠΗΡΧΕ ΗΔΗ) */
 .side-rec-item { 
     background: var(--input-bg); 
@@ -644,7 +665,7 @@ details[open] summary::after { transform: rotate(180deg); color: var(--accent); 
     position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; 
     background: #000; border-radius: 6px; border: 1px solid #333; 
 }
-.video-responsive iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+.video-responsive iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
 /* --- UPLOAD BUTTON STYLING --- */
 .upload-btn-styled {
     display: inline-block;
@@ -679,5 +700,6 @@ details[open] summary::after { transform: rotate(180deg); color: var(--accent); 
     border-radius: 4px;
     padding: 2px;
 }
+
 
 

@@ -761,16 +761,40 @@ function getNote(note, semitones) {
     let outScale = (semitones < 0) ? FLAT : SHARP;
     return outScale[newIndex] + suffix;
 }
-
+/* --- ΔΙΟΡΘΩΜΕΝΟ SPLIT (Smart Split βάσει συγχορδιών) --- */
 function splitSongBody(body) {
     if (!body) return { fixed: "", scroll: "" };
-    const separator = "\n---\n";
-    if (body.includes(separator)) {
-        const parts = body.split(separator);
-        return { fixed: parts[0], scroll: parts[1] };
-    } else { return { fixed: "", scroll: body }; }
-}
 
+    // 1. Χωρίζουμε το τραγούδι σε στροφές (όπου υπάρχει κενή γραμμή)
+    const stanzas = body.split(/\n\s*\n/);
+    
+    let splitIndex = -1;
+
+    // 2. Ψάχνουμε την ΤΕΛΕΥΤΑΙΑ στροφή που περιέχει συγχορδία (!)
+    for (let i = 0; i < stanzas.length; i++) {
+        // Αν η στροφή περιέχει "!", θεωρούμε ότι έχει συγχορδίες
+        if (stanzas[i].includes('!')) {
+            splitIndex = i;
+        }
+    }
+
+    // 3. Διαχωρισμός
+    if (splitIndex === -1) {
+        // Αν δεν βρέθηκε ΚΑΜΙΑ συγχορδία, όλα πάνε στο Scroll
+        return { fixed: "", scroll: body };
+    } else {
+        // Το Fixed περιλαμβάνει από την αρχή μέχρι ΚΑΙ την τελευταία στροφή με συγχορδίες
+        const fixedPart = stanzas.slice(0, splitIndex + 1).join('\n\n');
+        
+        // Το Scroll περιλαμβάνει όλα τα υπόλοιπα (καθαροί στίχοι)
+        const scrollPart = stanzas.slice(splitIndex + 1).join('\n\n');
+
+        return { 
+            fixed: fixedPart.trim(), 
+            scroll: scrollPart.trim() 
+        };
+    }
+}
 function parseSongLogic(s) { /* Logic to prepare chords */ }
 
 function calculateOptimalCapo(originalKey, body) {

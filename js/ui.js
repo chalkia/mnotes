@@ -1,9 +1,8 @@
 /* ===========================================================
    mNotes Pro UI Logic v17.6 (FINAL VERIFIED)
    =========================================================== */
-
 // ===========================================================
-// 1. GLOBALS & INITIALIZATION
+// 1. GLOBALS & INITIALIZATION (CLEANED UP)
 // ===========================================================
 
 if(typeof library === 'undefined') var library = [];
@@ -33,22 +32,22 @@ var recStartTime = 0;
 var liveSetlist = JSON.parse(localStorage.getItem('mnotes_setlist')) || [];
 var allSetlists = {}; 
 
-// Settings Default
+// Settings Default (ΑΦΑΙΡΕΘΗΚΕ ΤΟ backupReminder)
 var userSettings = JSON.parse(localStorage.getItem('mnotes_settings')) || {
-    scrollSpeed: 50, maxCapo: 12, backupReminder: true, hideDemo: false, theme: 'theme-dark', introScale: 0, keepScreenOn: false, sortMethod: 'alpha',
+    scrollSpeed: 50, maxCapo: 12, hideDemo: false, theme: 'theme-dark', introScale: 0, keepScreenOn: false, sortMethod: 'alpha',
     customColors: { '--bg-main': '#000000', '--bg-panel': '#222222', '--text-main': '#ffffff', '--accent': '#00ff00', '--chord-color': '#ffff00' }
 };
 var tempIntroScale = 0; 
 
 // Start Up
 window.addEventListener('load', function() {
-    console.log("🚀 mNotes Pro v17.6 Loaded");
+    console.log("🚀 mNotes Pro v17.7 Loaded");
     applyTheme(); 
     applyTranslations(); 
-    loadLibrary(); // Loads Setlists inside
+    loadLibrary(); 
     setupEvents(); 
     setupGestures(); 
-    checkBackupReminder(); 
+   
     initResizers();
     if(typeof initRhythmUI === 'function') initRhythmUI();
 

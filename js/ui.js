@@ -852,3 +852,91 @@ function calculateOptimalCapo(originalKey, body) {
     }
     return bestCapo;
 }
+// ===========================================================
+// 13. SETTINGS & MODAL LOGIC (ADD THIS TO THE END)
+// ===========================================================
+
+function openSettings() {
+    const modal = document.getElementById('settingsModal');
+    if (!modal) {
+        console.error("Settings Modal ID not found!");
+        return;
+    }
+
+    // Φόρτωση των τρεχουσών τιμών στα dropdowns
+    const themeSel = document.getElementById('themeSelect');
+    const langSel = document.getElementById('langSelect');
+    const sortSel = document.getElementById('sortDefaultSelect'); 
+    
+    // Έλεγχος αν υπάρχουν τα userSettings (αν όχι, τα δημιουργούμε)
+    if (typeof userSettings === 'undefined') {
+        userSettings = JSON.parse(localStorage.getItem('mnotes_settings')) || { theme: 'theme-dark', lang: 'el', sortMethod: 'alpha' };
+    }
+
+    if(themeSel) themeSel.value = userSettings.theme || 'theme-dark';
+    if(langSel) langSel.value = userSettings.lang || 'el';
+    if(sortSel) sortSel.value = userSettings.sortMethod || 'alpha';
+
+    // Εμφάνιση του παραθύρου
+    modal.style.display = 'flex';
+}
+
+function closeSettings() {
+    const modal = document.getElementById('settingsModal');
+    if (modal) modal.style.display = 'none';
+}
+
+function saveSettings() {
+    const themeSel = document.getElementById('themeSelect');
+    const langSel = document.getElementById('langSelect');
+    const sortSel = document.getElementById('sortDefaultSelect');
+
+    // 1. Εφαρμογή Θέματος
+    if (themeSel) {
+        userSettings.theme = themeSel.value;
+        if(typeof applyTheme === 'function') applyTheme();
+    }
+
+    // 2. Εφαρμογή Γλώσσας
+    if (langSel) {
+        userSettings.lang = langSel.value;
+        if(typeof toggleLanguage === 'function') {
+             // Αν η γλώσσα άλλαξε, καλούμε την toggleLanguage
+             const currentLangStored = localStorage.getItem('mnotes_lang');
+             if(currentLangStored !== userSettings.lang) {
+                 toggleLanguage(); 
+             }
+        }
+    }
+    
+    // 3. Προεπιλογή Ταξινόμησης
+    if (sortSel) {
+        userSettings.sortMethod = sortSel.value;
+    }
+    
+    // 4. Αποθήκευση στη μνήμη
+    localStorage.setItem('mnotes_settings', JSON.stringify(userSettings));
+    
+    // Κλείσιμο παραθύρου & Ενημέρωση
+    closeSettings();
+    
+    // Ανανέωση λίστας με τις νέες ρυθμίσεις
+    if (typeof sortLibrary === 'function') sortLibrary(userSettings.sortMethod);
+    
+    showToast(userSettings.lang === 'el' ? "Οι ρυθμίσεις αποθηκεύτηκαν" : "Settings saved");
+}
+
+// Κλείσιμο των modals αν πατήσουμε έξω από το κουτί
+window.onclick = function(event) {
+    const setsModal = document.getElementById('settingsModal');
+    const impModal = document.getElementById('importChoiceModal');
+    const qrModal = document.getElementById('qrModal');
+    const scanModal = document.getElementById('scanModal');
+    const authModal = document.getElementById('authModal');
+
+    if (event.target === setsModal) closeSettings();
+    if (event.target === impModal) impModal.style.display = 'none';
+    if (event.target === qrModal) qrModal.style.display = 'none';
+    if (event.target === scanModal) closeScan();
+    if (event.target === authModal) authModal.style.display = 'none';
+}

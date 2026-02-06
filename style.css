@@ -112,7 +112,7 @@ body.lyrics-mode .line-row { align-items: center; line-height: 1.8; }
 .stepper { display: flex; align-items: center; background: var(--input-bg); border-radius: 20px; padding: 2px; border: 1px solid var(--border-color); }
 .stepper button { background: none; border: none; color: var(--text-main); width: 35px; height: 30px; font-size: 16px; cursor: pointer; }
 .stepper span { min-width: 30px; text-align: center; font-weight: bold; font-size: 1rem; color: var(--accent); }
-.round-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid #444; background: var(--bg-panel); color: white; cursor: pointer; font-size: 1.1rem; display:flex; align-items:center; justify-content:center; }
+.round-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px var(--border-color); background: var(--bg-panel); color: var(--text-main); cursor: pointer; font-size: 1.1rem; display:flex; align-items:center; justify-content:center; }
 .round-btn.accent-btn { border-color: var(--accent); color: var(--accent); }
 
 /* TOOLS & GRID */
@@ -211,7 +211,7 @@ body.theme-light .modal-content select, body.theme-light .modal-box select {
     padding: 12px; border: none; border-radius: 6px; cursor: pointer; 
     font-size: 1rem; display: flex; align-items: center; justify-content: center; gap: 10px; 
     /* Default: Dark Button on Light Modal */
-    background: #333; color: #fff; 
+    background: var(--bg-sidebar) ; color: var(--text-main); border: 1px solid var(--border-color);
 }
 body.theme-light .modal-btn {
     /* Light Theme: Light Button on Dark Modal */
@@ -671,9 +671,9 @@ details[open] summary::after { transform: rotate(180deg); color: var(--accent); 
     display: inline-block;
     width: 100%;
     padding: 12px;
-    background: #1e1e1e;
-    color: var(--text-main);
-    border: 2px dashed #444; /* Διακριτικό περίγραμμα */
+    background: var(--input-bg);     
+    color: var(--text-main);         
+    border: 2px dashed var(--border-color);
     border-radius: 8px;
     cursor: pointer;
     font-size: 0.9rem;
@@ -700,6 +700,7 @@ details[open] summary::after { transform: rotate(180deg); color: var(--accent); 
     border-radius: 4px;
     padding: 2px;
 }
+
 
 
 

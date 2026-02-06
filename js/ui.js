@@ -686,9 +686,6 @@ function toggleSidebar() { document.getElementById('sidebar').classList.toggle('
 function saveData() { localStorage.setItem('mnotes_data', JSON.stringify(library)); }
 function filterByKey(e, key) { e.stopPropagation(); var inp = document.getElementById('searchInp'); if(inp) { inp.value = key; applyFilters(); showToast("Filter: " + key); } }
 
-const NOTES_SHARP = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-const NOTES_FLAT  = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
-
 function getNote(note, semitones) {
     if (!note || note === "-" || note === "") return note;
     let root = note.match(/^[A-G][#b]?/)[0];

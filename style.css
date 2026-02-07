@@ -73,7 +73,7 @@ body { background: var(--bg-main); color: var(--text-main); font-family: var(--f
 .song-info { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
 .song-title { font-size: 1.15rem; color: var(--text-main); font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .song-meta-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: var(--text-muted); margin-top: 2px; margin-bottom: 2px }
-.song-artist { font-size: 0.75 rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 90%; }
+.song-item .song-artist { font-size: 0.75 rem !important; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 90%; }
 .song-key-badge { font-size: 0.75rem; color: var(--accent); font-weight: bold; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); padding: 1px 5px; border-radius: 4px; cursor: pointer; }
 .song-action { font-size: 1rem; color: var(--text-muted); cursor: pointer; }
 
@@ -807,6 +807,7 @@ details[open] summary::after { transform: rotate(180deg); color: var(--accent); 
     height: 30px; 
     display: inline-block;
 }
+
 
 
 

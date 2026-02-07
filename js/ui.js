@@ -939,3 +939,72 @@ window.onclick = function(event) {
     if (event.target === scanModal) closeScan();
     if (event.target === authModal) authModal.style.display = 'none';
 }
+// ===========================================================
+// 14. TRANSPOSITION & CAPO CONTROLS (THE MISSING LINK)
+// ===========================================================
+
+function transUp() {
+    // Έλεγχος αν υπάρχει το state (από το logic.js)
+    if (typeof state === 'undefined') return;
+    
+    // Αλλαγή της τιμής
+    state.t = (state.t || 0) + 1;
+    
+    // Ενημέρωση
+    refreshPlayerUI();
+}
+
+function transDown() {
+    if (typeof state === 'undefined') return;
+    state.t = (state.t || 0) - 1;
+    refreshPlayerUI();
+}
+
+function capoUp() {
+    if (typeof state === 'undefined') return;
+    // Παίρνουμε το όριο από τις ρυθμίσεις (αν υπάρχουν)
+    const max = (typeof userSettings !== 'undefined' && userSettings.maxCapo) ? parseInt(userSettings.maxCapo) : 12;
+    
+    if (state.c < max) {
+        state.c = (state.c || 0) + 1;
+        refreshPlayerUI();
+    }
+}
+
+function capoDown() {
+    if (typeof state === 'undefined') return;
+    if (state.c > 0) {
+        state.c = (state.c || 0) - 1;
+        refreshPlayerUI();
+    }
+}
+
+// Βοηθητική συνάρτηση που κάνει Refresh τον Player και τα Νούμερα
+function refreshPlayerUI() {
+    // 1. Ξαναζωγραφίζουμε το τραγούδι (θα διαβάσει τα νέα t και c)
+    if (currentSongId && typeof library !== 'undefined') {
+        const s = library.find(x => x.id === currentSongId);
+        if (s && typeof renderPlayer === 'function') {
+            renderPlayer(s);
+        }
+    }
+
+    // 2. Ενημερώνουμε τα νούμερα στα κουμπιά (αν υπάρχουν στο HTML)
+    updateTransDisplay();
+}
+
+function updateTransDisplay() {
+    const dValT = document.getElementById('val-t'); // Desktop Transpose Value
+    const dValC = document.getElementById('val-c'); // Desktop Capo Value
+    const mValT = document.getElementById('drawer-val-t'); // Mobile Drawer Value (αν υπάρχει)
+    const mValC = document.getElementById('drawer-val-c'); // Mobile Drawer Value (αν υπάρχει)
+
+    // Φτιάχνουμε το κείμενο (π.χ. "+2" ή "-1")
+    const tTxt = (state.t > 0 ? "+" : "") + state.t;
+    
+    if (dValT) dValT.innerText = tTxt;
+    if (mValT) mValT.innerText = tTxt;
+    
+    if (dValC) dValC.innerText = state.c;
+    if (mValC) mValC.innerText = state.c;
+}

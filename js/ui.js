@@ -863,7 +863,7 @@ function openSettings() {
     }
 
     // Φόρτωση των τρεχουσών τιμών στα dropdowns
-    const themeSel = document.getElementById('themeSelect');
+    const themeSel = document.getElementById('setTheme');
     const langSel = document.getElementById('langSelect');
     const sortSel = document.getElementById('sortDefaultSelect'); 
     
@@ -886,7 +886,7 @@ function closeSettings() {
 }
 
 function saveSettings() {
-    const themeSel = document.getElementById('themeSelect');
+    const themeSel = document.getElementById('setTheme');
     const langSel = document.getElementById('langSelect');
     const sortSel = document.getElementById('sortDefaultSelect');
 

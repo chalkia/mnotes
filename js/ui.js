@@ -34,7 +34,7 @@ var allSetlists = {};
 
 // Settings Default (ΑΦΑΙΡΕΘΗΚΕ ΤΟ backupReminder)
 var userSettings = JSON.parse(localStorage.getItem('mnotes_settings')) || {
-    scrollSpeed: 50, maxCapo: 12, hideDemo: false, theme: 'theme-dark', introScale: 0, keepScreenOn: false, sortMethod: 'alpha',
+    scrollSpeed: 50, maxCapo: 12, hideDemo: false, theme: 'theme-slate', introScale: 0, keepScreenOn: false, sortMethod: 'alpha',
     customColors: { '--bg-main': '#000000', '--bg-panel': '#222222', '--text-main': '#ffffff', '--accent': '#00ff00', '--chord-color': '#ffff00' }
 };
 var tempIntroScale = 0; 

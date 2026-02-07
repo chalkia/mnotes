@@ -326,7 +326,13 @@
     <div id="settingsModal" class="modal" style="display:none;">
         <div class="modal-content settings-content">
             <h3>Settings</h3>
-            <label>Theme: <select id="setTheme" onchange="toggleCustomColors(this.value)"><option value="theme-dark">Dark</option><option value="theme-light">Light</option><option value="theme-custom">Custom</option></select></label>
+            <label>Theme: <select id="setTheme" onchange="toggleCustomColors(this.value)">
+                <option value="theme-dark">Dark</option>
+                <option value="theme-light">Light</option>
+                <option value="theme-slate">Slate (Classic)</option>
+                <option value="theme-custom">Custom</option></select>
+            </label>
+                   
             
             <div id="customColorArea" style="display:none; border:1px solid #444; padding:10px; margin:10px 0;">
                 <label>Bg: <input type="color" id="colBgMain" value="#000000"></label>
@@ -459,6 +465,7 @@
 </body>
 </html>
            
+
 
 
 

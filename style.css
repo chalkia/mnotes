@@ -173,7 +173,29 @@ body.lyrics-mode .line-row { align-items: center; line-height: 1.8; }
     color: var(--text-muted);
     margin-top: 5px;
 }
+/* Tag Suggestions Dropdown */
+.tag-suggestions {
+    position: absolute;
+    background: #333;
+    border: 1px solid #555;
+    width: 100%;
+    max-height: 150px;
+    overflow-y: auto;
+    z-index: 1000;
+    display: none; /* Κρυφό αρχικά */
+}
 
+.tag-suggestion-item {
+    padding: 8px;
+    cursor: pointer;
+    color: #fff;
+    border-bottom: 1px solid #444;
+}
+
+.tag-suggestion-item:hover {
+    background: var(--accent);
+    color: #000;
+}
 
 /* =========================================
    MODALS & NOTIFICATIONS (INVERTED COLORS)
@@ -807,6 +829,7 @@ details[open] summary::after { transform: rotate(180deg); color: var(--accent); 
     height: 30px; 
     display: inline-block;
 }
+
 
 
 

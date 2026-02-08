@@ -400,84 +400,59 @@ function toggleLyricsMode() {
     }
 }
 
-// PDF / PRINT FUNCTIONALITY (PROFESSIONAL LAYOUT)
+
+// PDF / PRINT FUNCTION (FINAL PRO STYLE + LOGO + TOKEN SYSTEM)
 
 function printSongPDF() {
-    // 1. Διάβασμα δεδομένων
+    // 1. Διάβασμα Δεδομένων από τον Editor
     var title = document.getElementById('inpTitle').value || "Untitled";
     var artist = document.getElementById('inpArtist').value || "";
     var bodyRaw = document.getElementById('inpBody').value || "";
     var key = document.getElementById('inpKey').value || "-";
 
-    // 2. Δημιουργία HTML περιεχομένου γραμμή-γραμμή
+    // 2. Ανάλυση στίχων και συγχορδιών (Token System Logic)
+    // Αυτό είναι το "έξυπνο" κομμάτι που ΔΕΝ είναι απλοϊκό
     var lines = bodyRaw.split('\n');
     var htmlBody = "";
 
     lines.forEach(function(line) {
-        // Αν η γραμμή είναι κενή
-        if (!line.trim()) {
-            htmlBody += '<div class="print-row empty-row">&nbsp;</div>';
-            return;
+        // Περίπτωση κενής γραμμής
+        if (!line.trim()) { 
+            htmlBody += '<div class="print-row empty-row">&nbsp;</div>'; 
+            return; 
+        }
+        
+        // Περίπτωση γραμμής χωρίς συγχορδίες (σκέτοι στίχοι)
+        if (line.indexOf('!') === -1) { 
+            htmlBody += `<div class="print-row"><span class="lyric-only">${line}</span></div>`; 
+            return; 
         }
 
-        // Αν η γραμμή ΔΕΝ έχει συγχορδίες (!), την τυπώνουμε απλά
-        if (line.indexOf('!') === -1) {
-            htmlBody += `<div class="print-row"><span class="lyric-only">${line}</span></div>`;
-            return;
-        }
-
-        // Αν ΕΧΕΙ συγχορδίες, κάνουμε ανάλυση (Parsing)
+        // Περίπτωση γραμμής με συγχορδίες: Την αναλύουμε
         var rowHtml = '<div class="print-row">';
         var parts = line.split('!');
         
-        // Το πρώτο κομμάτι είναι πάντα στίχος (πριν το πρώτο !)
+        // Κομμάτι πριν την πρώτη συγχορδία
         if (parts[0]) {
             rowHtml += `<div class="token"><div class="chord">&nbsp;</div><div class="lyric">${parts[0]}</div></div>`;
         }
 
-        // Τα επόμενα κομμάτια είναι ζευγάρια (Συγχορδία + Στίχος)
+        // Επεξεργασία κάθε συγχορδίας και του κειμένου της
         for (var i = 1; i < parts.length; i++) {
-            // Regex για να ξεχωρίσουμε τη συγχορδία από τον στίχο που ακολουθεί
-            // Ψάχνει π.χ. στο "Amγουδάω" -> Chord="Am", Lyric="γουδάω"
+            // Regex για να ξεχωρίσουμε τη συγχορδία (π.χ. Am) από το κείμενο (π.χ. -γαπάω)
             var m = parts[i].match(/^([A-G][b#]?[m]?[maj7|sus4|7|add9|dim|0-9|\/]*)(.*)/);
-            
             if (m) {
                 var chord = m[1];
-                var text = m[2] || ""; // Αν είναι κενό (π.χ. στο τέλος γραμμής)
-                
-                // Αν το text είναι κενό, βάζουμε &nbsp; για να κρατήσει το ύψος
-                var dispText = text === "" ? "&nbsp;" : text;
+                var text = m[2];
+                // Αν δεν υπάρχει κείμενο, βάζουμε &nbsp; για να κρατήσει το ύψος
+                if(text === "") text = "&nbsp;"; 
                 
                 rowHtml += `<div class="token">
                                 <div class="chord">${chord}</div>
-                                <div class="lyric">${dispText}</div>
+                                <div class="lyric">${text}</div>
                             </div>`;
             } else {
-                // Fallback αν δεν ταιριάζει το regex (σπάνιο)
-                rowHtml += `<div class="token"><div class="chord">&nbsp;</div><div class="lyric">${parts[i]}</div></div>`;
-            }
-        }
-        rowHtml += '</div>';
-        htmlBody += htmlBody + rowHtml; // Oops correction below -> htmlBody += rowHtml;
-    });
-    
-    // Διόρθωση στο loop (για να μην διπλασιάζει το κείμενο)
-    htmlBody = ""; // Reset
-    lines.forEach(function(line) {
-        if (!line.trim()) { htmlBody += '<div class="print-row empty-row">&nbsp;</div>'; return; }
-        if (line.indexOf('!') === -1) { htmlBody += `<div class="print-row"><span class="lyric-only">${line}</span></div>`; return; }
-        
-        var rowHtml = '<div class="print-row">';
-        var parts = line.split('!');
-        if (parts[0]) rowHtml += `<div class="token"><div class="chord">&nbsp;</div><div class="lyric">${parts[0]}</div></div>`;
-        
-        for (var i = 1; i < parts.length; i++) {
-            var m = parts[i].match(/^([A-G][b#]?[m]?[maj7|sus4|7|add9|dim|0-9|\/]*)(.*)/);
-            if (m) {
-                var chord = m[1];
-                var text = m[2] || "&nbsp;";
-                rowHtml += `<div class="token"><div class="chord">${chord}</div><div class="lyric">${text}</div></div>`;
-            } else {
+                // Ασφάλεια σε περίπτωση που κάτι δεν ταιριάζει
                 rowHtml += `<div class="token"><div class="chord">!</div><div class="lyric">${parts[i]}</div></div>`;
             }
         }
@@ -485,49 +460,94 @@ function printSongPDF() {
         htmlBody += rowHtml;
     });
 
-
-    // 3. Άνοιγμα παραθύρου με ειδικό CSS
+    // 3. Στήσιμο του παραθύρου εκτύπωσης (CSS & Logo)
     var win = window.open('', '', 'width=900,height=1000');
+    
     var css = `
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; padding: 40px; color: #000; }
-        h1 { font-size: 26px; margin: 0 0 5px 0; border-bottom: 2px solid #000; padding-bottom: 10px; }
-        h2 { font-size: 18px; color: #555; margin: 0 0 20px 0; font-weight: normal; }
-        .meta { font-size: 14px; margin-bottom: 30px; color: #444; font-style: italic; }
-        
-        /* Layout Grid */
-        .print-row {
-            display: flex;
-            flex-wrap: wrap; /* Αλλαγή γραμμής αν δεν χωράει */
-            align-items: flex-end; /* Ευθυγράμμιση στίχων κάτω */
-            margin-bottom: 8px; /* Απόσταση μεταξύ γραμμών τραγουδιού */
-            page-break-inside: avoid; /* Να μην κόβεται η γραμμή στη μέση */
+        body { 
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; 
+            padding: 40px; 
+            color: #111;
+            position: relative; /* Για να δουλέψει το absolute του λογότυπου */
         }
         
-        .empty-row { height: 20px; }
+        /* ΤΟ ΛΟΓΟΤΥΠΟ (Πάνω Δεξιά) */
+        .logo {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            width: 50px;
+            height: auto;
+            opacity: 0.9;
+            z-index: 10;
+        }
+
+        h1 { 
+            font-size: 26px; 
+            margin: 0 0 5px 0; 
+            border-bottom: 2px solid #000; 
+            padding-bottom: 5px; 
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-right: 60px; 
+        }
+        h2 { 
+            font-size: 16px; 
+            color: #444; 
+            margin: 0 0 20px 0; 
+            font-weight: normal; 
+            font-style: italic;
+        }
+        .meta { 
+            font-size: 13px; 
+            margin-bottom: 25px; 
+            color: #333; 
+            font-weight: bold; 
+            border: 1px solid #ddd;
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        /* Flexbox Grid για τέλεια στοίχιση */
+        .print-row {
+            display: flex;
+            flex-wrap: wrap; 
+            align-items: flex-end; 
+            margin-bottom: 6px; 
+            page-break-inside: avoid; /* Δεν κόβει τη γραμμή στη μέση */
+        }
+        
+        .empty-row { height: 15px; }
         
         .token {
             display: flex;
-            flex-direction: column; /* Συγχορδία πάνω, στίχος κάτω */
-            align-items: flex-start; /* Αριστερή στοίχιση */
-            margin-right: 0; /* Δεν θέλουμε κενά, τα κενά είναι μέσα στο text */
+            flex-direction: column;
+            align-items: flex-start;
+            margin-right: 0;
         }
-        
+
         .chord {
-            font-weight: bold;
+            font-weight: 800;
             font-size: 13px;
             color: #000;
-            height: 16px; /* Σταθερό ύψος για να ευθυγραμμίζονται */
+            height: 16px;
             line-height: 16px;
-            white-space: pre; /* Διατήρηση κενών */
+            margin-bottom: 1px;
+            font-family: 'Arial', sans-serif;
         }
-        
+
         .lyric {
             font-size: 15px;
-            white-space: pre; /* ΣΗΜΑΝΤΙΚΟ: Διατηρεί τα κενά που έγραψες */
+            line-height: 1.2;
+            color: #222;
+            white-space: pre; /* Κρατάει τα κενά του χρήστη */
+            font-family: 'Arial', sans-serif;
         }
         
         .lyric-only {
             font-size: 15px;
+            line-height: 1.5;
             white-space: pre-wrap;
         }
 
@@ -537,6 +557,7 @@ function printSongPDF() {
         }
     `;
 
+    // 4. Εισαγωγή περιεχομένου
     var htmlContent = `
         <html>
         <head>
@@ -544,12 +565,21 @@ function printSongPDF() {
             <style>${css}</style>
         </head>
         <body>
+            <img src="icon-192.png" class="logo" alt="Logo">
+            
             <h1>${title}</h1>
             <h2>${artist}</h2>
             <div class="meta">Key: ${key}</div>
             <div class="content">${htmlBody}</div>
+            
             <script>
-                window.onload = function() { setTimeout(function(){ window.print(); window.close(); }, 500); }
+                // Καθυστέρηση για φόρτωση εικόνας
+                window.onload = function() { 
+                    setTimeout(function(){ 
+                        window.print(); 
+                        window.close(); 
+                    }, 800); 
+                }
             <\/script>
         </body>
         </html>

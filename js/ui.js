@@ -376,10 +376,8 @@ function renderArea(elemId, text) {
 }
 
 function createToken(c, l) { var d = document.createElement('div'); d.className = 'token'; d.innerHTML = `<span class="chord">${c || ""}</span><span class="lyric">${l || ""}</span>`; return d; }
-// ===========================================================
-// LYRICS MODE LOGIC (FIXED)
-// ===========================================================
 
+//LYRICS MODE LOGIC (FIXED)
 function toggleLyricsMode() {
     // 1. Αλλαγή της κατάστασης (True/False)
     isLyricsMode = !isLyricsMode;
@@ -400,6 +398,94 @@ function toggleLyricsMode() {
         if (isLyricsMode) btn.classList.add('active-btn'); 
         else btn.classList.remove('active-btn');
     }
+}
+
+// PDF / PRINT FUNCTIONALITY
+
+function printSongPDF() {
+    // 1. Διάβασμα των τιμών από τον Editor
+    var title = document.getElementById('inpTitle').value || "Untitled";
+    var artist = document.getElementById('inpArtist').value || "";
+    var bodyRaw = document.getElementById('inpBody').value || "";
+    var key = document.getElementById('inpKey').value || "-";
+
+    // 2. Μορφοποίηση του κειμένου (Αφαιρούμε τα ! και κάνουμε Bold τις συγχορδίες)
+    // Αντικαθιστά το !Am με <b>Am</b> για να φαίνεται ωραίο στο PDF
+    var bodyFormatted = bodyRaw
+        .replace(/</g, "&lt;") // Ασφάλεια για HTML tags
+        .replace(/>/g, "&gt;")
+        .replace(/!([^\s]+)/g, '<span class="pdf-chord">$1</span>'); 
+
+    // 3. Δημιουργία του παραθύρου εκτύπωσης
+    var win = window.open('', '', 'width=800,height=900');
+    
+    var htmlContent = `
+        <html>
+        <head>
+            <title>${title} - PDF</title>
+            <style>
+                body { 
+                    font-family: 'Courier New', monospace; 
+                    padding: 40px; 
+                    color: #000; 
+                }
+                h1 { 
+                    font-family: sans-serif; 
+                    margin-bottom: 5px; 
+                    font-size: 24px; 
+                    border-bottom: 2px solid #333; 
+                    padding-bottom: 10px;
+                }
+                h2 { 
+                    font-family: sans-serif; 
+                    color: #555; 
+                    margin-top: 0; 
+                    font-size: 18px; 
+                    margin-bottom: 20px; 
+                }
+                .meta { 
+                    font-family: sans-serif; 
+                    font-size: 14px; 
+                    margin-bottom: 30px; 
+                    color: #444; 
+                    font-weight: bold;
+                }
+                pre { 
+                    white-space: pre-wrap; 
+                    font-size: 15px; 
+                    line-height: 1.6; 
+                    font-family: 'Courier New', monospace;
+                }
+                .pdf-chord { 
+                    font-weight: bold; 
+                    color: #000; 
+                }
+                /* Κρύβουμε ημερομηνίες και url headers κατά την εκτύπωση */
+                @page { margin: 2cm; }
+            </style>
+        </head>
+        <body>
+            <h1>${title}</h1>
+            <h2>${artist}</h2>
+            <div class="meta">Original Key: ${key}</div>
+            
+            <pre>${bodyFormatted}</pre>
+            
+            <script>
+                // Αυτόματη εκτύπωση μόλις φορτώσει
+                window.onload = function() { 
+                    setTimeout(function(){ 
+                        window.print(); 
+                        window.close(); 
+                    }, 500);
+                }
+            <\/script>
+        </body>
+        </html>
+    `;
+
+    win.document.write(htmlContent);
+    win.document.close();
 }
 // ===========================================================
 // 6. EDITOR LOGIC

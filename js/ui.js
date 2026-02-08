@@ -400,85 +400,156 @@ function toggleLyricsMode() {
     }
 }
 
-// PDF / PRINT FUNCTIONALITY
+// PDF / PRINT FUNCTIONALITY (PROFESSIONAL LAYOUT)
 
 function printSongPDF() {
-    // 1. Διάβασμα των τιμών από τον Editor
+    // 1. Διάβασμα δεδομένων
     var title = document.getElementById('inpTitle').value || "Untitled";
     var artist = document.getElementById('inpArtist').value || "";
     var bodyRaw = document.getElementById('inpBody').value || "";
     var key = document.getElementById('inpKey').value || "-";
 
-    // 2. Μορφοποίηση του κειμένου (Αφαιρούμε τα ! και κάνουμε Bold τις συγχορδίες)
-    // Αντικαθιστά το !Am με <b>Am</b> για να φαίνεται ωραίο στο PDF
-    var bodyFormatted = bodyRaw
-        .replace(/</g, "&lt;") // Ασφάλεια για HTML tags
-        .replace(/>/g, "&gt;")
-        .replace(/!([^\s]+)/g, '<span class="pdf-chord">$1</span>'); 
+    // 2. Δημιουργία HTML περιεχομένου γραμμή-γραμμή
+    var lines = bodyRaw.split('\n');
+    var htmlBody = "";
 
-    // 3. Δημιουργία του παραθύρου εκτύπωσης
-    var win = window.open('', '', 'width=800,height=900');
+    lines.forEach(function(line) {
+        // Αν η γραμμή είναι κενή
+        if (!line.trim()) {
+            htmlBody += '<div class="print-row empty-row">&nbsp;</div>';
+            return;
+        }
+
+        // Αν η γραμμή ΔΕΝ έχει συγχορδίες (!), την τυπώνουμε απλά
+        if (line.indexOf('!') === -1) {
+            htmlBody += `<div class="print-row"><span class="lyric-only">${line}</span></div>`;
+            return;
+        }
+
+        // Αν ΕΧΕΙ συγχορδίες, κάνουμε ανάλυση (Parsing)
+        var rowHtml = '<div class="print-row">';
+        var parts = line.split('!');
+        
+        // Το πρώτο κομμάτι είναι πάντα στίχος (πριν το πρώτο !)
+        if (parts[0]) {
+            rowHtml += `<div class="token"><div class="chord">&nbsp;</div><div class="lyric">${parts[0]}</div></div>`;
+        }
+
+        // Τα επόμενα κομμάτια είναι ζευγάρια (Συγχορδία + Στίχος)
+        for (var i = 1; i < parts.length; i++) {
+            // Regex για να ξεχωρίσουμε τη συγχορδία από τον στίχο που ακολουθεί
+            // Ψάχνει π.χ. στο "Amγουδάω" -> Chord="Am", Lyric="γουδάω"
+            var m = parts[i].match(/^([A-G][b#]?[m]?[maj7|sus4|7|add9|dim|0-9|\/]*)(.*)/);
+            
+            if (m) {
+                var chord = m[1];
+                var text = m[2] || ""; // Αν είναι κενό (π.χ. στο τέλος γραμμής)
+                
+                // Αν το text είναι κενό, βάζουμε &nbsp; για να κρατήσει το ύψος
+                var dispText = text === "" ? "&nbsp;" : text;
+                
+                rowHtml += `<div class="token">
+                                <div class="chord">${chord}</div>
+                                <div class="lyric">${dispText}</div>
+                            </div>`;
+            } else {
+                // Fallback αν δεν ταιριάζει το regex (σπάνιο)
+                rowHtml += `<div class="token"><div class="chord">&nbsp;</div><div class="lyric">${parts[i]}</div></div>`;
+            }
+        }
+        rowHtml += '</div>';
+        htmlBody += htmlBody + rowHtml; // Oops correction below -> htmlBody += rowHtml;
+    });
     
+    // Διόρθωση στο loop (για να μην διπλασιάζει το κείμενο)
+    htmlBody = ""; // Reset
+    lines.forEach(function(line) {
+        if (!line.trim()) { htmlBody += '<div class="print-row empty-row">&nbsp;</div>'; return; }
+        if (line.indexOf('!') === -1) { htmlBody += `<div class="print-row"><span class="lyric-only">${line}</span></div>`; return; }
+        
+        var rowHtml = '<div class="print-row">';
+        var parts = line.split('!');
+        if (parts[0]) rowHtml += `<div class="token"><div class="chord">&nbsp;</div><div class="lyric">${parts[0]}</div></div>`;
+        
+        for (var i = 1; i < parts.length; i++) {
+            var m = parts[i].match(/^([A-G][b#]?[m]?[maj7|sus4|7|add9|dim|0-9|\/]*)(.*)/);
+            if (m) {
+                var chord = m[1];
+                var text = m[2] || "&nbsp;";
+                rowHtml += `<div class="token"><div class="chord">${chord}</div><div class="lyric">${text}</div></div>`;
+            } else {
+                rowHtml += `<div class="token"><div class="chord">!</div><div class="lyric">${parts[i]}</div></div>`;
+            }
+        }
+        rowHtml += '</div>';
+        htmlBody += rowHtml;
+    });
+
+
+    // 3. Άνοιγμα παραθύρου με ειδικό CSS
+    var win = window.open('', '', 'width=900,height=1000');
+    var css = `
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; padding: 40px; color: #000; }
+        h1 { font-size: 26px; margin: 0 0 5px 0; border-bottom: 2px solid #000; padding-bottom: 10px; }
+        h2 { font-size: 18px; color: #555; margin: 0 0 20px 0; font-weight: normal; }
+        .meta { font-size: 14px; margin-bottom: 30px; color: #444; font-style: italic; }
+        
+        /* Layout Grid */
+        .print-row {
+            display: flex;
+            flex-wrap: wrap; /* Αλλαγή γραμμής αν δεν χωράει */
+            align-items: flex-end; /* Ευθυγράμμιση στίχων κάτω */
+            margin-bottom: 8px; /* Απόσταση μεταξύ γραμμών τραγουδιού */
+            page-break-inside: avoid; /* Να μην κόβεται η γραμμή στη μέση */
+        }
+        
+        .empty-row { height: 20px; }
+        
+        .token {
+            display: flex;
+            flex-direction: column; /* Συγχορδία πάνω, στίχος κάτω */
+            align-items: flex-start; /* Αριστερή στοίχιση */
+            margin-right: 0; /* Δεν θέλουμε κενά, τα κενά είναι μέσα στο text */
+        }
+        
+        .chord {
+            font-weight: bold;
+            font-size: 13px;
+            color: #000;
+            height: 16px; /* Σταθερό ύψος για να ευθυγραμμίζονται */
+            line-height: 16px;
+            white-space: pre; /* Διατήρηση κενών */
+        }
+        
+        .lyric {
+            font-size: 15px;
+            white-space: pre; /* ΣΗΜΑΝΤΙΚΟ: Διατηρεί τα κενά που έγραψες */
+        }
+        
+        .lyric-only {
+            font-size: 15px;
+            white-space: pre-wrap;
+        }
+
+        @media print {
+            @page { margin: 1.5cm; }
+            button { display: none; }
+        }
+    `;
+
     var htmlContent = `
         <html>
         <head>
-            <title>${title} - PDF</title>
-            <style>
-                body { 
-                    font-family: 'Courier New', monospace; 
-                    padding: 40px; 
-                    color: #000; 
-                }
-                h1 { 
-                    font-family: sans-serif; 
-                    margin-bottom: 5px; 
-                    font-size: 24px; 
-                    border-bottom: 2px solid #333; 
-                    padding-bottom: 10px;
-                }
-                h2 { 
-                    font-family: sans-serif; 
-                    color: #555; 
-                    margin-top: 0; 
-                    font-size: 18px; 
-                    margin-bottom: 20px; 
-                }
-                .meta { 
-                    font-family: sans-serif; 
-                    font-size: 14px; 
-                    margin-bottom: 30px; 
-                    color: #444; 
-                    font-weight: bold;
-                }
-                pre { 
-                    white-space: pre-wrap; 
-                    font-size: 15px; 
-                    line-height: 1.6; 
-                    font-family: 'Courier New', monospace;
-                }
-                .pdf-chord { 
-                    font-weight: bold; 
-                    color: #000; 
-                }
-                /* Κρύβουμε ημερομηνίες και url headers κατά την εκτύπωση */
-                @page { margin: 2cm; }
-            </style>
+            <title>${title}</title>
+            <style>${css}</style>
         </head>
         <body>
             <h1>${title}</h1>
             <h2>${artist}</h2>
-            <div class="meta">Original Key: ${key}</div>
-            
-            <pre>${bodyFormatted}</pre>
-            
+            <div class="meta">Key: ${key}</div>
+            <div class="content">${htmlBody}</div>
             <script>
-                // Αυτόματη εκτύπωση μόλις φορτώσει
-                window.onload = function() { 
-                    setTimeout(function(){ 
-                        window.print(); 
-                        window.close(); 
-                    }, 500);
-                }
+                window.onload = function() { setTimeout(function(){ window.print(); window.close(); }, 500); }
             <\/script>
         </body>
         </html>

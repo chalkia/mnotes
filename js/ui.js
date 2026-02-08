@@ -444,6 +444,121 @@ function exitEditor() { if (currentSongId) loadSong(currentSongId); else if (lib
 function deleteCurrentSong() { if(!currentSongId) return; if(confirm(t('msg_delete_confirm') || "Delete this song?")) { library = library.filter(s => s.id !== currentSongId); liveSetlist = liveSetlist.filter(id => id !== currentSongId); localStorage.setItem('mnotes_setlist', JSON.stringify(liveSetlist)); saveData(); populateTags(); applyFilters(); if(library.length > 0) loadSong(library[0].id); else createNewSong(); showToast("Song Deleted 🗑️"); } }
 
 // ===========================================================
+// TAG SYSTEM & AUTOCOMPLETE (EDITOR)
+// ===========================================================
+
+// Παγκόσμια μεταβλητή για τα tags του editor
+var editorTags = [];
+
+// 1. Όταν γράφει ο χρήστης (Autocomplete Logic)
+function handleTagInput(input) {
+    const val = input.value.toLowerCase().trim();
+    const suggestionsBox = document.getElementById('tagSuggestions');
+    
+    // Αν είναι κενό, κρύψε τις προτάσεις
+    if (!val) {
+        if(suggestionsBox) suggestionsBox.style.display = 'none';
+        return;
+    }
+
+    // Μαζεύουμε ΟΛΑ τα tags από τη βιβλιοθήκη
+    const allTags = new Set();
+    if (typeof library !== 'undefined') {
+        library.forEach(s => {
+            if (s.playlists && Array.isArray(s.playlists)) {
+                s.playlists.forEach(t => allTags.add(t));
+            }
+        });
+    }
+
+    // Φιλτράρουμε: Να ταιριάζει με αυτό που γράφεις & Να μην το έχεις ήδη βάλει
+    const matches = Array.from(allTags).filter(t => 
+        t.toLowerCase().includes(val) && !editorTags.includes(t)
+    );
+
+    // Εμφάνιση λίστας
+    if (suggestionsBox) {
+        suggestionsBox.innerHTML = '';
+        if (matches.length > 0) {
+            matches.forEach(match => {
+                const div = document.createElement('div');
+                div.className = 'tag-suggestion-item'; // Χρειάζεται CSS (δες παρακάτω)
+                div.innerText = match;
+                div.onclick = () => {
+                    addTag(match);
+                    input.value = '';
+                    suggestionsBox.style.display = 'none';
+                    input.focus();
+                };
+                suggestionsBox.appendChild(div);
+            });
+            suggestionsBox.style.display = 'block';
+        } else {
+            suggestionsBox.style.display = 'none';
+        }
+    }
+}
+
+// 2. Όταν πατάει πλήκτρα (Enter ή Κόμμα)
+function handleTagKey(e) {
+    if (e.key === 'Enter' || e.key === ',') {
+        e.preventDefault();
+        const val = e.target.value.trim().replace(',', '');
+        if (val) {
+            addTag(val);
+            e.target.value = '';
+            const sb = document.getElementById('tagSuggestions');
+            if(sb) sb.style.display = 'none';
+        }
+    }
+}
+
+// 3. Προσθήκη Tag στη μνήμη και εμφάνιση
+function addTag(tag) {
+    if (!tag) return;
+    if (!editorTags.includes(tag)) {
+        editorTags.push(tag);
+        renderTags();
+    }
+}
+
+// 4. Αφαίρεση Tag
+function removeTag(tag) {
+    editorTags = editorTags.filter(t => t !== tag);
+    renderTags();
+}
+
+// 5. Ζωγράφισμα των Tags (Chips)
+function renderTags() {
+    const container = document.getElementById('tagChips');
+    const hiddenInp = document.getElementById('inpTags');
+    
+    if (container) {
+        container.innerHTML = '';
+        editorTags.forEach(t => {
+            const chip = document.createElement('span');
+            chip.className = 'tag-chip';
+            chip.innerHTML = `${t} <i class="fas fa-times" onclick="removeTag('${t}')"></i>`;
+            container.appendChild(chip);
+        });
+    }
+    
+    // Ενημέρωση του κρυφού πεδίου για την αποθήκευση
+    if (hiddenInp) {
+        hiddenInp.value = editorTags.join(',');
+    }
+}
+
+// Βοηθητικό: Κλείσιμο μενού αν κάνω κλικ αλλού
+document.addEventListener('click', function(e) {
+    const sb = document.getElementById('tagSuggestions');
+    const inp = document.getElementById('tagInput');
+    if (sb && e.target !== inp && e.target !== sb) {
+        sb.style.display = 'none';
+    }
+});
+
+// ===========================================================
 // 7. RECORDING (AUDIO & CLOUD)
 // ===========================================================
 

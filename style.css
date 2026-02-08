@@ -527,6 +527,11 @@ body.theme-light .modal-btn {
     color: var(--accent); font-weight: bold; font-size: 0.85rem; 
 }
 
+/* --- LYRICS ONLY MODE --- */
+body.lyrics-only .chord {display: none !important;}
+body.lyrics-only .line-row {line-height: 1.4; margin-bottom: 5px;}
+.active-btn { color: var(--accent) !important; border-color: var(--accent) !important; background: rgba(255, 255, 255, 0.1);}
+
 /* =========================================
    UNIFIED FOOTERS (Αλφάδι και στις 3 στήλες)
    ========================================= */
@@ -829,6 +834,7 @@ details[open] summary::after { transform: rotate(180deg); color: var(--accent); 
     height: 30px; 
     display: inline-block;
 }
+
 
 
 

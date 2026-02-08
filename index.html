@@ -115,18 +115,18 @@
                     <div class="control-cluster">
                         <span class="cluster-label">KEY</span>
                         <div class="stepper">
-                            <button onclick="changeTranspose(-1)"><i class="fas fa-minus"></i></button>
+                            <button onclick="transDown()"><i class="fas fa-minus"></i></button>
                             <span id="val-t">0</span>
-                            <button onclick="changeTranspose(1)"><i class="fas fa-plus"></i></button>
+                            <button onclick="transUp()"><i class="fas fa-plus"></i></button>
                         </div>
                     </div>
 
                     <div class="control-cluster">
                         <span class="cluster-label">CAPO</span>
                         <div class="stepper">
-                            <button onclick="changeCapo(-1)"><i class="fas fa-minus"></i></button>
+                            <button onclick="capoDown()"><i class="fas fa-minus"></i></button>
                             <span id="val-c">0</span>
-                            <button onclick="changeCapo(1)"><i class="fas fa-plus"></i></button>
+                            <button onclick="capoUp()"><i class="fas fa-plus"></i></button>
                         </div>
                     </div>
 
@@ -396,18 +396,18 @@
             <div class="drawer-row">
                 <span>Transpose:</span>
                 <div class="stepper">
-                    <button onclick="changeTranspose(-1)">-</button>
+                    <button onclick="changeTransDown()">-</button>
                     <span id="drawer-val-t" style="color:var(--accent); min-width:20px; text-align:center;">0</span>
-                    <button onclick="changeTranspose(1)">+</button>
+                    <button onclick="changeTransUp()">+</button>
                 </div>
             </div>
             
             <div class="drawer-row">
                 <span>Capo:</span>
                 <div class="stepper">
-                    <button onclick="changeCapo(-1)">-</button>
+                    <button onclick="capoDown()">-</button>
                     <span id="drawer-val-c" style="color:var(--accent); min-width:20px; text-align:center;">0</span>
-                    <button onclick="changeCapo(1)">+</button>
+                    <button onclick="capoUp()">+</button>
                 </div>
             </div>
             
@@ -465,6 +465,7 @@
 </body>
 </html>
            
+
 
 
 

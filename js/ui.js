@@ -376,7 +376,31 @@ function renderArea(elemId, text) {
 }
 
 function createToken(c, l) { var d = document.createElement('div'); d.className = 'token'; d.innerHTML = `<span class="chord">${c || ""}</span><span class="lyric">${l || ""}</span>`; return d; }
+// ===========================================================
+// LYRICS MODE LOGIC (FIXED)
+// ===========================================================
 
+function toggleLyricsMode() {
+    // 1. Αλλαγή της κατάστασης (True/False)
+    isLyricsMode = !isLyricsMode;
+    
+    // 2. Ενημέρωση του CSS (Προσθέτουμε κλάση στο body)
+    if (isLyricsMode) {
+        document.body.classList.add('lyrics-only');
+        if(typeof showToast === 'function') showToast("Lyrics Only: ON");
+    } else {
+        document.body.classList.remove('lyrics-only');
+        if(typeof showToast === 'function') showToast("Lyrics Only: OFF");
+    }
+
+    // 3. Οπτική Ενημέρωση του Κουμπιού (Highlight)
+    var btn = document.getElementById('btnLyrics');
+    if (btn) {
+        // Αν είναι active, του δίνουμε διαφορετικό χρώμα
+        if (isLyricsMode) btn.classList.add('active-btn'); 
+        else btn.classList.remove('active-btn');
+    }
+}
 // ===========================================================
 // 6. EDITOR LOGIC
 // ===========================================================

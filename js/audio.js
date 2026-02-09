@@ -232,3 +232,129 @@ async function uploadAudioToCloud(inputElement) {
 // COMPATIBILITY BRIDGE
 // Επειδή στο HTML μπορεί να έχει μείνει το 'importAudioFile' αντί για 'uploadAudioToCloud'
 window.importAudioFile = uploadAudioToCloud;
+
+
+// --- PART C: SEQUENCER UI (POPUP LOGIC) ---
+
+// Αυτή η συνάρτηση καλείται από το κουμπί "Open Drum Machine"
+window.toggleSequencerUI = function() {
+    let modal = document.getElementById('sequencer-modal');
+
+    // 1. Αν δεν υπάρχει το Modal, το δημιουργούμε τώρα (Lazy Creation)
+    if (!modal) {
+        createSequencerModal();
+        modal = document.getElementById('sequencer-modal');
+    }
+
+    // 2. Toggle εμφάνισης
+    if (modal.style.display === 'flex') {
+        modal.style.display = 'none';
+    } else {
+        modal.style.display = 'flex';
+    }
+};
+
+// Βοηθητική συνάρτηση που φτιάχνει το HTML του Sequencer
+function createSequencerModal() {
+    const div = document.createElement('div');
+    div.id = 'sequencer-modal';
+    
+    // Στυλ για το Overlay (μαύρο φόντο)
+    div.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.85); z-index: 10000;
+        display: flex; justify-content: center; align-items: center;
+        backdrop-filter: blur(5px);
+    `;
+
+    // Το εσωτερικό παράθυρο
+    div.innerHTML = `
+        <div style="background:var(--bg-secondary, #222); padding:20px; border-radius:12px; border:1px solid var(--border-color, #444); width:95%; max-width:500px; text-align:center; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+            
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h3 style="margin:0; color:var(--text-primary, #fff);"><i class="fas fa-drum"></i> Drum Machine</h3>
+                <button onclick="document.getElementById('sequencer-modal').style.display='none'" style="background:none; border:none; color:#999; font-size:1.2rem; cursor:pointer;">&times;</button>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; font-size:0.7rem; color:#888; margin-bottom:5px; padding:0 2px;">
+                <span>KICK</span><span>SNARE</span><span>HIHAT</span>
+            </div>
+
+            <div id="rhythm-grid" style="
+                display:grid; 
+                grid-template-columns: repeat(16, 1fr); 
+                gap: 3px; 
+                margin-bottom: 20px;
+                padding: 10px;
+                background: #111;
+                border-radius: 6px;
+            ">
+                </div>
+
+            <div style="text-align:right;">
+                 <button onclick="AudioEngine.grid.fill(0); document.querySelectorAll('.cell.active').forEach(c=>c.classList.remove('active'))" 
+                    style="font-size:0.8rem; background:#333; color:#ccc; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">
+                    Clear Pattern
+                 </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(div);
+
+    // 3. Γέμισμα του Grid (3 γραμμές x 16 στήλες)
+    const gridContainer = div.querySelector('#rhythm-grid');
+    const totalCells = 16 * 3; // 48 κουτάκια
+    
+    for (let i = 0; i < totalCells; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        
+        // Υπολογισμός στήλης (0-15) για το highlight effect
+        const colIndex = i % 16; 
+        cell.dataset.step = colIndex; 
+
+        // Βασικό Στυλ κουτιού
+        cell.style.cssText = `
+            aspect-ratio: 1;
+            background: #333;
+            border-radius: 2px;
+            cursor: pointer;
+            transition: background 0.1s;
+        `;
+
+        // Διαχωριστικό κάθε 4 steps (για να φαίνεται το μέτρο)
+        if (colIndex % 4 === 0 && colIndex !== 0) {
+            cell.style.borderLeft = '1px solid #666';
+        }
+
+        // Click Handler: Toggle Active Class
+        cell.onclick = function() {
+            this.classList.toggle('active');
+            updateCellStyle(this);
+        };
+
+        gridContainer.appendChild(cell);
+    }
+}
+
+// Helper για να αλλάζει χρώμα το κουτάκι
+function updateCellStyle(cell) {
+    if (cell.classList.contains('active')) {
+        cell.style.backgroundColor = 'var(--accent, #f39c12)';
+        cell.style.boxShadow = '0 0 5px var(--accent, #f39c12)';
+    } else {
+        cell.style.backgroundColor = '#333';
+        cell.style.boxShadow = 'none';
+    }
+}
+
+// CSS Style Injection για το 'highlight' class (για να φωτίζει όταν παίζει)
+const style = document.createElement('style');
+style.innerHTML = `
+    .cell.highlight {
+        border: 1px solid #fff !important;
+        opacity: 0.8;
+    }
+`;
+document.head.appendChild(style);

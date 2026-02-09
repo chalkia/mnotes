@@ -348,41 +348,6 @@ function getNote(note, semitones) {
     return newRoot + suffix;
 }
 
-// SMART CAPO
-function calculateOptimalCapo(currentKey, songBody) {
-    var chordsFound = new Set();
-    var chordRegex = /!([A-G][b#]?[m]?[maj7|sus4|7|add9|dim|0-9]*(\/[A-G][b#]?)?)/g;
-    var match;
-    while ((match = chordRegex.exec(songBody)) !== null) {
-        chordsFound.add(match[1]);
-    }
-    
-    if (chordsFound.size === 0) return 0;
-    var openChords = ["C", "A", "G", "E", "D", "Am", "Em", "Dm"];
-    var bestCapo = 0;
-    var maxScore = -1000;
-
-    var userSettings = JSON.parse(localStorage.getItem('mnotes_settings')) || {};
-    var maxFret = (userSettings.maxCapo !== undefined) ? parseInt(userSettings.maxCapo) : 12;
-
-    for (var c = 0; c <= maxFret; c++) {
-        var score = 0;
-        chordsFound.forEach(originalChord => {
-            var playedChord = getNote(originalChord, -c).charAt(0).toUpperCase() + getNote(originalChord, -c).slice(1);
-            
-            if (openChords.includes(playedChord)) {
-                score += 1;
-            } else if (playedChord.includes("#") || playedChord.includes("b")) {
-                score -= 0.5; 
-            }
-        });
-        if (score > maxScore) {
-            maxScore = score; bestCapo = c;
-        }
-    }
-    return bestCapo;
-}
-
 function convertBracketsToBang(text) {
     if (!text) return "";
     return text.replace(/\[([^\]]+)\]/g, function(match, chord) {

@@ -63,90 +63,99 @@ const AudioEngine = {
         }
     },
 
-    scheduleNote: function(stepNumber, time) {
+ scheduleNote: function(stepNumber, time) {
         // 1. Visual Highlight
         const drawTime = (time - this.ctx.currentTime) * 1000;
         setTimeout(() => {
-            // Remove old highlights
             document.querySelectorAll('.cell.highlight').forEach(c => c.classList.remove('highlight'));
-            
-            // Highlight current step in all rows
             const activeCells = document.querySelectorAll(`.cell[data-step="${stepNumber}"]`); 
             activeCells.forEach(c => c.classList.add('highlight'));
         }, drawTime > 0 ? drawTime : 0);
 
         // 2. Sound Logic
-        // We find all cells globally. The UI generates them in order:
-        // 0-15 (Bass), 16-31 (Chord), 32-47 (5th), 48-63 (Arp)
         const allCells = document.querySelectorAll('.cell');
-        if(allCells.length === 0) return; // UI not created yet
+        if(allCells.length === 0) return;
         
-        // Row 0: BASS (Red)
+        // Η σειρά στο UI είναι (από πάνω προς τα κάτω):
+        // Row 0: ARP (Κίτρινο)
+        // Row 1: CHORD (Μπλε)
+        // Row 2: 5TH (Πράσινο)
+        // Row 3: BASS (Κόκκινο)
+
         if (allCells[stepNumber] && allCells[stepNumber].classList.contains('active')) {
-            this.playTone(time, 'bass'); 
+            this.playTone(time, 'arp'); 
         }
-        
-        // Row 1: CHORD (Blue)
         if (allCells[16 + stepNumber] && allCells[16 + stepNumber].classList.contains('active')) {
             this.playTone(time, 'chord'); 
         }
-
-        // Row 2: 5TH (Green)
         if (allCells[32 + stepNumber] && allCells[32 + stepNumber].classList.contains('active')) {
             this.playTone(time, 'fifth'); 
         }
-
-        // Row 3: ARP (Yellow)
         if (allCells[48 + stepNumber] && allCells[48 + stepNumber].classList.contains('active')) {
-            this.playTone(time, 'arp'); 
+            this.playTone(time, 'bass'); 
         }
     },
 
     playTone: function(time, type) {
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
-        
-        osc.connect(gain); 
-        gain.connect(this.ctx.destination);
+        osc.connect(gain); gain.connect(this.ctx.destination);
         
         if (type === 'bass') { 
-            osc.type = 'square'; 
-            osc.frequency.setValueAtTime(55, time); // A1
-            gain.gain.setValueAtTime(0.5, time);
-            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.3);
+            // "BOOT": Βαρύ, κοφτό (A1 ~55Hz)
+            osc.type = 'sine'; 
+            osc.frequency.setValueAtTime(55, time); 
+            gain.gain.setValueAtTime(0.8, time); 
+            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.25); // Γρήγορο σβήσιμο
+            // Attack ("Click" στην αρχή)
+            osc.frequency.setValueAtTime(100, time);
+            osc.frequency.exponentialRampToValueAtTime(55, time + 0.05);
             osc.start(time); osc.stop(time + 0.3);
         } 
+        else if (type === 'fifth') { 
+            // "5TH": Πιο καθαρό, μπασοκίθαρο (E2 ~82Hz)
+            osc.type = 'triangle'; 
+            osc.frequency.setValueAtTime(82.4, time); 
+            // Φίλτρο για να μην είναι πολύ πρίμο
+            const filter = this.ctx.createBiquadFilter();
+            filter.type = "lowpass"; filter.frequency.value = 800;
+            osc.disconnect(); osc.connect(filter); filter.connect(gain);
+            gain.gain.setValueAtTime(0.5, time);
+            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.4); 
+            osc.start(time); osc.stop(time + 0.45);
+        } 
         else if (type === 'chord') { 
+            // "CHORD": Συγχορδία (Strumming)
             osc.disconnect(); 
-            [220, 277, 329].forEach((freq) => { // A Major Triad
+            [220, 277, 329].forEach((freq, i) => { 
                 let o = this.ctx.createOscillator();
                 let g = this.ctx.createGain();
-                o.type = 'triangle';
-                o.frequency.value = freq;
-                o.connect(g); g.connect(this.ctx.destination);
-                g.gain.setValueAtTime(0.1, time);
-                g.gain.exponentialRampToValueAtTime(0.001, time + 0.4);
-                o.start(time); o.stop(time + 0.4);
+                o.type = 'sawtooth'; o.frequency.value = freq;
+                let f = this.ctx.createBiquadFilter(); // Κόβουμε τα πολύ ψηλά
+                f.type = "lowpass"; f.frequency.value = 2000;
+                o.connect(f); f.connect(g); g.connect(this.ctx.destination);
+                
+                let strum = i * 0.02; // Καθυστέρηση για εφέ "πένας"
+                g.gain.setValueAtTime(0, time + strum);
+                g.gain.linearRampToValueAtTime(0.15, time + strum + 0.02);
+                g.gain.exponentialRampToValueAtTime(0.001, time + strum + 0.3);
+                o.start(time); o.stop(time + 0.5);
             });
-        } 
-        else if (type === 'fifth') { 
-            osc.type = 'sine'; 
-            osc.frequency.setValueAtTime(329.6, time); // E
-            gain.gain.setValueAtTime(0.2, time);
-            gain.gain.linearRampToValueAtTime(0.0, time + 0.5);
-            osc.start(time); osc.stop(time + 0.5);
         }
         else if (type === 'arp') { 
-            osc.type = 'sawtooth'; 
+            // "TRILLA": Γρήγορο παιχνίδισμα (Hammer-on)
+            osc.type = 'square'; 
             osc.frequency.setValueAtTime(440, time); // A4
-            // Filter for pluck sound
             const filter = this.ctx.createBiquadFilter();
-            filter.type = "lowpass";
-            filter.frequency.value = 1000;
+            filter.type = "lowpass"; filter.frequency.value = 1200;
             osc.disconnect(); osc.connect(filter); filter.connect(gain);
             
             gain.gain.setValueAtTime(0.1, time);
             gain.gain.exponentialRampToValueAtTime(0.001, time + 0.15);
+            
+            // Hammer-on: Από G# σε A γρήγορα
+            osc.frequency.setValueAtTime(415, time); 
+            osc.frequency.linearRampToValueAtTime(440, time + 0.03); 
             osc.start(time); osc.stop(time + 0.2);
         }
     },
@@ -340,13 +349,14 @@ function createSequencerModal() {
 
     generateGridRows(div.querySelector('#sequencer-rows'));
 }
-
 function generateGridRows(container) {
+    // ΣΕΙΡΑ ΕΜΦΑΝΙΣΗΣ (Από Πάνω προς τα Κάτω)
+    // Ζήτησες: Bass κάτω, Arp πάνω. Άρα:
     const tracks = [
-        { name: "BASS",  color: "#e74c3c" }, // Red
-        { name: "CHORD", color: "#3498db" }, // Blue
-        { name: "5TH",   color: "#2ecc71" }, // Green
-        { name: "ARP",   color: "#f1c40f" }  // Yellow
+        { name: "ARP",   color: "#f1c40f" }, // Row 0: Κίτρινο (Πάνω)
+        { name: "CHORD", color: "#3498db" }, // Row 1: Μπλε
+        { name: "5TH",   color: "#2ecc71" }, // Row 2: Πράσινο
+        { name: "BASS",  color: "#e74c3c" }  // Row 3: Κόκκινο (Κάτω)
     ];
 
     tracks.forEach((track, rowIndex) => {
@@ -371,9 +381,9 @@ function generateGridRows(container) {
                 background:#333; border:1px solid #444; border-radius:3px; 
                 cursor:pointer; transition: 0.1s;
             `;
-
+            // Κενό ανά τετράδα
             if (i === 3 || i === 7 || i === 11) {
-                cell.style.marginRight = "12px"; // Gap between beats
+                cell.style.marginRight = "12px"; 
             }
 
             cell.onclick = function() {
@@ -394,3 +404,4 @@ function generateGridRows(container) {
         container.appendChild(rowDiv);
     });
 }
+

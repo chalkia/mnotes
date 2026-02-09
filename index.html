@@ -244,33 +244,23 @@
 
                 <hr class="sep">
 
-                <details class="tool-group" open>
-                    <summary><i class="fas fa-drum"></i> METRONOME</summary>
+               <details class="tool-group" open>
+                <summary><i class="fas fa-drum"></i> METRONOME</summary>
                     <div class="group-content">
-                        <div class="bpm-row">
-                            <button id="btnPlayRhythm" class="play-mini-btn"><i class="fas fa-play"></i></button>
-                            <div class="bpm-display">
+                          <div class="bpm-row">
+                            <button id="btnPlayRhythm" onclick="AudioEngine.togglePlay()" class="play-mini-btn" title="Play Rhythm">
+                                <i class="fas fa-play"></i>
+                            </button>
+                              <div class="bpm-display">
                                 <span id="dispBpm">100</span> <span style="font-size:0.7rem; color:#666;">BPM</span>
-                            </div>
-                        </div>
-                        <input type="range" id="rngBpm" min="40" max="200" value="100" class="compact-range">
-                        
-                        <select id="selRhythm" class="compact-select" onchange="loadPreset(this.value)">
-                            <option value="">-- Rhythm Style --</option>
-                            <option value="zeibekiko">Zeibekiko (9/8)</option>
-                            <option value="kalamatianos">Kalamatianos (7/8)</option>
-                            <option value="chasapiko">Chasapiko (4/4)</option>
-                        </select>
-
-                        <button onclick="document.getElementById('grid-editor-area').style.display = document.getElementById('grid-editor-area').style.display=='none'?'block':'none'" class="toggle-grid-btn">
-                            <i class="fas fa-th"></i> Edit Pattern
-                        </button>
-                        
-                        <div id="grid-editor-area" style="display:none; margin-top:10px;">
-                             <div id="rhythm-grid" class="rhythm-grid-container small-grid"></div>
-                        </div>
+                              </div>
+                         </div>
+                            <input type="range" id="rngBpm" min="40" max="200" value="100" class="compact-range" oninput="AudioEngine.setBpm(this.value)">
+                            <button onclick="toggleSequencerUI()" class="toggle-grid-btn" style="width:100%; margin-top:15px; background:#222; border:1px solid var(--accent); color:var(--accent);">
+                                <i class="fas fa-drum"></i> Open Drum Machine
+                            </button>    
                     </div>
-                </details>
+                </details>                
 
                 <hr class="sep">
 
@@ -450,7 +440,66 @@
             <div id="overlayBody"></div>
         </div>
     </div>
+<div id="sequencer-panel" class="sequencer-box" style="display:none;">
     
+    <div class="seq-header" style="flex-direction:column; align-items:flex-start; gap:5px;">
+        <div style="display:flex; justify-content:space-between; width:100%;">
+            <span>🎸 Rhythm Creator</span>
+            <button onclick="toggleSequencerUI()" class="close-btn" style="background:none; border:none; color:#fff; font-size:1.2rem;">✕</button>
+        </div>
+        <div id="seq-status-bar" style="font-size:0.8rem; color:#aaa; display:flex; gap:10px; align-items:center; width:100%;">
+            <span id="seq-current-name">No rhythm loaded</span>
+            <span id="seq-source-badge" class="badge-pro" style="display:none; background:#555;">PVT</span>
+            <button id="btn-seq-toggle" onclick="AudioEngine.toggleSource()" style="display:none; font-size:0.7rem; padding:2px 6px; margin-left:auto; cursor:pointer;">
+                <i class="fas fa-exchange-alt"></i> Switch
+            </button>
+        </div>
+    </div>
+
+    <div class="seq-controls" style="flex-wrap: wrap;">
+        <button id="btnPlaySeq" onclick="AudioEngine.togglePlay()" style="background:var(--accent); color:#000; flex:2;">▶ PLAY</button>
+        <button onclick="AudioEngine.clearGrid()" style="flex:1;">🗑 Clear</button>
+        <div class="bpm-control" style="display:flex; align-items:center; gap:5px; flex:3; min-width:120px;">
+            <input type="range" min="40" max="200" value="100" oninput="AudioEngine.setBpm(this.value)" style="width:100%;">
+            <span id="seq-bpm-val" style="font-size:0.8rem; min-width:30px; text-align:right;">100</span>
+        </div>
+    </div>
+
+    <div class="seq-controls" style="background:#2a2a2a; border-top:1px solid #444; margin-top:-10px; gap:5px;">
+        <button onclick="AudioEngine.openLoadModal()"><i class="fas fa-folder-open"></i> Load</button>
+        <button onclick="AudioEngine.openSaveModal()"><i class="fas fa-save"></i> Save</button>
+        <button id="btn-seq-link" onclick="AudioEngine.linkRhythmToSong()"><i class="fas fa-link"></i> Link</button>
+        <button id="btn-seq-unlink" onclick="AudioEngine.unlinkRhythm()" style="color:var(--danger); border-color:var(--danger); display:none;">
+            <i class="fas fa-unlink"></i> Unlink
+        </button>
+    </div>
+
+    <div id="rhythm-tracks" style="margin-top:10px;"></div>
+</div>
+
+<div id="rhythmLoadModal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <h3>Load Rhythm</h3>
+        <input id="searchRhythm" class="inp" placeholder="Search (e.g. 9/8, zeibekiko)..." oninput="AudioEngine.searchRhythms()">
+        <div id="rhythmResults" style="max-height:250px; overflow-y:auto; margin-top:10px; border:1px solid #444; border-radius:4px; background:#222;"></div>
+        <button onclick="document.getElementById('rhythmLoadModal').style.display='none'" class="modal-btn cancel">Close</button>
+    </div>
+</div>
+
+<div id="rhythmSaveModal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <h3>Save Rhythm</h3>
+        <input id="saveRhythmName" class="inp" placeholder="Rhythm Name (e.g. Zeibekiko Slow)">
+        <input id="saveRhythmTags" class="inp" placeholder="Tags (e.g. 9/8, laiko)">
+        <label id="lblPublicRhythm" style="display:none; margin-top:10px; font-size:0.9rem;">
+            <input type="checkbox" id="chkPublicRhythm"> Save as Public Template (Admin)
+        </label>
+        <div style="margin-top:15px; display:flex; gap:10px;">
+            <button onclick="AudioEngine.saveRhythm()" class="modal-btn accent">Save</button>
+            <button onclick="document.getElementById('rhythmSaveModal').style.display='none'" class="modal-btn cancel">Cancel</button>
+        </div>
+    </div>
+</div>
     <script src="js/sortable.min.js"></script>
     <script src="js/qrcodegen.js"></script>
     <script src="js/html5-qrcode.min.js"></script>
@@ -465,6 +514,7 @@
 </body>
 </html>
            
+
 
 
 

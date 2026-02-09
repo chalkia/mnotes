@@ -1,7 +1,6 @@
 /* =========================================
    AUDIO ENGINE & UPLOAD HANDLER (js/audio.js)
    ========================================= */
-
 // --- PART A: METRONOME & RHYTHM ENGINE ---
 
 const AudioEngine = {
@@ -41,7 +40,7 @@ const AudioEngine = {
         } else {
             window.clearTimeout(this.timerID);
             if(btn) btn.innerHTML = '<i class="fas fa-play"></i>';
-            // Clear highlights
+            // Clear highlights visual
             document.querySelectorAll('.cell').forEach(c => c.classList.remove('highlight'));
         }
     },
@@ -66,37 +65,39 @@ const AudioEngine = {
     },
 
     scheduleNote: function(stepNumber, time) {
-        // Visual Highlight (Queued)
+        // 1. Visual Highlight (Queued for exact sync)
         const drawTime = (time - this.ctx.currentTime) * 1000;
         setTimeout(() => {
-            document.querySelectorAll('.cell').forEach(c => c.classList.remove('highlight'));
-            // Highlight current step column
-            // Εδώ απλοποιούμε: Δεν φωτίζουμε όλη τη στήλη, απλά τα ενεργά κουτιά
-            // (Προσοχή: Αυτός ο selector μπορεί να θέλει βελτίωση αν αλλάξει το HTML grid)
-             const activeCells = document.querySelectorAll(`.cell[data-step="${stepNumber}"]`); 
+            // Remove old highlights
+            document.querySelectorAll('.cell.highlight').forEach(c => c.classList.remove('highlight'));
+            
+            // Highlight current step cells (εφόσον το popup είναι ανοιχτό)
+            // Χρησιμοποιούμε το data-step attribute που θα έχουν τα κελιά
+            const activeCells = document.querySelectorAll(`.cell[data-step="${stepNumber}"]`); 
+            activeCells.forEach(c => c.classList.add('highlight'));
         }, drawTime > 0 ? drawTime : 0);
 
-        // Sound Logic
+        // 2. Sound Logic
         const container = document.getElementById('rhythm-grid');
-        if(!container) return;
+        // Αν το Sequencer UI δεν έχει ανοίξει ποτέ, το container ίσως είναι null, οπότε δεν παίζει ήχο
+        if(!container) return; 
         
-        // Βρίσκουμε τα παιδιά (cells)
         const cells = Array.from(container.children);
         const totalSteps = this.beats * 4;
         
-        // Row 0: Bass (Kick) -> cells[stepNumber]
+        // Row 0: Bass (Kick)
         if (cells[stepNumber] && cells[stepNumber].classList.contains('active')) {
-            this.playTone(time, 1); // Bass
+            this.playTone(time, 1); 
         }
         
-        // Row 1: Snare/Chord -> cells[totalSteps + stepNumber]
+        // Row 1: Snare/Chord
         if (cells[totalSteps + stepNumber] && cells[totalSteps + stepNumber].classList.contains('active')) {
-            this.playTone(time, 2); // Chord
+            this.playTone(time, 2); 
         }
 
-        // Row 2: HiHat/Alt -> cells[(totalSteps*2) + stepNumber]
+        // Row 2: HiHat/Alt
         if (cells[(totalSteps*2) + stepNumber] && cells[(totalSteps*2) + stepNumber].classList.contains('active')) {
-            this.playTone(time, 3); // Alt
+            this.playTone(time, 3); 
         }
     },
 
@@ -107,7 +108,7 @@ const AudioEngine = {
 
         osc.connect(filter); filter.connect(gain); gain.connect(this.ctx.destination);
         
-        if (type === 1) { // BASS (Sawtooth)
+        if (type === 1) { // BASS (Sawtooth Kick)
             osc.type = 'sawtooth'; 
             osc.frequency.setValueAtTime(110, time);
             filter.frequency.setValueAtTime(1500, time);
@@ -128,7 +129,9 @@ const AudioEngine = {
             osc.start(time); osc.stop(time + 0.3);
         } 
         else if (type === 2) { // CHORD (Strum)
-            [196, 246, 329].forEach((f, i) => {
+            // Σβήνουμε τον αρχικό osc γιατί εδώ φτιάχνουμε 3 δικούς μας
+            osc.disconnect(); 
+            [196, 246, 329].forEach((f, i) => { // G major chord parts
                 const sOsc = this.ctx.createOscillator();
                 const sGain = this.ctx.createGain();
                 sOsc.type = 'triangle'; 
@@ -146,13 +149,11 @@ const AudioEngine = {
 
     setBpm: function(val) {
         this.bpm = val;
+        // Update UI Display immediately
+        const disp = document.getElementById('dispBpm');
+        if(disp) disp.innerText = val;
     }
 };
-
-// Global hooks for HTML buttons
-function togglePlay() { AudioEngine.togglePlay(); }
-function updateBpm(val) { AudioEngine.setBpm(val); document.getElementById('dispBpm').innerText = val; }
-
 
 // --- PART B: CLOUD UPLOAD LOGIC ---
 

@@ -275,7 +275,7 @@ function renderPlayer(s) {
     const personalNotesMap = JSON.parse(localStorage.getItem('mnotes_personal_notes') || '{}');
     const hasNotes = (s.conductorNotes && s.conductorNotes.trim().length > 0) || (personalNotesMap[s.id] && personalNotesMap[s.id].trim().length > 0);
     
-    // --- ΛΟΓΙΚΗ INTRO/INTER ---
+ // --- ΛΟΓΙΚΗ INTRO/INTER ---
     const sizeClass = `intro-size-${introSizeLevel}`; // Η κλάση CSS (0, 1 ή 2)
     
     // ΤΟ ΚΟΥΜΠΙ ΜΕ ΤΟ ID ΤΟΥ
@@ -324,7 +324,7 @@ function renderPlayer(s) {
         </div>`;
     }
 
-    // --- EXTRAS (Video, Audio, Lyrics) ---
+   // --- EXTRAS (Video, Audio, Lyrics) ---
     const vidBox = document.getElementById('video-sidebar-container');
     const embedBox = document.getElementById('video-embed-box');
     if (vidBox && embedBox) {
@@ -399,7 +399,53 @@ function toggleLyricsMode() {
         else btn.classList.remove('active-btn');
     }
 }
+// ===========================================================
+// AUTO CAPO (The Trigger)
+// ===========================================================
 
+function autoCapo() {
+    // 1. Έλεγχος ασφαλείας
+    if (typeof currentSongId === 'undefined' || !currentSongId) return;
+    
+    // 2. Βρίσκουμε το τραγούδι
+    var s = library.find(x => x.id === currentSongId);
+    if (!s) return;
+
+    // 3. Καλούμε την ΥΠΑΡΧΟΥΣΑ συνάρτηση από το logic.js
+    // Προσοχή: Η παλιά σου συνάρτηση ζητάει 2 παραμέτρους (key, body)
+    var bestCapo = 0;
+    
+    if (typeof calculateOptimalCapo === 'function') {
+        bestCapo = calculateOptimalCapo(s.key, s.body);
+    } else {
+        console.error("calculateOptimalCapo logic is missing!");
+        return;
+    }
+
+    // 4. Εφαρμογή αποτελέσματος
+    if (bestCapo > 0) {
+        state.c = bestCapo; // Βάζουμε το Capo
+        state.t = 0;        // Μηδενίζουμε το Transpose
+        
+        // Ανανέωση Player
+        if (typeof refreshPlayerUI === 'function') {
+            refreshPlayerUI();
+        } else if (typeof renderPlayer === 'function') {
+            renderPlayer(s);
+            // Ενημέρωση των αριθμών στην οθόνη (αν υπάρχει η συνάρτηση)
+            if(typeof updateTransDisplay === 'function') updateTransDisplay();
+            else {
+                 // Fallback ενημέρωση αν λείπει η updateTransDisplay
+                 var dValC = document.getElementById('val-c');
+                 if (dValC) dValC.innerText = state.c;
+            }
+        }
+        
+        if (typeof showToast === 'function') showToast("Smart Capo: " + bestCapo);
+    } else {
+        if (typeof showToast === 'function') showToast("Standard tuning is best.");
+    }
+}
 
 // PDF / PRINT FUNCTION (FINAL PRO STYLE + LOGO + TOKEN SYSTEM)
 

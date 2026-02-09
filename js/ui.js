@@ -525,7 +525,7 @@ function printSongPDF() {
     var bodyRaw = document.getElementById('inpBody').value || "";
     var key = document.getElementById('inpKey').value || "-";
     // Η "Μαγική" εντολή: Ξεχωρίζει τους τόνους και τους σβήνει, μετά κάνει κεφαλαία
-    var title = titleRaw.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+    var title = title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
     // 2. Ανάλυση στίχων και συγχορδιών (Token System Logic)
     var lines = bodyRaw.split('\n');
     var htmlBody = "";

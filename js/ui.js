@@ -399,52 +399,121 @@ function toggleLyricsMode() {
         else btn.classList.remove('active-btn');
     }
 }
+
 // ===========================================================
-// AUTO CAPO (The Trigger)
-// ===========================================================
+// SMART CAPO (COMPLETE & AUTONOMOUS)
+
 
 function autoCapo() {
-    // 1. Έλεγχος ασφαλείας
-    if (typeof currentSongId === 'undefined' || !currentSongId) return;
+    console.log("💡 Smart Capo Triggered");
+
+    // 1. Έλεγχος αν υπάρχει τραγούδι
+    if (typeof currentSongId === 'undefined' || !currentSongId) {
+        showToast("Open a song first!");
+        return;
+    }
     
     // 2. Βρίσκουμε το τραγούδι
     var s = library.find(x => x.id === currentSongId);
-    if (!s) return;
-
-    // 3. Καλούμε την ΥΠΑΡΧΟΥΣΑ συνάρτηση από το logic.js
-    // Προσοχή: Η παλιά σου συνάρτηση ζητάει 2 παραμέτρους (key, body)
-    var bestCapo = 0;
-    
-    if (typeof calculateOptimalCapo === 'function') {
-        bestCapo = calculateOptimalCapo(s.key, s.body);
-    } else {
-        console.error("calculateOptimalCapo logic is missing!");
+    if (!s) {
+        showToast("Error: Song not found in library.");
         return;
     }
 
-    // 4. Εφαρμογή αποτελέσματος
+    // 3. Υπολογισμός (Εσωτερική λογική για σιγουριά)
+    var bestCapo = calculateOptimalCapo_Safe(s.body);
+    console.log("💡 Calculated Best Capo:", bestCapo);
+
+    // 4. Εφαρμογή
     if (bestCapo > 0) {
-        state.c = bestCapo; // Βάζουμε το Capo
-        state.t = 0;        // Μηδενίζουμε το Transpose
+        state.c = bestCapo; 
+        state.t = 0; // Reset Transpose
         
-        // Ανανέωση Player
-        if (typeof refreshPlayerUI === 'function') {
-            refreshPlayerUI();
-        } else if (typeof renderPlayer === 'function') {
-            renderPlayer(s);
-            // Ενημέρωση των αριθμών στην οθόνη (αν υπάρχει η συνάρτηση)
-            if(typeof updateTransDisplay === 'function') updateTransDisplay();
-            else {
-                 // Fallback ενημέρωση αν λείπει η updateTransDisplay
-                 var dValC = document.getElementById('val-c');
-                 if (dValC) dValC.innerText = state.c;
-            }
-        }
+        // Ανανέωση UI
+        if (typeof refreshPlayerUI === 'function') refreshPlayerUI();
+        else if (typeof renderPlayer === 'function') renderPlayer(s);
         
-        if (typeof showToast === 'function') showToast("Smart Capo: " + bestCapo);
+        // Ενημέρωση αριθμών
+        var dValC = document.getElementById('val-c');
+        if (dValC) dValC.innerText = state.c;
+
+        showToast("Smart Capo: " + bestCapo + " (Easy Chords)");
     } else {
-        if (typeof showToast === 'function') showToast("Standard tuning is best.");
+        showToast("Standard tuning is already best.");
     }
+}
+
+// --- ΒΟΗΘΗΤΙΚΗ: ΥΠΟΛΟΓΙΣΜΟΣ (SAFE VERSION) ---
+function calculateOptimalCapo_Safe(bodyText) {
+    if (!bodyText) return 0;
+
+    var NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+    var openShapes = ["C", "A", "G", "E", "D", "Am", "Em", "Dm"];
+    
+    // Εύρεση συγχορδιών (Απλοποιημένο Regex)
+    var chordsInSong = [];
+    var regex = /!([A-G][b#]?)/g; 
+    var match;
+    while ((match = regex.exec(bodyText)) !== null) {
+        var c = match[1].replace("Bb", "A#").replace("Eb", "D#").replace("Ab", "G#").replace("Db", "C#").replace("Gb", "F#");
+        chordsInSong.push(c);
+    }
+
+    if (chordsInSong.length === 0) return 0;
+
+    var bestCapo = 0;
+    var maxScore = -9999;
+
+    for (var capo = 0; capo <= 6; capo++) {
+        var currentScore = 0;
+        chordsInSong.forEach(function(chord) {
+            var idx = NOTES.indexOf(chord);
+            if (idx === -1) return;
+            
+            var newIdx = (idx - capo);
+            if (newIdx < 0) newIdx += 12;
+            var shape = NOTES[newIdx];
+
+            if (openShapes.includes(shape)) currentScore += 2;
+            else if (shape.includes("#")) currentScore -= 2;
+        });
+
+        if (currentScore > maxScore) {
+            maxScore = currentScore;
+            bestCapo = capo;
+        }
+    }
+    return bestCapo;
+}
+
+// --- ΒΟΗΘΗΤΙΚΗ: TOAST MESSAGE (Αν λείπει) ---
+// Αν υπάρχει ήδη στο αρχείο, αυτή απλά θα την αντικαταστήσει/αναβαθμίσει
+function showToast(msg) {
+    // Δημιουργία στοιχείου
+    var div = document.createElement("div");
+    div.innerText = msg;
+    div.style.position = "fixed";
+    div.style.bottom = "80px"; // Λίγο πιο ψηλά για να φαίνεται
+    div.style.left = "50%";
+    div.style.transform = "translateX(-50%)";
+    div.style.backgroundColor = "rgba(0,0,0,0.85)";
+    div.style.color = "white";
+    div.style.padding = "12px 24px";
+    div.style.borderRadius = "50px";
+    div.style.zIndex = "10000";
+    div.style.fontSize = "16px";
+    div.style.boxShadow = "0 4px 12px rgba(0,0,0,0.3)";
+    div.style.transition = "opacity 0.5s";
+    
+    document.body.appendChild(div);
+
+    // Εξαφάνιση μετά από 3 δευτερόλεπτα
+    setTimeout(function() {
+        div.style.opacity = "0";
+        setTimeout(function() {
+            if(div.parentNode) div.parentNode.removeChild(div);
+        }, 500);
+    }, 2500);
 }
 
 // PDF / PRINT FUNCTION (FINAL PRO STYLE + LOGO + TOKEN SYSTEM)

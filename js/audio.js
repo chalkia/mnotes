@@ -2,7 +2,7 @@
    AUDIO ENGINE & UPLOAD HANDLER (js/audio.js)
    ========================================= */
 
-// --- PART A: METRONOME & RHYTHM ENGINE (4 TRACKS) ---
+// --- PART A: PERCUSSION ENGINE & DYNAMIC GRID ---
 
 const AudioEngine = {
     ctx: null,
@@ -12,19 +12,32 @@ const AudioEngine = {
     currentStep: 0,
     scheduleAheadTime: 0.1, 
     lookahead: 25.0,
+    noiseBuffer: null, // Για τα πιατίνια (Hats)
     
-    // Grid: 4 Rows x 16 Steps (Total 64 cells)
-    beats: 4,
-    stepsPerBeat: 4,
+    // Grid Configuration (Δυναμικό)
+    beats: 4,         // Ξεκινάμε με 4 μέτρα (16 steps)
+    stepsPerBeat: 4,  // 16th notes
     bpm: 100,
 
     init: function() {
         if (!this.ctx) {
             this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            this.createNoiseBuffer(); // Δημιουργία 'θορύβου' για τα πιατίνια
         }
         if (this.ctx.state === 'suspended') {
-            this.ctx.resume().then(() => console.log("Audio Context Resumed"));
+            this.ctx.resume();
         }
+    },
+
+    // Βοηθητικό για τον ήχο "Zilia/Hat"
+    createNoiseBuffer: function() {
+        const bufferSize = this.ctx.sampleRate * 2.0; 
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = Math.random() * 2 - 1;
+        }
+        this.noiseBuffer = buffer;
     },
 
     togglePlay: function() {
@@ -40,7 +53,6 @@ const AudioEngine = {
         } else {
             window.clearTimeout(this.timerID);
             if(btn) btn.innerHTML = '<i class="fas fa-play"></i>';
-            // Clear visuals
             document.querySelectorAll('.cell.highlight').forEach(c => c.classList.remove('highlight'));
         }
     },
@@ -55,108 +67,121 @@ const AudioEngine = {
 
     nextStep: function() {
         const secondsPerBeat = 60.0 / this.bpm;
-        this.nextNoteTime += 0.25 * secondsPerBeat; // 16th notes
+        this.nextNoteTime += 0.25 * secondsPerBeat; 
         
         this.currentStep++;
-        if (this.currentStep >= 16) { // Loop after 16 steps
+        // Το loop εξαρτάται από το πόσα beats έχει ορίσει ο χρήστης
+        const totalSteps = this.beats * this.stepsPerBeat;
+        if (this.currentStep >= totalSteps) { 
             this.currentStep = 0;
         }
     },
 
- scheduleNote: function(stepNumber, time) {
-        // 1. Visual Highlight
+    scheduleNote: function(stepNumber, time) {
+        // 1. Visual Highlight & Auto-Scroll
         const drawTime = (time - this.ctx.currentTime) * 1000;
         setTimeout(() => {
             document.querySelectorAll('.cell.highlight').forEach(c => c.classList.remove('highlight'));
             const activeCells = document.querySelectorAll(`.cell[data-step="${stepNumber}"]`); 
             activeCells.forEach(c => c.classList.add('highlight'));
+            
+            // Αν το πλέγμα είναι μεγάλο, κάνε scroll για να φαίνεται η μπάρα
+            if (activeCells.length > 0 && activeCells[0]) {
+                activeCells[0].scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+            }
         }, drawTime > 0 ? drawTime : 0);
 
-        // 2. Sound Logic
+        // 2. Sound Logic (Percussion)
         const allCells = document.querySelectorAll('.cell');
         if(allCells.length === 0) return;
         
-        // Η σειρά στο UI είναι (από πάνω προς τα κάτω):
-        // Row 0: ARP (Κίτρινο)
-        // Row 1: CHORD (Μπλε)
-        // Row 2: 5TH (Πράσινο)
-        // Row 3: BASS (Κόκκινο)
+        // Υπολογισμός μήκους γραμμής (Beats * 4)
+        const rowLength = this.beats * 4;
 
+        // ΣΕΙΡΑ (Από πάνω προς τα κάτω στο HTML):
+        // Row 0: HATS (Top)
+        // Row 1: RIM
+        // Row 2: TOM
+        // Row 3: KICK (Bottom)
+
+        // Hats (Zilia)
         if (allCells[stepNumber] && allCells[stepNumber].classList.contains('active')) {
-            this.playTone(time, 'arp'); 
+            this.playPercussion(time, 'hat'); 
         }
-        if (allCells[16 + stepNumber] && allCells[16 + stepNumber].classList.contains('active')) {
-            this.playTone(time, 'chord'); 
+        
+        // Rim (Ksylo)
+        if (allCells[rowLength + stepNumber] && allCells[rowLength + stepNumber].classList.contains('active')) {
+            this.playPercussion(time, 'rim'); 
         }
-        if (allCells[32 + stepNumber] && allCells[32 + stepNumber].classList.contains('active')) {
-            this.playTone(time, 'fifth'); 
+
+        // Tom (Bendir)
+        if (allCells[(rowLength*2) + stepNumber] && allCells[(rowLength*2) + stepNumber].classList.contains('active')) {
+            this.playPercussion(time, 'tom'); 
         }
-        if (allCells[48 + stepNumber] && allCells[48 + stepNumber].classList.contains('active')) {
-            this.playTone(time, 'bass'); 
+
+        // Kick (Daouli - Bottom)
+        if (allCells[(rowLength*3) + stepNumber] && allCells[(rowLength*3) + stepNumber].classList.contains('active')) {
+            this.playPercussion(time, 'kick'); 
         }
     },
 
-    playTone: function(time, type) {
-        const osc = this.ctx.createOscillator();
+    playPercussion: function(time, type) {
         const gain = this.ctx.createGain();
-        osc.connect(gain); gain.connect(this.ctx.destination);
-        
-        if (type === 'bass') { 
-            // "BOOT": Βαρύ, κοφτό (A1 ~55Hz)
-            osc.type = 'sine'; 
-            osc.frequency.setValueAtTime(55, time); 
-            gain.gain.setValueAtTime(0.8, time); 
-            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.25); // Γρήγορο σβήσιμο
-            // Attack ("Click" στην αρχή)
-            osc.frequency.setValueAtTime(100, time);
-            osc.frequency.exponentialRampToValueAtTime(55, time + 0.05);
-            osc.start(time); osc.stop(time + 0.3);
+        gain.connect(this.ctx.destination);
+
+        if (type === 'kick') { 
+            // Deep Kick (Νταούλι)
+            const osc = this.ctx.createOscillator();
+            osc.connect(gain);
+            osc.frequency.setValueAtTime(120, time);
+            osc.frequency.exponentialRampToValueAtTime(40, time + 0.5); 
+            
+            gain.gain.setValueAtTime(1.0, time);
+            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.5);
+            
+            osc.start(time); osc.stop(time + 0.5);
         } 
-        else if (type === 'fifth') { 
-            // "5TH": Πιο καθαρό, μπασοκίθαρο (E2 ~82Hz)
+        else if (type === 'tom') { 
+            // Tom (Μπεντίρ - Βαθύ αλλά πιο μαλακό)
+            const osc = this.ctx.createOscillator();
+            osc.connect(gain);
             osc.type = 'triangle'; 
-            osc.frequency.setValueAtTime(82.4, time); 
-            // Φίλτρο για να μην είναι πολύ πρίμο
-            const filter = this.ctx.createBiquadFilter();
-            filter.type = "lowpass"; filter.frequency.value = 800;
-            osc.disconnect(); osc.connect(filter); filter.connect(gain);
-            gain.gain.setValueAtTime(0.5, time);
-            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.4); 
-            osc.start(time); osc.stop(time + 0.45);
-        } 
-        else if (type === 'chord') { 
-            // "CHORD": Συγχορδία (Strumming)
-            osc.disconnect(); 
-            [220, 277, 329].forEach((freq, i) => { 
-                let o = this.ctx.createOscillator();
-                let g = this.ctx.createGain();
-                o.type = 'sawtooth'; o.frequency.value = freq;
-                let f = this.ctx.createBiquadFilter(); // Κόβουμε τα πολύ ψηλά
-                f.type = "lowpass"; f.frequency.value = 2000;
-                o.connect(f); f.connect(g); g.connect(this.ctx.destination);
-                
-                let strum = i * 0.02; // Καθυστέρηση για εφέ "πένας"
-                g.gain.setValueAtTime(0, time + strum);
-                g.gain.linearRampToValueAtTime(0.15, time + strum + 0.02);
-                g.gain.exponentialRampToValueAtTime(0.001, time + strum + 0.3);
-                o.start(time); o.stop(time + 0.5);
-            });
+            osc.frequency.setValueAtTime(100, time);
+            osc.frequency.linearRampToValueAtTime(60, time + 0.3);
+            
+            gain.gain.setValueAtTime(0.7, time);
+            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.3);
+            
+            osc.start(time); osc.stop(time + 0.35);
         }
-        else if (type === 'arp') { 
-            // "TRILLA": Γρήγορο παιχνίδισμα (Hammer-on)
-            osc.type = 'square'; 
-            osc.frequency.setValueAtTime(440, time); // A4
+        else if (type === 'rim') { 
+            // Rim (Ξύλο/Στεφάνι)
+            const osc = this.ctx.createOscillator();
+            osc.connect(gain);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(800, time);
+            
+            gain.gain.setValueAtTime(0.6, time);
+            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.05); // Πολύ κοφτό
+            
+            osc.start(time); osc.stop(time + 0.06);
+        }
+        else if (type === 'hat') { 
+            // Hat (Ζίλια - Θόρυβος + Φίλτρο)
+            const bufferSource = this.ctx.createBufferSource();
+            bufferSource.buffer = this.noiseBuffer;
+            
             const filter = this.ctx.createBiquadFilter();
-            filter.type = "lowpass"; filter.frequency.value = 1200;
-            osc.disconnect(); osc.connect(filter); filter.connect(gain);
+            filter.type = "highpass";
+            filter.frequency.value = 4000; // Μόνο πρίμα
             
-            gain.gain.setValueAtTime(0.1, time);
-            gain.gain.exponentialRampToValueAtTime(0.001, time + 0.15);
+            bufferSource.connect(filter);
+            filter.connect(gain);
             
-            // Hammer-on: Από G# σε A γρήγορα
-            osc.frequency.setValueAtTime(415, time); 
-            osc.frequency.linearRampToValueAtTime(440, time + 0.03); 
-            osc.start(time); osc.stop(time + 0.2);
+            gain.gain.setValueAtTime(0.4, time);
+            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.05); 
+            
+            bufferSource.start(time); bufferSource.stop(time + 0.06);
         }
     },
 
@@ -165,27 +190,70 @@ const AudioEngine = {
         const disp = document.getElementById('dispBpm');
         if(disp) disp.innerText = val;
     },
-
-    // --- SAVE / LOAD HELPERS ---
     
-    getPattern: function() {
-        // Returns array of 0s and 1s
-        const allCells = document.querySelectorAll('.cell');
-        if(allCells.length === 0) return [];
-        return Array.from(allCells).map(c => c.classList.contains('active') ? 1 : 0);
+    // Αλλαγή αριθμού Beats (Δυναμικό Grid)
+    setBeats: function(newBeats) {
+        if(newBeats < 1) return;
+        if(newBeats > 16) return; // Όριο για να μην κρασάρει το UI
+        this.beats = newBeats;
+        
+        // Αν το UI είναι ανοιχτό, το ξαναζωγραφίζουμε
+        const container = document.getElementById('sequencer-rows');
+        if(container) {
+            container.innerHTML = '';
+            generateGridRows(container);
+        }
+        
+        // Update display
+        const countSpan = document.getElementById('beat-count-display');
+        if(countSpan) countSpan.innerText = this.beats;
     },
 
-    setPattern: function(pattern) {
-        // Force create UI if missing (hidden)
+    // --- SAVE / LOAD HELPERS ---
+    getPattern: function() {
+        const allCells = document.querySelectorAll('.cell');
+        if(allCells.length === 0) return { beats: 4, grid: [] };
+        
+        // Αποθηκεύουμε ΚΑΙ τα beats ΚΑΙ το μοτίβο
+        const gridData = Array.from(allCells).map(c => c.classList.contains('active') ? 1 : 0);
+        return {
+            beats: this.beats,
+            grid: gridData
+        };
+    },
+
+    setPattern: function(data) {
+        if (!data) return;
+        
+        // Compatibility: Χειρισμός παλιών δεδομένων (array) vs νέων (object)
+        let patternGrid = [];
+        if (Array.isArray(data)) {
+            patternGrid = data; 
+            this.beats = 4;
+        } else if (data.grid) {
+            patternGrid = data.grid;
+            this.beats = data.beats || 4;
+        }
+
+        // 1. Εξασφάλιση UI
         if (!document.getElementById('sequencer-modal')) {
              if(typeof createSequencerModal === 'function') {
                  createSequencerModal();
                  document.getElementById('sequencer-modal').style.display = 'none';
              } else return;
-        }
+        } 
         
+        // 2. Ενημέρωση μεγέθους Grid
+        const container = document.getElementById('sequencer-rows');
+        if(container) {
+            container.innerHTML = '';
+            generateGridRows(container);
+        }
+        const countSpan = document.getElementById('beat-count-display');
+        if(countSpan) countSpan.innerText = this.beats;
+
+        // 3. Εφαρμογή Μοτίβου (Dots)
         const cells = document.querySelectorAll('.cell');
-        // Reset
         cells.forEach(c => { 
             c.classList.remove('active'); 
             c.style.backgroundColor = '#333'; 
@@ -193,28 +261,33 @@ const AudioEngine = {
             c.style.borderColor='#444';
         });
 
-        // Apply
-        if (pattern && Array.isArray(pattern)) {
-            pattern.forEach((val, i) => {
-                if (val === 1 && cells[i]) {
-                    cells[i].classList.add('active');
-                    // Manually apply color based on row index (0-3)
-                    const row = Math.floor(i / 16);
-                    const colors = ["#e74c3c", "#3498db", "#2ecc71", "#f1c40f"];
-                    if(colors[row]) {
-                        cells[i].style.backgroundColor = colors[row];
-                        cells[i].style.boxShadow = `0 0 8px ${colors[row]}`;
-                        cells[i].style.borderColor = colors[row];
-                    }
+        const rowLength = this.beats * 4;
+        patternGrid.forEach((val, i) => {
+            if (val === 1 && cells[i]) {
+                cells[i].classList.add('active');
+                
+                // Color Logic
+                const row = Math.floor(i / rowLength);
+                const colors = ["#f1c40f", "#3498db", "#2ecc71", "#e74c3c"];
+                if(colors[row]) {
+                    cells[i].style.backgroundColor = colors[row];
+                    cells[i].style.boxShadow = `0 0 8px ${colors[row]}`;
+                    cells[i].style.borderColor = colors[row];
                 }
-            });
-        }
+            }
+        });
     }
 };
 
 // Global Hooks
 function togglePlay() { AudioEngine.togglePlay(); }
 function updateBpm(val) { AudioEngine.setBpm(val); }
+
+// Global function exposed for HTML buttons
+window.changeBeats = function(delta) {
+    let current = AudioEngine.beats;
+    AudioEngine.setBeats(current + delta);
+};
 
 
 // --- PART B: CLOUD UPLOAD LOGIC ---
@@ -242,25 +315,19 @@ async function uploadAudioToCloud(inputElement) {
         const fileName = `${currentUser.id}/${Date.now()}_${safeName}`;
 
         const { data, error } = await supabaseClient
-            .storage
-            .from('audio_files')
+            .storage.from('audio_files')
             .upload(fileName, file, { cacheControl: '3600', upsert: false });
 
         if (error) throw error;
 
         const { data: { publicUrl } } = supabaseClient
-            .storage
-            .from('audio_files')
-            .getPublicUrl(fileName);
+            .storage.from('audio_files').getPublicUrl(fileName);
 
         if(uploadText) uploadText.innerText = "Saving...";
         if(progressBar) progressBar.style.width = "100%";
 
         const newRecording = {
-            id: Date.now(),
-            name: file.name,
-            url: publicUrl,
-            date: new Date().toISOString()
+            id: Date.now(), name: file.name, url: publicUrl, date: new Date().toISOString()
         };
 
         if (typeof addRecordingToCurrentSong === 'function') {
@@ -283,7 +350,7 @@ async function uploadAudioToCloud(inputElement) {
 window.importAudioFile = uploadAudioToCloud;
 
 
-// --- PART C: SEQUENCER UI (COLORED 4-TRACK POPUP) ---
+// --- PART C: DYNAMIC SEQUENCER UI ---
 
 window.toggleSequencerUI = function() {
     let modal = document.getElementById('sequencer-modal');
@@ -293,7 +360,6 @@ window.toggleSequencerUI = function() {
     }
     modal.style.display = (modal.style.display === 'flex') ? 'none' : 'flex';
     
-    // Resume context on interaction (Browsers block audio otherwise)
     if(AudioEngine.ctx && AudioEngine.ctx.state === 'suspended') {
         AudioEngine.ctx.resume();
     }
@@ -310,25 +376,31 @@ function createSequencerModal() {
     `;
 
     div.innerHTML = `
-        <div style="background:#1a1a1a; padding:20px; border-radius:12px; border:1px solid #444; width:95%; max-width:600px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <h3 style="margin:0; color:#fff; font-family:sans-serif;">🎹 Rhythm Composer</h3>
+        <div style="background:#1a1a1a; padding:20px; border-radius:12px; border:1px solid #444; width:95%; max-width:850px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); display:flex; flex-direction:column; max-height:90vh;">
+            
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid #333; padding-bottom:10px;">
+                <div style="display:flex; align-items:center; gap:20px;">
+                    <h3 style="margin:0; color:#fff; font-family:sans-serif;">🥁 Percussion Grid</h3>
+                    
+                    <div style="background:#333; padding:5px 12px; border-radius:20px; display:flex; align-items:center; gap:10px;">
+                        <button onclick="changeBeats(-1)" style="background:none; border:none; color:#f39c12; cursor:pointer; font-weight:bold; font-size:1.1rem;">-</button>
+                        <span style="color:#fff; font-size:0.9rem; min-width:60px; text-align:center;"><span id="beat-count-display">4</span> Beats</span>
+                        <button onclick="changeBeats(1)" style="background:none; border:none; color:#f39c12; cursor:pointer; font-weight:bold; font-size:1.1rem;">+</button>
+                    </div>
+                </div>
+                
                 <button onclick="document.getElementById('sequencer-modal').style.display='none'" style="background:none; border:none; color:#999; font-size:1.5rem; cursor:pointer;">&times;</button>
             </div>
             
-            <div style="display:grid; grid-template-columns: 60px 1fr; gap:10px; margin-bottom:5px; font-size:0.8rem; color:#aaa;">
-                <div></div>
-                <div style="display:flex; justify-content:space-between; padding-right:2px;">
-                    <span>1</span><span>2</span><span>3</span><span>4</span>
-                </div>
+            <div style="overflow-x: auto; padding-bottom: 10px; width:100%;">
+                <div id="sequencer-rows" style="display:flex; flex-direction:column; gap:8px; min-width: max-content;">
+                    </div>
             </div>
 
-            <div id="sequencer-rows" style="display:flex; flex-direction:column; gap:8px;"></div>
-
-            <div style="text-align:right; margin-top:20px;">
-                 <button onclick="AudioEngine.setPattern([])" 
-                    style="font-size:0.8rem; background:#333; color:#ccc; border:none; padding:8px 15px; border-radius:4px; cursor:pointer;">
-                    Clear All
+            <div style="text-align:right; margin-top:15px; pt:10px; border-top:1px solid #333;">
+                 <button onclick="AudioEngine.setPattern({beats:AudioEngine.beats, grid:[]})" 
+                    style="font-size:0.8rem; background:#444; color:#ccc; border:none; padding:8px 15px; border-radius:4px; cursor:pointer;">
+                    Clear Pattern
                  </button>
             </div>
         </div>
@@ -336,28 +408,34 @@ function createSequencerModal() {
     
     document.body.appendChild(div);
     
-    // Inject CSS for the playhead animation
     const style = document.createElement('style');
     style.innerHTML = `
         .cell.highlight {
             border: 1px solid #fff !important;
-            opacity: 0.8;
+            filter: brightness(1.5);
             transform: scale(0.95);
         }
+        ::-webkit-scrollbar { height: 8px; }
+        ::-webkit-scrollbar-track { background: #222; }
+        ::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
     `;
     document.head.appendChild(style);
 
     generateGridRows(div.querySelector('#sequencer-rows'));
+    document.getElementById('beat-count-display').innerText = AudioEngine.beats;
 }
+
 function generateGridRows(container) {
-    // ΣΕΙΡΑ ΕΜΦΑΝΙΣΗΣ (Από Πάνω προς τα Κάτω)
-    // Ζήτησες: Bass κάτω, Arp πάνω. Άρα:
+    // ΣΕΙΡΑ ΕΜΦΑΝΙΣΗΣ: Πρώτο στο Array = Πάνω στο HTML
+    // Tablature logic: Πρίμα πάνω (Hats), Μπάσα κάτω (Kick)
     const tracks = [
-        { name: "ARP",   color: "#f1c40f" }, // Row 0: Κίτρινο (Πάνω)
-        { name: "CHORD", color: "#3498db" }, // Row 1: Μπλε
-        { name: "5TH",   color: "#2ecc71" }, // Row 2: Πράσινο
-        { name: "BASS",  color: "#e74c3c" }  // Row 3: Κόκκινο (Κάτω)
+        { name: "HATS",  color: "#f1c40f" }, // Top Row
+        { name: "RIM",   color: "#3498db" },
+        { name: "TOM",   color: "#2ecc71" },
+        { name: "KICK",  color: "#e74c3c" }  // Bottom Row
     ];
+
+    const totalSteps = AudioEngine.beats * 4; // Δυναμικό μήκος
 
     tracks.forEach((track, rowIndex) => {
         const rowDiv = document.createElement('div');
@@ -371,18 +449,20 @@ function generateGridRows(container) {
         const stepsContainer = document.createElement('div');
         stepsContainer.style.cssText = "display:flex; gap:4px;";
         
-        for (let i = 0; i < 16; i++) {
+        for (let i = 0; i < totalSteps; i++) {
             const cell = document.createElement('div');
             cell.className = 'cell';
             cell.dataset.step = i; 
             
+            // Fixed size cells so they don't squash
             cell.style.cssText = `
-                flex:1; aspect-ratio:1; 
+                width: 30px; height: 30px; 
                 background:#333; border:1px solid #444; border-radius:3px; 
-                cursor:pointer; transition: 0.1s;
+                cursor:pointer; flex-shrink:0; 
             `;
-            // Κενό ανά τετράδα
-            if (i === 3 || i === 7 || i === 11) {
+
+            // Διαχωριστικό κάθε Beat (κάθε 4ο κουτί)
+            if ((i + 1) % 4 === 0) {
                 cell.style.marginRight = "12px"; 
             }
 
@@ -404,4 +484,3 @@ function generateGridRows(container) {
         container.appendChild(rowDiv);
     });
 }
-

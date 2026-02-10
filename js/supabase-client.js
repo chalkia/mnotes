@@ -52,6 +52,8 @@ async function doLogin() {
         document.getElementById('authModal').style.display = 'none';
         showToast("Welcome! 👋");
         updateAuthUI(true);
+        // Κλήση αρχικοποίησης
+        if (typeof initUserData === 'function') initUserData(); 
     }
 }
 
@@ -70,13 +72,19 @@ async function doSignUp() {
         msg.innerText = "Success! Check your email.";
     }
 }
-
 async function doLogout() {
     await supabaseClient.auth.signOut();
     currentUser = null;
+    userProfile = null;      // Reset profile
+    myGroups = [];           // Reset bands
+    currentGroupId = 'personal'; 
+    currentRole = 'owner';
+    
     updateAuthUI(false);
     showToast("Logged out");
-    // window.location.reload(); 
+    
+    // Φόρτωση των τοπικών δεδομένων ξανά
+    if (typeof loadContextData === 'function') loadContextData();
 }
 
 function updateAuthUI(isLoggedIn) {
@@ -161,27 +169,26 @@ async function loginWithGoogle() {
 }
 
 // --- GLOBAL AUTH STATE LISTENER ---
-
 supabaseClient.auth.onAuthStateChange((event, session) => {
-    console.log("Auth State Change:", event);
+    console.log("Auth Event:", event);
     
     if (session) {
         currentUser = session.user;
         updateAuthUI(true);
-        
-        // --- ΠΡΟΣΘΗΚΗ: Αρχικοποίηση δεδομένων χρήστη ---
-        if (typeof initUserData === 'function') {
-            initUserData(); 
+        // Τρέχει μόνο αν δεν έχει ήδη τρέξει από το doLogin
+        if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+            if (typeof initUserData === 'function') initUserData();
         }
-        
     } else {
+        // Καθαρισμός ταυτότητας
         currentUser = null;
-        userProfile = null; 
+        userProfile = null;
+        myGroups = [];
         currentGroupId = 'personal';
         updateAuthUI(false);
         
-        // Καθαρισμός λίστας
-        const listEl = document.getElementById('songList');
-        if(listEl) listEl.innerHTML = '';
+        // Επιστροφή στα τοπικά δεδομένα (Free mode)
+        if (typeof loadContextData === 'function') loadContextData();
     }
 });
+

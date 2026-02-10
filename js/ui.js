@@ -220,10 +220,7 @@ function renderSidebar() {
             actionIcon = "fas fa-check-circle in-setlist";
         }
 
-   // Render HTML με ένδειξη Cloud αν το ID δεν ξεκινάει με s_
-        const isCloud = s.id && !s.id.startsWith('s_');
-        const cloudIcon = isCloud ? '<i class="fas fa-cloud" style="font-size:0.7rem; margin-left:5px; opacity:0.5;"></i>' : '';
-       
+        
     // 1. Έλεγχος αν το τραγούδι είναι στο Cloud (τα UUIDs της Supabase δεν ξεκινούν με s_)
     const isCloud = s.id && !String(s.id).startsWith('s_');
     const cloudIcon = isCloud ? '<i class="fas fa-cloud" style="font-size:0.7rem; margin-left:5px; opacity:0.5;" title="Cloud Sync"></i>' : '';

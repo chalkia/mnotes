@@ -175,7 +175,41 @@ async function addRecordingToCurrentSong(recordingObj) {
 
     if (typeof renderRecordingsList === 'function') renderRecordingsList(currentRecs);
 }
+/**
+ * Ανάκτηση προσωπικών τραγουδιών από το Cloud (Solo/Maestro/Admin)
+ */
+async function fetchPrivateSongs() {
+    const { data, error } = await supabaseClient
+        .from('songs')
+        .select('*')
+        .is('group_id', null) // Μόνο προσωπικά
+        .eq('user_id', currentUser.id)
+        .order('title', { ascending: true });
 
+    if (error) {
+        console.error("❌ Error fetching private songs:", error);
+        return [];
+    }
+    return data.map(s => ensureSongStructure(s));
+}
+
+/**
+ * Ανάκτηση κοινών τραγουδιών μιας μπάντας
+ * @param {string} groupId - Το UUID της μπάντας
+ */
+async function fetchBandSongs(groupId) {
+    const { data, error } = await supabaseClient
+        .from('songs')
+        .select('*')
+        .eq('group_id', groupId)
+        .order('title', { ascending: true });
+
+    if (error) {
+        console.error("❌ Error fetching band songs:", error);
+        return [];
+    }
+    return data.map(s => ensureSongStructure(s));
+}
 /* =========================================
    HELPER FUNCTIONS & PARSING
    ========================================= */
@@ -230,5 +264,59 @@ function parseSongLogic(song) {
         state.parsedChords.push({ type: 'mixed', tokens: tokens });
     });
 }
+async function loadContextData() {
+    library = [];
+    const listEl = document.getElementById('songList');
+    if(listEl) listEl.innerHTML = '<div class="loading-msg">Loading songs...</div>';
 
+    if (currentGroupId === 'personal') {
+        if (canUserPerform('CLOUD_SAVE')) {
+            library = await fetchPrivateSongs();
+        } else {
+            const localData = localStorage.getItem('mnotes_data');
+            if (localData) {
+                const parsed = JSON.parse(localData);
+                library = Array.isArray(parsed) ? parsed.map(ensureSongStructure) : [];
+            }
+        }
+    } else {
+        library = await fetchBandSongs(currentGroupId);
+    }
+
+    // Refresh UI
+    if (typeof renderSidebar === 'function') renderSidebar();
+    
+    // Auto-load first song
+    if (library.length > 0) {
+        currentSongId = library[0].id;
+        if (typeof toViewer === 'function') toViewer(true);
+    } else {
+        if (typeof toEditor === 'function') toEditor();
+    }
+}
+/**
+ * Ενημερώνει το dropdown επιλογής περιβάλλοντος (Personal/Band)
+ */
+function updateGroupDropdown() {
+    const sel = document.getElementById('selGroup'); // Το ID του <select> στο HTML σου
+    if (!sel) return;
+
+    // Καθαρισμός και προσθήκη της σταθερής επιλογής "Personal"
+    sel.innerHTML = '<option value="personal">🏠 My Personal Library</option>';
+
+    // Προσθήκη των Groups από το global state 'myGroups'
+    myGroups.forEach(g => {
+        const opt = document.createElement('option');
+        opt.value = g.group_id;
+        // Το g.groups.name έρχεται από το join query στην initUserData
+        opt.innerText = `🎸 ${g.groups?.name || 'Unknown Band'} (${g.role})`;
+        sel.appendChild(opt);
+    });
+    
+    // Επιλογή του τρέχοντος context
+    sel.value = currentGroupId;
+
+    // Listener για την εναλλαγή
+    sel.onchange = (e) => switchContext(e.target.value);
+}
 // ... Διατηρούνται οι splitSongBody, getNote, convertBracketsToBang, κλπ ...

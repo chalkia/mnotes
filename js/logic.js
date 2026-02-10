@@ -57,6 +57,7 @@ async function initUserData() {
         if (!gError) {
             myGroups = groups;
             console.log(`🎸 Συνδέθηκαν ${myGroups.length} μπάντες.`);
+            updateGroupDropdown();
         }
 
         // 3. Αρχικοποίηση Context

@@ -258,33 +258,113 @@ function renderSidebar() {
     }
 }
 
-
 // ===========================================================
 // 3. UI HELPERS & GESTURES
 // ===========================================================
 
 function initResizers() {
-    const d = document; const leftResizer = d.getElementById('dragMeLeft'); const rightResizer = d.getElementById('dragMeRight'); 
-    if(leftResizer) { leftResizer.addEventListener('mousedown', (e) => { e.preventDefault(); d.addEventListener('mousemove', onMouseMoveLeft); d.addEventListener('mouseup', onMouseUpLeft); }); }
-    if(rightResizer) { rightResizer.addEventListener('mousedown', (e) => { e.preventDefault(); d.addEventListener('mouseup', onMouseUpRight); d.addEventListener('mousemove', onMouseMoveRight); }); } 
-    function onMouseMoveLeft(e) { let newWidth = e.clientX; if(newWidth < 200) newWidth = 200; if(newWidth > 500) newWidth = 500; d.documentElement.style.setProperty('--nav-width', newWidth + 'px'); }
-    function onMouseMoveRight(e) { let newWidth = window.innerWidth - e.clientX; if(newWidth < 250) newWidth = 250; if(newWidth > 600) newWidth = 600; d.documentElement.style.setProperty('--tools-width', newWidth + 'px'); }
-    function onMouseUpLeft() { d.removeEventListener('mousemove', onMouseMoveLeft); d.removeEventListener('mouseup', onMouseUpLeft); }
-    function onMouseUpRight() { d.removeEventListener('mousemove', onMouseMoveRight); d.removeEventListener('mouseup', onMouseUpRight); }
+    const d = document; 
+    const leftResizer = d.getElementById('dragMeLeft'); 
+    const rightResizer = d.getElementById('dragMeRight'); 
+    
+    if(leftResizer) { 
+        leftResizer.addEventListener('mousedown', (e) => { 
+            e.preventDefault(); 
+            d.addEventListener('mousemove', onMouseMoveLeft); 
+            d.addEventListener('mouseup', onMouseUpLeft); 
+        }); 
+    }
+    
+    if(rightResizer) { 
+        rightResizer.addEventListener('mousedown', (e) => { 
+            e.preventDefault(); 
+            d.addEventListener('mousemove', onMouseMoveRight); 
+            d.addEventListener('mouseup', onMouseUpRight); 
+        }); 
+    } 
+
+    function onMouseMoveLeft(e) { 
+        let newWidth = e.clientX; 
+        if(newWidth < 200) newWidth = 200; 
+        if(newWidth > 500) newWidth = 500; 
+        d.documentElement.style.setProperty('--nav-width', newWidth + 'px'); 
+    }
+    
+    function onMouseMoveRight(e) { 
+        let newWidth = window.innerWidth - e.clientX; 
+        if(newWidth < 250) newWidth = 250; 
+        if(newWidth > 600) newWidth = 600; 
+        d.documentElement.style.setProperty('--tools-width', newWidth + 'px'); 
+    }
+    
+    function onMouseUpLeft() { 
+        d.removeEventListener('mousemove', onMouseMoveLeft); 
+        d.removeEventListener('mouseup', onMouseUpLeft); 
+    }
+    
+    function onMouseUpRight() { 
+        d.removeEventListener('mousemove', onMouseMoveRight); 
+        d.removeEventListener('mouseup', onMouseUpRight); 
+    }
 }
 
-function setupGestures() { var area = document.getElementById('mainZone'); var startDist = 0; var startSize = 1.3; if(area) { area.addEventListener('touchstart', function(e) { if(e.touches.length === 2) { startDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); var val = getComputedStyle(document.documentElement).getPropertyValue('--lyric-size').trim(); startSize = parseFloat(val) || 1.3; }}, {passive: true}); area.addEventListener('touchmove', function(e) { if(e.touches.length === 2) { var dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); if(startDist > 0) { var scale = dist / startDist; var newSize = startSize * scale; if(newSize < 0.8) newSize = 0.8; if(newSize > 3.0) newSize = 3.0; document.documentElement.style.setProperty('--lyric-size', newSize + "rem"); }}}, {passive: true}); } }
+function setupGestures() { 
+    var area = document.getElementById('mainZone'); 
+    var startDist = 0; 
+    var startSize = 1.3; 
+    if(area) { 
+        area.addEventListener('touchstart', function(e) { 
+            if(e.touches.length === 2) { 
+                startDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); 
+                var val = getComputedStyle(document.documentElement).getPropertyValue('--lyric-size').trim(); 
+                startSize = parseFloat(val) || 1.3; 
+            }
+        }, {passive: true}); 
+        
+        area.addEventListener('touchmove', function(e) { 
+            if(e.touches.length === 2) { 
+                var dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); 
+                if(startDist > 0) { 
+                    var scale = dist / startDist; 
+                    var newSize = startSize * scale; 
+                    if(newSize < 0.8) newSize = 0.8; 
+                    if(newSize > 3.0) newSize = 3.0; 
+                    document.documentElement.style.setProperty('--lyric-size', newSize + "rem"); 
+                }
+            }
+        }, {passive: true}); 
+    } 
+}
 
 // ===========================================================
-// 4. IMPORT / EXPORT
+// 4. IMPORT / EXPORT (CLEANED - NO QR)
 // ===========================================================
 
-function selectImport(type) { const modal = document.getElementById('importChoiceModal'); if(modal) modal.style.display = 'none'; if(type === 'file') { const fi = document.getElementById('hiddenFileInput'); if(fi) fi.click(); } else if(type === 'qr') { startScanner(); } else if(type === 'url') { importFromURL(); } }
-async function importFromURL() { const url = prompt(t('ph_url_import') || "Enter URL:"); if (!url) return; try { const res = await fetch(url); if(!res.ok) throw new Error("Network Error"); const data = await res.json(); processImportedData(data); } catch (err) { alert("Import Failed: " + err.message); } }
-function processImportedData(data) { const safeEnsure = (typeof ensureSongStructure === 'function') ? ensureSongStructure : (s) => s; if (data && data.type === "mnotes_setlist") { if (confirm("Import Setlist?")) { liveSetlist = data.data; localStorage.setItem('mnotes_setlist', JSON.stringify(liveSetlist)); renderSidebar(); showToast("Setlist Updated ✅"); } return; } const songs = Array.isArray(data) ? data : [data]; let added = 0, updated = 0; songs.forEach(s => { if (s.body) s.body = s.body.replace(/\[/g, '!').replace(/\]/g, ''); const imported = safeEnsure(s); const idx = library.findIndex(x => x.id === imported.id); if (idx !== -1) { if (imported.updatedAt > library[idx].updatedAt) { library[idx] = imported; updated++;  } } else { library.push(imported); added++; newlyImportedIds.push(imported.id); } }); if (typeof sortLibrary === 'function') sortLibrary(userSettings.sortMethod || 'alpha'); saveData(); populateTags(); applyFilters(); showToast(`Import: ${added} New, ${updated} Upd`); }
+function selectImport(type) { 
+    const modal = document.getElementById('importChoiceModal'); 
+    if(modal) modal.style.display = 'none'; 
+    
+    if(type === 'file') { 
+        const fi = document.getElementById('hiddenFileInput'); 
+        if(fi) fi.click(); 
+    } else if(type === 'url') { 
+        importFromURL(); 
+    } 
+    // QR option removed
+}
 
-function exportJSON() { const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(library)); const a = document.createElement('a'); a.href = dataStr; a.download = "mnotes_backup_" + Date.now() + ".json"; document.body.appendChild(a); a.click(); a.remove(); }
-function exportSetlist() { if(liveSetlist.length===0) { showToast("Empty Setlist"); return; } const pkg = { type: "mnotes_setlist", data: liveSetlist }; }
+async function importFromURL() { 
+    const url = prompt(window.t ? t('ph_url_import') : "Enter URL:"); 
+    if (!url) return; 
+    try { 
+        const res = await fetch(url); 
+        if(!res.ok) throw new Error("Network Error"); 
+        const data = await res.json(); 
+        processImportedData(data); 
+    } catch (err) { 
+        showToast("Import Failed: " + err.message, "error"); 
+    } 
+}
 
 // ===========================================================
 // 5. PLAYER LOGIC

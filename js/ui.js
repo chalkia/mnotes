@@ -70,27 +70,20 @@ function applyTheme() {
 }
 
 // ===========================================================
-// 2. LIBRARY & SIDEBAR
+// 2. LIBRARY & SIDEBAR (FIXED & CLEANED)
 // ===========================================================
 
 function loadLibrary() {
-    // Στη v2.1 η library φορτώνεται από το logic.js -> initUserData()
-    // Εδώ κάνουμε μόνο την αρχικοποίηση των Setlists
-    initSetlists(); 
-    populateTags(); 
-    
+    initSetlists();
+    populateTags();
     if (typeof sortLibrary === 'function') sortLibrary(userSettings.sortMethod || 'alpha');
-    
-    // Αν η library είναι ήδη γεμάτη (από την initUserData), κάνουμε render
     if (library.length > 0) {
         renderSidebar();
         if (!currentSongId) currentSongId = library[0].id;
-        loadSong(currentSongId);
     }
 }
 
-/* --- MISSING LIBRARY HELPERS (Add this block) --- */
-
+// Helper to ensure structure
 function ensureSongStructure(s) {
     if (!s.playlists) s.playlists = [];
     if (!s.recordings) s.recordings = [];
@@ -102,7 +95,11 @@ function populateTags() {
     const select = document.getElementById('tagFilter');
     if(!select) return;
     const currentVal = select.value;
-    select.innerHTML = '<option value="">All Tags</option><option value="__no_demo">No Demo</option>';
+    
+    // Μετάφραση για το "All Tags"
+    const allTagsText = (typeof TRANSLATIONS !== 'undefined' && typeof t === 'function') ? t('opt_all_tags') : "All Tags";
+    
+    select.innerHTML = `<option value="">${allTagsText}</option><option value="__no_demo">No Demo</option>`;
     
     const allTags = new Set();
     library.forEach(s => {
@@ -137,37 +134,42 @@ function sortLibrary(method) {
     localStorage.setItem('mnotes_settings', JSON.stringify(userSettings));
     renderSidebar();
 }
-/* --- END OF HELPERS --- */
-function clearLibrary() { 
-    if(confirm(t('msg_clear_confirm'))) { 
-        const safeEnsure = (typeof ensureSongStructure === 'function') ? ensureSongStructure : (s) => s;
-        library = [safeEnsure(JSON.parse(JSON.stringify(DEFAULT_DATA[0])))]; 
-        liveSetlist = []; 
-        localStorage.setItem('mnotes_setlist', JSON.stringify(liveSetlist)); 
-        saveData(); 
-        document.getElementById('searchInp').value = ""; 
-        applyFilters(); 
-        loadSong(library[0].id); 
-    } 
+
+function applySortAndRender() {
+    const sortSel = document.getElementById('sortFilter');
+    if(sortSel) sortLibrary(sortSel.value);
 }
+
+function clearLibrary() {
+    if(confirm(window.t ? t('msg_confirm_clear') : "Delete all local data?")) {
+        const safeEnsure = (typeof ensureSongStructure === 'function') ? ensureSongStructure : (s) => s;
+        library = [safeEnsure(JSON.parse(JSON.stringify(DEFAULT_DATA[0])))];
+        liveSetlist = [];
+        localStorage.setItem('mnotes_setlist', JSON.stringify(liveSetlist));
+        saveData();
+        document.getElementById('searchInp').value = "";
+        applyFilters();
+        loadSong(library[0].id);
+    }
+}
+
 function renderSidebar() {
-    var list = document.getElementById('songList'); 
-    if(!list) return; 
-    list.innerHTML = ""; 
+    var list = document.getElementById('songList');
+    if(!list) return;
+    list.innerHTML = "";
     visiblePlaylist = [];
 
-    // 1. Καθορισμός της λίστας προς εμφάνιση
-    if (viewMode === 'setlist') { 
-        liveSetlist.forEach(id => { 
-            var s = library.find(x => x.id === id); 
-            if (s) visiblePlaylist.push(s); 
-        }); 
+    // 1. Filtering Logic
+    if (viewMode === 'setlist') {
+        liveSetlist.forEach(id => {
+            var s = library.find(x => x.id === id);
+            if (s) visiblePlaylist.push(s);
+        });
     } else {
         var txt = document.getElementById('searchInp') ? document.getElementById('searchInp').value.toLowerCase() : "";
         var tag = document.getElementById('tagFilter') ? document.getElementById('tagFilter').value : "";
         
         visiblePlaylist = library.filter(s => {
-            // Αφαίρεση του hideDemo αν υπάρχει μόνο ένα τραγούδι
             if (userSettings.hideDemo && s.id.includes("demo") && library.length > 1) return false;
             
             var matchTxt = s.title.toLowerCase().includes(txt) || 
@@ -181,83 +183,77 @@ function renderSidebar() {
         });
     }
 
-    // Ενημέρωση μετρητή
-    const countEl = document.getElementById('songCount'); 
+    // Update Count
+    const countEl = document.getElementById('songCount');
     if(countEl) countEl.innerText = visiblePlaylist.length;
 
-    // 2. Δημιουργία των στοιχείων της λίστας (DOM Rendering)
+    // 2. Rendering
     visiblePlaylist.forEach(s => {
         var li = document.createElement('li');
         
-        // ΚΑΘΑΡΙΣΜΟΣ: Αφαίρεση του newlyImportedIds (Legacy)
-        let itemClass = `song-item ${currentSongId === s.id ? 'active' : ''}`; 
-        li.className = itemClass; 
+        let itemClass = `song-item ${currentSongId === s.id ? 'active' : ''}`;
+        li.className = itemClass;
         li.setAttribute('data-id', s.id);
 
         li.onclick = (e) => {
-            // Αποφυγή ενεργοποίησης αν πατηθούν τα κουμπιά δράσης
-            if(e.target.classList.contains('song-action') || e.target.classList.contains('song-key-btn')) return; 
-            
+            if(e.target.classList.contains('song-action') || e.target.classList.contains('song-key-btn')) return;
             if (typeof loadSong === 'function') loadSong(s.id);
-
-            // MOBILE LOGIC: Κλείσιμο του δεξιού drawer αν επιλεγεί τραγούδι
-            if(window.innerWidth <= 1024) { 
+            
+            // Mobile Drawer Close
+            if(window.innerWidth <= 1024) {
                  const d = document.getElementById('rightDrawer');
                  if(d && d.classList.contains('open') && typeof toggleRightDrawer === 'function') {
                      toggleRightDrawer();
                  }
             }
-        }; 
+        };
 
-        var displayTitle = (s.id.includes('demo')) ? t('demo_title') : s.title; 
+        var displayTitle = s.title;
         var displayKey = s.key || "-";
         
-        // Εικονίδια κατάστασης (Setlist indicators)
-        var actionIcon = "far fa-circle"; 
+        var actionIcon = "far fa-circle";
         if (viewMode === 'setlist') {
-            actionIcon = "fas fa-minus-circle"; 
+            actionIcon = "fas fa-minus-circle";
         } else if (liveSetlist.includes(s.id)) {
             actionIcon = "fas fa-check-circle in-setlist";
         }
 
-        
-    // 1. Έλεγχος αν το τραγούδι είναι στο Cloud (τα UUIDs της Supabase δεν ξεκινούν με s_)
-    const isCloud = s.id && !String(s.id).startsWith('s_');
-    const cloudIcon = isCloud ? '<i class="fas fa-cloud" style="font-size:0.7rem; margin-left:5px; opacity:0.5;" title="Cloud Sync"></i>' : '';
+        // Cloud Icon Check (ΜΟΝΟ ΜΙΑ ΦΟΡΑ)
+        const isCloud = s.id && !String(s.id).startsWith('s_');
+        const cloudIcon = isCloud ? '<i class="fas fa-cloud badge-cloud" title="Cloud Sync"></i>' : '';
 
-    // 2. Σύνθεση του HTML
-    li.innerHTML = `
-        <i class="${actionIcon} song-action" onclick="toggleSetlistSong(event, '${s.id}')"></i>
-        <div class="song-info">
-            <div class="song-title">${displayTitle} ${cloudIcon}</div>
-            <div class="song-meta-row">
-                <span class="song-artist">${s.artist || "-"}</span>
-                <span class="song-key-badge" onclick="filterByKey(event, '${displayKey}')">${displayKey}</span>
+        // HTML Construction
+        li.innerHTML = `
+            <i class="${actionIcon} song-action" onclick="toggleSetlistSong(event, '${s.id}')"></i>
+            <div class="song-info">
+                <div class="song-title">${displayTitle} ${cloudIcon}</div>
+                <div class="song-meta-row">
+                    <span class="song-artist">${s.artist || "-"}</span>
+                    <span class="song-key-badge" onclick="filterByKey(event, '${displayKey}')">${displayKey}</span>
+                </div>
             </div>
-        </div>
-        ${viewMode === 'setlist' ? `<i class="fas fa-grip-vertical song-handle"></i>` : ``}
-    `;
-    list.appendChild(li);
-    
-    // 3. Διαχείριση Sortable (Drag & Drop για Setlists)
+            ${viewMode === 'setlist' ? `<i class="fas fa-grip-vertical song-handle"></i>` : ``}
+        `;
+        list.appendChild(li);
+    });
+
+    // Sortable Init
     if (sortableInstance) sortableInstance.destroy();
-    if(typeof Sortable !== 'undefined') { 
-        sortableInstance = new Sortable(list, { 
-            animation: 150, 
-            handle: '.song-handle', 
-            // Απενεργοποίηση sorting αν δεν είναι Admin (θα συμπληρωθεί στο Logic)
-            disabled: (viewMode !== 'setlist'), 
-            onEnd: function (evt) { 
-                if (viewMode === 'setlist') { 
-                    var movedId = liveSetlist.splice(evt.oldIndex, 1)[0]; 
-                    liveSetlist.splice(evt.newIndex, 0, movedId); 
-                    if (typeof saveSetlists === 'function') saveSetlists(); 
-                } 
-            } 
-        }); 
+    if(typeof Sortable !== 'undefined') {
+        sortableInstance = new Sortable(list, {
+            animation: 150,
+            handle: '.song-handle',
+            disabled: (viewMode !== 'setlist'),
+            onEnd: function (evt) {
+                if (viewMode === 'setlist') {
+                    var movedId = liveSetlist.splice(evt.oldIndex, 1)[0];
+                    liveSetlist.splice(evt.newIndex, 0, movedId);
+                    if (typeof saveSetlists === 'function') saveSetlists();
+                }
+            }
+        });
     }
 }
-
 // ===========================================================
 // 3. UI HELPERS & GESTURES
 // ===========================================================

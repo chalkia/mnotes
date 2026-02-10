@@ -259,8 +259,11 @@ async function saveSong() {
                 console.log("Saving to Band Cloud...");
                 await saveToCloud(songData, currentGroupId);
             } else {
-                // MEMBER/VIEWER -> Αποθήκευση ως Personal Override (Layer)
-                // Θα υλοποιηθεί στη Φάση "The Layer Logic"
+                } else {
+                // MEMBER/VIEWER -> Αποθήκευση μόνο των προσωπικών αλλαγών (Layer)
+                console.log("Saving as personal override...");
+                await saveAsOverride(songData);
+            }
                 showToast("You don't have permission to edit band songs. Save as override coming soon.");
                 return;
             }
@@ -315,7 +318,33 @@ function saveToLocalStorage(songData) {
     }
     localStorage.setItem('mnotes_data', JSON.stringify(library));
 }
+/**
+ * Αποθήκευση προσωπικών ρυθμίσεων πάνω σε κοινό τραγούδι μπάντας (Layer)
+ */
+async function saveAsOverride(songData) {
+    if (!currentSongId || !currentUser) return;
 
+    console.log("💾 Saving personal override layer...");
+
+    const payload = {
+        user_id: currentUser.id,
+        song_id: currentSongId,
+        // Σώζουμε τα προσωπικά στοιχεία που διαφέρουν ανά μουσικό
+        local_transpose: state.t || 0,
+        local_capo: state.c || 0,
+        personal_notes: document.getElementById('inpPersonalNotes')?.value || ""
+    };
+
+    // Χρήση upsert: αν υπάρχει ήδη override το ενημερώνει, αλλιώς το δημιουργεί
+    const { error } = await supabaseClient
+        .from('personal_overrides')
+        .upsert(payload, { onConflict: 'user_id, song_id' });
+
+    if (error) {
+        console.error("Override Save Error:", error);
+        throw error;
+    }
+}
 
 /* =========================================
    HELPER FUNCTIONS & PARSING

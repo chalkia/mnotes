@@ -211,6 +211,112 @@ async function fetchBandSongs(groupId) {
     }
     return data.map(s => ensureSongStructure(s));
 }
+/**
+ * Κεντρική συνάρτηση αποθήκευσης τραγουδιού
+ * Διαχειρίζεται αυτόματα Local Storage, Personal Cloud και Band Cloud.
+ */
+async function saveSong() {
+    // 1. Συλλογή Δεδομένων από το UI (Editor)
+    const title = document.getElementById('inpTitle').value;
+    const body = convertBracketsToBang(document.getElementById('inpBody').value);
+    
+    if (!title || !body) {
+        if (typeof showToast === 'function') showToast(t('msg_title_body_req'), "error");
+        else alert("Title and Body are required!");
+        return;
+    }
+
+    const songData = {
+        title: title,
+        artist: document.getElementById('inpArtist').value,
+        key: document.getElementById('inpKey').value,
+        body: body,
+        intro: document.getElementById('inpIntro').value,
+        interlude: document.getElementById('inpInter').value,
+        notes: document.getElementById('inpNotes')?.value || "",
+        video: document.getElementById('inpVideo')?.value || "",
+        playlists: document.getElementById('inpTags')?.value.split(',').map(t => t.trim()).filter(t => t !== "") || [],
+        updated_at: new Date().toISOString()
+    };
+
+    try {
+        // ΠΕΡΙΠΤΩΣΗ Α: ΠΡΟΣΩΠΙΚΗ ΒΙΒΛΙΟΘΗΚΗ (Personal Context)
+        if (currentGroupId === 'personal') {
+            if (canUserPerform('CLOUD_SAVE')) {
+                // SOLO/MAESTRO/ADMIN -> Αποθήκευση στο Cloud (Private)
+                console.log("Saving to Personal Cloud...");
+                await saveToCloud(songData, null); 
+            } else {
+                // FREE -> Αποθήκευση στο Local Storage
+                console.log("Saving to Local Storage...");
+                saveToLocalStorage(songData);
+            }
+        } 
+        // ΠΕΡΙΠΤΩΣΗ Β: ΜΠΑΝΤΑ (Band Context)
+        else {
+            if (currentRole === 'admin' || currentRole === 'owner') {
+                // ADMIN/OWNER -> Αποθήκευση στα κοινά της μπάντας
+                console.log("Saving to Band Cloud...");
+                await saveToCloud(songData, currentGroupId);
+            } else {
+                // MEMBER/VIEWER -> Αποθήκευση ως Personal Override (Layer)
+                // Θα υλοποιηθεί στη Φάση "The Layer Logic"
+                showToast("You don't have permission to edit band songs. Save as override coming soon.");
+                return;
+            }
+        }
+
+        if (typeof showToast === 'function') showToast("Saved successfully! ✅");
+        
+        // Ανανέωση δεδομένων και επιστροφή στον Viewer
+        await loadContextData();
+        if (typeof toViewer === 'function') toViewer(true);
+
+    } catch (err) {
+        console.error("❌ Save failed:", err);
+        if (typeof showToast === 'function') showToast("Error during save", "error");
+    }
+}
+
+/**
+ * Υποστηρικτική: Αποθήκευση στη Supabase (Πίνακας 'songs')
+ */
+async function saveToCloud(songData, groupId) {
+    if (!currentUser) return;
+
+    const payload = {
+        ...songData,
+        user_id: currentUser.id,
+        group_id: groupId // null για personal cloud, UUID για μπάντα
+    };
+
+    // Αν υπάρχει ήδη currentSongId, κάνουμε update (upsert)
+    // Προσοχή: Στο cloud χρησιμοποιούμε το UUID, στο local το s_timestamp
+    const { error } = await supabaseClient
+        .from('songs')
+        .upsert(currentSongId && !currentSongId.startsWith('s_') ? { ...payload, id: currentSongId } : payload);
+
+    if (error) throw error;
+}
+
+/**
+ * Υποστηρικτική: Αποθήκευση στο κλασικό LocalStorage (για Free χρήστες)
+ */
+function saveToLocalStorage(songData) {
+    if (!currentSongId || !currentSongId.startsWith('s_')) {
+        const newSong = ensureSongStructure(songData);
+        library.push(newSong);
+        currentSongId = newSong.id;
+    } else {
+        const idx = library.findIndex(s => s.id === currentSongId);
+        if (idx > -1) {
+            library[idx] = { ...library[idx], ...songData, id: currentSongId };
+        }
+    }
+    localStorage.setItem('mnotes_data', JSON.stringify(library));
+}
+
+
 /* =========================================
    HELPER FUNCTIONS & PARSING
    ========================================= */

@@ -12,16 +12,12 @@ if(typeof currentSongId === 'undefined') var currentSongId = null;
 var visiblePlaylist = [];
 var sortableInstance = null;
 var editorTags = [];
-var scrollTimer = null;
 var html5QrCodeScanner = null;
 var viewMode = 'library'; 
 var isLyricsMode = false; 
 var wakeLock = null; 
-var newlyImportedIds = []; 
-var drawerIdleTimer = null;
 
 // Audio Globals
-var navHideTimer = null;
 var mediaRecorder = null;
 var audioChunks = [];
 var currentRecordedBlob = null;
@@ -164,50 +160,111 @@ function clearLibrary() {
         loadSong(library[0].id); 
     } 
 }
-
 function renderSidebar() {
-    var list = document.getElementById('songList'); if(!list) return; list.innerHTML = ""; visiblePlaylist = [];
-    if (viewMode === 'setlist') { liveSetlist.forEach(id => { var s = library.find(x => x.id === id); if (s) visiblePlaylist.push(s); }); } 
-    else {
+    var list = document.getElementById('songList'); 
+    if(!list) return; 
+    list.innerHTML = ""; 
+    visiblePlaylist = [];
+
+    // 1. Καθορισμός της λίστας προς εμφάνιση
+    if (viewMode === 'setlist') { 
+        liveSetlist.forEach(id => { 
+            var s = library.find(x => x.id === id); 
+            if (s) visiblePlaylist.push(s); 
+        }); 
+    } else {
         var txt = document.getElementById('searchInp') ? document.getElementById('searchInp').value.toLowerCase() : "";
         var tag = document.getElementById('tagFilter') ? document.getElementById('tagFilter').value : "";
+        
         visiblePlaylist = library.filter(s => {
+            // Αφαίρεση του hideDemo αν υπάρχει μόνο ένα τραγούδι
             if (userSettings.hideDemo && s.id.includes("demo") && library.length > 1) return false;
-            var matchTxt = s.title.toLowerCase().includes(txt) || (s.artist && s.artist.toLowerCase().includes(txt)) || (s.key && s.key.toLowerCase() === txt);
-            var matchTag = (tag === "__no_demo") ? !s.id.includes("demo") : (tag === "" || (s.playlists && s.playlists.includes(tag)));
+            
+            var matchTxt = s.title.toLowerCase().includes(txt) || 
+                           (s.artist && s.artist.toLowerCase().includes(txt)) || 
+                           (s.key && s.key.toLowerCase() === txt);
+            
+            var matchTag = (tag === "__no_demo") ? !s.id.includes("demo") : 
+                           (tag === "" || (s.playlists && s.playlists.includes(tag)));
+            
             return matchTxt && matchTag;
         });
     }
-    const countEl = document.getElementById('songCount'); if(countEl) countEl.innerText = visiblePlaylist.length;
+
+    // Ενημέρωση μετρητή
+    const countEl = document.getElementById('songCount'); 
+    if(countEl) countEl.innerText = visiblePlaylist.length;
+
+    // 2. Δημιουργία των στοιχείων της λίστας (DOM Rendering)
     visiblePlaylist.forEach(s => {
         var li = document.createElement('li');
-        let itemClass = `song-item ${currentSongId === s.id ? 'active' : ''}`; if (newlyImportedIds.includes(s.id)) itemClass += ' new-import';
-        li.className = itemClass; li.setAttribute('data-id', s.id);
+        
+        // ΚΑΘΑΡΙΣΜΟΣ: Αφαίρεση του newlyImportedIds (Legacy)
+        let itemClass = `song-item ${currentSongId === s.id ? 'active' : ''}`; 
+        li.className = itemClass; 
+        li.setAttribute('data-id', s.id);
+
         li.onclick = (e) => {
+            // Αποφυγή ενεργοποίησης αν πατηθούν τα κουμπιά δράσης
             if(e.target.classList.contains('song-action') || e.target.classList.contains('song-key-btn')) return; 
-            loadSong(s.id);
+            
+            if (typeof loadSong === 'function') loadSong(s.id);
+
+            // MOBILE LOGIC: Κλείσιμο του δεξιού drawer αν επιλεγεί τραγούδι
             if(window.innerWidth <= 1024) { 
                  const d = document.getElementById('rightDrawer');
-                 if(d && d.classList.contains('open') && typeof toggleRightDrawer === 'function') toggleRightDrawer();
+                 if(d && d.classList.contains('open') && typeof toggleRightDrawer === 'function') {
+                     toggleRightDrawer();
+                 }
             }
         }; 
-        var displayTitle = (s.id.includes('demo')) ? t('demo_title') : s.title; var displayKey = s.key || "-";
-        var actionIcon = "far fa-circle"; if (viewMode === 'setlist') actionIcon = "fas fa-minus-circle"; else if (liveSetlist.includes(s.id)) actionIcon = "fas fa-check-circle in-setlist";
-        li.innerHTML = `<i class="${actionIcon} song-action" onclick="toggleSetlistSong(event, '${s.id}')"></i><div class="song-info"><div class="song-title">${displayTitle}</div><div class="song-meta-row"><span class="song-artist">${s.artist || "-"}</span><span class="song-key-badge" onclick="filterByKey(event, '${displayKey}')">${displayKey}</span></div></div>${viewMode === 'setlist' ? `<i class="fas fa-grip-vertical song-handle"></i>` : ``}`;
+
+        var displayTitle = (s.id.includes('demo')) ? t('demo_title') : s.title; 
+        var displayKey = s.key || "-";
+        
+        // Εικονίδια κατάστασης (Setlist indicators)
+        var actionIcon = "far fa-circle"; 
+        if (viewMode === 'setlist') {
+            actionIcon = "fas fa-minus-circle"; 
+        } else if (liveSetlist.includes(s.id)) {
+            actionIcon = "fas fa-check-circle in-setlist";
+        }
+
+        // Render HTML
+        // Προσθήκη placeholder για μελλοντικό εικονίδιο Cloud (🌐/🔒)
+        li.innerHTML = `
+            <i class="${actionIcon} song-action" onclick="toggleSetlistSong(event, '${s.id}')"></i>
+            <div class="song-info">
+                <div class="song-title">${displayTitle}</div>
+                <div class="song-meta-row">
+                    <span class="song-artist">${s.artist || "-"}</span>
+                    <span class="song-key-badge" onclick="filterByKey(event, '${displayKey}')">${displayKey}</span>
+                </div>
+            </div>
+            ${viewMode === 'setlist' ? `<i class="fas fa-grip-vertical song-handle"></i>` : ``}
+        `;
         list.appendChild(li);
     });
     
-    // Sortable only for Setlist
+    // 3. Διαχείριση Sortable (Drag & Drop για Setlists)
     if (sortableInstance) sortableInstance.destroy();
     if(typeof Sortable !== 'undefined') { 
         sortableInstance = new Sortable(list, { 
-            animation: 150, handle: '.song-handle', disabled: (viewMode !== 'setlist'), 
-            onEnd: function (evt) { if (viewMode === 'setlist') { var movedId = liveSetlist.splice(evt.oldIndex, 1)[0]; liveSetlist.splice(evt.newIndex, 0, movedId); saveSetlists(); } } 
+            animation: 150, 
+            handle: '.song-handle', 
+            // Απενεργοποίηση sorting αν δεν είναι Admin (θα συμπληρωθεί στο Logic)
+            disabled: (viewMode !== 'setlist'), 
+            onEnd: function (evt) { 
+                if (viewMode === 'setlist') { 
+                    var movedId = liveSetlist.splice(evt.oldIndex, 1)[0]; 
+                    liveSetlist.splice(evt.newIndex, 0, movedId); 
+                    if (typeof saveSetlists === 'function') saveSetlists(); 
+                } 
+            } 
         }); 
     }
-    
-    if (typeof currentUser !== 'undefined' && currentUser && typeof updateAuthUI === 'function') { updateAuthUI(true); }
 }
+
 
 // ===========================================================
 // 3. UI HELPERS & GESTURES
@@ -1171,22 +1228,17 @@ function switchMobileTab(tabName) {
 function toggleRightDrawer() {
     const d = document.getElementById('rightDrawer'); if(!d) return;
     const isOpen = d.classList.contains('open');
-    if (isOpen) { d.classList.remove('open'); stopDrawerTimer(); document.removeEventListener('click', closeDrawerOutside); } 
-    else { d.classList.add('open'); resetDrawerTimer(); setTimeout(() => { document.addEventListener('click', closeDrawerOutside); }, 100); setupDrawerListeners(d); }
+    if (isOpen) { d.classList.remove('open');document.removeEventListener('click', closeDrawerOutside); } 
+    else { d.classList.add('open'); setTimeout(() => { document.addEventListener('click', closeDrawerOutside); }, 100); setupDrawerListeners(d); }
 }
 function closeDrawerOutside(e) {
     const d = document.getElementById('rightDrawer'); const h = document.getElementById('drawerHandle');
     if (d && d.classList.contains('open') && !d.contains(e.target) && !h.contains(e.target)) { toggleRightDrawer(); }
 }
-function resetDrawerTimer() {
-    stopDrawerTimer(); drawerIdleTimer = setTimeout(() => { const d = document.getElementById('rightDrawer'); if (d && d.classList.contains('open')) { toggleRightDrawer(); showToast("Drawer closed (inactive)"); } }, 6000);
-}
-function stopDrawerTimer() { if (drawerIdleTimer) clearTimeout(drawerIdleTimer); }
 
 function setupDrawerListeners(drawer) {
     let touchStartX = 0; let touchStartY = 0;
-    drawer.ontouchstart = (e) => { resetDrawerTimer(); touchStartX = e.changedTouches[0].screenX; touchStartY = e.changedTouches[0].screenY; };
-    drawer.onmousemove = () => { resetDrawerTimer(); }; drawer.onclick = () => { resetDrawerTimer(); };
+    drawer.ontouchstart = (e) => {  touchStartX = e.changedTouches[0].screenX; touchStartY = e.changedTouches[0].screenY; };
     drawer.ontouchend = (e) => {
         let touchEndX = e.changedTouches[0].screenX; let touchEndY = e.changedTouches[0].screenY;
         const diffX = touchEndX - touchStartX; const diffY = touchEndY - touchStartY;
@@ -1213,7 +1265,6 @@ function switchDrawerTab(tabName) {
 
 function getYoutubeId(url) { if (!url) return null; var regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/; var match = url.match(regExp); return (match && match[2].length === 11) ? match[2] : null; }
 function showToast(msg) { var x = document.getElementById("toast"); if(x) { x.innerText = msg; x.className = "show"; setTimeout(function(){ x.className = x.className.replace("show", ""); }, 3000); } }
-function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
 function saveData() { localStorage.setItem('mnotes_data', JSON.stringify(library)); }
 function filterByKey(e, key) { e.stopPropagation(); var inp = document.getElementById('searchInp'); if(inp) { inp.value = key; applyFilters(); showToast("Filter: " + key); } }
 

@@ -12,7 +12,6 @@ if(typeof currentSongId === 'undefined') var currentSongId = null;
 var visiblePlaylist = [];
 var sortableInstance = null;
 var editorTags = [];
-var html5QrCodeScanner = null;
 var viewMode = 'library'; 
 var isLyricsMode = false; 
 var wakeLock = null; 
@@ -286,12 +285,9 @@ function setupGestures() { var area = document.getElementById('mainZone'); var s
 function selectImport(type) { const modal = document.getElementById('importChoiceModal'); if(modal) modal.style.display = 'none'; if(type === 'file') { const fi = document.getElementById('hiddenFileInput'); if(fi) fi.click(); } else if(type === 'qr') { startScanner(); } else if(type === 'url') { importFromURL(); } }
 async function importFromURL() { const url = prompt(t('ph_url_import') || "Enter URL:"); if (!url) return; try { const res = await fetch(url); if(!res.ok) throw new Error("Network Error"); const data = await res.json(); processImportedData(data); } catch (err) { alert("Import Failed: " + err.message); } }
 function processImportedData(data) { const safeEnsure = (typeof ensureSongStructure === 'function') ? ensureSongStructure : (s) => s; if (data && data.type === "mnotes_setlist") { if (confirm("Import Setlist?")) { liveSetlist = data.data; localStorage.setItem('mnotes_setlist', JSON.stringify(liveSetlist)); renderSidebar(); showToast("Setlist Updated ✅"); } return; } const songs = Array.isArray(data) ? data : [data]; let added = 0, updated = 0; songs.forEach(s => { if (s.body) s.body = s.body.replace(/\[/g, '!').replace(/\]/g, ''); const imported = safeEnsure(s); const idx = library.findIndex(x => x.id === imported.id); if (idx !== -1) { if (imported.updatedAt > library[idx].updatedAt) { library[idx] = imported; updated++;  } } else { library.push(imported); added++; newlyImportedIds.push(imported.id); } }); if (typeof sortLibrary === 'function') sortLibrary(userSettings.sortMethod || 'alpha'); saveData(); populateTags(); applyFilters(); showToast(`Import: ${added} New, ${updated} Upd`); }
-function startScanner() { const m = document.getElementById('scanModal'); if(m) m.style.display='flex'; if(html5QrCodeScanner) html5QrCodeScanner.clear().catch(e=>{}); try { const scanner = new Html5Qrcode("reader"); html5QrCodeScanner = scanner; scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (txt) => { scanner.stop().then(() => { if(m) m.style.display='none'; try { processImportedData(JSON.parse(txt)); } catch(e){ alert("Invalid QR"); } }); }, (err) => {}).catch(e => { alert("Cam Error: "+e); if(m) m.style.display='none'; }); } catch(e) { alert("QR Lib missing"); } }
-function closeScan() { if(html5QrCodeScanner) html5QrCodeScanner.stop().then(()=>document.getElementById('scanModal').style.display='none').catch(e=>document.getElementById('scanModal').style.display='none'); else document.getElementById('scanModal').style.display='none'; }
+
 function exportJSON() { const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(library)); const a = document.createElement('a'); a.href = dataStr; a.download = "mnotes_backup_" + Date.now() + ".json"; document.body.appendChild(a); a.click(); a.remove(); }
-function exportSetlist() { if(liveSetlist.length===0) { showToast("Empty Setlist"); return; } const pkg = { type: "mnotes_setlist", data: liveSetlist }; generateQRInternal(JSON.stringify(pkg)); }
-function generateQRFromEditor() { const temp = { id: currentSongId || "temp_"+Date.now(), title: document.getElementById('inpTitle').value, artist: document.getElementById('inpArtist').value, key: document.getElementById('inpKey').value, body: document.getElementById('inpBody').value, updatedAt: Date.now() }; generateQRInternal(JSON.stringify(temp)); }
-function generateQRInternal(str) { const div = document.getElementById('qr-output'); if(!div) return; div.innerHTML = ""; try { const qr = qrcode(0, 'M'); qr.addData(unescape(encodeURIComponent(str))); qr.make(); div.innerHTML = qr.createImgTag(5); document.getElementById('qrModal').style.display='flex'; } catch(e) { alert("QR Error"); } }
+function exportSetlist() { if(liveSetlist.length===0) { showToast("Empty Setlist"); return; } const pkg = { type: "mnotes_setlist", data: liveSetlist }; }
 
 // ===========================================================
 // 5. PLAYER LOGIC
@@ -1401,7 +1397,6 @@ window.onclick = function(event) {
     if (event.target === setsModal) closeSettings();
     if (event.target === impModal) impModal.style.display = 'none';
     if (event.target === qrModal) qrModal.style.display = 'none';
-    if (event.target === scanModal) closeScan();
     if (event.target === authModal) authModal.style.display = 'none';
 }
 // ===========================================================

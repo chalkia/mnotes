@@ -4,39 +4,29 @@
 
 var hasUnsavedChanges = false;
 
-window.addEventListener('load', function() {
-    // 1. Αρχικοποίηση UI & Theme
-    if (typeof loadSavedTheme === 'function') loadSavedTheme();
-    if (typeof setupSidebarSwipe === 'function') setupSidebarSwipe();
+window.addEventListener('load', async function() {
+    console.log("🚀 mNotes Pro v2.1 Initializing...");
+
+    // 1. UI & Theme
+    if (typeof applyTheme === 'function') applyTheme();
     
-    // 2. Φόρτωση Τοπικών Δεδομένων (Cache/Free Tier)
-    var savedData = localStorage.getItem('mnotes_data');
-    if(savedData) {
-        try {
-            var parsed = JSON.parse(savedData);
-            // Χρησιμοποιούμε την ensureSongStructure από το storage.js για ασφάλεια
-            library = Array.isArray(parsed) ? parsed.map(ensureSongStructure) : [];
-            
-            if (typeof updatePlaylistDropdown === 'function') updatePlaylistDropdown();
-            if (typeof filterPlaylist === 'function') filterPlaylist();
-        } catch(e) { 
-            console.error("Data Load Error", e); 
-        }
-    }
+    // 2. Offline Resilience: Listener για επαναφορά σύνδεσης
+    window.addEventListener('online', () => {
+        if (typeof processSyncQueue === 'function') processSyncQueue();
+    });
 
-    // 3. Listeners για μη αποθηκευμένες αλλαγές
+    // 3. Auth & Data Initialization
+    // Ο έλεγχος χρήστη γίνεται αυτόματα από το supabase-client.js
+    // Αν δεν υπάρχει χρήστης, η loadLibrary() του ui.js θα δείξει τα τοπικά
+    if (typeof loadLibrary === 'function') loadLibrary();
+
+    // 4. Listeners
     setupDirtyListeners();
+    initResizers();
 
-    // 4. Αρχική Προβολή (Viewer αν υπάρχει βιβλιοθήκη, αλλιώς Editor)
-    if(library && library.length > 0) {
-        if(!currentSongId) currentSongId = library[0].id;
-        if (typeof toViewer === 'function') toViewer(true); 
-    } else { 
-        if (typeof toEditor === 'function') toEditor(); 
-    }
-
-    console.log("🚀 mNotes App Loaded & Cleaned");
+    console.log("✅ App Ready");
 });
+
 
 /**
  * Παρακολουθεί τα inputs του editor για αλλαγές
@@ -82,16 +72,21 @@ function updatePlaylistDropdown() {
  * Μουσικά Εργαλεία (Transpose & Capo)
  */
 function addTrans(n) { 
+    if (typeof state === 'undefined') return;
     state.t += n; 
-    var s = library.find(x => x.id === currentSongId);
-    if(s && typeof render === 'function') render(s); 
+    
+    const s = library.find(x => x.id === currentSongId);
+    if (s && typeof renderPlayer === 'function') renderPlayer(s); 
+    if (typeof updateTransDisplay === 'function') updateTransDisplay();
 }
 
 function addCapo(n) { 
-    if(state.c + n >= 0) { 
+    if (typeof state === 'undefined') return;
+    if (state.c + n >= 0) { 
         state.c += n; 
-        var s = library.find(x => x.id === currentSongId);
-        if(s && typeof render === 'function') render(s); 
+        const s = library.find(x => x.id === currentSongId);
+        if (s && typeof renderPlayer === 'function') renderPlayer(s); 
+        if (typeof updateTransDisplay === 'function') updateTransDisplay();
     } 
 }
 
@@ -109,29 +104,29 @@ function findSmartCapo() {
     
     state.c = result.best; 
     var s = library.find(x => x.id === currentSongId);
-    if(s && typeof render === 'function') render(s); 
-    if (typeof showToast === 'function') showToast(result.msg); 
+    if(s && typeof renderPlayer === 'function') renderPlayer(s); 
+    if (typeof updateTransDisplay === 'function') updateTransDisplay(); 
 }
 
 /**
  * Πλοήγηση Τραγουδιών
  */
 function nextSong() { 
-    if(!visiblePlaylist || visiblePlaylist.length === 0) return; 
-    var i = visiblePlaylist.findIndex(s => s.id === currentSongId); 
-    if(i < visiblePlaylist.length - 1) { 
-        currentSongId = visiblePlaylist[i + 1].id; 
-        if (typeof toViewer === 'function') toViewer(true); 
+    if (!visiblePlaylist || visiblePlaylist.length === 0) return; 
+    let i = visiblePlaylist.findIndex(s => s.id === currentSongId); 
+    if (i < visiblePlaylist.length - 1) { 
+        const nextId = visiblePlaylist[i + 1].id;
+        if (typeof loadSong === 'function') loadSong(nextId);
         if (typeof renderSidebar === 'function') renderSidebar(); 
     } 
 }
 
 function prevSong() { 
-    if(!visiblePlaylist || visiblePlaylist.length === 0) return; 
-    var i = visiblePlaylist.findIndex(s => s.id === currentSongId); 
-    if(i > 0) { 
-        currentSongId = visiblePlaylist[i - 1].id; 
-        if (typeof toViewer === 'function') toViewer(true); 
+    if (!visiblePlaylist || visiblePlaylist.length === 0) return; 
+    let i = visiblePlaylist.findIndex(s => s.id === currentSongId); 
+    if (i > 0) { 
+        const prevId = visiblePlaylist[i - 1].id;
+        if (typeof loadSong === 'function') loadSong(prevId);
         if (typeof renderSidebar === 'function') renderSidebar(); 
     } 
 }

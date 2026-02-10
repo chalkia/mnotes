@@ -2,24 +2,6 @@
    STORAGE & DATA MANAGEMENT
    ========================================= */
 
-const savedStatus = localStorage.getItem('mnotes_premium_status');
-var USER_STATUS = {
-    isPremium: savedStatus === 'true',
-    freeLimit: 5 
-};
-
-function setPremiumStatus(isPremium) {
-    USER_STATUS.isPremium = isPremium;
-    localStorage.setItem('mnotes_premium_status', isPremium);
-    window.location.reload();
-}
-
-// Διατηρείται για μελλοντική χρήση Pro έκδοσης
-function isSongLocked(song) {
-    if (USER_STATUS.isPremium) return false;
-    if (typeof song.isLocked !== 'undefined') return song.isLocked;
-    return false; 
-}
 
 function saveToLocal() {
     localStorage.setItem('mnotes_data', JSON.stringify(library));

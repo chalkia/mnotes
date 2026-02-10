@@ -7,6 +7,7 @@ let userProfile = null;
 let myGroups = [];           
 let currentGroupId = 'personal'; 
 let currentRole = 'owner';   
+let isOffline = !navigator.onLine;
 
 // --- TIER CONFIGURATION ---
 const TIER_CONFIG = {
@@ -216,13 +217,11 @@ async function fetchBandSongs(groupId) {
  * Διαχειρίζεται αυτόματα Local Storage, Personal Cloud και Band Cloud.
  */
 async function saveSong() {
-    // 1. Συλλογή Δεδομένων από το UI (Editor)
     const title = document.getElementById('inpTitle').value;
     const body = convertBracketsToBang(document.getElementById('inpBody').value);
     
     if (!title || !body) {
-        if (typeof showToast === 'function') showToast(t('msg_title_body_req'), "error");
-        else alert("Title and Body are required!");
+        showToast(t('msg_title_body_req'), "error");
         return;
     }
 
@@ -240,44 +239,32 @@ async function saveSong() {
     };
 
     try {
-        // ΠΕΡΙΠΤΩΣΗ Α: ΠΡΟΣΩΠΙΚΗ ΒΙΒΛΙΟΘΗΚΗ (Personal Context)
         if (currentGroupId === 'personal') {
             if (canUserPerform('CLOUD_SAVE')) {
-                // SOLO/MAESTRO/ADMIN -> Αποθήκευση στο Cloud (Private)
-                console.log("Saving to Personal Cloud...");
                 await saveToCloud(songData, null); 
             } else {
-                // FREE -> Αποθήκευση στο Local Storage
-                console.log("Saving to Local Storage...");
                 saveToLocalStorage(songData);
             }
-        } 
-        // ΠΕΡΙΠΤΩΣΗ Β: ΜΠΑΝΤΑ (Band Context)
-        else {
+      
+        } else {
+            // ΠΕΡΙΠΤΩΣΗ Β: ΜΠΑΝΤΑ (Band Context)
             if (currentRole === 'admin' || currentRole === 'owner') {
                 // ADMIN/OWNER -> Αποθήκευση στα κοινά της μπάντας
                 console.log("Saving to Band Cloud...");
                 await saveToCloud(songData, currentGroupId);
             } else {
-                } else {
                 // MEMBER/VIEWER -> Αποθήκευση μόνο των προσωπικών αλλαγών (Layer)
                 console.log("Saving as personal override...");
                 await saveAsOverride(songData);
             }
-                showToast("You don't have permission to edit band songs. Save as override coming soon.");
-                return;
-            }
         }
-
-        if (typeof showToast === 'function') showToast("Saved successfully! ✅");
-        
-        // Ανανέωση δεδομένων και επιστροφή στον Viewer
+      
+        showToast("Saved successfully! ✅");
         await loadContextData();
         if (typeof toViewer === 'function') toViewer(true);
-
     } catch (err) {
         console.error("❌ Save failed:", err);
-        if (typeof showToast === 'function') showToast("Error during save", "error");
+        showToast("Error during save", "error");
     }
 }
 
@@ -290,15 +277,19 @@ async function saveToCloud(songData, groupId) {
     const payload = {
         ...songData,
         user_id: currentUser.id,
-        group_id: groupId // null για personal cloud, UUID για μπάντα
+        group_id: groupId,
+        id: (currentSongId && !currentSongId.startsWith('s_')) ? currentSongId : undefined
     };
 
-    // Αν υπάρχει ήδη currentSongId, κάνουμε update (upsert)
-    // Προσοχή: Στο cloud χρησιμοποιούμε το UUID, στο local το s_timestamp
-    const { error } = await supabaseClient
-        .from('songs')
-        .upsert(currentSongId && !currentSongId.startsWith('s_') ? { ...payload, id: currentSongId } : payload);
+    // Έλεγχος αν είμαστε Offline
+    if (!navigator.onLine) {
+        console.warn("🌐 Offline mode: Adding to sync queue");
+        addToSyncQueue('SAVE_SONG', payload);
+        showToast("Offline: Saved locally, will sync when online 📶", "warning");
+        return;
+    }
 
+    const { error } = await supabaseClient.from('songs').upsert(payload);
     if (error) throw error;
 }
 
@@ -455,4 +446,67 @@ function updateGroupDropdown() {
     // Listener για την εναλλαγή
     sel.onchange = (e) => switchContext(e.target.value);
 }
-// ... Διατηρούνται οι splitSongBody, getNote, convertBracketsToBang, κλπ ...
+// --- OFFLINE SYNC SYSTEM ---
+function addToSyncQueue(type, data) {
+    let queue = JSON.parse(localStorage.getItem('mnotes_sync_queue') || "[]");
+    queue.push({ type, data, timestamp: Date.now() });
+    localStorage.setItem('mnotes_sync_queue', JSON.stringify(queue));
+}
+
+async function processSyncQueue() {
+    if (!navigator.onLine) return;
+    let queue = JSON.parse(localStorage.getItem('mnotes_sync_queue') || "[]");
+    if (queue.length === 0) return;
+
+    console.log(`♻️ Syncing ${queue.length} pending changes...`);
+    for (const item of queue) {
+        if (item.type === 'SAVE_SONG') {
+            await supabaseClient.from('songs').upsert(item.data);
+        }
+    }
+    localStorage.removeItem('mnotes_sync_queue');
+    showToast("All changes synced with cloud! ☁️");
+    await loadContextData();
+}
+
+// --- SONG TRANSFER & PROPOSALS ---
+async function transferSong(targetContext) {
+    if (!canUserPerform('CLOUD_SAVE')) {
+        showToast("Copy/Transfer is a Pro feature! 🚀", "warning");
+        return;
+    }
+    const sourceSong = library.find(s => s.id === currentSongId);
+    if (!sourceSong) return;
+
+    const newSongData = {
+        title: sourceSong.title,
+        artist: sourceSong.artist,
+        body: sourceSong.body,
+        key: sourceSong.key,
+        intro: sourceSong.intro,
+        interlude: sourceSong.interlude,
+        notes: (targetContext === 'personal') ? "" : sourceSong.notes,
+        user_id: currentUser.id,
+        group_id: (targetContext === 'personal') ? null : targetContext
+    };
+
+    if (targetContext !== 'personal' && currentRole !== 'admin' && currentRole !== 'owner') {
+        await submitProposal(newSongData, targetContext);
+    } else {
+        await supabaseClient.from('songs').insert([newSongData]);
+        showToast("Song transferred! ✅");
+        await loadContextData();
+    }
+}
+
+async function submitProposal(songData, groupId) {
+    const { error } = await supabaseClient.from('proposals').insert([{
+        ...songData,
+        proposed_by: currentUser.id,
+        group_id: groupId,
+        status: 'pending'
+    }]);
+    if (error) throw error;
+    showToast("Proposal sent to Admin! 📩");
+}
+

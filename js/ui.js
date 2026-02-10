@@ -75,30 +75,21 @@ function applyTheme() {
 // ===========================================================
 
 function loadLibrary() {
-    var saved = localStorage.getItem('mnotes_data');
-    if (saved) { try { library = JSON.parse(saved); } catch(e) { library = []; } }
-    
-    const safeEnsure = (typeof ensureSongStructure === 'function') ? ensureSongStructure : (s) => s;
-
-    if (library.length === 0 && typeof DEFAULT_DATA !== 'undefined') { 
-        library.push(safeEnsure(JSON.parse(JSON.stringify(DEFAULT_DATA[0])))); 
-        saveData(); 
-    }
-    library = library.map(safeEnsure);
-    
-    initSetlists(); // Must happen after library load
-    
+    // Στη v2.1 η library φορτώνεται από το logic.js -> initUserData()
+    // Εδώ κάνουμε μόνο την αρχικοποίηση των Setlists
+    initSetlists(); 
     populateTags(); 
+    
     if (typeof sortLibrary === 'function') sortLibrary(userSettings.sortMethod || 'alpha');
-    const sortDropdown = document.getElementById('sortFilter'); if (sortDropdown) sortDropdown.value = userSettings.sortMethod || 'alpha';
-    if(typeof switchSidebarTab === 'function') switchSidebarTab(viewMode);
-    renderSidebar();
-
+    
+    // Αν η library είναι ήδη γεμάτη (από την initUserData), κάνουμε render
     if (library.length > 0) {
+        renderSidebar();
         if (!currentSongId) currentSongId = library[0].id;
         loadSong(currentSongId);
-    } else { createNewSong(); }
+    }
 }
+
 /* --- MISSING LIBRARY HELPERS (Add this block) --- */
 
 function ensureSongStructure(s) {
@@ -230,21 +221,27 @@ function renderSidebar() {
             actionIcon = "fas fa-check-circle in-setlist";
         }
 
-        // Render HTML
-        // Προσθήκη placeholder για μελλοντικό εικονίδιο Cloud (🌐/🔒)
-        li.innerHTML = `
-            <i class="${actionIcon} song-action" onclick="toggleSetlistSong(event, '${s.id}')"></i>
-            <div class="song-info">
-                <div class="song-title">${displayTitle}</div>
-                <div class="song-meta-row">
-                    <span class="song-artist">${s.artist || "-"}</span>
-                    <span class="song-key-badge" onclick="filterByKey(event, '${displayKey}')">${displayKey}</span>
-                </div>
+   // Render HTML με ένδειξη Cloud αν το ID δεν ξεκινάει με s_
+        const isCloud = s.id && !s.id.startsWith('s_');
+        const cloudIcon = isCloud ? '<i class="fas fa-cloud" style="font-size:0.7rem; margin-left:5px; opacity:0.5;"></i>' : '';
+       
+    // 1. Έλεγχος αν το τραγούδι είναι στο Cloud (τα UUIDs της Supabase δεν ξεκινούν με s_)
+    const isCloud = s.id && !String(s.id).startsWith('s_');
+    const cloudIcon = isCloud ? '<i class="fas fa-cloud" style="font-size:0.7rem; margin-left:5px; opacity:0.5;" title="Cloud Sync"></i>' : '';
+
+    // 2. Σύνθεση του HTML
+    li.innerHTML = `
+        <i class="${actionIcon} song-action" onclick="toggleSetlistSong(event, '${s.id}')"></i>
+        <div class="song-info">
+            <div class="song-title">${displayTitle} ${cloudIcon}</div>
+            <div class="song-meta-row">
+                <span class="song-artist">${s.artist || "-"}</span>
+                <span class="song-key-badge" onclick="filterByKey(event, '${displayKey}')">${displayKey}</span>
             </div>
-            ${viewMode === 'setlist' ? `<i class="fas fa-grip-vertical song-handle"></i>` : ``}
-        `;
-        list.appendChild(li);
-    });
+        </div>
+        ${viewMode === 'setlist' ? `<i class="fas fa-grip-vertical song-handle"></i>` : ``}
+    `;
+    list.appendChild(li);
     
     // 3. Διαχείριση Sortable (Drag & Drop για Setlists)
     if (sortableInstance) sortableInstance.destroy();
@@ -288,7 +285,7 @@ function setupGestures() { var area = document.getElementById('mainZone'); var s
 
 function selectImport(type) { const modal = document.getElementById('importChoiceModal'); if(modal) modal.style.display = 'none'; if(type === 'file') { const fi = document.getElementById('hiddenFileInput'); if(fi) fi.click(); } else if(type === 'qr') { startScanner(); } else if(type === 'url') { importFromURL(); } }
 async function importFromURL() { const url = prompt(t('ph_url_import') || "Enter URL:"); if (!url) return; try { const res = await fetch(url); if(!res.ok) throw new Error("Network Error"); const data = await res.json(); processImportedData(data); } catch (err) { alert("Import Failed: " + err.message); } }
-function processImportedData(data) { const safeEnsure = (typeof ensureSongStructure === 'function') ? ensureSongStructure : (s) => s; if (data && data.type === "mnotes_setlist") { if (confirm("Import Setlist?")) { liveSetlist = data.data; localStorage.setItem('mnotes_setlist', JSON.stringify(liveSetlist)); renderSidebar(); showToast("Setlist Updated ✅"); } return; } const songs = Array.isArray(data) ? data : [data]; let added = 0, updated = 0; newlyImportedIds = []; songs.forEach(s => { if (s.body) s.body = s.body.replace(/\[/g, '!').replace(/\]/g, ''); const imported = safeEnsure(s); const idx = library.findIndex(x => x.id === imported.id); if (idx !== -1) { if (imported.updatedAt > library[idx].updatedAt) { library[idx] = imported; updated++; newlyImportedIds.push(imported.id); } } else { library.push(imported); added++; newlyImportedIds.push(imported.id); } }); if (typeof sortLibrary === 'function') sortLibrary(userSettings.sortMethod || 'alpha'); saveData(); populateTags(); applyFilters(); showToast(`Import: ${added} New, ${updated} Upd`); }
+function processImportedData(data) { const safeEnsure = (typeof ensureSongStructure === 'function') ? ensureSongStructure : (s) => s; if (data && data.type === "mnotes_setlist") { if (confirm("Import Setlist?")) { liveSetlist = data.data; localStorage.setItem('mnotes_setlist', JSON.stringify(liveSetlist)); renderSidebar(); showToast("Setlist Updated ✅"); } return; } const songs = Array.isArray(data) ? data : [data]; let added = 0, updated = 0; songs.forEach(s => { if (s.body) s.body = s.body.replace(/\[/g, '!').replace(/\]/g, ''); const imported = safeEnsure(s); const idx = library.findIndex(x => x.id === imported.id); if (idx !== -1) { if (imported.updatedAt > library[idx].updatedAt) { library[idx] = imported; updated++;  } } else { library.push(imported); added++; newlyImportedIds.push(imported.id); } }); if (typeof sortLibrary === 'function') sortLibrary(userSettings.sortMethod || 'alpha'); saveData(); populateTags(); applyFilters(); showToast(`Import: ${added} New, ${updated} Upd`); }
 function startScanner() { const m = document.getElementById('scanModal'); if(m) m.style.display='flex'; if(html5QrCodeScanner) html5QrCodeScanner.clear().catch(e=>{}); try { const scanner = new Html5Qrcode("reader"); html5QrCodeScanner = scanner; scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (txt) => { scanner.stop().then(() => { if(m) m.style.display='none'; try { processImportedData(JSON.parse(txt)); } catch(e){ alert("Invalid QR"); } }); }, (err) => {}).catch(e => { alert("Cam Error: "+e); if(m) m.style.display='none'; }); } catch(e) { alert("QR Lib missing"); } }
 function closeScan() { if(html5QrCodeScanner) html5QrCodeScanner.stop().then(()=>document.getElementById('scanModal').style.display='none').catch(e=>document.getElementById('scanModal').style.display='none'); else document.getElementById('scanModal').style.display='none'; }
 function exportJSON() { const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(library)); const a = document.createElement('a'); a.href = dataStr; a.download = "mnotes_backup_" + Date.now() + ".json"; document.body.appendChild(a); a.click(); a.remove(); }
@@ -798,33 +795,9 @@ function saveEdit() {
     populateTags(); applyFilters(); 
 }
 
-function saveSong() {
-    const title = document.getElementById('inpTitle').value;
-    if(!title) { alert("Title required"); return; }
-    let s;
-    if(currentSongId) { s = library.find(x => x.id === currentSongId); s.updatedAt = Date.now(); } 
-    else { s = { id: Date.now().toString(), createdAt: Date.now(), updatedAt: Date.now() }; library.push(s); currentSongId = s.id; }
-    
-    s.title = title;
-    s.artist = document.getElementById('inpArtist').value;
-    s.key = document.getElementById('inpKey').value;
-    s.body = document.getElementById('inpBody').value;
-    s.intro = document.getElementById('inpIntro').value;
-    s.interlude = document.getElementById('inpInter').value;
-    s.video = document.getElementById('inpVideo').value;
-    s.conductorNotes = document.getElementById('inpConductorNotes').value;
-    s.playlists = [...editorTags];
-    if(!s.rhythm) s.rhythm = {};
-    const bpmVal = document.getElementById('rngBpm').value;
-    s.rhythm.bpm = parseInt(bpmVal);
-    saveData();
-    loadSong(currentSongId);
-}
-
 function fixTrailingChords(text) { let lines = text.split('\n'); return lines.map(line => { const trailingChordRegex = /![A-G][b#]?[m]?[maj7|sus4|7|add9|dim|0-9]*(\/[A-G][b#]?)?\s*$/; if (line.match(trailingChordRegex)) return line.trimEnd() + "    "; return line; }).join('\n'); }
 function createNewSong() { currentSongId = null; document.querySelectorAll('.inp').forEach(e => e.value = ""); editorTags = []; if(typeof renderTagChips === 'function') renderTagChips(); document.getElementById('view-player').classList.remove('active-view'); document.getElementById('view-editor').classList.add('active-view'); }
 function exitEditor() { if (currentSongId) loadSong(currentSongId); else if (library.length > 0) loadSong(library[0].id); else { document.getElementById('view-editor').classList.remove('active-view'); document.getElementById('view-player').classList.add('active-view'); } }
-function deleteCurrentSong() { if(!currentSongId) return; if(confirm(t('msg_delete_confirm') || "Delete this song?")) { library = library.filter(s => s.id !== currentSongId); liveSetlist = liveSetlist.filter(id => id !== currentSongId); localStorage.setItem('mnotes_setlist', JSON.stringify(liveSetlist)); saveData(); populateTags(); applyFilters(); if(library.length > 0) loadSong(library[0].id); else createNewSong(); showToast("Song Deleted 🗑️"); } }
 
 // ===========================================================
 // TAG SYSTEM & AUTOCOMPLETE (EDITOR)
@@ -1549,3 +1522,23 @@ function showToast(msg) {
         }, 300);
     }, 3000);
 }
+/**
+ * Ενημερώνει τα οπτικά στοιχεία του Header βάσει του Context
+ */
+function refreshHeaderUI() {
+    const titleEl = document.getElementById('mainAppTitle'); // Ή όποιο ID έχεις για τον τίτλο
+    if (!titleEl) return;
+
+    if (currentGroupId === 'personal') {
+        titleEl.innerText = "mNotes - My Songs";
+        titleEl.style.color = "var(--accent)"; // Π.χ. Μπλε για τα προσωπικά
+    } else {
+        const group = myGroups.find(g => g.group_id === currentGroupId);
+        titleEl.innerText = group?.groups?.name || "Band Workspace";
+        titleEl.style.color = "#ff9800"; // Π.χ. Πορτοκαλί για την μπάντα
+    }
+}
+
+// Alias για συμβατότητα με το logic.js
+function toEditor() { switchToEditor(); }
+function toViewer(shouldLoad = true) { exitEditor(); }

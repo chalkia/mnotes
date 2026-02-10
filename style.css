@@ -904,6 +904,100 @@ details[open] summary::after { transform: rotate(180deg); color: var(--accent); 
 .step-btn.active { background: var(--accent); box-shadow: 0 0 5px var(--accent); border-color: #fff; }
 .step-btn.playing { border: 2px solid #fff; transform: scale(1.1); z-index: 20; }
 
+/* =========================================
+   NEW UI UPDATES (v2.1)
+   ========================================= */
+
+/* Στυλ για τα νέα Select Dropdowns */
+.sort-select-v2, .context-select-v2, .setlist-select-v2 {
+    width: 100%;
+    padding: 8px;
+    background: var(--input-bg);
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    font-size: 0.9rem;
+    margin-top: 5px;
+}
+
+.setlist-select-v2 {
+    color: var(--accent);
+    font-weight: bold;
+    border-color: var(--accent);
+}
+
+/* Labels για το Sidebar */
+.small-label-v2 {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-weight: bold;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 3px;
+}
+
+/* Cloud Status Badge στο Sidebar */
+.badge-cloud {
+    font-size: 0.7rem;
+    margin-left: 6px;
+    color: var(--accent);
+    opacity: 0.8;
+}
+
+/* Footer buttons styling */
+.footer-btn.danger-v2 {
+    border-color: var(--danger);
+    color: var(--danger);
+    flex: 0.5;
+    justify-content: center;
+}
+
+/* Διορθώσεις για το Sticky Note Area */
+.note-content-public {
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: #222;
+}
+
+.note-content-private {
+    font-style: italic;
+    color: #444;
+    border-top: 1px dashed #666;
+    padding-top: 5px;
+    margin-top: 5px;
+}
+
+/* Drum Machine (Sequencer) UI Fixes */
+.btn-play-seq {
+    background: var(--accent);
+    color: #000;
+    font-weight: bold;
+}
+
+.seq-status-v2 {
+    font-size: 0.8rem;
+    color: #aaa;
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    margin-top: 5px;
+}
+
+/* Progress Bar για το Upload */
+.prog-bg {
+    height: 4px;
+    background: #333;
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 2px;
+}
+
+.prog-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--accent);
+    transition: width 0.2s;
+}
 
 
 

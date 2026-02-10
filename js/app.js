@@ -3,39 +3,6 @@
    ========================================= */
 var hasUnsavedChanges = false;
 
-window.addEventListener('load', function() {
-    loadSavedTheme();
-    setupSidebarSwipe();
-    setupAdminSwitch();
-    checkPremiumUI();
-    var savedData = localStorage.getItem('mnotes_data');
-    if(savedData) {
-        try {
-            var parsed = JSON.parse(savedData);
-            library = Array.isArray(parsed) ? parsed.map(ensureSongStructure) : [];
-            updatePlaylistDropdown();
-            filterPlaylist();
-        } catch(e) { console.error("Data Load Error", e); }
-    }
-    setupDirtyListeners();
-    if(library.length > 0) {
-        if(!currentSongId) currentSongId = library[0].id;
-        toViewer(true); 
-    } else { toEditor(); }
-
-    // Συγχρονισμός με GitHub
-    setTimeout(() => {
-        syncWithGitHub();
-    }, 1000);
-});
-   
-// --- ΝΕΟ: Κλήση για συγχρονισμό με GitHub ---
-    // Το καλούμε στο τέλος για να μην καθυστερήσει το άνοιγμα της εφαρμογής
-    setTimeout(() => {
-        syncWithGitHub();
-    }, 1000); // Περιμένουμε 1 δευτερόλεπτο να φορτώσει η σελίδα
-
-};
 
 function setupDirtyListeners() {
     var inputs = document.querySelectorAll('#editor-view input, #editor-view textarea');

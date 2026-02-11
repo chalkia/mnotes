@@ -1437,6 +1437,29 @@ function calculateOptimalCapo(originalKey, body) {
     }
     return bestCapo;
 }
+function parseMetaLine(text) {
+    if (!text) return "";
+    // Regex που δέχεται και μικρά [a-zA-G]
+    return text.replace(/!([a-zA-G][b#]?[m]?[maj7|sus4|7|add9|dim|0-9|\/]*)/g, (match, chord) => {
+        
+        // 1. Προσωρινό κεφαλαίο για τον υπολογισμό
+        let firstChar = chord.charAt(0).toUpperCase();
+        let restOfChord = chord.slice(1);
+        let calculationChord = firstChar + restOfChord;
+
+        // 2. Transpose (χρησιμοποιεί την getNote που ήδη έχεις)
+        let translated = (typeof getNote === 'function') ? getNote(calculationChord, state.t - state.c) : chord;
+        
+        // 3. Αν το αρχικό ήταν μικρό (π.χ. am), ξανακάνε το αποτέλεσμα μικρό (π.χ. bm)
+        if (chord.charAt(0) === chord.charAt(0).toLowerCase()) {
+            translated = translated.charAt(0).toLowerCase() + translated.slice(1);
+        }
+
+        // Επιστροφή με την κλάση .chord για να πάρει το σωστό χρώμα
+        return `<span class="chord" style="display:inline; position:static; font-size:inherit;">${translated}</span>`;
+    });
+}
+
 // ===========================================================
 // 13. SETTINGS & MODAL LOGIC (ADD THIS TO THE END)
 // ===========================================================

@@ -224,3 +224,25 @@ function createSoundLabModal() {
     `;
     document.body.appendChild(d);
 }
+// =========================================
+// 5. BRIDGE TO MAIN APP (Load Logic)
+// =========================================
+
+function syncSequencerToSong(s) {
+    // Αν το τραγούδι δεν έχει πληροφορία ρυθμού, δεν κάνουμε τίποτα (ή βάζουμε default)
+    if (!s || !s.rhythm || !s.rhythm.bpm) return;
+
+    // 1. Ενημέρωση του Audio Engine
+    if(typeof AudioEngine !== 'undefined') {
+        AudioEngine.setBpm(s.rhythm.bpm);
+    }
+
+    // 2. Ενημέρωση των UI controls του Sequencer (αν υπάρχουν)
+    const seqRange = document.querySelector('.seq-toolbar input[type="range"]');
+    const seqVal = document.getElementById('seq-bpm-val');
+    
+    if (seqRange) seqRange.value = s.rhythm.bpm;
+    if (seqVal) seqVal.innerText = s.rhythm.bpm;
+
+    console.log(`🥁 Sequencer synced to: ${s.rhythm.bpm} BPM`);
+}

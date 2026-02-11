@@ -358,16 +358,27 @@ async function saveAsOverride(songData) {
 /* =========================================
    HELPER FUNCTIONS & PARSING
    ========================================= */
-
 function ensureSongStructure(song) {
     if (!song) song = {};
+    // Δημιουργία ID αν λείπει
     if (!song.id) song.id = "s_" + Date.now() + Math.random().toString(16).slice(2); 
-    if (!song.updatedAt) song.updatedAt = Date.now();
-    if (!song.title) song.title = "Untitled";
-    if (!song.body) song.body = "";
-    if (!song.playlists) song.playlists = [];
-    if (song.tags && Array.isArray(song.tags)) song.playlists = song.tags; 
-    return song;
+    
+    // Μεταφορά παλιών πεδίων στα νέα
+    const cleaned = {
+        id: song.id,
+        title: song.title || "Untitled",
+        artist: song.artist || "",
+        key: song.key || "",
+        body: song.body || "",
+        intro: song.intro || "",
+        interlude: song.interlude || "",
+        video: song.video || "",
+        // Εδώ η κρίσιμη αλλαγή για το αρχείο που έστειλες:
+        tags: Array.isArray(song.playlists) ? song.playlists : (song.tags || []),
+        notes: song.notes || "",
+        updatedAt: song.updatedAt || Date.now()
+    };
+    return cleaned;
 }
 
 function parseSongLogic(song) {
@@ -527,4 +538,21 @@ async function submitProposal(songData, groupId) {
     if (error) throw error;
     showToast("Proposal sent to Admin! 📩");
 }
+function applyEditorPlaceholders() {
+    const fields = [
+        { id: 'inpTitle', key: 'placeholder_title' },
+        { id: 'inpArtist', key: 'placeholder_artist' },
+        { id: 'inpKey', key: 'placeholder_key' },
+        { id: 'tagInput', key: 'placeholder_tags' },
+        { id: 'inpIntro', key: 'placeholder_intro' },
+        { id: 'inpInter', key: 'placeholder_inter' },
+        { id: 'inpBody', key: 'placeholder_body' },
+        { id: 'inpConductorNotes', key: 'placeholder_notes_pub' },
+        { id: 'inpPersonalNotes', key: 'placeholder_notes_priv' }
+    ];
 
+    fields.forEach(f => {
+        const el = document.getElementById(f.id);
+        if (el) el.placeholder = t(f.key);
+    });
+}

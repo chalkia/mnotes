@@ -164,21 +164,25 @@
       
             <div id="view-editor" class="view-section">
                 <div class="editor-toolbar">
-                    <button onclick="exitEditor()" class="text-btn">
-                        <i class="fas fa-times"></i> <span data-i18n="btn_cancel">Cancel</span>
-                    </button>
-                    <div style="display:flex; gap:15px; align-items:center;">
-                        <button onclick="deleteCurrentSong()" class="icon-btn danger" data-i18n="btn_delete_title">
-                            <i class="fas fa-trash-alt"></i>
-                        </button>
-                        <button onclick="printSongPDF()" class="icon-btn" data-i18n="btn_pdf_title">
-                            <i class="fas fa-file-pdf"></i>
-                        </button>
-                        <button onclick="saveEdit()" class="icon-btn accent" data-i18n="btn_save_title">
-                            <i class="fas fa-save"></i>
-                        </button>
-                    </div>
-                </div>
+    <button onclick="exitEditor()" class="text-btn">
+        <i class="fas fa-times"></i> 
+        <span data-i18n="btn_cancel">Cancel</span>
+    </button>
+
+    <div style="display:flex; gap:15px; align-items:center;">
+        <button onclick="deleteCurrentSong()" class="icon-btn danger" title="Delete Song">
+            <i class="fas fa-trash-alt"></i>
+        </button>
+
+        <button onclick="printSongPDF()" class="icon-btn" title="Print PDF">
+            <i class="fas fa-file-pdf"></i>
+        </button>
+
+        <button onclick="saveEdit()" class="icon-btn accent" title="Save Changes">
+            <i class="fas fa-save"></i>
+        </button>
+    </div>
+</div>
                 <div class="editor-body">
                     <input id="inpTitle" class="inp title-inp" data-i18n="inp_title">
                     <details><summary data-i18n="sum_metadata">Metadata & Notes</summary>
@@ -490,5 +494,6 @@
     <script src="js/app.js"></script>
 </body>
 </html>
+
 
 

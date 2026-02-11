@@ -11,6 +11,7 @@ const TRANSLATIONS = {
         btn_load: "Load",
         btn_link: "Link",
         msg_confirm_clear: "Clear the entire rhythm grid?",
+        msg_imported: "songs imported!",
         
         // --- Sidebar ---
         btn_add_song_title: "Add Song",
@@ -26,31 +27,32 @@ const TRANSLATIONS = {
         lbl_active_setlist: "ACTIVE SETLIST",
         btn_new_list_title: "New List",
         btn_rename_title: "Rename List",
-        btn_delete_title: "Delete List",
+        btn_delete_list_title: "Delete List",
         btn_import: "Import",
         btn_export_title: "Export JSON",
         
-        // --- Editor ---
+        // --- Editor (Placeholders & Labels) ---
         btn_save_title: "Save Changes",
         btn_pdf_title: "Print PDF",
-        btn_delete_title: "Delete Song",
-        inp_title: "Song Title",
+        btn_delete_song_title: "Delete Song",
+        placeholder_title: "Song Title...",
+        placeholder_artist: "Artist / Composer...",
+        placeholder_key: "Key (e.g. Am)",
+        placeholder_tags: "Tags (comma separated)...",
+        placeholder_intro: "Intro Chords...",
+        placeholder_inter: "Interlude / Solo...",
+        placeholder_body: "Lyrics & Chords (use '!' before chords)...",
+        placeholder_notes_pub: "Public notes (for the band)...",
+        placeholder_notes_priv: "Personal notes (only for you)...",
         sum_metadata: "Metadata & Notes",
-        inp_artist: "Artist",
-        inp_video: "Video URL",
-        inp_notes_public: "Conductor Notes (Public)",
-        inp_notes_private: "Personal Notes (Private)",
         inp_key: "Key",
-        inp_tags: "Tags (comma separated)",
-        inp_intro: "Intro",
-        inp_inter: "Inter",
-        inp_body: "Lyrics & Chords...",
+        inp_tags: "Tags",
 
         // --- Tools & Rhythm ---
         title_tools: "TOOLS & ASSETS",
         title_audio_hub: "AUDIO HUB",
         btn_record_title: "Record Audio",
-        btn_link_rec_title: "Link Recording to Song",
+        btn_link_rec_title: "Link Recording",
         btn_upload_backing: "Upload Backing Track",
         msg_uploading: "Uploading...",
         lbl_tracks: "TRACKS:",
@@ -65,7 +67,7 @@ const TRANSLATIONS = {
         btn_settings_title: "Settings",
         btn_account: "Account",
         
-        // --- Sequencer (New) ---
+        // --- Sequencer ---
         title_rhythm_composer: "Rhythm Composer",
         btn_play: "PLAY",
         lbl_beats: "BEATS:",
@@ -75,14 +77,12 @@ const TRANSLATIONS = {
         ph_search_rhythm: "Search rhythms...",
         title_save_rhythm: "Save Rhythm",
         ph_rhythm_name: "Rhythm Name",
-        ph_rhythm_tags: "Tags (comma separated)",
+        ph_rhythm_tags: "Tags...",
 
-        // --- Mobile Nav ---
+        // --- Mobile & Auth ---
         mob_list: "List",
         mob_stage: "Stage",
         mob_rhythm: "Rhythm",
-
-        // --- Auth & Settings ---
         title_login: "Login / Sign Up",
         btn_google_login: "Sign in with Google",
         lbl_or_email: "OR EMAIL",
@@ -105,7 +105,6 @@ const TRANSLATIONS = {
         lbl_hide_demo: "Hide Demo",
         lbl_keep_screen: "Keep Screen On",
         
-        // --- Import Modal ---
         title_import: "Import Song",
         btn_import_url: "From URL",
         btn_import_file: "From File",
@@ -124,6 +123,7 @@ const TRANSLATIONS = {
         btn_load: "Φόρτωση",
         btn_link: "Σύνδεση",
         msg_confirm_clear: "Καθαρισμός όλου του ρυθμού;",
+        msg_imported: "τραγούδια εισήχθησαν!",
 
         // --- Πλευρική Μπάρα ---
         btn_add_song_title: "Προσθήκη Τραγουδιού",
@@ -139,31 +139,32 @@ const TRANSLATIONS = {
         lbl_active_setlist: "ΕΝΕΡΓΗ ΛΙΣΤΑ",
         btn_new_list_title: "Νέα Λίστα",
         btn_rename_title: "Μετονομασία",
-        btn_delete_title: "Διαγραφή Λίστας",
+        btn_delete_list_title: "Διαγραφή Λίστας",
         btn_import: "Εισαγωγή",
         btn_export_title: "Εξαγωγή JSON",
 
-        // --- Επεξεργαστής ---
+        // --- Επεξεργαστής (Placeholders & Labels) ---
         btn_save_title: "Αποθήκευση Αλλαγών",
         btn_pdf_title: "Εκτύπωση PDF",
-        btn_delete_title: "Διαγραφή Τραγουδιού",
-        inp_title: "Τίτλος Τραγουδιού",
+        btn_delete_song_title: "Διαγραφή Τραγουδιού",
+        placeholder_title: "Τίτλος Τραγουδιού...",
+        placeholder_artist: "Καλλιτέχνης / Συνθέτης...",
+        placeholder_key: "Τόνος (π.χ. Am)",
+        placeholder_tags: "Ετικέτες (π.χ. Rock, Live)...",
+        placeholder_intro: "Εισαγωγή (Συγχορδίες)...",
+        placeholder_inter: "Οργανικό / Σόλο...",
+        placeholder_body: "Στίχοι & Συγχορδίες (βάλτε '!' πριν τη συγχορδία)...",
+        placeholder_notes_pub: "Σημειώσεις Μαέστρου (Δημόσιες)...",
+        placeholder_notes_priv: "Προσωπικές Σημειώσεις (Ιδιωτικές)...",
         sum_metadata: "Πληροφορίες & Σημειώσεις",
-        inp_artist: "Καλλιτέχνης",
-        inp_video: "YouTube URL",
-        inp_notes_public: "Σημειώσεις Μαέστρου (Δημόσιες)",
-        inp_notes_private: "Προσωπικές Σημειώσεις (Ιδιωτικές)",
         inp_key: "Τόνος",
-        inp_tags: "Ετικέτες (χωρισμένες με κόμμα)",
-        inp_intro: "Εισαγωγή",
-        inp_inter: "Γέφυρα (Inter)",
-        inp_body: "Στίχοι & Συγχορδίες...",
+        inp_tags: "Ετικέτες",
 
         // --- Εργαλεία & Ρυθμός ---
         title_tools: "ΕΡΓΑΛΕΙΑ & ΥΛΙΚΟ",
         title_audio_hub: "AUDIO HUB",
         btn_record_title: "Ηχογράφηση",
-        btn_link_rec_title: "Σύνδεση με Τραγούδι",
+        btn_link_rec_title: "Σύνδεση",
         btn_upload_backing: "Ανέβασμα Backing Track",
         msg_uploading: "Ανεβαίνει...",
         lbl_tracks: "ΚΑΝΑΛΙΑ:",
@@ -178,7 +179,7 @@ const TRANSLATIONS = {
         btn_settings_title: "Ρυθμίσεις",
         btn_account: "Λογαριασμός",
 
-        // --- Sequencer (Νέο) ---
+        // --- Sequencer ---
         title_rhythm_composer: "Συνθέτης Ρυθμών",
         btn_play: "ΑΝΑΠΑΡΑΓΩΓΗ",
         lbl_beats: "ΜΕΤΡΑ:",
@@ -190,12 +191,10 @@ const TRANSLATIONS = {
         ph_rhythm_name: "Όνομα Ρυθμού",
         ph_rhythm_tags: "Ετικέτες...",
 
-        // --- Κινητό ---
+        // --- Κινητό & Auth ---
         mob_list: "Λίστα",
         mob_stage: "Εκτέλεση",
         mob_rhythm: "Ρυθμός",
-
-        // --- Auth & Ρυθμίσεις ---
         title_login: "Είσοδος / Εγγραφή",
         btn_google_login: "Είσοδος με Google",
         lbl_or_email: "Ή ΜΕ EMAIL",
@@ -218,7 +217,6 @@ const TRANSLATIONS = {
         lbl_hide_demo: "Απόκρυψη Demo",
         lbl_keep_screen: "Οθόνη Πάντα Ανοιχτή",
 
-        // --- Modal Εισαγωγής ---
         title_import: "Εισαγωγή Τραγουδιού",
         btn_import_url: "Από URL",
         btn_import_file: "Από Αρχείο",
@@ -232,5 +230,5 @@ function t(key) {
     if(TRANSLATIONS[lang] && TRANSLATIONS[lang][key]) {
         return TRANSLATIONS[lang][key];
     }
-    return key; // Fallback
+    return key;
 }

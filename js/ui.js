@@ -1324,15 +1324,33 @@ function setupDrawerListeners(drawer) {
 
 function switchDrawerTab(tabName) {
     if (window.innerWidth > 1024) return;
+
+    // 1. Αφαίρεση του active από όλα τα κουμπιά του Drawer
     document.querySelectorAll('.drawer-btn').forEach(btn => btn.classList.remove('active'));
-    const btns = document.querySelectorAll('.drawer-section .drawer-btn');
-    if(tabName === 'library' && btns[0]) btns[0].classList.add('active'); 
-    if(tabName === 'stage' && btns[1]) btns[1].classList.add('active'); 
-    if(tabName === 'tools' && btns[2]) btns[2].classList.add('active');
-    switchMobileTab(tabName);
+
+    // 2. Εύρεση και ενεργοποίηση του σωστού κουμπιού βάσει του tabName
+    // Χρησιμοποιούμε το onclick attribute για να βρούμε το σωστό κουμπί
+    const targetBtn = document.querySelector(`.drawer-btn[onclick*="'${tabName}'"]`);
+    if (targetBtn) targetBtn.classList.add('active');
+
+    // 3. Εναλλαγή του View (Library, Stage, Tools)
+    if (typeof switchMobileTab === 'function') {
+        switchMobileTab(tabName);
+    }
+
+    // 4. Εμφάνιση/Απόκρυψη των Player Controls (Transpose, κλπ) μέσα στο Drawer
     const controlsDiv = document.getElementById('drawer-player-controls');
-    if(controlsDiv) controlsDiv.style.display = (tabName === 'stage') ? 'flex' : 'none';
-    toggleRightDrawer();
+    if (controlsDiv) {
+        // Τα controls εμφανίζονται ΜΟΝΟ όταν είμαστε στο Stage
+        controlsDiv.style.display = (tabName === 'stage') ? 'block' : 'none';
+    }
+
+    // 5. Κλείσιμο του Drawer για να αποκαλυφθεί η οθόνη
+    if (typeof toggleRightDrawer === 'function') {
+        toggleRightDrawer();
+    }
+    
+    console.log(`📱 Mobile View Switched to: ${tabName}`);
 }
 
 // ===========================================================

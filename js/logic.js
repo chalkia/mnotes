@@ -30,12 +30,11 @@ if (typeof window.t === 'undefined') {
 /* =========================================
    USER & CONTEXT MANAGEMENT
    ========================================= */
-
 async function initUserData() {
     if (!currentUser) return;
 
     try {
-        // 1. Προφίλ & Tier
+        // 1. Προφίλ & Tier (Όπως το είχες)
         const { data: profile, error: pError } = await supabaseClient
             .from('profiles').select('*').eq('id', currentUser.id).single();
 
@@ -49,17 +48,34 @@ async function initUserData() {
             userProfile = newProfile;
         }
 
-        // 2. Groups (Bands)
+        // 2. Groups (Bands) - ΔΙΟΡΘΩΜΕΝΟ JOIN ΓΙΑ ΑΠΟΦΥΓΗ 500 ERROR
         const { data: groups, error: gError } = await supabaseClient
             .from('group_members')
-            .select('group_id, role, groups(name, owner_id)')
+            .select(`
+                group_id, 
+                role, 
+                groups!group_members_group_id_fkey (
+                    name, 
+                    owner_id
+                )
+            `)
             .eq('user_id', currentUser.id);
 
-        if (!gError) {
-            myGroups = groups;
+        if (gError) {
+            console.warn("⚠️ Join failed, trying simple fetch...");
+            // Αν το Join βγάλει 500, φέρνουμε μόνο τα IDs για να δουλέψει η εφαρμογή
+            const { data: simpleGroups } = await supabaseClient
+                .from('group_members')
+                .select('group_id, role')
+                .eq('user_id', currentUser.id);
+            
+            myGroups = simpleGroups || [];
+        } else {
+            myGroups = groups || [];
             console.log(`🎸 Συνδέθηκαν ${myGroups.length} μπάντες.`);
-            updateGroupDropdown();
         }
+
+        updateGroupDropdown();
 
         // 3. Αρχικοποίηση Context
         await switchContext('personal');
@@ -72,9 +88,11 @@ async function initUserData() {
         }
 
     } catch (err) {
-        console.error("❌ Init Error:", err);
+        console.error("❌ Critical Init Error:", err);
+        showToast("Database connection issue. Working locally.", "error");
     }
 }
+
 
 /**
  * Εναλλαγή περιβάλλοντος εργασίας (Personal vs Band)

@@ -360,7 +360,45 @@ async function importFromURL() {
         showToast("Import Failed: " + err.message, "error"); 
     } 
 }
+// ===========================================================
+// IMPORT PROCESSING & DATA CONVERSION
+// ===========================================================
 
+function processImportedData(data) {
+    if (!data) return;
+    
+    // Αν το data είναι array (πολλά τραγούδια) ή object (ένα τραγούδι)
+    let newSongs = Array.isArray(data) ? data : [data];
+    let importCount = 0;
+
+    newSongs.forEach(song => {
+        // Χρήση της ensureSongStructure για να μετατρέψουμε 
+        // το 'playlists' σε 'tags' και να καθαρίσουμε τη δομή
+        let cleanSong = ensureSongStructure(song);
+        
+        // Έλεγχος αν υπάρχει ήδη το τραγούδι (βάσει τίτλου & καλλιτέχνη)
+        const exists = library.find(s => 
+            s.title.toLowerCase() === cleanSong.title.toLowerCase() && 
+            (s.artist || "").toLowerCase() === (cleanSong.artist || "").toLowerCase()
+        );
+
+        if (!exists) {
+            library.push(cleanSong);
+            importCount++;
+        }
+    });
+
+    if (importCount > 0) {
+        saveData(); // Αποθήκευση στο LocalStorage
+        populateTags(); // Ενημέρωση των φίλτρων
+        renderSidebar(); // Ανανέωση της λίστας
+        
+        // Δίγλωσσο μήνυμα επιτυχίας
+        showToast(`${importCount} ${t('msg_imported')}`);
+    } else {
+        showToast(currentLang === 'el' ? "Δεν βρέθηκαν νέα τραγούδια" : "No new songs found");
+    }
+}
 // ===========================================================
 // 5. PLAYER LOGIC
 // ===========================================================
@@ -850,7 +888,12 @@ function printSongPDF() {
 // ===========================================================
 
 function switchToEditor() {
-    document.getElementById('view-player').classList.remove('active-view'); document.getElementById('view-editor').classList.add('active-view');
+    document.getElementById('view-player').classList.remove('active-view'); 
+    document.getElementById('view-editor').classList.add('active-view');
+    
+    // Ενεργοποίηση διγλωσσίας στα placeholders
+    if (typeof applyEditorPlaceholders === 'function') applyEditorPlaceholders();
+
     if (currentSongId) { 
         var s = library.find(x => x.id === currentSongId); 
         if (s) { 
@@ -862,12 +905,17 @@ function switchToEditor() {
             document.getElementById('inpIntro').value = s.intro || ""; 
             document.getElementById('inpInter').value = s.interlude || ""; 
             document.getElementById('inpConductorNotes').value = s.conductorNotes || ""; 
+            
             const map = JSON.parse(localStorage.getItem('mnotes_personal_notes') || '{}');
             document.getElementById('inpPersonalNotes').value = map[s.id] || "";
-            editorTags = s.playlists ? [...s.playlists] : []; 
+            
+            // Διόρθωση για να αναγνωρίζει και playlists και tags
+            editorTags = s.tags ? [...s.tags] : (s.playlists ? [...s.playlists] : []); 
             if(typeof renderTagChips === 'function') renderTagChips(); 
         } 
-    } else { createNewSong(); }
+    } else { 
+        createNewSong(); 
+    }
 }
 
 function saveEdit() { 

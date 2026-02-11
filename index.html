@@ -449,45 +449,7 @@
         </div>
     </div>
 
-    <div id="sequencer-panel" class="sequencer-box" style="display:none;">
-        <div class="seq-header">
-            <div style="display:flex; justify-content:space-between; width:100%;">
-                <span data-i18n="title_rhythm_creator">🎸 Rhythm Creator</span>
-                <button onclick="toggleSequencerUI()" class="close-btn">✕</button>
-            </div>
-            <div id="seq-status-bar" class="seq-status-v2">
-                <span id="seq-current-name" data-i18n="msg_no_rhythm">No rhythm loaded</span>
-                <span id="seq-source-badge" class="badge-pro" style="display:none;">PVT</span>
-            </div>
-        </div>
-
-        <div class="seq-controls">
-            <button id="btnPlaySeq" onclick="AudioEngine.togglePlay()" class="btn-play-seq" data-i18n="btn_play">▶ PLAY</button>
-            <button onclick="AudioEngine.clearGrid()">
-                <i class="fas fa-trash"></i> <span data-i18n="btn_clear">Clear</span>
-            </button>
-            <div class="bpm-control">
-                <input type="range" min="40" max="200" value="100" oninput="AudioEngine.setBpm(this.value)">
-                <span id="seq-bpm-val">100</span>
-            </div>
-        </div>
-
-        <div class="seq-controls secondary-controls">
-            <button onclick="AudioEngine.openLoadModal()">
-                <i class="fas fa-folder-open"></i> <span data-i18n="btn_load">Load</span>
-            </button>
-            <button onclick="AudioEngine.openSaveModal()">
-                <i class="fas fa-save"></i> <span data-i18n="btn_save_simple">Save</span>
-            </button>
-            <button id="btn-seq-link" onclick="AudioEngine.linkRhythmToSong()">
-                <i class="fas fa-link"></i> <span data-i18n="btn_link">Link</span>
-            </button>
-        </div>
-
-        <div id="rhythm-tracks" style="margin-top:10px;"></div>
-    </div>
-
-    <div id="rhythmLoadModal" class="modal" style="display:none;">
+     <div id="rhythmLoadModal" class="modal" style="display:none;">
         <div class="modal-content">
             <h3 data-i18n="title_load_rhythm">Load Rhythm</h3>
             <input id="searchRhythm" class="inp" data-i18n="ph_search_rhythm" oninput="AudioEngine.searchRhythms()">
@@ -528,4 +490,5 @@
     <script src="js/app.js"></script>
 </body>
 </html>
+
 

@@ -135,10 +135,25 @@ function generateGridRows(container) {
                 
                 // Περνάμε το χρώμα στο CSS Variable
                 cell.style.setProperty('--active-color', inst.c);
-                
                 cell.onclick = function() {
-                    this.classList.toggle('active');
-                };
+    // 1. Οπτική αλλαγή (το "άναμμα")
+    this.classList.toggle('active');
+    
+    // 2. Ενημέρωση της μηχανής ήχου (το "κλείδωμα" στη μνήμη)
+    const stepIdx = parseInt(this.dataset.step);
+    const instId = inst.rowId.replace('row-', ''); // Παίρνει το HAT, RIM, TOM, KICK
+    
+    if (typeof AudioEngine !== 'undefined') {
+        // Καλούμε μια συνάρτηση που θα φτιάξουμε στην AudioEngine
+        AudioEngine.toggleStepData(instId, stepIdx, this.classList.contains('active'));
+        
+        // Αν το ανάψαμε, παίξε έναν δοκιμαστικό ήχο
+        if (this.classList.contains('active')) {
+            AudioEngine.playPercussion(AudioEngine.ctx.currentTime, instId.toLowerCase());
+        }
+    }
+};
+               
                 stepsDiv.appendChild(cell);
             }
             row.appendChild(stepsDiv);

@@ -1,8 +1,6 @@
 /* =========================================
-   AUDIO ENGINE & UPLOAD HANDLER (js/audio.js)
+   AUDIO ENGINE v2.3 (Final: Vertical Grid & Volume)
    ========================================= */
-
-// --- PART A: PERCUSSION ENGINE & DYNAMIC GRID ---
 
 const AudioEngine = {
     ctx: null,
@@ -10,50 +8,80 @@ const AudioEngine = {
     timerID: null,
     nextNoteTime: 0.0,
     currentStep: 0,
-    scheduleAheadTime: 0.1, 
+    scheduleAheadTime: 0.1,
     lookahead: 25.0,
-    noiseBuffer: null, // Για τα πιατίνια (Hats)
+    noiseBuffer: null,
     
-    // Grid Configuration (Δυναμικό)
-    beats: 4,         // Ξεκινάμε με 4 μέτρα (16 steps)
-    stepsPerBeat: 4,  // 16th notes
+    // Rhythm Settings
+    beats: 4,          
     bpm: 100,
+    currentRhythmId: null,
+
+    // SOUND LAB CONFIG (Final Settings)
+    soundConfig: {
+        kick: { startFreq: 54,  endFreq: 12,   decay: 0.25, vol: 1.0 },
+        tom:  { freq: 85,       decay: 0.2,    type: 'sine', vol: 0.7 },
+        rim:  { freq: 260,      decay: 0.03,   type: 'square', vol: 0.4 },
+        hat:  { freq: 2200,     decay: 0.06,   vol: 0.3 }
+    },
 
     init: function() {
         if (!this.ctx) {
             this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-            this.createNoiseBuffer(); // Δημιουργία 'θορύβου' για τα πιατίνια
+            this.createNoiseBuffer();
         }
-        if (this.ctx.state === 'suspended') {
-            this.ctx.resume();
-        }
+        if (this.ctx.state === 'suspended') this.ctx.resume();
     },
 
-    // Βοηθητικό για τον ήχο "Zilia/Hat"
     createNoiseBuffer: function() {
-        const bufferSize = this.ctx.sampleRate * 2.0; 
+        const bufferSize = this.ctx.sampleRate * 2.0;
         const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
         const data = buffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) {
-            data[i] = Math.random() * 2 - 1;
-        }
+        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
         this.noiseBuffer = buffer;
     },
 
     togglePlay: function() {
-        this.init(); 
+        this.init();
         this.isPlaying = !this.isPlaying;
         
-        const btn = document.getElementById('btnPlayRhythm');
+        // Update Buttons
+        const btn = document.getElementById('btnPlaySeq');
+        if(btn) btn.innerHTML = this.isPlaying ? '<i class="fas fa-stop"></i> STOP' : '<i class="fas fa-play"></i> PLAY';
+        const btnSide = document.getElementById('btnPlayRhythm');
+        if(btnSide) btnSide.innerHTML = this.isPlaying ? '<i class="fas fa-stop"></i>' : '<i class="fas fa-play"></i>';
+
         if (this.isPlaying) {
             this.currentStep = 0;
             this.nextNoteTime = this.ctx.currentTime + 0.1;
             this.scheduler();
-            if(btn) btn.innerHTML = '<i class="fas fa-stop"></i>';
         } else {
             window.clearTimeout(this.timerID);
-            if(btn) btn.innerHTML = '<i class="fas fa-play"></i>';
             document.querySelectorAll('.cell.highlight').forEach(c => c.classList.remove('highlight'));
+        }
+    },
+
+    setBpm: function(val) {
+        this.bpm = parseInt(val);
+        if(document.getElementById('dispBpm')) document.getElementById('dispBpm').innerText = this.bpm;
+        if(document.getElementById('seq-bpm-val')) document.getElementById('seq-bpm-val').innerText = this.bpm;
+        if(document.getElementById('rngBpm')) document.getElementById('rngBpm').value = this.bpm;
+    },
+
+    setBeats: function(n) {
+        if(n < 1 || n > 32) return;
+        this.beats = n;
+        
+        const disp = document.getElementById('beat-count-display');
+        if(disp) disp.innerText = n;
+        
+        // Redraw Vertical Grid
+        const container = document.getElementById('rhythm-tracks');
+        if(container && typeof generateGridRows === 'function') {
+            const oldState = this.getGridState();
+            container.innerHTML = '';
+            generateGridRows(container);
+            this.loadGridState(oldState);
         }
     },
 
@@ -67,420 +95,230 @@ const AudioEngine = {
 
     nextStep: function() {
         const secondsPerBeat = 60.0 / this.bpm;
-        this.nextNoteTime += 0.25 * secondsPerBeat; 
-        
+        this.nextNoteTime += 0.25 * secondsPerBeat;
         this.currentStep++;
-        // Το loop εξαρτάται από το πόσα beats έχει ορίσει ο χρήστης
-        const totalSteps = this.beats * this.stepsPerBeat;
-        if (this.currentStep >= totalSteps) { 
-            this.currentStep = 0;
-        }
+        if (this.currentStep >= this.beats * 4) this.currentStep = 0;
     },
 
     scheduleNote: function(stepNumber, time) {
-        // 1. Visual Highlight & Auto-Scroll
+        // Visual Feedback
         const drawTime = (time - this.ctx.currentTime) * 1000;
         setTimeout(() => {
             document.querySelectorAll('.cell.highlight').forEach(c => c.classList.remove('highlight'));
-            const activeCells = document.querySelectorAll(`.cell[data-step="${stepNumber}"]`); 
+            const activeCells = document.querySelectorAll(`.cell[data-step="${stepNumber}"]`);
             activeCells.forEach(c => c.classList.add('highlight'));
-            
-            // Αν το πλέγμα είναι μεγάλο, κάνε scroll για να φαίνεται η μπάρα
-            if (activeCells.length > 0 && activeCells[0]) {
-                activeCells[0].scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
-            }
         }, drawTime > 0 ? drawTime : 0);
 
-        // 2. Sound Logic (Percussion)
-        const allCells = document.querySelectorAll('.cell');
-        if(allCells.length === 0) return;
-        
-        // Υπολογισμός μήκους γραμμής (Beats * 4)
-        const rowLength = this.beats * 4;
+        // Audio Trigger (Checks DOM classes row-KICK, row-HAT etc.)
+        const checkInstrument = (rowClass, type) => {
+            const cell = document.querySelector(`.${rowClass} .cell[data-step="${stepNumber}"]`);
+            if (cell && cell.classList.contains('active')) this.playPercussion(time, type);
+        };
 
-        // ΣΕΙΡΑ (Από πάνω προς τα κάτω στο HTML):
-        // Row 0: HATS (Top)
-        // Row 1: RIM
-        // Row 2: TOM
-        // Row 3: KICK (Bottom)
-
-        // Hats (Zilia)
-        if (allCells[stepNumber] && allCells[stepNumber].classList.contains('active')) {
-            this.playPercussion(time, 'hat'); 
-        }
-        
-        // Rim (Ksylo)
-        if (allCells[rowLength + stepNumber] && allCells[rowLength + stepNumber].classList.contains('active')) {
-            this.playPercussion(time, 'rim'); 
-        }
-
-        // Tom (Bendir)
-        if (allCells[(rowLength*2) + stepNumber] && allCells[(rowLength*2) + stepNumber].classList.contains('active')) {
-            this.playPercussion(time, 'tom'); 
-        }
-
-        // Kick (Daouli - Bottom)
-        if (allCells[(rowLength*3) + stepNumber] && allCells[(rowLength*3) + stepNumber].classList.contains('active')) {
-            this.playPercussion(time, 'kick'); 
-        }
+        checkInstrument('row-HAT', 'hat');
+        checkInstrument('row-RIM', 'rim');
+        checkInstrument('row-TOM', 'tom');
+        checkInstrument('row-KICK', 'kick');
     },
 
     playPercussion: function(time, type) {
         const gain = this.ctx.createGain();
         gain.connect(this.ctx.destination);
+        const cfg = this.soundConfig[type];
 
         if (type === 'kick') { 
-            // Deep Kick (Νταούλι)
             const osc = this.ctx.createOscillator();
             osc.connect(gain);
-            osc.frequency.setValueAtTime(120, time);
-            osc.frequency.exponentialRampToValueAtTime(40, time + 0.5); 
-            
-            gain.gain.setValueAtTime(1.0, time);
-            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.5);
-            
-            osc.start(time); osc.stop(time + 0.5);
-        } 
-        else if (type === 'tom') { 
-            // Tom (Μπεντίρ - Βαθύ αλλά πιο μαλακό)
+            osc.frequency.setValueAtTime(cfg.startFreq, time);
+            osc.frequency.exponentialRampToValueAtTime(cfg.endFreq, time + cfg.decay);
+            gain.gain.setValueAtTime(cfg.vol, time);
+            gain.gain.exponentialRampToValueAtTime(0.01, time + cfg.decay);
+            osc.start(time); osc.stop(time + cfg.decay);
+        } else if (type === 'tom') { 
             const osc = this.ctx.createOscillator();
             osc.connect(gain);
-            osc.type = 'triangle'; 
-            osc.frequency.setValueAtTime(100, time);
-            osc.frequency.linearRampToValueAtTime(60, time + 0.3);
-            
-            gain.gain.setValueAtTime(0.7, time);
-            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.3);
-            
-            osc.start(time); osc.stop(time + 0.35);
-        }
-        else if (type === 'rim') { 
-            // Rim (Ξύλο/Στεφάνι)
+            osc.type = cfg.type;
+            osc.frequency.setValueAtTime(cfg.freq, time);
+            osc.frequency.linearRampToValueAtTime(cfg.freq * 0.8, time + cfg.decay);
+            gain.gain.setValueAtTime(cfg.vol, time);
+            gain.gain.exponentialRampToValueAtTime(0.01, time + cfg.decay);
+            osc.start(time); osc.stop(time + cfg.decay + 0.05);
+        } else if (type === 'rim') { 
             const osc = this.ctx.createOscillator();
             osc.connect(gain);
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(800, time);
-            
-            gain.gain.setValueAtTime(0.6, time);
-            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.05); // Πολύ κοφτό
-            
-            osc.start(time); osc.stop(time + 0.06);
-        }
-        else if (type === 'hat') { 
-            // Hat (Ζίλια - Θόρυβος + Φίλτρο)
-            const bufferSource = this.ctx.createBufferSource();
-            bufferSource.buffer = this.noiseBuffer;
-            
-            const filter = this.ctx.createBiquadFilter();
-            filter.type = "highpass";
-            filter.frequency.value = 4000; // Μόνο πρίμα
-            
-            bufferSource.connect(filter);
-            filter.connect(gain);
-            
-            gain.gain.setValueAtTime(0.4, time);
-            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.05); 
-            
-            bufferSource.start(time); bufferSource.stop(time + 0.06);
+            osc.type = cfg.type;
+            osc.frequency.setValueAtTime(cfg.freq, time);
+            gain.gain.setValueAtTime(cfg.vol, time);
+            gain.gain.exponentialRampToValueAtTime(0.01, time + cfg.decay);
+            osc.start(time); osc.stop(time + cfg.decay + 0.01);
+        } else if (type === 'hat') { 
+            const bs = this.ctx.createBufferSource();
+            bs.buffer = this.noiseBuffer;
+            const f = this.ctx.createBiquadFilter();
+            f.type = "highpass";
+            f.frequency.value = cfg.freq;
+            bs.connect(f); f.connect(gain);
+            gain.gain.setValueAtTime(cfg.vol, time);
+            gain.gain.exponentialRampToValueAtTime(0.01, time + cfg.decay);
+            bs.start(time); bs.stop(time + cfg.decay + 0.01);
         }
     },
 
-    setBpm: function(val) {
-        this.bpm = val;
-        const disp = document.getElementById('dispBpm');
-        if(disp) disp.innerText = val;
-    },
-    
-    // Αλλαγή αριθμού Beats (Δυναμικό Grid)
-    setBeats: function(newBeats) {
-        if(newBeats < 1) return;
-        if(newBeats > 16) return; // Όριο για να μην κρασάρει το UI
-        this.beats = newBeats;
-        
-        // Αν το UI είναι ανοιχτό, το ξαναζωγραφίζουμε
-        const container = document.getElementById('sequencer-rows');
-        if(container) {
-            container.innerHTML = '';
-            generateGridRows(container);
-        }
-        
-        // Update display
-        const countSpan = document.getElementById('beat-count-display');
-        if(countSpan) countSpan.innerText = this.beats;
+    clearGrid: function() {
+        document.querySelectorAll('.cell.active').forEach(c => {
+            c.classList.remove('active');
+            c.style.backgroundColor = '#333';
+        });
+        this.currentRhythmId = null;
+        if(document.getElementById('seq-current-name')) 
+            document.getElementById('seq-current-name').innerText = "No rhythm loaded";
     },
 
-    // --- SAVE / LOAD HELPERS ---
-    getPattern: function() {
-        const allCells = document.querySelectorAll('.cell');
-        if(allCells.length === 0) return { beats: 4, grid: [] };
+    getGridState: function() {
+        let state = { HAT: [], RIM: [], TOM: [], KICK: [] };
+        ['HAT', 'RIM', 'TOM', 'KICK'].forEach(inst => {
+            document.querySelectorAll(`.row-${inst} .cell.active`).forEach(c => {
+                state[inst].push(parseInt(c.dataset.step));
+            });
+        });
+        return state;
+    },
+
+    loadGridState: function(state) {
+        if(!state) return;
+        ['HAT', 'RIM', 'TOM', 'KICK'].forEach(inst => {
+            if(state[inst]) {
+                state[inst].forEach(step => {
+                    const cell = document.querySelector(`.row-${inst} .cell[data-step="${step}"]`);
+                    if(cell) {
+                        cell.classList.add('active');
+                        const colors = {HAT:"#f1c40f", RIM:"#3498db", TOM:"#2ecc71", KICK:"#e74c3c"};
+                        cell.style.backgroundColor = colors[inst];
+                    }
+                });
+            }
+        });
+    },
+
+    // --- DATABASE OPERATIONS ---
+
+    openSaveModal: function() {
+        if(!currentUser) { alert("Please login to save rhythms!"); return; }
+        document.getElementById('rhythmSaveModal').style.display = 'flex';
+    },
+
+    saveRhythm: async function() {
+        const name = document.getElementById('saveRhythmName').value;
+        const tagsInput = document.getElementById('saveRhythmTags').value;
+        const tags = tagsInput ? tagsInput.split(',').map(t => t.trim()) : [];
         
-        // Αποθηκεύουμε ΚΑΙ τα beats ΚΑΙ το μοτίβο
-        const gridData = Array.from(allCells).map(c => c.classList.contains('active') ? 1 : 0);
-        return {
+        if(!name) return alert("Please enter a name");
+
+        const rhythmData = {
             beats: this.beats,
-            grid: gridData
+            soundConfig: this.soundConfig,
+            grid: this.getGridState()
         };
+
+        const payload = {
+            name: name,
+            owner_id: currentUser.id,
+            bpm: this.bpm,
+            tags: tags,
+            is_public: false,
+            data: rhythmData
+        };
+
+        const { data, error } = await supabaseClient.from('rhythms').upsert(payload).select();
+
+        if(error) {
+            alert("Error saving: " + error.message);
+        } else {
+            alert("Rhythm Saved!");
+            this.currentRhythmId = data[0].id;
+            document.getElementById('seq-current-name').innerText = data[0].name;
+            document.getElementById('rhythmSaveModal').style.display = 'none';
+        }
     },
 
-    setPattern: function(data) {
-        if (!data) return;
-        
-        // Compatibility: Χειρισμός παλιών δεδομένων (array) vs νέων (object)
-        let patternGrid = [];
-        if (Array.isArray(data)) {
-            patternGrid = data; 
-            this.beats = 4;
-        } else if (data.grid) {
-            patternGrid = data.grid;
-            this.beats = data.beats || 4;
-        }
+    openLoadModal: function() {
+        document.getElementById('rhythmLoadModal').style.display = 'flex';
+        this.searchRhythms();
+    },
 
-        // 1. Εξασφάλιση UI
-        if (!document.getElementById('sequencer-modal')) {
-             if(typeof createSequencerModal === 'function') {
-                 createSequencerModal();
-                 document.getElementById('sequencer-modal').style.display = 'none';
-             } else return;
-        } 
-        
-        // 2. Ενημέρωση μεγέθους Grid
-        const container = document.getElementById('sequencer-rows');
-        if(container) {
-            container.innerHTML = '';
-            generateGridRows(container);
-        }
-        const countSpan = document.getElementById('beat-count-display');
-        if(countSpan) countSpan.innerText = this.beats;
+    searchRhythms: async function() {
+        const query = document.getElementById('searchRhythm').value;
+        const resContainer = document.getElementById('rhythmResults');
+        resContainer.innerHTML = 'Loading...';
 
-        // 3. Εφαρμογή Μοτίβου (Dots)
-        const cells = document.querySelectorAll('.cell');
-        cells.forEach(c => { 
-            c.classList.remove('active'); 
-            c.style.backgroundColor = '#333'; 
-            c.style.boxShadow='none';
-            c.style.borderColor='#444';
-        });
-
-        const rowLength = this.beats * 4;
-        patternGrid.forEach((val, i) => {
-            if (val === 1 && cells[i]) {
-                cells[i].classList.add('active');
-                
-                // Color Logic
-                const row = Math.floor(i / rowLength);
-                const colors = ["#f1c40f", "#3498db", "#2ecc71", "#e74c3c"];
-                if(colors[row]) {
-                    cells[i].style.backgroundColor = colors[row];
-                    cells[i].style.boxShadow = `0 0 8px ${colors[row]}`;
-                    cells[i].style.borderColor = colors[row];
-                }
-            }
-        });
-    }
-};
-
-// Global Hooks
-function togglePlay() { AudioEngine.togglePlay(); }
-function updateBpm(val) { AudioEngine.setBpm(val); }
-
-// Global function exposed for HTML buttons
-window.changeBeats = function(delta) {
-    let current = AudioEngine.beats;
-    AudioEngine.setBeats(current + delta);
-};
-
-
-// --- PART B: CLOUD UPLOAD LOGIC ---
-
-async function uploadAudioToCloud(inputElement) {
-    const file = inputElement.files[0];
-    if (!file) return;
-
-    if (!currentUser) {
-        showToast("Please login to upload audio!", "error");
-        return;
-    }
-
-    const progressBox = document.getElementById('uploadProgressBox');
-    const progressBar = document.getElementById('uploadBar');
-    const uploadText = document.getElementById('uploadText');
-    const btnLabel = document.querySelector('.upload-btn-styled');
-    
-    if(progressBox) progressBox.style.display = 'block';
-    if(btnLabel) btnLabel.style.opacity = '0.5';
-    if(uploadText) uploadText.innerText = "Uploading 0%";
-
-    try {
-        const safeName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
-        const fileName = `${currentUser.id}/${Date.now()}_${safeName}`;
-
-        const { data, error } = await supabaseClient
-            .storage.from('audio_files')
-            .upload(fileName, file, { cacheControl: '3600', upsert: false });
-
-        if (error) throw error;
-
-        const { data: { publicUrl } } = supabaseClient
-            .storage.from('audio_files').getPublicUrl(fileName);
-
-        if(uploadText) uploadText.innerText = "Saving...";
-        if(progressBar) progressBar.style.width = "100%";
-
-        const newRecording = {
-            id: Date.now(), name: file.name, url: publicUrl, date: new Date().toISOString()
-        };
-
-        if (typeof addRecordingToCurrentSong === 'function') {
-            await addRecordingToCurrentSong(newRecording);
+        let rpc = supabaseClient.from('rhythms').select('*');
+        if(currentUser) {
+            rpc = rpc.or(`is_public.eq.true,owner_id.eq.${currentUser.id}`);
         } else {
-            console.error("addRecordingToCurrentSong missing");
+            rpc = rpc.eq('is_public', true);
         }
 
-        showToast("Audio uploaded successfully! ☁️");
-        inputElement.value = ""; 
+        if(query) rpc = rpc.ilike('name', `%${query}%`);
 
-    } catch (err) {
-        console.error("Upload failed:", err);
-        showToast("Upload failed: " + err.message, "error");
-    } finally {
-        if(progressBox) setTimeout(() => progressBox.style.display = 'none', 2000);
-        if(btnLabel) btnLabel.style.opacity = '1';
-    }
-}
-window.importAudioFile = uploadAudioToCloud;
+        const { data, error } = await rpc.order('created_at', { ascending: false }).limit(20);
 
+        if(error) {
+            resContainer.innerHTML = 'Error fetching rhythms'; return;
+        }
 
-// --- PART C: DYNAMIC SEQUENCER UI ---
+        resContainer.innerHTML = '';
+        if(!data || data.length === 0) {
+            resContainer.innerHTML = '<div style="padding:10px; color:#666;">No rhythms found.</div>'; return;
+        }
 
-window.toggleSequencerUI = function() {
-    let modal = document.getElementById('sequencer-modal');
-    if (!modal) {
-        createSequencerModal();
-        modal = document.getElementById('sequencer-modal');
-    }
-    modal.style.display = (modal.style.display === 'flex') ? 'none' : 'flex';
+        data.forEach(r => {
+            const rBeats = (r.data && r.data.beats) ? r.data.beats : 4;
+            const div = document.createElement('div');
+            div.style.cssText = "padding:10px; border-bottom:1px solid #444; cursor:pointer; display:flex; justify-content:space-between; align-items:center;";
+            div.innerHTML = `
+                <div>
+                    <span style="font-weight:bold; color:var(--text-main);">${r.name}</span>
+                    <div style="font-size:0.75rem; color:#888;">${r.bpm} BPM • ${rBeats}/4 • ${r.is_public ? 'Public' : 'Private'}</div>
+                </div>
+                <i class="fas fa-play-circle" style="color:var(--accent);"></i>
+            `;
+            div.onclick = () => {
+                AudioEngine.loadRhythm(r);
+                document.getElementById('rhythmLoadModal').style.display = 'none';
+            };
+            resContainer.appendChild(div);
+        });
+    },
+
+    loadRhythm: function(r) {
+        this.currentRhythmId = r.id;
+        document.getElementById('seq-current-name').innerText = r.name;
+        this.setBpm(r.bpm);
+        if(r.data) {
+            if(r.data.beats) this.setBeats(r.data.beats);
+            if(r.data.soundConfig) this.soundConfig = r.data.soundConfig;
+            this.clearGrid();
+            if(r.data.grid) this.loadGridState(r.data.grid);
+        }
+    },
+
+    linkRhythmToSong: function() {
+        if(!currentSongId) { alert("No song selected!"); return; }
+        if(!this.currentRhythmId) { alert("Save the rhythm first!"); return; }
+        const song = library.find(s => s.id === currentSongId);
+        if(song) {
+            song.rhythmId = this.currentRhythmId;
+            saveData(); alert(`Linked rhythm to song: ${song.title}`);
+        }
+    },
     
-    if(AudioEngine.ctx && AudioEngine.ctx.state === 'suspended') {
-        AudioEngine.ctx.resume();
+    checkLinkedRhythm: async function(song) {
+        if(song.rhythmId) {
+            const { data } = await supabaseClient.from('rhythms').select('*').eq('id', song.rhythmId).single();
+            if(data) {
+                this.loadRhythm(data);
+                console.log("Auto-loaded linked rhythm:", data.name);
+            }
+        }
     }
 };
-
-function createSequencerModal() {
-    const div = document.createElement('div');
-    div.id = 'sequencer-modal';
-    div.style.cssText = `
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0,0,0,0.85); z-index: 10000;
-        display: flex; justify-content: center; align-items: center;
-        backdrop-filter: blur(5px);
-    `;
-
-    div.innerHTML = `
-        <div style="background:#1a1a1a; padding:20px; border-radius:12px; border:1px solid #444; width:95%; max-width:850px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); display:flex; flex-direction:column; max-height:90vh;">
-            
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid #333; padding-bottom:10px;">
-                <div style="display:flex; align-items:center; gap:20px;">
-                    <h3 style="margin:0; color:#fff; font-family:sans-serif;">🥁 Percussion Grid</h3>
-                    
-                    <div style="background:#333; padding:5px 12px; border-radius:20px; display:flex; align-items:center; gap:10px;">
-                        <button onclick="changeBeats(-1)" style="background:none; border:none; color:#f39c12; cursor:pointer; font-weight:bold; font-size:1.1rem;">-</button>
-                        <span style="color:#fff; font-size:0.9rem; min-width:60px; text-align:center;"><span id="beat-count-display">4</span> Beats</span>
-                        <button onclick="changeBeats(1)" style="background:none; border:none; color:#f39c12; cursor:pointer; font-weight:bold; font-size:1.1rem;">+</button>
-                    </div>
-                </div>
-                
-                <button onclick="document.getElementById('sequencer-modal').style.display='none'" style="background:none; border:none; color:#999; font-size:1.5rem; cursor:pointer;">&times;</button>
-            </div>
-            
-            <div style="overflow-x: auto; padding-bottom: 10px; width:100%;">
-                <div id="sequencer-rows" style="display:flex; flex-direction:column; gap:8px; min-width: max-content;">
-                    </div>
-            </div>
-
-            <div style="text-align:right; margin-top:15px; pt:10px; border-top:1px solid #333;">
-                 <button onclick="AudioEngine.setPattern({beats:AudioEngine.beats, grid:[]})" 
-                    style="font-size:0.8rem; background:#444; color:#ccc; border:none; padding:8px 15px; border-radius:4px; cursor:pointer;">
-                    Clear Pattern
-                 </button>
-            </div>
-        </div>
-    `;
-    
-    document.body.appendChild(div);
-    
-    const style = document.createElement('style');
-    style.innerHTML = `
-        .cell.highlight {
-            border: 1px solid #fff !important;
-            filter: brightness(1.5);
-            transform: scale(0.95);
-        }
-        ::-webkit-scrollbar { height: 8px; }
-        ::-webkit-scrollbar-track { background: #222; }
-        ::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
-    `;
-    document.head.appendChild(style);
-
-    generateGridRows(div.querySelector('#sequencer-rows'));
-    document.getElementById('beat-count-display').innerText = AudioEngine.beats;
-}
-
-function generateGridRows(container) {
-    // ΣΕΙΡΑ ΕΜΦΑΝΙΣΗΣ: Πρώτο στο Array = Πάνω στο HTML
-    // Tablature logic: Πρίμα πάνω (Hats), Μπάσα κάτω (Kick)
-    const tracks = [
-        { name: "HATS",  color: "#f1c40f" }, // Top Row
-        { name: "RIM",   color: "#3498db" },
-        { name: "TOM",   color: "#2ecc71" },
-        { name: "KICK",  color: "#e74c3c" }  // Bottom Row
-    ];
-
-    const totalSteps = AudioEngine.beats * 4; // Δυναμικό μήκος
-
-    tracks.forEach((track, rowIndex) => {
-        const rowDiv = document.createElement('div');
-        rowDiv.style.cssText = "display:grid; grid-template-columns: 60px 1fr; gap:10px; align-items:center;";
-
-        const label = document.createElement('div');
-        label.innerText = track.name;
-        label.style.cssText = `color:${track.color}; font-weight:bold; font-size:0.75rem; text-align:right; letter-spacing:1px;`;
-        rowDiv.appendChild(label);
-
-        const stepsContainer = document.createElement('div');
-        stepsContainer.style.cssText = "display:flex; gap:4px;";
-        
-        for (let i = 0; i < totalSteps; i++) {
-            const cell = document.createElement('div');
-            cell.className = 'cell';
-            cell.dataset.step = i; 
-            
-            // Fixed size cells so they don't squash
-            cell.style.cssText = `
-                width: 30px; height: 30px; 
-                background:#333; border:1px solid #444; border-radius:3px; 
-                cursor:pointer; flex-shrink:0; 
-            `;
-
-            // Διαχωριστικό κάθε Beat (κάθε 4ο κουτί)
-            if ((i + 1) % 4 === 0) {
-                cell.style.marginRight = "12px"; 
-            }
-
-            cell.onclick = function() {
-                this.classList.toggle('active');
-                if (this.classList.contains('active')) {
-                    this.style.backgroundColor = track.color;
-                    this.style.boxShadow = `0 0 8px ${track.color}`;
-                    this.style.borderColor = track.color;
-                } else {
-                    this.style.backgroundColor = '#333';
-                    this.style.boxShadow = 'none';
-                    this.style.borderColor = '#444';
-                }
-            };
-            stepsContainer.appendChild(cell);
-        }
-        rowDiv.appendChild(stepsContainer);
-        container.appendChild(rowDiv);
-    });
-}

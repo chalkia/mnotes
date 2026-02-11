@@ -1629,27 +1629,96 @@ function toggleSequencerUI() {
         p.style.display = 'none';
     }
 }
+/* =========================================
+   SEQUENCER UI (Fixed Layout)
+   ========================================= */
 
-function injectSequencerControls() {
-    const header = document.querySelector('#sequencer-panel .seq-header');
-    if(!header || document.getElementById('seq-beat-controls')) return;
-
-    const div = document.createElement('div');
-    div.id = 'seq-beat-controls';
-    div.style.cssText = "display:flex; gap:10px; align-items:center; margin-top:5px; width:100%; justify-content:space-between;";
-    div.innerHTML = `
-        <div style="background:#333; padding:2px 8px; border-radius:15px; font-size:0.8rem; display:flex; align-items:center;">
-            <button onclick="AudioEngine.setBeats(AudioEngine.beats-1)" style="background:none; border:none; color:var(--accent); font-weight:bold; cursor:pointer;">-</button>
-            <span id="beat-count-display" style="margin:0 5px; min-width:15px; text-align:center;">${AudioEngine.beats}</span>
-            <button onclick="AudioEngine.setBeats(AudioEngine.beats+1)" style="background:none; border:none; color:var(--accent); font-weight:bold; cursor:pointer;">+</button>
-            <span style="margin-left:5px; color:#aaa;">Beats</span>
-        </div>
-        <button onclick="toggleSoundLab()" class="icon-btn" title="Sound Lab Settings" style="border:1px solid #444; font-size:0.8rem; padding:4px 8px;">
-            <i class="fas fa-sliders-h"></i> Sound Lab
-        </button>
-    `;
-    header.appendChild(div);
+function toggleSequencerUI() {
+    let p = document.getElementById('sequencer-panel');
+    
+    // Αν δεν υπάρχει το Panel, το δημιουργούμε τώρα (Lazy Load)
+    if (!p) {
+        createSequencerPanel();
+        p = document.getElementById('sequencer-panel');
+    }
+    
+    if (p.style.display === 'none' || p.style.display === '') {
+        p.style.display = 'flex';
+        AudioEngine.init();
+        // Αν το grid είναι άδειο, ζωγράφισέ το
+        if(document.getElementById('rhythm-tracks').innerHTML === "") {
+             generateGridRows(document.getElementById('rhythm-tracks'));
+        }
+    } else {
+        p.style.display = 'none';
+        AudioEngine.togglePlay(); // Stop αν κλείσει
+    }
 }
+
+function createSequencerPanel() {
+    const div = document.createElement('div');
+    div.id = 'sequencer-panel';
+    div.className = 'sequencer-box';
+    div.style.display = 'none'; // Ξεκινάει κρυφό
+
+    div.innerHTML = `
+        <div class="seq-header">
+            <div style="display:flex; flex-direction:column;">
+                <h3 style="margin:0; color:var(--accent);"><i class="fas fa-drum"></i> Rhythm Composer</h3>
+                <span id="seq-current-name" style="font-size:0.8rem; color:#888;">No rhythm loaded</span>
+            </div>
+            <button onclick="toggleSequencerUI()" class="icon-btn"><i class="fas fa-times"></i></button>
+        </div>
+
+        <div class="seq-toolbar">
+            <div class="toolbar-group">
+                <button id="btnPlaySeq" onclick="AudioEngine.togglePlay()" class="icon-btn accent">
+                    <i class="fas fa-play"></i> PLAY
+                </button>
+                <button onclick="AudioEngine.clearGrid()" class="icon-btn danger">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+
+            <div class="toolbar-group">
+                <button onclick="AudioEngine.setBeats(AudioEngine.beats-1)" class="text-btn">-</button>
+                <span id="beat-count-display" style="font-weight:bold; min-width:20px; text-align:center;">4</span>
+                <span style="font-size:0.8rem; color:#aaa;">BEATS</span>
+                <button onclick="AudioEngine.setBeats(AudioEngine.beats+1)" class="text-btn">+</button>
+            </div>
+            
+            <div class="toolbar-group">
+                <input type="range" min="40" max="200" value="100" style="width:80px;" oninput="AudioEngine.setBpm(this.value)">
+                <span id="seq-bpm-val" style="font-size:0.8rem;">100 BPM</span>
+            </div>
+
+            <button onclick="toggleSoundLab()" class="icon-btn" style="border:1px solid #555; margin-left:auto;">
+                <i class="fas fa-sliders-h"></i> Sound Lab
+            </button>
+        </div>
+
+        <div class="seq-grid-area">
+            <div id="rhythm-tracks">
+                </div>
+        </div>
+
+        <div class="seq-footer">
+            <button onclick="AudioEngine.openLoadModal()" class="modal-btn">
+                <i class="fas fa-folder-open"></i> Load
+            </button>
+            <button onclick="AudioEngine.openSaveModal()" class="modal-btn">
+                <i class="fas fa-save"></i> Save
+            </button>
+            <button onclick="AudioEngine.linkRhythmToSong()" class="modal-btn accent">
+                <i class="fas fa-link"></i> Link to Song
+            </button>
+        </div>
+    `;
+
+    document.body.appendChild(div);
+}
+
+// H generateGridRows παραμένει ίδια με αυτή που σου έστειλα στο προηγούμενο μήνυμα (4x4 blocks)
 
 function generateGridRows(container) {
     container.innerHTML = '';

@@ -1629,29 +1629,24 @@ function toggleSequencerUI() {
         p.style.display = 'none';
     }
 }
+
 /* =========================================
-   SEQUENCER UI (Fixed Layout)
+   SEQUENCER UI (Corrected Layout & I18N)
    ========================================= */
 
 function toggleSequencerUI() {
     let p = document.getElementById('sequencer-panel');
-    
-    // Αν δεν υπάρχει το Panel, το δημιουργούμε τώρα (Lazy Load)
-    if (!p) {
-        createSequencerPanel();
-        p = document.getElementById('sequencer-panel');
-    }
+    if (!p) { createSequencerPanel(); p = document.getElementById('sequencer-panel'); }
     
     if (p.style.display === 'none' || p.style.display === '') {
         p.style.display = 'flex';
         AudioEngine.init();
-        // Αν το grid είναι άδειο, ζωγράφισέ το
         if(document.getElementById('rhythm-tracks').innerHTML === "") {
              generateGridRows(document.getElementById('rhythm-tracks'));
         }
     } else {
         p.style.display = 'none';
-        AudioEngine.togglePlay(); // Stop αν κλείσει
+        AudioEngine.togglePlay(); // Stop if closing
     }
 }
 
@@ -1659,58 +1654,62 @@ function createSequencerPanel() {
     const div = document.createElement('div');
     div.id = 'sequencer-panel';
     div.className = 'sequencer-box';
-    div.style.display = 'none'; // Ξεκινάει κρυφό
+    div.style.display = 'none';
 
     div.innerHTML = `
         <div class="seq-header">
-            <div style="display:flex; flex-direction:column;">
-                <h3 style="margin:0; color:var(--accent);"><i class="fas fa-drum"></i> Rhythm Composer</h3>
-                <span id="seq-current-name" style="font-size:0.8rem; color:#888;">No rhythm loaded</span>
-            </div>
-            <button onclick="toggleSequencerUI()" class="icon-btn"><i class="fas fa-times"></i></button>
+            <h3 style="margin:0; color:var(--accent); font-size:1.2rem;">
+                <i class="fas fa-drum"></i> <span data-i18n="title_rhythm_composer">Rhythm Composer</span>
+            </h3>
+            <button onclick="toggleSequencerUI()" class="icon-btn" style="font-size:1.2rem;">
+                <i class="fas fa-times"></i>
+            </button>
         </div>
 
         <div class="seq-toolbar">
+            
             <div class="toolbar-group">
-                <button id="btnPlaySeq" onclick="AudioEngine.togglePlay()" class="icon-btn accent">
-                    <i class="fas fa-play"></i> PLAY
+                <button id="btnPlaySeq" onclick="AudioEngine.togglePlay()" class="icon-btn accent" title="Play">
+                    <i class="fas fa-play"></i> <span data-i18n="btn_play">PLAY</span>
                 </button>
-                <button onclick="AudioEngine.clearGrid()" class="icon-btn danger">
+                <button onclick="if(confirm(t('msg_confirm_clear'))) AudioEngine.clearGrid()" class="icon-btn danger" title="Clear All">
                     <i class="fas fa-trash"></i>
                 </button>
             </div>
 
             <div class="toolbar-group">
-                <button onclick="AudioEngine.setBeats(AudioEngine.beats-1)" class="text-btn">-</button>
-                <span id="beat-count-display" style="font-weight:bold; min-width:20px; text-align:center;">4</span>
-                <span style="font-size:0.8rem; color:#aaa;">BEATS</span>
-                <button onclick="AudioEngine.setBeats(AudioEngine.beats+1)" class="text-btn">+</button>
-            </div>
-            
-            <div class="toolbar-group">
-                <input type="range" min="40" max="200" value="100" style="width:80px;" oninput="AudioEngine.setBpm(this.value)">
-                <span id="seq-bpm-val" style="font-size:0.8rem;">100 BPM</span>
+                <span style="color:#888; font-size:0.8rem;" data-i18n="lbl_beats">BEATS:</span>
+                <button onclick="AudioEngine.setBeats(AudioEngine.beats-1)" class="round-btn small"><i class="fas fa-minus"></i></button>
+                <span id="beat-count-display" style="font-weight:bold; min-width:25px; text-align:center; font-size:1.1rem;">${AudioEngine.beats}</span>
+                <button onclick="AudioEngine.setBeats(AudioEngine.beats+1)" class="round-btn small"><i class="fas fa-plus"></i></button>
             </div>
 
-            <button onclick="toggleSoundLab()" class="icon-btn" style="border:1px solid #555; margin-left:auto;">
-                <i class="fas fa-sliders-h"></i> Sound Lab
+            <div class="toolbar-group">
+                <i class="fas fa-tachometer-alt" style="color:#888;"></i>
+                <input type="range" min="40" max="200" value="100" style="width:80px;" oninput="AudioEngine.setBpm(this.value)">
+                <span id="seq-bpm-val" style="font-size:0.8rem; width:30px;">100</span>
+            </div>
+
+            <button onclick="toggleSoundLab()" class="icon-btn" style="border:1px solid #555; padding:5px 15px;">
+                <i class="fas fa-sliders-h"></i> <span data-i18n="btn_sound_lab">Sound Lab</span>
             </button>
         </div>
 
         <div class="seq-grid-area">
-            <div id="rhythm-tracks">
-                </div>
+            <div id="rhythm-tracks"></div>
         </div>
 
         <div class="seq-footer">
+            <span id="seq-current-name" style="margin-right:auto; align-self:center; color:#666; font-style:italic;" data-i18n="msg_no_rhythm">No rhythm loaded</span>
+            
             <button onclick="AudioEngine.openLoadModal()" class="modal-btn">
-                <i class="fas fa-folder-open"></i> Load
+                <i class="fas fa-folder-open"></i> <span data-i18n="btn_load">Load</span>
             </button>
             <button onclick="AudioEngine.openSaveModal()" class="modal-btn">
-                <i class="fas fa-save"></i> Save
+                <i class="fas fa-save"></i> <span data-i18n="btn_save_simple">Save</span>
             </button>
             <button onclick="AudioEngine.linkRhythmToSong()" class="modal-btn accent">
-                <i class="fas fa-link"></i> Link to Song
+                <i class="fas fa-link"></i> <span data-i18n="btn_link">Link</span>
             </button>
         </div>
     `;
@@ -1718,54 +1717,44 @@ function createSequencerPanel() {
     document.body.appendChild(div);
 }
 
-// H generateGridRows παραμένει ίδια με αυτή που σου έστειλα στο προηγούμενο μήνυμα (4x4 blocks)
-
 function generateGridRows(container) {
     container.innerHTML = '';
     
-    // Τα όργανα με τα χρώματά τους
+    // Χρώματα για τα όργανα (Χωρίς κείμενο labels)
     const instruments = [
-        {n:"HAT", c:"#f1c40f", rowId:"row-HAT"},
-        {n:"RIM", c:"#3498db", rowId:"row-RIM"},
-        {n:"TOM", c:"#2ecc71", rowId:"row-TOM"},
-        {n:"KICK",c:"#e74c3c", rowId:"row-KICK"}
+        {c:"#f1c40f", rowId:"row-HAT"}, // Κίτρινο
+        {c:"#3498db", rowId:"row-RIM"}, // Μπλε
+        {c:"#2ecc71", rowId:"row-TOM"}, // Πράσινο
+        {c:"#e74c3c", rowId:"row-KICK"} // Κόκκινο
     ];
 
-    // LOOP ΓΙΑ ΚΑΘΕ BEAT (Μέτρο)
+    // LOOP ΓΙΑ ΚΑΘΕ BEAT
     for (let b = 0; b < AudioEngine.beats; b++) {
-        
-        // 1. Δημιουργία του Κουτιού (Beat Block)
         const block = document.createElement('div');
         block.className = 'beat-block';
         
-        // Αριθμός Beat πάνω δεξιά
+        // Αριθμός Beat
         const num = document.createElement('div');
         num.className = 'beat-number';
         num.innerText = b + 1;
         block.appendChild(num);
 
-        // 2. Μέσα στο κουτί, βάζουμε τις 4 γραμμές οργάνων
+        // Γραμμές Οργάνων
         instruments.forEach(inst => {
             const row = document.createElement('div');
-            row.className = `inst-row ${inst.rowId}`; // Class για το AudioEngine
+            row.className = `inst-row ${inst.rowId}`;
             
-            // Α. Ετικέτα (π.χ. KICK)
-            const lbl = document.createElement('div');
-            lbl.className = 'inst-label';
-            lbl.style.color = inst.c;
-            lbl.innerText = inst.n.substring(0,3); // Πρώτα 3 γράμματα
-            row.appendChild(lbl);
-            
-            // Β. Τα 4 βήματα (16α)
             const stepsDiv = document.createElement('div');
             stepsDiv.className = 'steps-group';
             
             for (let s = 0; s < 4; s++) {
-                const globalStep = (b * 4) + s; // Υπολογισμός συνολικού βήματος
-                
+                const globalStep = (b * 4) + s;
                 const cell = document.createElement('div');
                 cell.className = 'cell';
-                cell.dataset.step = globalStep; // Το AudioEngine χρειάζεται αυτό
+                cell.dataset.step = globalStep;
+                
+                // Αποθήκευση χρώματος για το CSS
+                cell.style.setProperty('--active-color', inst.c);
                 
                 cell.onclick = function() {
                     this.classList.toggle('active');

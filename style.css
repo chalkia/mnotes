@@ -998,97 +998,168 @@ details[open] summary::after { transform: rotate(180deg); color: var(--accent); 
     background: var(--accent);
     transition: width 0.2s;
 }
-
 /* =========================================
-   SEQUENCER V4: RESPONSIVE BEAT BLOCKS
+   FINAL SEQUENCER STYLING (Window + Grid)
    ========================================= */
 
-/* Το Container που κρατάει όλα τα Beats */
-#rhythm-tracks {
-    display: grid;
-    gap: 10px;
-    padding: 10px;
+/* 1. ΤΟ ΚΕΝΤΡΙΚΟ ΠΑΡΑΘΥΡΟ (Fixed Big Modal) */
+.sequencer-box {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     
-    /* DEFAULT (MOBILE): 2 Beats ανά γραμμή */
-    grid-template-columns: repeat(2, 1fr);
+    width: 95%;           
+    max-width: 1100px;    /* Μεγάλο πλάτος για Desktop */
+    height: 85vh;         /* Μεγάλο ύψος */
+    
+    background: #181818;
+    border: 1px solid #444;
+    box-shadow: 0 0 50px rgba(0,0,0,0.9);
+    border-radius: 8px;
+    z-index: 10000;       /* Πάνω από όλα */
+    
+    display: flex;       
+    flex-direction: column;
 }
 
-/* DESKTOP (Μεγάλες Οθόνες > 900px): 4 Beats ανά γραμμή */
+/* 2. HEADER & TOOLBAR */
+.seq-header {
+    padding: 12px 15px;
+    background: #222;
+    border-bottom: 1px solid #333;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.seq-toolbar {
+    padding: 10px 15px;
+    background: #1e1e1e;
+    border-bottom: 1px solid #333;
+    display: flex;
+    flex-wrap: wrap; 
+    gap: 15px;
+    align-items: center;
+}
+
+.toolbar-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #2a2a2a;
+    padding: 4px 10px;
+    border-radius: 4px;
+    border: 1px solid #333;
+}
+
+/* 3. ΠΕΡΙΟΧΗ GRID (Scrollable) */
+.seq-grid-area {
+    flex: 1; /* Πιάνει τον υπόλοιπο χώρο */
+    overflow-y: auto; 
+    background: #121212;
+    padding: 20px;
+}
+
+#rhythm-tracks {
+    display: grid;
+    gap: 12px;
+    padding-bottom: 20px;
+    
+    /* MOBILE: 2 Beats ανά γραμμή */
+    grid-template-columns: repeat(2, 1fr); 
+}
+
+/* DESKTOP: 4 Beats ανά γραμμή */
 @media (min-width: 900px) {
     #rhythm-tracks {
         grid-template-columns: repeat(4, 1fr);
     }
 }
 
-/* ΤΟ ΚΟΥΤΙ ΤΟΥ BEAT */
+/* 4. BEAT BLOCKS (Τα κουτιά των μέτρων) */
 .beat-block {
-    background: #181818;
+    background: #1e1e1e;
     border: 1px solid #444;
-    border-radius: 8px;
+    border-radius: 6px;
     padding: 8px;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 5px;
     position: relative;
 }
 
-/* Αρίθμηση Beat (1, 2, 3...) */
 .beat-number {
     position: absolute;
     top: -8px;
     right: -8px;
     background: #444;
     color: #fff;
-    width: 20px;
-    height: 20px;
+    width: 22px;
+    height: 22px;
     border-radius: 50%;
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     display: flex;
     justify-content: center;
     align-items: center;
     font-weight: bold;
     border: 1px solid #666;
+    z-index: 5;
 }
 
-/* ΓΡΑΜΜΗ ΟΡΓΑΝΟΥ ΜΕΣΑ ΣΤΟ BEAT */
+/* 5. ΟΡΓΑΝΑ & ΚΟΥΤΑΚΙΑ (Cells) */
 .inst-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
 }
 
-/* Ετικέτα Οργάνου (Μικρή, αριστερά) */
 .inst-label {
-    width: 25px; /* Σταθερό πλάτος για στοίχιση */
+    width: 28px;
     font-size: 0.65rem;
     font-weight: bold;
     text-align: center;
-    opacity: 0.8;
+    opacity: 0.9;
+    letter-spacing: 0.5px;
 }
 
-/* Τα 4 κουτάκια του Beat */
 .steps-group {
     display: flex;
     gap: 4px;
-    flex: 1; /* Πιάνει τον υπόλοιπο χώρο */
+    flex: 1;
     justify-content: flex-end;
 }
 
 .cell {
-    flex: 1; /* Να γεμίζουν το χώρο ομοιόμορφα */
-    aspect-ratio: 1 / 1; /* Τετράγωνα */
+    flex: 1; 
+    aspect-ratio: 1 / 1;
     background: #2a2a2a;
     border: 1px solid #3a3a3a;
     border-radius: 3px;
     cursor: pointer;
-    min-width: 0; /* Αποτρέπει το overflow */
+    min-width: 0;
 }
 
-.cell.active { box-shadow: 0 0 6px currentColor; border-color: #fff; }
+.cell.active { 
+    box-shadow: 0 0 6px currentColor; 
+    border-color: #fff; 
+    transform: scale(0.95);
+}
 
-/* FIX Z-INDEX ΓΙΑ ΤΟ MODAL */
-.modal-overlay { z-index: 10000 !important; }
+.cell.highlight {
+    background-color: #fff !important;
+    filter: brightness(2.0);
+}
 
+/* 6. FOOTER */
+.seq-footer {
+    padding: 12px 15px;
+    background: #222;
+    border-top: 1px solid #333;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
 
-
-
+/* FIX: Εξασφάλιση ότι το SoundLab Modal βγαίνει ΠΑΝΩ από το Sequencer */
+.modal-overlay { z-index: 20000 !important; }

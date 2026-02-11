@@ -135,25 +135,29 @@ function generateGridRows(container) {
                 
                 // Περνάμε το χρώμα στο CSS Variable
                 cell.style.setProperty('--active-color', inst.c);
-                cell.onclick = function() {
-    // 1. Οπτική αλλαγή (το "άναμμα")
+              
+  cell.onclick = function() {
+    // 1. Άναψε/Σβήσε το φωτάκι στο UI
     this.classList.toggle('active');
     
-    // 2. Ενημέρωση της μηχανής ήχου (το "κλείδωμα" στη μνήμη)
+    // 2. Πάρε το όνομα του οργάνου (HAT, RIM κλπ)
+    const instId = inst.rowId.replace('row-', '');
     const stepIdx = parseInt(this.dataset.step);
-    const instId = inst.rowId.replace('row-', ''); // Παίρνει το HAT, RIM, TOM, KICK
-    
+    const isActive = this.classList.contains('active');
+
+    // 3. Ενημέρωσε τη μηχανή ήχου για να το παίξει
     if (typeof AudioEngine !== 'undefined') {
-        // Καλούμε μια συνάρτηση που θα φτιάξουμε στην AudioEngine
-        AudioEngine.toggleStepData(instId, stepIdx, this.classList.contains('active'));
+        AudioEngine.toggleStepData(instId, stepIdx, isActive);
         
-        // Αν το ανάψαμε, παίξε έναν δοκιμαστικό ήχο
-        if (this.classList.contains('active')) {
+        // Αν το άναψες, παίξε τον ήχο για επιβεβαίωση
+        if (isActive) {
             AudioEngine.playPercussion(AudioEngine.ctx.currentTime, instId.toLowerCase());
         }
     }
-};
-               
+    
+    // 4. Χρώμα (Για σιγουριά)
+    this.style.backgroundColor = isActive ? inst.c : 'rgba(255,255,255,0.1)';
+};          
                 stepsDiv.appendChild(cell);
             }
             row.appendChild(stepsDiv);

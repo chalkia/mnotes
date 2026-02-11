@@ -1089,3 +1089,15 @@ details[open] summary::after { transform: rotate(180deg); color: var(--accent); 
 /* Fix Z-Index για τα Modals */
 .modal-overlay { z-index: 99999 !important; }
 
+@media (max-width: 1024px) {
+    /* 1. Οι στίχοι πιάνουν όλο το ύψος */
+    #mainZone {
+        height: 100vh !important;
+        padding-bottom: 0 !important;
+        margin-bottom: 0 !important;
+    }
+
+    /* 2. Εξαφάνιση της κάτω μπάρας πλοήγησης */
+    .mobile-nav {
+        display: none !important;
+    }

@@ -25,18 +25,25 @@
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <span class="logo-text">mNotes <span id="songCount" style="font-size:0.8rem; opacity:0.6;">0</span></span>
                         <div class="sidebar-actions">
-                            <button id="btnAuth" onclick="document.getElementById('authModal').style.display='flex'" class="action-btn" title="Login"><i class="fas fa-user"></i></button>
-                            <button id="btnAddSong" onclick="createNewSong()" class="action-btn" data-i18n="btn_add_song_title"><i class="fas fa-plus"></i></button>
+                            <button id="btnAuth" onclick="document.getElementById('authModal').style.display='flex'" class="action-btn" title="Login">
+                                <i class="fas fa-user"></i>
+                            </button>
+                            <button id="btnAddSong" onclick="createNewSong()" class="action-btn" data-i18n="btn_add_song_title">
+                                <i class="fas fa-plus"></i>
+                            </button>
                         </div>
                     </div>
                     <div id="userDisplayName" style="font-size: 0.8rem; color: var(--accent); font-weight: bold; min-height: 1.2em; margin-left: 2px;"></div>
                     <div class="sidebar-tabs">
-                        <button id="tab-library" class="tab-btn active" onclick="switchSidebarTab('library')" data-i18n="tab_library">Library</button>
-                        <button id="tab-setlist" class="tab-btn" onclick="switchSidebarTab('setlist')" data-i18n="tab_setlist">Setlist</button>
+                        <button id="tab-library" class="tab-btn active" onclick="switchSidebarTab('library')" data-i18n="tab_library">
+                            <i class="fas fa-list"></i> Library
+                        </button>
+                        <button id="tab-setlist" class="tab-btn" onclick="switchSidebarTab('setlist')" data-i18n="tab_setlist">
+                            <i class="fas fa-clipboard-list"></i> Setlist
+                        </button>
                     </div>
                 </div>
             </div>
-            
             <div id="library-controls" class="sidebar-search">
                 <input id="searchInp" type="text" data-i18n="search_ph" oninput="applyFilters()">
                 <select id="tagFilter" onchange="applyFilters()">
@@ -50,7 +57,6 @@
             </div>
 
             <div id="setlist-controls" class="sidebar-search" style="display:none; border-bottom: 2px solid var(--accent); display:flex; flex-direction:column; gap:10px;">
-                
                 <div>
                     <label class="small-label-v2">
                         <i class="fas fa-users"></i> <span data-i18n="lbl_active_group">ACTIVE GROUP</span>
@@ -70,9 +76,15 @@
                     </select>
             
                     <div style="display:flex; gap:5px;">
-                        <button onclick="createSetlist()" class="footer-btn" data-i18n="btn_new_list_title"><i class="fas fa-plus"></i></button>
-                        <button id="btnRenSetlist" onclick="renameSetlist()" class="footer-btn" data-i18n="btn_rename_title"><i class="fas fa-edit"></i></button>
-                        <button id="btnDelSetlist" onclick="deleteSetlist()" class="footer-btn danger-v2" data-i18n="btn_delete_title"><i class="fas fa-trash"></i></button>   
+                        <button onclick="createSetlist()" class="footer-btn" data-i18n="btn_new_list_title">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                        <button id="btnRenSetlist" onclick="renameSetlist()" class="footer-btn" data-i18n="btn_rename_title">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button id="btnDelSetlist" onclick="deleteSetlist()" class="footer-btn danger-v2" data-i18n="btn_delete_title">
+                            <i class="fas fa-trash"></i>
+                        </button>   
                     </div>
                 </div>
             </div>
@@ -80,13 +92,20 @@
             <ul id="songList" class="song-list"></ul>
             
             <div class="sidebar-footer">
-                <button id="btnLang" onclick="toggleLanguage()" class="footer-btn small"><i class="fas fa-globe"></i></button>
-                <button onclick="document.getElementById('importChoiceModal').style.display='flex'" class="footer-btn"><i class="fas fa-file-import"></i> <span data-i18n="btn_import">Import</span></button>
-                <button onclick="exportJSON()" class="footer-btn icon-only" data-i18n="btn_export_title"><i class="fas fa-file-export"></i></button>
-                <button onclick="clearLibrary()" class="footer-btn icon-only danger"><i class="fas fa-trash"></i></button>
+                <button id="btnLang" onclick="toggleLanguage()" class="footer-btn small">
+                    <i class="fas fa-globe"></i>
+                </button>
+                <button onclick="document.getElementById('importChoiceModal').style.display='flex'" class="footer-btn">
+                    <i class="fas fa-file-import"></i> <span data-i18n="btn_import">Import</span>
+                </button>
+                <button onclick="exportJSON()" class="footer-btn icon-only" data-i18n="btn_export_title">
+                    <i class="fas fa-file-export"></i>
+                </button>
+                <button onclick="clearLibrary()" class="footer-btn icon-only danger">
+                    <i class="fas fa-trash"></i>
+                </button>
             </div>
         </aside>
-
         <div class="resizer" id="dragMeLeft"></div>
         <main class="col-stage" id="mainZone">
             <div id="view-player" class="view-section active-view">
@@ -106,8 +125,12 @@
                 <div id="scroll-container" class="scroll-lyrics" ondblclick="toggleAutoScroll()"></div>
 
                 <div class="desktop-controls-area">
-                    <button id="btnPrevSong" onclick="navSetlist(-1)" class="round-btn"><i class="fas fa-step-backward"></i></button>
-                    <button id="btnLyrics" onclick="toggleLyricsMode()" class="round-btn"><i class="fas fa-scroll"></i></button>
+                    <button id="btnPrevSong" onclick="navSetlist(-1)" class="round-btn">
+                        <i class="fas fa-step-backward"></i>
+                    </button>
+                    <button id="btnLyrics" onclick="toggleLyricsMode()" class="round-btn">
+                        <i class="fas fa-scroll"></i>
+                    </button>
                     
                     <div class="control-cluster">
                         <span class="cluster-label" data-i18n="lbl_key">KEY</span>
@@ -127,19 +150,33 @@
                         </div>
                     </div>
 
-                    <button onclick="autoCapo()" class="round-btn accent-btn"><i class="fas fa-lightbulb"></i></button>
-                    <button id="btnEditSong" onclick="switchToEditor()" class="round-btn"><i class="fas fa-pen"></i></button>
-                    <button id="btnNextSong" onclick="navSetlist(1)" class="round-btn"><i class="fas fa-step-forward"></i></button>
+                    <button onclick="autoCapo()" class="round-btn accent-btn">
+                        <i class="fas fa-lightbulb"></i>
+                    </button>
+                    <button id="btnEditSong" onclick="switchToEditor()" class="round-btn">
+                        <i class="fas fa-pen"></i>
+                    </button>
+                    <button id="btnNextSong" onclick="navSetlist(1)" class="round-btn">
+                        <i class="fas fa-step-forward"></i>
+                    </button>
                 </div>
             </div>
       
-<div id="view-editor" class="view-section">
+            <div id="view-editor" class="view-section">
                 <div class="editor-toolbar">
-                    <button onclick="exitEditor()" class="text-btn"><i class="fas fa-times"></i> <span data-i18n="btn_cancel">Cancel</span></button>
+                    <button onclick="exitEditor()" class="text-btn">
+                        <i class="fas fa-times"></i> <span data-i18n="btn_cancel">Cancel</span>
+                    </button>
                     <div style="display:flex; gap:15px; align-items:center;">
-                        <button onclick="deleteCurrentSong()" class="icon-btn danger" data-i18n="btn_delete_title"><i class="fas fa-trash-alt"></i></button>
-                        <button onclick="printSongPDF()" class="icon-btn" data-i18n="btn_pdf_title"><i class="fas fa-file-pdf"></i></button>
-                        <button onclick="saveEdit()" class="icon-btn accent" data-i18n="btn_save_title"><i class="fas fa-save"></i></button>
+                        <button onclick="deleteCurrentSong()" class="icon-btn danger" data-i18n="btn_delete_title">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                        <button onclick="printSongPDF()" class="icon-btn" data-i18n="btn_pdf_title">
+                            <i class="fas fa-file-pdf"></i>
+                        </button>
+                        <button onclick="saveEdit()" class="icon-btn accent" data-i18n="btn_save_title">
+                            <i class="fas fa-save"></i>
+                        </button>
                     </div>
                 </div>
                 <div class="editor-body">
@@ -172,8 +209,7 @@
                 </div>
             </div>
         </main>
-
-        <div class="resizer" id="dragMeRight"></div>
+<div class="resizer" id="dragMeRight"></div>
         <aside class="col-tools" id="rhythmTools">
             <div class="sidebar-header-tools">
                 <span data-i18n="title_tools" style="font-weight:bold; color:var(--text-muted); font-size:0.9rem;">TOOLS & ASSETS</span>
@@ -184,8 +220,12 @@
                     <div class="section-title"><i class="fas fa-microphone-alt"></i> <span data-i18n="title_audio_hub">AUDIO HUB</span></div>
                     <div class="recorder-compact">
                         <span id="recTimer" class="rec-timer">00:00</span>
-                        <button id="btnRecord" onclick="toggleRecording()" class="rec-btn" data-i18n="btn_record_title"><i class="fas fa-circle"></i></button>
-                        <button id="btnLinkRec" onclick="uploadAndLinkCurrent()" class="save-rec-btn" style="display:none;" data-i18n="btn_link_rec_title"><i class="fas fa-cloud-upload-alt"></i></button>
+                        <button id="btnRecord" onclick="toggleRecording()" class="rec-btn" title="Record">
+                            <i class="fas fa-circle"></i>
+                        </button>
+                        <button id="btnLinkRec" onclick="uploadAndLinkCurrent()" class="save-rec-btn" style="display:none;" title="Save to Song">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                        </button>
                     </div>
 
                     <div class="upload-wrapper" style="text-align:center; margin-top:10px; margin-bottom:10px;">
@@ -229,7 +269,9 @@
                     <summary><i class="fas fa-drum"></i> <span data-i18n="sum_metronome">METRONOME</span></summary>
                     <div class="group-content">
                         <div class="bpm-row">
-                            <button id="btnPlayRhythm" onclick="AudioEngine.togglePlay()" class="play-mini-btn"><i class="fas fa-play"></i></button>
+                            <button id="btnPlayRhythm" onclick="AudioEngine.togglePlay()" class="play-mini-btn" title="Play Rhythm">
+                                <i class="fas fa-play"></i>
+                            </button>
                             <div class="bpm-display"><span id="dispBpm">100</span> <span style="font-size:0.7rem;" data-i18n="lbl_bpm">BPM</span></div>
                         </div>
                         <input type="range" id="rngBpm" min="40" max="200" value="100" class="compact-range" oninput="AudioEngine.setBpm(this.value)">
@@ -250,7 +292,9 @@
             </div>
 
             <div class="tools-footer">
-                <button class="footer-btn" onclick="openSettings()" data-i18n="btn_settings_title"><i class="fas fa-cog"></i></button>
+                <button class="footer-btn" onclick="openSettings()" title="Settings">
+                    <i class="fas fa-cog"></i>
+                </button>
                 <button id="btnAuthBottom" class="footer-btn" onclick="document.getElementById('authModal').style.display='flex'">
                     <i class="fas fa-user"></i> <span data-i18n="btn_account">Account</span> 
                 </button>
@@ -258,17 +302,27 @@
         </aside>
 
         <nav class="mobile-nav">
-            <button class="tab-btn-mob" onclick="switchMobileTab('library')"><i class="fas fa-list"></i><span data-i18n="mob_list">Λίστα</span></button>
-            <button class="tab-btn-mob active" onclick="switchMobileTab('stage')"><i class="fas fa-microphone-alt"></i><span data-i18n="mob_stage">Εκτέλεση</span></button>
-            <button class="tab-btn-mob" onclick="switchMobileTab('tools')"><i class="fas fa-drum"></i><span data-i18n="mob_rhythm">Ρυθμός</span></button>
+            <button class="tab-btn-mob" onclick="switchMobileTab('library')">
+                <i class="fas fa-list"></i><span data-i18n="mob_list">Λίστα</span>
+            </button>
+            <button class="tab-btn-mob active" onclick="switchMobileTab('stage')">
+                <i class="fas fa-microphone-alt"></i><span data-i18n="mob_stage">Εκτέλεση</span>
+            </button>
+            <button class="tab-btn-mob" onclick="switchMobileTab('tools')">
+                <i class="fas fa-drum"></i><span data-i18n="mob_rhythm">Ρυθμός</span>
+            </button>
         </nav>
     </div>
 
     <div id="importChoiceModal" class="modal" style="display:none;">
         <div class="modal-content">
             <h3 data-i18n="title_import">Import Song</h3>
-            <button onclick="selectImport('url')" class="modal-btn"><i class="fas fa-link"></i> <span data-i18n="btn_import_url">From URL</span></button>
-            <button onclick="selectImport('file')" class="modal-btn"><i class="fas fa-file-upload"></i> <span data-i18n="btn_import_file">From File</span></button>
+            <button onclick="selectImport('url')" class="modal-btn">
+                <i class="fas fa-link"></i> <span data-i18n="btn_import_url">From URL</span>
+            </button>
+            <button onclick="selectImport('file')" class="modal-btn">
+                <i class="fas fa-file-upload"></i> <span data-i18n="btn_import_file">From File</span>
+            </button>
             <button onclick="document.getElementById('importChoiceModal').style.display='none'" class="modal-btn cancel" data-i18n="btn_cancel">Cancel</button>
         </div>
     </div>
@@ -305,20 +359,21 @@
         </div>
     </div>
 
-   <input type="file" id="hiddenFileInput" style="display:none;" accept=".json, .mnote, .mnotes">
+  <input type="file" id="hiddenFileInput" style="display:none;" accept=".json, .mnote, .mnotes">
     
     <div id="authModal" class="modal-overlay" style="display:none;">
         <div class="modal-box">
-             <h3 data-i18n="title_login">Login / Sign Up</h3>
+             <h3 data-i18n="title_login"><i class="fas fa-sign-in-alt"></i> Login / Sign Up</h3>
              <button onclick="loginWithGoogle()" class="google-btn">
-                <img src="https://www.svgrepo.com/show/475656/google-color.svg" width="20"> <span data-i18n="btn_google_login">Sign in with Google</span>
+                <img src="https://www.svgrepo.com/show/475656/google-color.svg" width="20"> 
+                <span data-i18n="btn_google_login">Sign in with Google</span>
              </button>
              <div class="auth-sep"><div class="sep-line"></div><span data-i18n="lbl_or_email">OR EMAIL</span><div class="sep-line"></div></div>
              <input type="email" id="authEmail" class="inp" data-i18n="ph_email" placeholder="Email">
              <input type="password" id="authPass" class="inp" data-i18n="ph_password" placeholder="Password">
-             <button onclick="doLogin()" class="modal-btn accent" data-i18n="btn_login">Login</button>
-             <button onclick="doSignUp()" class="modal-btn" data-i18n="btn_signup">Sign Up</button>
-             <button onclick="document.getElementById('authModal').style.display='none'" class="modal-btn cancel" data-i18n="btn_close">Close</button>
+             <button onclick="doLogin()" class="modal-btn accent" data-i18n="btn_login"><i class="fas fa-sign-in-alt"></i> Login</button>
+             <button onclick="doSignUp()" class="modal-btn" data-i18n="btn_signup"><i class="fas fa-user-plus"></i> Sign Up</button>
+             <button onclick="document.getElementById('authModal').style.display='none'" class="modal-btn cancel" data-i18n="btn_close"><i class="fas fa-times"></i> Close</button>
              <div id="authMsg" class="auth-error-msg"></div>
         </div>
     </div>
@@ -333,39 +388,53 @@
         
         <div class="drawer-section">
             <label data-i18n="lbl_navigation">NAVIGATION</label>
-            <button class="drawer-btn active" onclick="switchDrawerTab('library')"><i class="fas fa-list"></i> <span data-i18n="tab_library">Library</span></button>
-            <button class="drawer-btn" onclick="switchDrawerTab('stage')"><i class="fas fa-microphone-alt"></i> <span data-i18n="mob_stage">Stage</span></button>
-            <button class="drawer-btn" onclick="switchDrawerTab('tools')"><i class="fas fa-drum"></i> <span data-i18n="mob_rhythm">Rhythm & Tools</span></button>
+            <button class="drawer-btn active" onclick="switchDrawerTab('library')">
+                <i class="fas fa-list"></i> <span data-i18n="tab_library">Library</span>
+            </button>
+            <button class="drawer-btn" onclick="switchDrawerTab('stage')">
+                <i class="fas fa-microphone-alt"></i> <span data-i18n="mob_stage">Stage</span>
+            </button>
+            <button class="drawer-btn" onclick="switchDrawerTab('tools')">
+                <i class="fas fa-drum"></i> <span data-i18n="mob_rhythm">Rhythm & Tools</span>
+            </button>
         </div>
 
         <div id="drawer-player-controls" class="drawer-section" style="display:none;">
             <label data-i18n="lbl_controls">CONTROLS</label>
-            <button class="drawer-btn" onclick="toggleLyricsMode()"><i class="fas fa-scroll"></i> <span data-i18n="btn_lyrics_mode">Lyrics Mode</span></button>
+            <button class="drawer-btn" onclick="toggleLyricsMode()">
+                <i class="fas fa-scroll"></i> <span data-i18n="btn_lyrics_mode">Lyrics Mode</span>
+            </button>
             
             <div class="drawer-row">
                 <span data-i18n="lbl_transpose">Transpose:</span>
                 <div class="stepper">
-                    <button onclick="transDown()">-</button>
+                    <button onclick="transDown()"><i class="fas fa-minus"></i></button>
                     <span id="drawer-val-t">0</span>
-                    <button onclick="transUp()">+</button>
+                    <button onclick="transUp()"><i class="fas fa-plus"></i></button>
                 </div>
             </div>
             
             <div class="drawer-row">
                 <span data-i18n="lbl_capo_simple">Capo:</span>
                 <div class="stepper">
-                    <button onclick="capoDown()">-</button>
+                    <button onclick="capoDown()"><i class="fas fa-minus"></i></button>
                     <span id="drawer-val-c">0</span>
-                    <button onclick="capoUp()">+</button>
+                    <button onclick="capoUp()"><i class="fas fa-plus"></i></button>
                 </div>
             </div>
             
-            <button class="drawer-btn" onclick="autoCapo()"><i class="fas fa-lightbulb"></i> <span data-i18n="btn_smart_capo">Smart Capo</span></button>
-            <button class="drawer-btn" onclick="switchToEditor()"><i class="fas fa-pen"></i> <span data-i18n="btn_edit_song">Edit Song</span></button>
+            <button class="drawer-btn" onclick="autoCapo()">
+                <i class="fas fa-lightbulb"></i> <span data-i18n="btn_smart_capo">Smart Capo</span>
+            </button>
+            <button class="drawer-btn" onclick="switchToEditor()">
+                <i class="fas fa-pen"></i> <span data-i18n="btn_edit_song">Edit Song</span>
+            </button>
         </div>
 
         <div class="drawer-section" style="margin-top:auto; border-top:1px solid #333; padding-top:10px;">
-            <button class="drawer-btn" onclick="openSettings()"><i class="fas fa-cog"></i> <span data-i18n="title_settings">Settings</span></button>
+            <button class="drawer-btn" onclick="openSettings()">
+                <i class="fas fa-cog"></i> <span data-i18n="title_settings">Settings</span>
+            </button>
             <button id="btnAuthDrawer" class="drawer-btn" onclick="document.getElementById('authModal').style.display='flex'">
                 <i class="fas fa-user"></i> <span data-i18n="btn_account">Account</span>
             </button>
@@ -394,7 +463,9 @@
 
         <div class="seq-controls">
             <button id="btnPlaySeq" onclick="AudioEngine.togglePlay()" class="btn-play-seq" data-i18n="btn_play">▶ PLAY</button>
-            <button onclick="AudioEngine.clearGrid()" data-i18n="btn_clear">🗑 Clear</button>
+            <button onclick="AudioEngine.clearGrid()">
+                <i class="fas fa-trash"></i> <span data-i18n="btn_clear">Clear</span>
+            </button>
             <div class="bpm-control">
                 <input type="range" min="40" max="200" value="100" oninput="AudioEngine.setBpm(this.value)">
                 <span id="seq-bpm-val">100</span>
@@ -402,9 +473,15 @@
         </div>
 
         <div class="seq-controls secondary-controls">
-            <button onclick="AudioEngine.openLoadModal()"><i class="fas fa-folder-open"></i> <span data-i18n="btn_load">Load</span></button>
-            <button onclick="AudioEngine.openSaveModal()"><i class="fas fa-save"></i> <span data-i18n="btn_save_simple">Save</span></button>
-            <button id="btn-seq-link" onclick="AudioEngine.linkRhythmToSong()"><i class="fas fa-link"></i> <span data-i18n="btn_link">Link</span></button>
+            <button onclick="AudioEngine.openLoadModal()">
+                <i class="fas fa-folder-open"></i> <span data-i18n="btn_load">Load</span>
+            </button>
+            <button onclick="AudioEngine.openSaveModal()">
+                <i class="fas fa-save"></i> <span data-i18n="btn_save_simple">Save</span>
+            </button>
+            <button id="btn-seq-link" onclick="AudioEngine.linkRhythmToSong()">
+                <i class="fas fa-link"></i> <span data-i18n="btn_link">Link</span>
+            </button>
         </div>
 
         <div id="rhythm-tracks" style="margin-top:10px;"></div>
@@ -415,7 +492,9 @@
             <h3 data-i18n="title_load_rhythm">Load Rhythm</h3>
             <input id="searchRhythm" class="inp" data-i18n="ph_search_rhythm" oninput="AudioEngine.searchRhythms()">
             <div id="rhythmResults" class="rhythm-results-box"></div>
-            <button onclick="document.getElementById('rhythmLoadModal').style.display='none'" class="modal-btn cancel" data-i18n="btn_close">Close</button>
+            <button onclick="document.getElementById('rhythmLoadModal').style.display='none'" class="modal-btn cancel">
+                <i class="fas fa-times"></i> <span data-i18n="btn_close">Close</span>
+            </button>
         </div>
     </div>
 
@@ -425,8 +504,12 @@
             <input id="saveRhythmName" class="inp" data-i18n="ph_rhythm_name">
             <input id="saveRhythmTags" class="inp" data-i18n="ph_rhythm_tags">
             <div style="margin-top:15px; display:flex; gap:10px;">
-                <button onclick="AudioEngine.saveRhythm()" class="modal-btn accent" data-i18n="btn_save">Save</button>
-                <button onclick="document.getElementById('rhythmSaveModal').style.display='none'" class="modal-btn cancel" data-i18n="btn_cancel">Cancel</button>
+                <button onclick="AudioEngine.saveRhythm()" class="modal-btn accent">
+                    <i class="fas fa-save"></i> <span data-i18n="btn_save">Save</span>
+                </button>
+                <button onclick="document.getElementById('rhythmSaveModal').style.display='none'" class="modal-btn cancel">
+                    <i class="fas fa-times"></i> <span data-i18n="btn_cancel">Cancel</span>
+                </button>
             </div>
         </div>
     </div>
@@ -435,7 +518,8 @@
     <script src="js/config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/data.js"></script>
-    <script src="js/translations.js"></script> <script src="js/storage.js"></script>
+    <script src="js/translations.js"></script>
+    <script src="js/storage.js"></script>
     <script src="js/supabase-client.js"></script> 
     <script src="js/audio.js"></script>
     <script src="js/logic.js"></script>

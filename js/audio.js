@@ -215,6 +215,7 @@ const AudioEngine = {
         if(!name) return alert("Please enter a name");
 
         const rhythmData = {
+            version: 1,
             beats: this.beats,
             soundConfig: this.soundConfig,
             grid: this.getGridState()

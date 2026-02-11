@@ -1161,39 +1161,6 @@ function navSetlist(dir) {
 }
 
 // ===========================================================
-// 9. RHYTHM TOOLS
-// ===========================================================
-
-function initRhythmUI() {
-    const slider = document.getElementById('rngBpm');
-    if(slider) { slider.addEventListener('input', function(e) { updateBpmUI(e.target.value); }); }
-    const btn = document.getElementById('btnPlayRhythm');
-    if(btn && typeof togglePlay === 'function') { btn.onclick = function() { togglePlay(); }; }
-    renderRhythmGrid(16);
-}
-function updateBpmUI(val) {
-    const disp = document.getElementById('dispBpm'); const rng = document.getElementById('rngBpm');
-    if(disp) disp.innerText = val; if(rng) rng.value = val;
-    if(typeof updateBpm === 'function') updateBpm(val); 
-}
-function renderRhythmGrid(steps) {
-    const container = document.getElementById('rhythm-grid'); if(!container) return;
-    container.innerHTML = ''; container.style.gridTemplateColumns = `repeat(${steps}, 1fr)`;
-    for (let row = 0; row < 3; row++) {
-        for (let i = 0; i < steps; i++) {
-            const cell = document.createElement('div'); cell.className = 'cell';
-            if (row === 0) cell.classList.add('bass'); if (row === 1) cell.classList.add('snare'); if (row === 2) cell.classList.add('hihat'); 
-            cell.dataset.row = row; cell.dataset.col = i;
-            cell.onclick = function() { this.classList.toggle('active'); };
-            container.appendChild(cell);
-        }
-    }
-}
-function loadPreset(type) {
-    if(type === 'zeibekiko') updateBpmUI(60); if(type === 'kalamatianos') updateBpmUI(120); if(type === 'chasapiko') updateBpmUI(80);
-}
-
-// ===========================================================
 // 10. VISUAL HELPERS (Sticky, Audio List)
 // ===========================================================
 
@@ -1610,78 +1577,68 @@ function refreshHeaderUI() {
 // Alias για συμβατότητα με το logic.js
 function toEditor() { switchToEditor(); }
 function toViewer(shouldLoad = true) { exitEditor(); }
-/* =========================================
-   RHYTHM UI EXTENSIONS (Final Vertical Grid)
-   ========================================= */
+/* ===========================================================
+   12. NEW SEQUENCER & RHYTHM ENGINE (v18.0)
+   =========================================================== */
 
-function toggleSequencerUI() {
-    const p = document.getElementById('sequencer-panel');
-    if (!p) return;
-    
-    if (p.style.display === 'none' || p.style.display === '') {
-        p.style.display = 'flex';
-        if(document.getElementById('rhythm-tracks').innerHTML === "") {
-             generateGridRows(document.getElementById('rhythm-tracks'));
-        }
-        injectSequencerControls();
-        AudioEngine.init();
-    } else {
-        p.style.display = 'none';
-    }
-}
-
-/* =========================================
-   SEQUENCER UI (Corrected Layout & I18N)
-   ========================================= */
-
+// 1. ΕΚΚΙΝΗΣΗ / ΕΜΦΑΝΙΣΗ
 function toggleSequencerUI() {
     let p = document.getElementById('sequencer-panel');
+    // Δημιουργία του παραθύρου αν δεν υπάρχει
     if (!p) { createSequencerPanel(); p = document.getElementById('sequencer-panel'); }
     
     if (p.style.display === 'none' || p.style.display === '') {
         p.style.display = 'flex';
-        AudioEngine.init();
+        // Αρχικοποίηση Ήχου (από το audio.js)
+        if(typeof AudioEngine !== 'undefined') AudioEngine.init();
+        
+        // Αν το Grid είναι άδειο, το ζωγραφίζουμε
         if(document.getElementById('rhythm-tracks').innerHTML === "") {
              generateGridRows(document.getElementById('rhythm-tracks'));
         }
     } else {
         p.style.display = 'none';
-        AudioEngine.togglePlay(); // Stop if closing
+        // Stop αν κλείσει
+        if(typeof AudioEngine !== 'undefined') AudioEngine.togglePlay(); 
     }
 }
 
+// 2. ΔΗΜΙΟΥΡΓΙΑ ΤΟΥ HTML (Panel)
 function createSequencerPanel() {
     const div = document.createElement('div');
     div.id = 'sequencer-panel';
     div.className = 'sequencer-box';
     div.style.display = 'none';
 
+    // Χρήση t() για μεταφράσεις, με ασφάλεια αν λείπει η συνάρτηση
+    const safeT = (k, def) => (typeof t === 'function' ? t(k) : def);
+
     div.innerHTML = `
         <div class="seq-header">
             <h3 style="margin:0; color:var(--accent); font-size:1.2rem;">
-                <i class="fas fa-drum"></i> <span data-i18n="title_rhythm_composer">Rhythm Composer</span>
+                <i class="fas fa-drum"></i> ${safeT('title_rhythm_composer', 'Rhythm Composer')}
             </h3>
-            <button onclick="toggleSequencerUI()" class="icon-btn" style="font-size:1.2rem;">
-                <i class="fas fa-times"></i>
-            </button>
+            <button onclick="toggleSequencerUI()" class="icon-btn" style="font-size:1.2rem;"><i class="fas fa-times"></i></button>
         </div>
 
         <div class="seq-toolbar">
             
             <div class="toolbar-group">
                 <button id="btnPlaySeq" onclick="AudioEngine.togglePlay()" class="icon-btn accent" title="Play">
-                    <i class="fas fa-play"></i> <span data-i18n="btn_play">PLAY</span>
+                    <i class="fas fa-play"></i> ${safeT('btn_play', 'PLAY')}
                 </button>
-                <button onclick="if(confirm(t('msg_confirm_clear'))) AudioEngine.clearGrid()" class="icon-btn danger" title="Clear All">
+                <button onclick="if(confirm('${safeT('msg_confirm_clear', 'Clear grid?')}')) AudioEngine.clearGrid()" class="icon-btn danger" title="Clear">
                     <i class="fas fa-trash"></i>
                 </button>
             </div>
 
             <div class="toolbar-group">
-                <span style="color:#888; font-size:0.8rem;" data-i18n="lbl_beats">BEATS:</span>
-                <button onclick="AudioEngine.setBeats(AudioEngine.beats-1)" class="round-btn small"><i class="fas fa-minus"></i></button>
-                <span id="beat-count-display" style="font-weight:bold; min-width:25px; text-align:center; font-size:1.1rem;">${AudioEngine.beats}</span>
-                <button onclick="AudioEngine.setBeats(AudioEngine.beats+1)" class="round-btn small"><i class="fas fa-plus"></i></button>
+                <span style="color:#888; font-size:0.8rem;">${safeT('lbl_beats', 'BEATS')}:</span>
+                <button onclick="AudioEngine.setBeats(AudioEngine.beats-1)" class="round-btn small" style="width:25px; height:25px; font-size:0.8rem;"><i class="fas fa-minus"></i></button>
+                <span id="beat-count-display" style="font-weight:bold; min-width:25px; text-align:center; font-size:1.1rem;">
+                    ${(typeof AudioEngine !== 'undefined' ? AudioEngine.beats : 4)}
+                </span>
+                <button onclick="AudioEngine.setBeats(AudioEngine.beats+1)" class="round-btn small" style="width:25px; height:25px; font-size:0.8rem;"><i class="fas fa-plus"></i></button>
             </div>
 
             <div class="toolbar-group">
@@ -1691,7 +1648,7 @@ function createSequencerPanel() {
             </div>
 
             <button onclick="toggleSoundLab()" class="icon-btn" style="border:1px solid #555; padding:5px 15px;">
-                <i class="fas fa-sliders-h"></i> <span data-i18n="btn_sound_lab">Sound Lab</span>
+                <i class="fas fa-sliders-h"></i> ${safeT('btn_sound_lab', 'Sound Lab')}
             </button>
         </div>
 
@@ -1700,16 +1657,18 @@ function createSequencerPanel() {
         </div>
 
         <div class="seq-footer">
-            <span id="seq-current-name" style="margin-right:auto; align-self:center; color:#666; font-style:italic;" data-i18n="msg_no_rhythm">No rhythm loaded</span>
+            <span id="seq-current-name" style="margin-right:auto; align-self:center; color:#666; font-style:italic;">
+                ${safeT('msg_no_rhythm', 'No rhythm loaded')}
+            </span>
             
             <button onclick="AudioEngine.openLoadModal()" class="modal-btn">
-                <i class="fas fa-folder-open"></i> <span data-i18n="btn_load">Load</span>
+                <i class="fas fa-folder-open"></i> ${safeT('btn_load', 'Load')}
             </button>
             <button onclick="AudioEngine.openSaveModal()" class="modal-btn">
-                <i class="fas fa-save"></i> <span data-i18n="btn_save_simple">Save</span>
+                <i class="fas fa-save"></i> ${safeT('btn_save_simple', 'Save')}
             </button>
             <button onclick="AudioEngine.linkRhythmToSong()" class="modal-btn accent">
-                <i class="fas fa-link"></i> <span data-i18n="btn_link">Link</span>
+                <i class="fas fa-link"></i> ${safeT('btn_link', 'Link')}
             </button>
         </div>
     `;
@@ -1717,10 +1676,11 @@ function createSequencerPanel() {
     document.body.appendChild(div);
 }
 
+// 3. ΔΗΜΙΟΥΡΓΙΑ ΤΟΥ GRID (4x4 Blocks)
 function generateGridRows(container) {
     container.innerHTML = '';
     
-    // Χρώματα για τα όργανα (Χωρίς κείμενο labels)
+    // Χρώματα & IDs για τα όργανα
     const instruments = [
         {c:"#f1c40f", rowId:"row-HAT"}, // Κίτρινο
         {c:"#3498db", rowId:"row-RIM"}, // Μπλε
@@ -1728,12 +1688,14 @@ function generateGridRows(container) {
         {c:"#e74c3c", rowId:"row-KICK"} // Κόκκινο
     ];
 
+    const currentBeats = (typeof AudioEngine !== 'undefined' ? AudioEngine.beats : 4);
+
     // LOOP ΓΙΑ ΚΑΘΕ BEAT
-    for (let b = 0; b < AudioEngine.beats; b++) {
+    for (let b = 0; b < currentBeats; b++) {
         const block = document.createElement('div');
         block.className = 'beat-block';
         
-        // Αριθμός Beat
+        // Αρίθμηση (1, 2, 3...)
         const num = document.createElement('div');
         num.className = 'beat-number';
         num.innerText = b + 1;
@@ -1747,18 +1709,20 @@ function generateGridRows(container) {
             const stepsDiv = document.createElement('div');
             stepsDiv.className = 'steps-group';
             
+            // 4 δέκατα έκτα ανά Beat
             for (let s = 0; s < 4; s++) {
                 const globalStep = (b * 4) + s;
                 const cell = document.createElement('div');
                 cell.className = 'cell';
                 cell.dataset.step = globalStep;
                 
-                // Αποθήκευση χρώματος για το CSS
+                // Περνάμε το χρώμα στο CSS Variable (Για το hover/active)
                 cell.style.setProperty('--active-color', inst.c);
                 
+                // Click Handler: Απλά αλλάζει την κλάση active
                 cell.onclick = function() {
                     this.classList.toggle('active');
-                    this.style.backgroundColor = this.classList.contains('active') ? inst.c : '#2a2a2a';
+                    // Το χρώμα το αναλαμβάνει το CSS (.cell.active)
                 };
                 stepsDiv.appendChild(cell);
             }
@@ -1770,6 +1734,7 @@ function generateGridRows(container) {
     }
 }
 
+// 4. SOUND LAB (MODAL & SLIDERS)
 function toggleSoundLab() {
     let m = document.getElementById('sound-lab-modal');
     if(!m) { createSoundLabModal(); m = document.getElementById('sound-lab-modal'); }
@@ -1782,19 +1747,23 @@ function createSoundLabModal() {
     d.className = 'modal-overlay'; 
     d.style.cssText = "display:none; z-index:2000; align-items:center; justify-content:center;";
     
+    // Helper για live update
     window.updateParam = (obj, prop, val) => {
-        AudioEngine.soundConfig[obj][prop] = parseFloat(val);
-        document.getElementById(`val-${obj}-${prop}`).innerText = val;
-        AudioEngine.playPercussion(AudioEngine.ctx.currentTime, obj);
+        if(typeof AudioEngine !== 'undefined') {
+            AudioEngine.soundConfig[obj][prop] = parseFloat(val);
+            document.getElementById(`val-${obj}-${prop}`).innerText = val;
+            AudioEngine.playPercussion(AudioEngine.ctx.currentTime, obj);
+        }
     };
 
     const slider = (lbl, obj, prop, min, max, step, col) => `
         <div style="margin-bottom:8px;">
             <div style="display:flex; justify-content:space-between; font-size:0.7rem; color:${col}; margin-bottom:2px;">
-                <span>${lbl}</span><span id="val-${obj}-${prop}">${AudioEngine.soundConfig[obj][prop]}</span>
+                <span>${lbl}</span><span id="val-${obj}-${prop}">${(typeof AudioEngine !== 'undefined' ? AudioEngine.soundConfig[obj][prop] : 0)}</span>
             </div>
-            <input type="range" class="compact-range" min="${min}" max="${max}" step="${step}" value="${AudioEngine.soundConfig[obj][prop]}" 
-            oninput="updateParam('${obj}','${prop}',this.value)">
+            <input type="range" class="compact-range" min="${min}" max="${max}" step="${step}" 
+                   value="${(typeof AudioEngine !== 'undefined' ? AudioEngine.soundConfig[obj][prop] : 0)}" 
+                   oninput="updateParam('${obj}','${prop}',this.value)">
         </div>`;
 
     d.innerHTML = `

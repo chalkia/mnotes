@@ -1610,3 +1610,159 @@ function refreshHeaderUI() {
 // Alias για συμβατότητα με το logic.js
 function toEditor() { switchToEditor(); }
 function toViewer(shouldLoad = true) { exitEditor(); }
+/* =========================================
+   RHYTHM UI EXTENSIONS (Final Vertical Grid)
+   ========================================= */
+
+function toggleSequencerUI() {
+    const p = document.getElementById('sequencer-panel');
+    if (!p) return;
+    
+    if (p.style.display === 'none' || p.style.display === '') {
+        p.style.display = 'flex';
+        if(document.getElementById('rhythm-tracks').innerHTML === "") {
+             generateGridRows(document.getElementById('rhythm-tracks'));
+        }
+        injectSequencerControls();
+        AudioEngine.init();
+    } else {
+        p.style.display = 'none';
+    }
+}
+
+function injectSequencerControls() {
+    const header = document.querySelector('#sequencer-panel .seq-header');
+    if(!header || document.getElementById('seq-beat-controls')) return;
+
+    const div = document.createElement('div');
+    div.id = 'seq-beat-controls';
+    div.style.cssText = "display:flex; gap:10px; align-items:center; margin-top:5px; width:100%; justify-content:space-between;";
+    div.innerHTML = `
+        <div style="background:#333; padding:2px 8px; border-radius:15px; font-size:0.8rem; display:flex; align-items:center;">
+            <button onclick="AudioEngine.setBeats(AudioEngine.beats-1)" style="background:none; border:none; color:var(--accent); font-weight:bold; cursor:pointer;">-</button>
+            <span id="beat-count-display" style="margin:0 5px; min-width:15px; text-align:center;">${AudioEngine.beats}</span>
+            <button onclick="AudioEngine.setBeats(AudioEngine.beats+1)" style="background:none; border:none; color:var(--accent); font-weight:bold; cursor:pointer;">+</button>
+            <span style="margin-left:5px; color:#aaa;">Beats</span>
+        </div>
+        <button onclick="toggleSoundLab()" class="icon-btn" title="Sound Lab Settings" style="border:1px solid #444; font-size:0.8rem; padding:4px 8px;">
+            <i class="fas fa-sliders-h"></i> Sound Lab
+        </button>
+    `;
+    header.appendChild(div);
+}
+
+function generateGridRows(container) {
+    container.innerHTML = '';
+    const tracks = [
+        {n:"HAT", c:"#f1c40f", rowClass:"row-HAT"},
+        {n:"RIM", c:"#3498db", rowClass:"row-RIM"},
+        {n:"TOM", c:"#2ecc71", rowClass:"row-TOM"},
+        {n:"KICK",c:"#e74c3c", rowClass:"row-KICK"}
+    ];
+    
+    const steps = AudioEngine.beats * 4;
+    
+    tracks.forEach(t => {
+        // Vertical Wrapper for Mobile
+        const wrapper = document.createElement('div');
+        wrapper.className = `track-wrapper ${t.rowClass}`;
+        
+        // Header (Name)
+        const label = document.createElement('div');
+        label.className = 'track-label';
+        label.style.color = t.c;
+        label.innerHTML = `<span>${t.n}</span>`;
+        wrapper.appendChild(label);
+        
+        // Grid Container
+        const grid = document.createElement('div');
+        grid.className = 'track-grid';
+        
+        for(let i=0; i<steps; i++) {
+            const cl = document.createElement('div');
+            cl.className = 'cell';
+            cl.dataset.step = i;
+            if(i % 4 === 0) cl.classList.add('beat-start'); // Visual marker
+            
+            cl.onclick = function() {
+                this.classList.toggle('active');
+                this.style.backgroundColor = this.classList.contains('active') ? t.c : '#333';
+            };
+            grid.appendChild(cl);
+        }
+        wrapper.appendChild(grid);
+        container.appendChild(wrapper);
+    });
+}
+
+function toggleSoundLab() {
+    let m = document.getElementById('sound-lab-modal');
+    if(!m) { createSoundLabModal(); m = document.getElementById('sound-lab-modal'); }
+    m.style.display = (m.style.display === 'flex') ? 'none' : 'flex';
+}
+
+function createSoundLabModal() {
+    const d = document.createElement('div');
+    d.id = 'sound-lab-modal';
+    d.className = 'modal-overlay'; 
+    d.style.cssText = "display:none; z-index:2000; align-items:center; justify-content:center;";
+    
+    window.updateParam = (obj, prop, val) => {
+        AudioEngine.soundConfig[obj][prop] = parseFloat(val);
+        document.getElementById(`val-${obj}-${prop}`).innerText = val;
+        AudioEngine.playPercussion(AudioEngine.ctx.currentTime, obj);
+    };
+
+    const slider = (lbl, obj, prop, min, max, step, col) => `
+        <div style="margin-bottom:8px;">
+            <div style="display:flex; justify-content:space-between; font-size:0.7rem; color:${col}; margin-bottom:2px;">
+                <span>${lbl}</span><span id="val-${obj}-${prop}">${AudioEngine.soundConfig[obj][prop]}</span>
+            </div>
+            <input type="range" class="compact-range" min="${min}" max="${max}" step="${step}" value="${AudioEngine.soundConfig[obj][prop]}" 
+            oninput="updateParam('${obj}','${prop}',this.value)">
+        </div>`;
+
+    d.innerHTML = `
+        <div class="modal-box" style="width:95%; max-width:400px; max-height:85vh; overflow-y:auto; background:#1a1a1a; padding:15px;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:15px; border-bottom:1px solid #444; padding-bottom:10px;">
+                <h3 style="margin:0; font-size:1.1rem;"><i class="fas fa-sliders-h"></i> Sound Lab</h3>
+                <button onclick="document.getElementById('sound-lab-modal').style.display='none'" class="text-btn" style="color:#fff;">&times;</button>
+            </div>
+            
+            <div style="border-left:3px solid #e74c3c; padding-left:10px; margin-bottom:15px;">
+                <h4 style="color:#e74c3c; margin:0 0 5px 0; font-size:0.8rem;">KICK DRUM</h4>
+                ${slider('Start Freq', 'kick', 'startFreq', 50, 300, 1, '#e74c3c')}
+                ${slider('End Freq', 'kick', 'endFreq', 10, 100, 1, '#e74c3c')}
+                ${slider('Decay', 'kick', 'decay', 0.1, 1.0, 0.05, '#e74c3c')}
+                ${slider('Volume', 'kick', 'vol', 0, 1.5, 0.1, '#e74c3c')}
+            </div>
+
+            <div style="border-left:3px solid #2ecc71; padding-left:10px; margin-bottom:15px;">
+                <h4 style="color:#2ecc71; margin:0 0 5px 0; font-size:0.8rem;">TOM</h4>
+                ${slider('Frequency', 'tom', 'freq', 50, 300, 1, '#2ecc71')}
+                ${slider('Decay', 'tom', 'decay', 0.1, 1.0, 0.05, '#2ecc71')}
+                ${slider('Volume', 'tom', 'vol', 0, 1.5, 0.1, '#2ecc71')}
+                <select class="inp" style="width:100%; font-size:0.8rem; margin-top:5px;" onchange="AudioEngine.soundConfig.tom.type=this.value; AudioEngine.playPercussion(AudioEngine.ctx.currentTime,'tom')">
+                    <option value="sine">Sine</option>
+                    <option value="triangle" selected>Triangle</option>
+                    <option value="square">Square</option>
+                </select>
+            </div>
+
+            <div style="border-left:3px solid #3498db; padding-left:10px; margin-bottom:15px;">
+                <h4 style="color:#3498db; margin:0 0 5px 0; font-size:0.8rem;">RIM SHOT</h4>
+                ${slider('Frequency', 'rim', 'freq', 100, 1500, 10, '#3498db')}
+                ${slider('Decay', 'rim', 'decay', 0.01, 0.3, 0.01, '#3498db')}
+                ${slider('Volume', 'rim', 'vol', 0, 1.5, 0.1, '#3498db')}
+            </div>
+
+            <div style="border-left:3px solid #f1c40f; padding-left:10px;">
+                <h4 style="color:#f1c40f; margin:0 0 5px 0; font-size:0.8rem;">HI-HATS</h4>
+                ${slider('Filter Freq', 'hat', 'freq', 500, 5000, 50, '#f1c40f')}
+                ${slider('Decay', 'hat', 'decay', 0.01, 0.3, 0.01, '#f1c40f')}
+                ${slider('Volume', 'hat', 'vol', 0, 1.5, 0.1, '#f1c40f')}
+            </div>
+        </div>
+    `;
+    document.body.appendChild(d);
+}

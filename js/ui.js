@@ -1653,46 +1653,63 @@ function injectSequencerControls() {
 
 function generateGridRows(container) {
     container.innerHTML = '';
-    const tracks = [
-        {n:"HAT", c:"#f1c40f", rowClass:"row-HAT"},
-        {n:"RIM", c:"#3498db", rowClass:"row-RIM"},
-        {n:"TOM", c:"#2ecc71", rowClass:"row-TOM"},
-        {n:"KICK",c:"#e74c3c", rowClass:"row-KICK"}
+    
+    // Τα όργανα με τα χρώματά τους
+    const instruments = [
+        {n:"HAT", c:"#f1c40f", rowId:"row-HAT"},
+        {n:"RIM", c:"#3498db", rowId:"row-RIM"},
+        {n:"TOM", c:"#2ecc71", rowId:"row-TOM"},
+        {n:"KICK",c:"#e74c3c", rowId:"row-KICK"}
     ];
-    
-    const steps = AudioEngine.beats * 4;
-    
-    tracks.forEach(t => {
-        // Vertical Wrapper for Mobile
-        const wrapper = document.createElement('div');
-        wrapper.className = `track-wrapper ${t.rowClass}`;
+
+    // LOOP ΓΙΑ ΚΑΘΕ BEAT (Μέτρο)
+    for (let b = 0; b < AudioEngine.beats; b++) {
         
-        // Header (Name)
-        const label = document.createElement('div');
-        label.className = 'track-label';
-        label.style.color = t.c;
-        label.innerHTML = `<span>${t.n}</span>`;
-        wrapper.appendChild(label);
+        // 1. Δημιουργία του Κουτιού (Beat Block)
+        const block = document.createElement('div');
+        block.className = 'beat-block';
         
-        // Grid Container
-        const grid = document.createElement('div');
-        grid.className = 'track-grid';
-        
-        for(let i=0; i<steps; i++) {
-            const cl = document.createElement('div');
-            cl.className = 'cell';
-            cl.dataset.step = i;
-            if(i % 4 === 0) cl.classList.add('beat-start'); // Visual marker
+        // Αριθμός Beat πάνω δεξιά
+        const num = document.createElement('div');
+        num.className = 'beat-number';
+        num.innerText = b + 1;
+        block.appendChild(num);
+
+        // 2. Μέσα στο κουτί, βάζουμε τις 4 γραμμές οργάνων
+        instruments.forEach(inst => {
+            const row = document.createElement('div');
+            row.className = `inst-row ${inst.rowId}`; // Class για το AudioEngine
             
-            cl.onclick = function() {
-                this.classList.toggle('active');
-                this.style.backgroundColor = this.classList.contains('active') ? t.c : '#333';
-            };
-            grid.appendChild(cl);
-        }
-        wrapper.appendChild(grid);
-        container.appendChild(wrapper);
-    });
+            // Α. Ετικέτα (π.χ. KICK)
+            const lbl = document.createElement('div');
+            lbl.className = 'inst-label';
+            lbl.style.color = inst.c;
+            lbl.innerText = inst.n.substring(0,3); // Πρώτα 3 γράμματα
+            row.appendChild(lbl);
+            
+            // Β. Τα 4 βήματα (16α)
+            const stepsDiv = document.createElement('div');
+            stepsDiv.className = 'steps-group';
+            
+            for (let s = 0; s < 4; s++) {
+                const globalStep = (b * 4) + s; // Υπολογισμός συνολικού βήματος
+                
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.dataset.step = globalStep; // Το AudioEngine χρειάζεται αυτό
+                
+                cell.onclick = function() {
+                    this.classList.toggle('active');
+                    this.style.backgroundColor = this.classList.contains('active') ? inst.c : '#2a2a2a';
+                };
+                stepsDiv.appendChild(cell);
+            }
+            row.appendChild(stepsDiv);
+            block.appendChild(row);
+        });
+
+        container.appendChild(block);
+    }
 }
 
 function toggleSoundLab() {

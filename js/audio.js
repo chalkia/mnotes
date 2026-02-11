@@ -11,7 +11,7 @@ const AudioEngine = {
     scheduleAheadTime: 0.1,
     lookahead: 25.0,
     noiseBuffer: null,
-    
+    gridData: { HAT: [], RIM: [], TOM: [], KICK: [] },
     // Rhythm Settings
     beats: 4,          
     bpm: 100,
@@ -99,27 +99,26 @@ const AudioEngine = {
         this.currentStep++;
         if (this.currentStep >= this.beats * 4) this.currentStep = 0;
     },
-
     scheduleNote: function(stepNumber, time) {
-        // Visual Feedback
-        const drawTime = (time - this.ctx.currentTime) * 1000;
-        setTimeout(() => {
-            document.querySelectorAll('.cell.highlight').forEach(c => c.classList.remove('highlight'));
-            const activeCells = document.querySelectorAll(`.cell[data-step="${stepNumber}"]`);
-            activeCells.forEach(c => c.classList.add('highlight'));
-        }, drawTime > 0 ? drawTime : 0);
+    // Visual Feedback (Η γραμμή που τρέχει)
+    const drawTime = (time - this.ctx.currentTime) * 1000;
+    setTimeout(() => {
+        document.querySelectorAll('.cell.highlight').forEach(c => c.classList.remove('highlight'));
+        const activeCells = document.querySelectorAll(`.cell[data-step="${stepNumber}"]`);
+        activeCells.forEach(c => c.classList.add('highlight'));
+    }, drawTime > 0 ? drawTime : 0);
 
-        // Audio Trigger (Checks DOM classes row-KICK, row-HAT etc.)
-        const checkInstrument = (rowClass, type) => {
-            const cell = document.querySelector(`.${rowClass} .cell[data-step="${stepNumber}"]`);
-            if (cell && cell.classList.contains('active')) this.playPercussion(time, type);
-        };
-
-        checkInstrument('row-HAT', 'hat');
-        checkInstrument('row-RIM', 'rim');
-        checkInstrument('row-TOM', 'tom');
-        checkInstrument('row-KICK', 'kick');
-    },
+    // Audio Trigger - ΤΩΡΑ ΔΙΑΒΑΖΕΙ ΑΠΟ ΤΗ ΜΝΗΜΗ (gridData)
+    ['HAT', 'RIM', 'TOM', 'KICK'].forEach(type => {
+        if (this.gridData[type] && this.gridData[type][stepNumber]) {
+            this.playPercussion(time, type.toLowerCase());
+        }
+    });
+},
+toggleStepData: function(instId, stepIdx, isActive) {
+    if (!this.gridData[instId]) this.gridData[instId] = [];
+    this.gridData[instId][stepIdx] = isActive;
+},
 
     playPercussion: function(time, type) {
         const gain = this.ctx.createGain();

@@ -456,7 +456,18 @@ function renderPlayer(s) {
     const hasNotes = (s.conductorNotes && s.conductorNotes.trim().length > 0) || (personalNotesMap[s.id] && personalNotesMap[s.id].trim().length > 0);
     
  // --- ΛΟΓΙΚΗ INTRO/INTER ---
-    const sizeClass = `intro-size-${introSizeLevel}`; // Η κλάση CSS (0, 1 ή 2)
+  if (s.intro) {
+            metaHtml += `<div class="meta-row ${sizeClass}">
+                            ${btnHtml} <span><strong>Intro:</strong> ${parseMetaLine(s.intro)}</span>
+                         </div>`;
+        }
+        
+        if (s.interlude) {
+            const showBtnHere = (!s.intro) ? btnHtml : '<span class="spacer-btn"></span>'; 
+            metaHtml += `<div class="meta-row ${sizeClass}">
+                            ${showBtnHere} <span><strong>Inter:</strong> ${parseMetaLine(s.interlude)}</span>
+                         </div>`;
+        }
     
     // ΤΟ ΚΟΥΜΠΙ ΜΕ ΤΟ ID ΤΟΥ
     const btnHtml = `<button id="btnIntroToggle" onclick="cycleIntroSize()" class="size-toggle-btn" title="Change Text Size"><i class="fas fa-text-height"></i></button>`;

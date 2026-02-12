@@ -8,6 +8,7 @@ let myGroups = [];
 let currentGroupId = 'personal'; 
 let currentRole = 'owner';   
 let isOffline = !navigator.onLine;
+let lastImportedIds = new Set(); // Κρατάει τα IDs μόνο της τελευταίας εισαγωγής για τη συνεδρία
 
 // --- TIER CONFIGURATION ---
 const TIER_CONFIG = {
@@ -563,4 +564,49 @@ function applyEditorPlaceholders() {
         const el = document.getElementById(f.id);
         if (el) el.placeholder = t(f.key);
     });
+   /**
+ * Επεξεργασία δεδομένων που εισάγονται από αρχείο ή URL
+ */
+function processImportedData(data) {
+    if (!data) return;
+    
+    // 1. Καθαρισμός προηγούμενων μαρκαρισμάτων (μόνο για αυτή τη συνεδρία)
+    lastImportedIds.clear(); 
+    
+    // Μετατροπή σε πίνακα αν είναι ένα τραγούδι
+    let newSongs = Array.isArray(data) ? data : (data.songs ? data.songs : [data]);
+    let hasNew = false;
+
+    newSongs.forEach(song => {
+        let cleanSong = ensureSongStructure(song);
+        
+        // Έλεγχος αν υπάρχει ήδη
+        const exists = library.find(s => 
+            s.title.toLowerCase() === cleanSong.title.toLowerCase() && 
+            (s.artist || "").toLowerCase() === (cleanSong.artist || "").toLowerCase()
+        );
+
+        if (!exists) {
+            library.push(cleanSong);
+            lastImportedIds.add(cleanSong.id); // Μαρκάρισμα ως νέο για το UI
+            hasNew = true;
+        }
+    });
+
+    if (hasNew) {
+        saveToLocalStorage(); // Ενημέρωση LocalStorage
+        if (typeof renderSidebar === 'function') renderSidebar(); 
+
+        // 2. Αυτόματη πλοήγηση στο πρώτο νέο τραγούδι (βάσει ταξινόμησης)
+        // Η visiblePlaylist είναι ενημερωμένη από τη renderSidebar
+        const firstNew = visiblePlaylist.find(s => lastImportedIds.has(s.id));
+        if (firstNew) {
+            loadSong(firstNew.id);
+        }
+        
+        showToast(t('msg_imported') || "Import Successful!");
+    } else {
+        showToast("No new songs found.");
+    }
+}
 }

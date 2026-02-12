@@ -1101,3 +1101,56 @@ details[open] summary::after { transform: rotate(180deg); color: var(--accent); 
     .mobile-nav {
         display: none !important;
     }
+/* =========================================
+   THEME-DRIVEN LIBRARY SEPARATION
+   ========================================= */
+
+/* 1. Κοινή βάση και για τα δύο */
+.song-item {
+    border-left: 4px solid transparent; /* Προετοιμασία για το χρώμα */
+    transition: all 0.2s ease;
+}
+
+/* 2. Προσωπικά Τραγούδια (Personal) */
+.song-item.personal-cloud {
+    border-left-color: var(--accent); /* Χρησιμοποιεί το χρώμα του θέματος */
+}
+.song-item.personal-cloud:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* 3. Τραγούδια Μπάντας (Band) */
+.song-item.band-cloud {
+    /* Χρησιμοποιούμε το text-muted για να είναι πιο "ήσυχο" 
+       ή μια σταθερή απόχρωση που ταιριάζει με το "σύνολο" */
+    border-left-color: var(--text-muted); 
+    opacity: 0.9;
+}
+
+/* Ειδική ρύθμιση για τον τίτλο της Μπάντας */
+.song-item.band-cloud .song-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Προσθήκη εικονιδίου "Ομάδας" πριν τον τίτλο μόνο για την μπάντα */
+.song-item.band-cloud .song-title::before {
+    content: '\f0c0'; /* FontAwesome Users Icon */
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+/* 4. Active State Override */
+/* Όταν ένα τραγούδι είναι επιλεγμένο, το border-left γίνεται πάντα έντονο */
+.song-item.active {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-left-width: 6px; /* Λίγο πιο παχύ για να ξεχωρίζει */
+}
+
+/* Highlight για το Light Theme (γιατί το λευκό θέλει σκούρο background στο hover) */
+body.theme-light .song-item:hover {
+    background: rgba(0, 0, 0, 0.05);
+}

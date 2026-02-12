@@ -420,6 +420,14 @@ function parseSongLogic(song) {
         state.parsedChords.push({ type: 'mixed', tokens: tokens });
     });
 }
+/**
+ * Μετατρέπει συγχορδίες σε στυλ [Am] σε στυλ !Am για εσωτερική χρήση
+ */
+function convertBracketsToBang(text) {
+    if (!text) return "";
+    // Αντικαθιστά το [Chord] με !Chord
+    return text.replace(/\[([a-zA-G][b#]?[m]?[maj7|sus4|7|add9|dim|0-9|\/]*)\]/g, "!$1");
+}
 async function loadContextData() {
     library = [];
     const listEl = document.getElementById('songList');

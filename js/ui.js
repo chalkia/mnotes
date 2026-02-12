@@ -189,8 +189,8 @@ function renderSidebar() {
     // 2. Rendering
     visiblePlaylist.forEach(s => {
         var li = document.createElement('li');
-        
-        let itemClass = `song-item ${currentSongId === s.id ? 'active' : ''}`;
+        let isNew = (typeof lastImportedIds !== 'undefined' && lastImportedIds.has(s.id));
+        let itemClass = `song-item ${currentSongId === s.id ? 'active' : ''} ${isNew ? 'new-import' : ''}`;
         li.className = itemClass;
         li.setAttribute('data-id', s.id);
 
@@ -452,11 +452,19 @@ function loadSong(id) {
 /* --- ΑΝΤΙΚΑΤΑΣΤΑΣΗ ΤΗΣ ΣΥΝΑΡΤΗΣΗΣ renderPlayer --- */
 function renderPlayer(s) {
     if (!s) return;
+    
+    // 1. Δηλώνουμε ΟΛΕΣ τις μεταβλητές στην αρχή
+    let metaHtml = ""; 
     const personalNotesMap = JSON.parse(localStorage.getItem('mnotes_personal_notes') || '{}');
     const hasNotes = (s.conductorNotes && s.conductorNotes.trim().length > 0) || (personalNotesMap[s.id] && personalNotesMap[s.id].trim().length > 0);
-    
- // --- ΛΟΓΙΚΗ INTRO/INTER ---
-  if (s.intro) {
+    const sizeClass = `intro-size-${introSizeLevel}`; 
+    const btnHtml = `<button id="btnIntroToggle" onclick="cycleIntroSize()" class="size-toggle-btn" title="Change Text Size"><i class="fas fa-text-height"></i></button>`;
+
+    // 2. Λογική Intro/Inter (Μία φορά, με σωστή σειρά)
+    if (s.intro || s.interlude) {
+        metaHtml += `<div class="meta-info-box">`;
+        
+        if (s.intro) {
             metaHtml += `<div class="meta-row ${sizeClass}">
                             ${btnHtml} <span><strong>Intro:</strong> ${parseMetaLine(s.intro)}</span>
                          </div>`;
@@ -468,35 +476,14 @@ function renderPlayer(s) {
                             ${showBtnHere} <span><strong>Inter:</strong> ${parseMetaLine(s.interlude)}</span>
                          </div>`;
         }
-    
-    // ΤΟ ΚΟΥΜΠΙ ΜΕ ΤΟ ID ΤΟΥ
-    const btnHtml = `<button id="btnIntroToggle" onclick="cycleIntroSize()" class="size-toggle-btn" title="Change Text Size"><i class="fas fa-text-height"></i></button>`;
-    
-    let metaHtml = "";
-    if (s.intro || s.interlude) {
-        metaHtml += `<div class="meta-info-box">`;
-        
-        if (s.intro) {
-            // Κουμπί ΜΠΡΟΣΤΑ, Κείμενο ΜΕΤΑ
-            metaHtml += `<div class="meta-row ${sizeClass}">
-                            ${btnHtml} <span><strong>Intro:</strong> ${s.intro}</span>
-                         </div>`;
-        }
-        
-        if (s.interlude) {
-            // Αν δεν υπάρχει Intro, βάζουμε το κουμπί στο Inter. Αλλιώς βάζουμε κενό (spacer) για ευθυγράμμιση.
-            const showBtnHere = (!s.intro) ? btnHtml : '<span class="spacer-btn"></span>'; 
-            metaHtml += `<div class="meta-row ${sizeClass}">
-                            ${showBtnHere} <span><strong>Inter:</strong> ${s.interlude}</span>
-                         </div>`;
-        }
-        
         metaHtml += `</div>`;
     }
     
-    if (hasNotes) metaHtml += `<div style="margin-top:5px;"><span class="meta-note-badge"><i class="fas fa-sticky-note"></i> Note</span></div>`;
+    if (hasNotes) {
+        metaHtml += `<div style="margin-top:5px;"><span class="meta-note-badge"><i class="fas fa-sticky-note"></i> Note</span></div>`;
+    }
     
-    // --- PLAYER HEADER ---
+       // --- PLAYER HEADER ---
     const headerContainer = document.querySelector('.player-header-container');
     if (headerContainer) {
         headerContainer.innerHTML = `

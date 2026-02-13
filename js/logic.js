@@ -714,6 +714,190 @@ async function importToPersonalLibraryFromData(data) {
 async function applySimulation() {
     const simTier = document.getElementById('debugTier').value;
     const simRole = document.getElementById('debugRole').value;
+   /* =========================================
+   BAND MANAGER LOGIC
+   ========================================= */
+
+async function renderBandManager() {
+    const container = document.getElementById('bandManagerContent');
+    if (!container) return;
+
+    // --- ΣΕΝΑΡΙΟ 1: PERSONAL CONTEXT (Δημιουργία) ---
+    if (currentGroupId === 'personal') {
+        container.innerHTML = `
+            <div style="text-align:center; padding:20px 10px;">
+                <p style="font-size:0.9rem; color:#aaa; margin-bottom:15px;">
+                    Διαχειριστείτε τις μπάντες σας ή δημιουργήστε καινούργια.
+                </p>
+                <button onclick="createNewBandUI()" class="footer-btn" style="width:100%; justify-content:center; background:var(--accent); color:#000; font-weight:bold;">
+                    <i class="fas fa-plus-circle"></i> Create New Band
+                </button>
+            </div>
+        `;
+        return;
+    }
+
+    // --- ΣΕΝΑΡΙΟ 2: BAND CONTEXT (Διαχείριση) ---
+    container.innerHTML = '<div class="loading-placeholder">Loading Band Data...</div>';
+
+    // 1. Φέρνουμε τα μέλη
+    const { data: members, error } = await supabaseClient
+        .from('group_members')
+        .select('role, user_id, profiles(email)') // Join με profiles
+        .eq('group_id', currentGroupId);
+
+    if (error) {
+        container.innerHTML = `<div class="error">Error loading members</div>`;
+        return;
+    }
+
+    const isOwner = (currentRole === 'owner' || currentRole === 'admin');
+    
+    // 2. Χτίζουμε το HTML
+    let html = `<div class="band-stat">MEMBERS: ${members.length} / 5</div>`;
+    html += `<div class="member-list">`;
+    
+    members.forEach(m => {
+        // Fallback αν το email δεν φορτώσει
+        let displayEmail = m.profiles?.email ? m.profiles.email.split('@')[0] : "User " + m.user_id.slice(0,4);
+        const roleIcon = m.role === 'owner' ? '👑' : '🎸';
+        const isMe = m.user_id === currentUser.id;
+        
+        html += `
+            <div class="member-item ${m.role}">
+                <div style="overflow:hidden; text-overflow:ellipsis;">
+                    <span title="${m.role}">${roleIcon}</span> 
+                    ${isMe ? '<strong>You</strong>' : displayEmail}
+                </div>
+                ${isOwner && !isMe ? 
+                    `<button onclick="kickMember('${m.user_id}')" class="icon-btn danger" title="Kick Member" style="padding:2px 6px; font-size:0.8rem;"><i class="fas fa-times"></i></button>` 
+                    : ''}
+            </div>`;
+    });
+    html += `</div>`; // Κλείσιμο λίστας
+
+    // 3. Εργαλεία Admin (Invite Code)
+    if (isOwner) {
+        html += `
+            <div class="invite-box">
+                <div style="font-size:0.8rem; text-transform:uppercase;">INVITE CODE</div>
+                <span class="invite-code-display" id="invCodeDisp">...</span>
+                <button onclick="copyInviteCode()" class="footer-btn small" style="margin:0 auto;">
+                    <i class="far fa-copy"></i> Copy Link
+                </button>
+            </div>
+            <button onclick="deleteBand()" class="footer-btn danger-v2" style="width:100%;">
+                <i class="fas fa-bomb"></i> DISBAND GROUP
+            </button>
+        `;
+        // Async call για φόρτωση κωδικού
+        setTimeout(fetchInviteCode, 100); 
+    } else {
+        // Εργαλεία Μέλους
+        html += `
+            <button onclick="leaveBand()" class="footer-btn danger-v2" style="width:100%;">
+                <i class="fas fa-sign-out-alt"></i> LEAVE BAND
+            </button>
+        `;
+    }
+
+    container.innerHTML = html;
+}
+
+// --- ACTIONS ---
+
+async function createNewBandUI() {
+    const name = prompt("Όνομα νέας μπάντας:");
+    if(!name) return;
+
+    // Έλεγχος: Αν είσαι Solo Pro και έχεις ήδη Owner role σε group
+    const myOwnedGroups = myGroups.filter(g => g.role === 'owner');
+    // ΠΡΟΣΟΧΗ: Εδώ ελέγχουμε το userProfile.subscription_tier
+    const tier = userProfile?.subscription_tier || 'free';
+    
+    if (tier === 'solo' && myOwnedGroups.length >= 1) {
+        alert("Ως Solo Pro, μπορείτε να είστε ιδιοκτήτης μόνο σε 1 μπάντα.");
+        return;
+    }
+    if (tier === 'free') {
+        alert("Αναβαθμίστε σε Solo Pro για να δημιουργήσετε μπάντα!");
+        return;
+    }
+
+    // Insert Group
+    const { data, error } = await supabaseClient
+        .from('groups')
+        .insert([{ name: name, owner_id: currentUser.id }])
+        .select();
+
+    if(error) { 
+        console.error(error); 
+        showToast("Error creating band", "error"); 
+        return; 
+    }
+
+    const newGroupId = data[0].id;
+
+    // Insert Member (Owner)
+    await supabaseClient
+        .from('group_members')
+        .insert([{ group_id: newGroupId, user_id: currentUser.id, role: 'owner' }]);
+
+    showToast("Band Created! 🎉");
+    
+    // Refresh για να φανεί παντού
+    window.location.reload(); 
+}
+
+async function fetchInviteCode() {
+    const { data, error } = await supabaseClient
+        .from('groups')
+        .select('invite_code')
+        .eq('id', currentGroupId)
+        .single();
+        
+    if(data) {
+        let code = data.invite_code;
+        // Αν δεν υπάρχει, γεννάμε έναν
+        if(!code) {
+            code = Math.random().toString(36).substring(2, 8).toUpperCase();
+            await supabaseClient.from('groups').update({ invite_code: code }).eq('id', currentGroupId);
+        }
+        const el = document.getElementById('invCodeDisp');
+        if(el) el.innerText = code;
+    }
+}
+
+function copyInviteCode() {
+    const code = document.getElementById('invCodeDisp').innerText;
+    // Φτιάχνουμε ένα υποθετικό link (θα το υλοποιήσουμε μετά στο routing)
+    const link = `${window.location.origin}?join=${code}`;
+    navigator.clipboard.writeText(link);
+    showToast("Invite Link Copied! 📋");
+}
+
+async function kickMember(uid) {
+    if(!confirm("Είστε σίγουροι ότι θέλετε να απομακρύνετε αυτό το μέλος;")) return;
+    await supabaseClient.from('group_members').delete().eq('group_id', currentGroupId).eq('user_id', uid);
+    renderBandManager(); // Refresh list
+    showToast("Member removed.");
+}
+
+async function leaveBand() {
+    if(!confirm("Θέλετε να αποχωρήσετε από την μπάντα;")) return;
+    await supabaseClient.from('group_members').delete().eq('group_id', currentGroupId).eq('user_id', currentUser.id);
+    window.location.reload();
+}
+
+async function deleteBand() {
+    const conf = prompt("ΠΡΟΣΟΧΗ: Θα διαγραφούν ΟΛΑ τα δεδομένα.\nΓράψτε 'DELETE' για επιβεβαίωση:");
+    if(conf === 'DELETE') {
+        // Λόγω Foreign Keys, συνήθως πρέπει να σβήσεις πρώτα τα members/songs
+        // Αλλά αν έχεις βάλει ON DELETE CASCADE στη βάση, αρκεί αυτό:
+        await supabaseClient.from('groups').delete().eq('id', currentGroupId);
+        window.location.reload();
+    }
+}
 
     console.log(`🧪 SIMULATING: Tier=${simTier}, Role=${simRole}`);
 

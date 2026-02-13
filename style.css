@@ -1282,4 +1282,54 @@ body.viewing-original .col-stage {
     margin-top: 10px;
 }
 .debug-btn:hover { background: #cc0000; }
+/* BAND MANAGER STYLING */
+.member-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 15px;
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.member-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255,255,255,0.05);
+    padding: 8px 10px;
+    border-radius: 4px;
+    border-left: 3px solid #555;
+    font-size: 0.9rem;
+}
+
+.member-item.owner { border-left-color: var(--accent); } /* Χρώμα Αρχηγού */
+.member-item.admin { border-left-color: #ff9800; }     /* Χρώμα Admin */
+
+.invite-box {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px dashed var(--accent);
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.invite-code-display {
+    font-family: 'Courier New', monospace;
+    font-size: 1.4rem;
+    letter-spacing: 3px;
+    font-weight: bold;
+    color: var(--accent);
+    margin: 10px 0;
+    display: block;
+    user-select: all; /* Για εύκολη επιλογή */
+}
+
+.band-stat {
+    font-size: 0.8rem;
+    color: #888;
+    margin-bottom: 5px;
+    text-align: center;
+}
 

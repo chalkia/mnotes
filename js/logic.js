@@ -708,3 +708,48 @@ async function importToPersonalLibraryFromData(data) {
         showToast("Error copying song", "error");
     }
 }
+/**
+ * Εφαρμογή των ρυθμίσεων του God Mode
+ */
+async function applySimulation() {
+    const simTier = document.getElementById('debugTier').value;
+    const simRole = document.getElementById('debugRole').value;
+
+    console.log(`🧪 SIMULATING: Tier=${simTier}, Role=${simRole}`);
+
+    // 1. Override User Profile (Memory Only)
+    if (!userProfile) userProfile = { id: 'sim_user' };
+    userProfile.subscription_tier = simTier;
+
+    // 2. Override Current Role
+    currentRole = simRole;
+
+    // 3. Ειδική μεταχείριση για το Context
+    // Αν επιλέξουμε 'owner', υποθέτουμε Personal Context
+    if (simRole === 'owner') {
+        currentGroupId = 'personal';
+        document.body.classList.remove('band-mode');
+        document.body.classList.add('personal-mode');
+    } else {
+        // Αν επιλέξουμε admin/member, υποθέτουμε ότι είμαστε σε μπάντα
+        // (Αν δεν υπάρχει μπάντα, φτιάχνουμε μια ψεύτικη ID για να δουλέψει το UI)
+        if (currentGroupId === 'personal') currentGroupId = 'simulated_band_id';
+        
+        document.body.classList.remove('personal-mode');
+        document.body.classList.add('band-mode');
+    }
+
+    // 4. Update UI
+    updateUIForRole(); // Εμφάνιση/Απόκρυψη κουμπιών
+    
+    // Ανανέωση Sidebar (για να πάρει τα νέα χρώματα)
+    if (typeof renderSidebar === 'function') renderSidebar();
+    
+    // Ανανέωση Player (για να κρύψει/δείξει notes κλπ)
+    if (currentSongId) {
+        const s = library.find(x => x.id === currentSongId);
+        if (s && typeof renderPlayer === 'function') renderPlayer(s);
+    }
+
+    showToast(`Simulation Applied: ${simTier.toUpperCase()} / ${simRole.toUpperCase()}`);
+}

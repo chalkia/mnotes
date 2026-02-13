@@ -7,6 +7,9 @@
 
 if(typeof library === 'undefined') var library = [];
 if(typeof state === 'undefined') var state = { t: 0, c: 0, meta: {}, parsedChords: [] };
+var library = library || [];
+var state = state || { t: 0, c: 0, meta: {}, parsedChords: [] };
+var currentSongId = currentSongId || null;
 if(typeof currentSongId === 'undefined') var currentSongId = null;
 
 var visiblePlaylist = [];
@@ -15,6 +18,7 @@ var editorTags = [];
 var viewMode = 'library'; 
 var isLyricsMode = false; 
 var wakeLock = null; 
+var introSizeLevel = parseInt(localStorage.getItem('mnotes_intro_size')) || 0;
 
 // Audio Globals
 var mediaRecorder = null;
@@ -1271,9 +1275,6 @@ function navSetlist(dir) {
 // ===========================================================
 // 10. VISUAL HELPERS (Sticky, Audio List)
 // ===========================================================
-
-// Global Variable για το μέγεθος (0=Small, 1=Medium, 2=Large)
-var introSizeLevel = parseInt(localStorage.getItem('mnotes_intro_size')) || 0;
 
 function cycleIntroSize() {
     // Αλλαγή: 0 -> 1 -> 2 -> 0

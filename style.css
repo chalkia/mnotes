@@ -1154,3 +1154,63 @@ details[open] summary::after { transform: rotate(180deg); color: var(--accent); 
 body.theme-light .song-item:hover {
     background: rgba(0, 0, 0, 0.05);
 }
+
+/* =========================================
+   LIBRARY CONTEXT & ROLES STYLING
+   ========================================= */
+
+/* 1. Προσωπικά Τραγούδια (My Songs) - Χρησιμοποιεί το Accent του θέματος */
+.song-item.personal-cloud {
+    border-left: 4px solid var(--accent);
+}
+
+/* 2. Τραγούδια Μπάντας (Band Songs) - Σταθερό διακριτικό χρώμα */
+.song-item.band-cloud {
+    border-left: 4px solid var(--text-muted); 
+    background: rgba(255, 255, 255, 0.02);
+}
+/* Εικονίδιο ομάδας πριν τον τίτλο */
+.song-item.band-cloud .song-title::before {
+    content: '\f0c0'; /* FontAwesome Users Icon */
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    margin-right: 6px;
+    font-size: 0.75rem;
+    opacity: 0.6;
+}
+
+/* 3. Proposals (Εκκρεμείς Προτάσεις - Ορατά στον Admin) */
+.song-item.proposal-item {
+    border-left: 4px dashed var(--accent);
+    opacity: 0.8;
+}
+
+/* 4. Toggle Button στον Player (W.Y.S.I.W.Y.G.) */
+#btnToggleView {
+    font-size: 0.75rem;
+    padding: 4px 8px;
+    margin-left: 10px;
+    border: 1px solid var(--border-color);
+    background: var(--input-bg);
+    color: var(--text-muted);
+    border-radius: 4px;
+    cursor: pointer;
+    display: none; /* Κρυφό αρχικά */
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s ease;
+}
+#btnToggleView.active-mode {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(255, 255, 255, 0.05);
+    font-weight: bold;
+}
+#btnToggleView:hover {
+    filter: brightness(1.2);
+}
+
+/* Όταν βλέπεις το Original (Band View), δίνουμε μια οπτική ένδειξη στο background */
+body.viewing-original .col-stage {
+    background-image: linear-gradient(to bottom, rgba(255, 152, 0, 0.03), transparent 300px);
+}

@@ -130,3 +130,98 @@ function prevSong() {
         if (typeof renderSidebar === 'function') renderSidebar(); 
     } 
 }
+/* ===========================================================
+   SUPER USER / GOD MODE LOGIC
+   =========================================================== */
+
+let pressTimer;
+const SUPER_USER_PASS = "admin123"; // Ο κωδικός σου
+
+// 1. Setup Listeners στο ξεκίνημα
+document.addEventListener('DOMContentLoaded', () => {
+    // Στοχεύουμε και το κάτω κουμπί της Sidebar και του Drawer
+    const targets = ['btnAuthBottom', 'btnAuthDrawer'];
+    
+    targets.forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) {
+            // Desktop/Mouse events
+            btn.addEventListener('mousedown', startPressTimer);
+            btn.addEventListener('mouseup', cancelPressTimer);
+            btn.addEventListener('mouseleave', cancelPressTimer);
+            
+            // Mobile/Touch events
+            btn.addEventListener('touchstart', startPressTimer);
+            btn.addEventListener('touchend', cancelPressTimer);
+        }
+    });
+
+    // Δημιουργία του Panel στο DOM (κρυφό)
+    createDebugPanel();
+});
+
+function startPressTimer(e) {
+    // Ακύρωση του default click για να μην ανοίξει το Auth Modal αμέσως
+    // (Προαιρετικό, αλλά βοηθάει να μην πετάγεται το modal)
+    
+    console.log("⏳ Starting Super User Timer...");
+    pressTimer = setTimeout(() => {
+        const pass = prompt("🔐 SUPER USER ACCESS\nEnter Password:");
+        if (pass === SUPER_USER_PASS) {
+            activateGodMode();
+        } else {
+            if(pass !== null) alert("Access Denied");
+        }
+    }, 5000); // 5 δευτερόλεπτα
+}
+
+function cancelPressTimer() {
+    clearTimeout(pressTimer);
+}
+
+function createDebugPanel() {
+    const div = document.createElement('div');
+    div.id = "debugPanel";
+    div.className = "debug-panel";
+    div.innerHTML = `
+        <h4>🛠️ GOD MODE</h4>
+        
+        <div class="debug-row">
+            <label>Subscription Tier:</label>
+            <select id="debugTier" class="debug-select">
+                <option value="free">Free User</option>
+                <option value="solo">Solo Pro</option>
+                <option value="maestro">Maestro</option>
+            </select>
+        </div>
+
+        <div class="debug-row">
+            <label>Current Role (Context):</label>
+            <select id="debugRole" class="debug-select">
+                <option value="owner">Owner (Personal)</option>
+                <option value="admin">Band Admin/Leader</option>
+                <option value="member">Band Member</option>
+                <option value="viewer">Viewer (Read Only)</option>
+            </select>
+        </div>
+
+        <button onclick="applySimulation()" class="debug-btn">APPLY & RELOAD</button>
+        <button onclick="document.getElementById('debugPanel').style.display='none'" class="debug-btn" style="background:#555; margin-top:5px;">CLOSE</button>
+    `;
+    document.body.appendChild(div);
+}
+
+function activateGodMode() {
+    const panel = document.getElementById('debugPanel');
+    if (panel) {
+        panel.style.display = 'block';
+        
+        // Φόρτωση τρεχουσών τιμών
+        if (userProfile) {
+            document.getElementById('debugTier').value = userProfile.subscription_tier || 'free';
+        }
+        document.getElementById('debugRole').value = currentRole || 'owner';
+        
+        showToast("🔓 God Mode Activated!");
+    }
+}

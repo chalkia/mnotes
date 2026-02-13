@@ -151,81 +151,122 @@ function clearLibrary() {
         loadSong(library[0].id);
     }
 }
-
+/* ===========================================================
+   RENDER SIDEBAR (FINAL THEME-DRIVEN VERSION)
+   =========================================================== */
 function renderSidebar() {
     var list = document.getElementById('songList');
     if(!list) return;
+    
     list.innerHTML = "";
     visiblePlaylist = [];
 
-    // 1. Filtering Logic
+    // --- 1. FILTERING LOGIC ---
     if (viewMode === 'setlist') {
+        // Λειτουργία Setlist: Δείχνουμε μόνο τα επιλεγμένα με τη σειρά
         liveSetlist.forEach(id => {
             var s = library.find(x => x.id === id);
             if (s) visiblePlaylist.push(s);
         });
     } else {
+        // Λειτουργία Library: Φίλτρα Αναζήτησης & Tags
         var txt = document.getElementById('searchInp') ? document.getElementById('searchInp').value.toLowerCase() : "";
         var tag = document.getElementById('tagFilter') ? document.getElementById('tagFilter').value : "";
         
         visiblePlaylist = library.filter(s => {
+            // Απόκρυψη Demo αν είναι επιλεγμένο
             if (userSettings.hideDemo && s.id.includes("demo") && library.length > 1) return false;
             
+            // Φίλτρο Κειμένου (Τίτλος, Καλλιτέχνης, Τόνος)
             var matchTxt = s.title.toLowerCase().includes(txt) || 
                            (s.artist && s.artist.toLowerCase().includes(txt)) || 
                            (s.key && s.key.toLowerCase() === txt);
             
+            // Φίλτρο Tag (Playlist)
+            // Ελέγχουμε και το παλιό s.playlists και το νέο s.tags για συμβατότητα
+            var sTags = (s.tags && s.tags.length > 0) ? s.tags : (s.playlists || []);
+            
             var matchTag = (tag === "__no_demo") ? !s.id.includes("demo") : 
-                           (tag === "" || (s.playlists && s.playlists.includes(tag)));
+                           (tag === "" || sTags.includes(tag));
             
             return matchTxt && matchTag;
         });
     }
 
-    // Update Count
+    // Update Song Count
     const countEl = document.getElementById('songCount');
     if(countEl) countEl.innerText = visiblePlaylist.length;
 
-    // 2. Rendering
+    // --- 2. RENDERING LIST ITEMS ---
     visiblePlaylist.forEach(s => {
         var li = document.createElement('li');
+        
+        // A. Classification Logic (Personal / Band / Proposal)
+        let originClass = '';
+        if (s.is_proposal) {
+            originClass = 'proposal-item'; // Dashed Border
+        } else if (s.group_id) {
+            originClass = 'band-cloud';    // Muted/Orange Border + Icon via CSS
+        } else {
+            originClass = 'personal-cloud'; // Accent Border
+        }
+
+        // B. New Import Highlight
         let isNew = (typeof lastImportedIds !== 'undefined' && lastImportedIds.has(s.id));
-        let itemClass = `song-item ${currentSongId === s.id ? 'active' : ''} ${isNew ? 'new-import' : ''}`;
+        
+        // C. Construct Class String
+        let itemClass = `song-item ${currentSongId === s.id ? 'active' : ''} ${originClass} ${isNew ? 'new-import' : ''}`;
+        
         li.className = itemClass;
         li.setAttribute('data-id', s.id);
 
+        // D. Click Event
         li.onclick = (e) => {
-            if(e.target.classList.contains('song-action') || e.target.classList.contains('song-key-btn')) return;
+            // Αν πατήσουμε το κυκλάκι ή το κουμπί του τόνου, δεν ανοίγει το τραγούδι
+            if(e.target.classList.contains('song-action') || e.target.classList.contains('song-key-badge')) return;
+            
             if (typeof loadSong === 'function') loadSong(s.id);
             
-            // Mobile Drawer Close
+            // Κλείσιμο Drawer σε κινητά
             if(window.innerWidth <= 1024) {
-                 const d = document.getElementById('rightDrawer');
-                 if(d && d.classList.contains('open') && typeof toggleRightDrawer === 'function') {
-                     toggleRightDrawer();
-                 }
+                const d = document.getElementById('rightDrawer');
+                if(d && d.classList.contains('open') && typeof toggleRightDrawer === 'function') {
+                    toggleRightDrawer();
+                }
             }
         };
 
+        // E. Display Variables
         var displayTitle = s.title;
         var displayKey = s.key || "-";
         
+        // F. Setlist Action Icon
         var actionIcon = "far fa-circle";
         if (viewMode === 'setlist') {
-            actionIcon = "fas fa-minus-circle";
+            actionIcon = "fas fa-minus-circle"; // Κόκκινο μείον για αφαίρεση
         } else if (liveSetlist.includes(s.id)) {
-            actionIcon = "fas fa-check-circle in-setlist";
+            actionIcon = "fas fa-check-circle in-setlist"; // Πράσινο τικ αν υπάρχει ήδη
         }
 
-        // Cloud Icon Check (ΜΟΝΟ ΜΙΑ ΦΟΡΑ)
+        // G. Extra Badges
+        // Badge: Cloud (Μόνο για Personal, τα Band έχουν το δικό τους icon μέσω CSS)
         const isCloud = s.id && !String(s.id).startsWith('s_');
-        const cloudIcon = isCloud ? '<i class="fas fa-cloud badge-cloud" title="Cloud Sync"></i>' : '';
+        let extraIcon = '';
+        if (isCloud && !s.group_id) {
+             extraIcon = '<i class="fas fa-cloud badge-cloud" title="Personal Cloud"></i>';
+        }
 
-        // HTML Construction
+        // Badge: Override (Αν ο χρήστης έχει πειράξει τοπικά τραγούδι της μπάντας)
+        let overrideBadge = '';
+        if (s.has_override || s.personal_key || s.personal_notes || (s.personal_transpose && s.personal_transpose !== 0)) {
+            overrideBadge = '<i class="fas fa-user-edit" style="font-size:0.7rem; color:var(--accent); margin-left:5px; opacity:0.8;" title="Personal Settings Applied"></i>';
+        }
+
+        // H. HTML Injection
         li.innerHTML = `
             <i class="${actionIcon} song-action" onclick="toggleSetlistSong(event, '${s.id}')"></i>
             <div class="song-info">
-                <div class="song-title">${displayTitle} ${cloudIcon}</div>
+                <div class="song-title">${displayTitle} ${extraIcon} ${overrideBadge}</div>
                 <div class="song-meta-row">
                     <span class="song-artist">${s.artist || "-"}</span>
                     <span class="song-key-badge" onclick="filterByKey(event, '${displayKey}')">${displayKey}</span>
@@ -236,15 +277,16 @@ function renderSidebar() {
         list.appendChild(li);
     });
 
-    // Sortable Init
+    // --- 3. SORTABLE JS RE-INIT ---
     if (sortableInstance) sortableInstance.destroy();
     if(typeof Sortable !== 'undefined') {
         sortableInstance = new Sortable(list, {
             animation: 150,
-            handle: '.song-handle',
-            disabled: (viewMode !== 'setlist'),
+            handle: '.song-handle', // Drag μόνο από το χερούλι (μόνο σε setlist mode)
+            disabled: (viewMode !== 'setlist'), // Απενεργοποίηση στο Library View
             onEnd: function (evt) {
                 if (viewMode === 'setlist') {
+                    // Ενημέρωση του Array βάσει της νέας σειράς
                     var movedId = liveSetlist.splice(evt.oldIndex, 1)[0];
                     liveSetlist.splice(evt.newIndex, 0, movedId);
                     if (typeof saveSetlists === 'function') saveSetlists();
@@ -253,6 +295,7 @@ function renderSidebar() {
         });
     }
 }
+
 // ===========================================================
 // 3. UI HELPERS & GESTURES
 // ===========================================================
@@ -488,16 +531,15 @@ function renderPlayer(s) {
     if (headerContainer) {
         headerContainer.innerHTML = `
         <div class="player-header">
-            <div class="title-row">
-                <h1 id="p-title" class="song-h1" style="flex:1;">${s.title}</h1>
-                <button onclick="toggleStickyNotes()" class="note-toggle-btn ${hasNotes ? 'has-notes' : ''}" title="Toggle Notes">
-                    <i class="fas fa-sticky-note"></i>
-                </button>
-            </div>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
                 <span class="meta-label">${s.artist || ""}</span>
-                <span class="key-badge">${typeof getNote === 'function' ? getNote(s.key || "-", state.t) : s.key}</span>
+                
+                <div style="display:flex; align-items:center;">
+                    <span class="key-badge">${typeof getNote === 'function' ? getNote(s.key || "-", state.t) : s.key}</span>
+                    <button id="btnToggleView" onclick="toggleViewMode()"></button>
+                </div>
             </div>
+            
             ${metaHtml}
         </div>`;
     }
@@ -525,7 +567,8 @@ function renderPlayer(s) {
 
     var split = (typeof splitSongBody === 'function') ? splitSongBody(s.body || "") : { fixed: "", scroll: s.body || "" }; 
     renderArea('fixed-container', split.fixed); 
-    renderArea('scroll-container', split.scroll);
+    renderArea('scroll-container', split.scroll);  
+    updateToggleButton(s); // Καλούμε για να δούμε αν θα εμφανιστεί
 }
 
 function renderArea(elemId, text) { 
@@ -1683,3 +1726,73 @@ function refreshHeaderUI() {
 // Alias για συμβατότητα με το logic.js
 function toEditor() { switchToEditor(); }
 function toViewer(shouldLoad = true) { exitEditor(); }
+/* ===========================================================
+   15. W.Y.S.I.W.Y.G. VIEW MODES (Band vs My View)
+   =========================================================== */
+
+function toggleViewMode() {
+    // 1. Αλλαγή κατάστασης
+    showingOriginal = !showingOriginal;
+    
+    // 2. Εύρεση τραγουδιού
+    const s = library.find(x => x.id === currentSongId);
+    if (!s) return;
+
+    // 3. Render
+    renderPlayerWithOverrides(s);
+    
+    // 4. Ενημέρωση UI
+    if (showingOriginal) {
+        showToast("View: Band Original 🏛️");
+        document.body.classList.add('viewing-original');
+    } else {
+        showToast("View: My Settings 👤");
+        document.body.classList.remove('viewing-original');
+    }
+}
+
+function renderPlayerWithOverrides(s) {
+    if (!s) return;
+
+    // Αποθήκευση της τρέχουσας κατάστασης μεταφοράς στο state.t
+    // Αν βλέπουμε Original: Μηδενισμός
+    if (showingOriginal) {
+        state.t = 0; 
+        state.c = 0;
+    } 
+    // Αν βλέπουμε My View ΚΑΙ υπάρχει override transpose: Εφαρμογή
+    else if (s.personal_transpose || s.personal_transpose === 0) {
+        state.t = s.personal_transpose;
+        // Αν θέλεις να σώζεις και το capo στα overrides, κάντο εδώ:
+        // state.c = s.personal_capo || 0; 
+    }
+
+    // Καλούμε την κανονική renderPlayer
+    renderPlayer(s);
+    
+    // Ενημέρωση του Κουμπιού
+    updateToggleButton(s);
+}
+
+function updateToggleButton(s) {
+    const btn = document.getElementById('btnToggleView');
+    if (!btn) return;
+
+    // Εμφάνιση ΜΟΝΟ αν υπάρχουν overrides (key/notes/transpose)
+    // και είναι τραγούδι μπάντας
+    const hasOverrides = s.has_override || s.personal_notes || (s.personal_transpose && s.personal_transpose !== 0);
+
+    if (!hasOverrides || !s.group_id) {
+        btn.style.display = 'none';
+        return;
+    }
+
+    btn.style.display = 'inline-flex';
+    if (showingOriginal) {
+        btn.innerHTML = '<i class="fas fa-user"></i> Show My Version';
+        btn.classList.add('active-mode');
+    } else {
+        btn.innerHTML = '<i class="fas fa-users"></i> Show Band Version';
+        btn.classList.remove('active-mode');
+    }
+}

@@ -1218,21 +1218,29 @@ body.viewing-original .col-stage {
    SUPER USER / DEBUG PANEL
    ========================================= */
 .debug-panel {
-    position: fixed;
-    bottom: 80px;
-    right: 20px;
-    width: 250px;
+    position: fixed !important;
+    top: 50% !important;        /* Στο κέντρο ύψους */
+    left: 50% !important;       /* Στο κέντρο πλάτους */
+    transform: translate(-50%, -50%) !important; /* Απόλυτο κέντρο */
     background: rgba(0, 0, 0, 0.9);
     border: 2px solid #ff0000; /* Κόκκινο για να ξεχωρίζει */
     border-radius: 8px;
     padding: 15px;
-    z-index: 99999;
-    color: #fff;
-    box-shadow: 0 0 20px rgba(255, 0, 0, 0.4);
+    z-index: 1000000 !important;
+    color: #fff !important;
+    box-shadow: 0 0 20px rgba(255, 0, 0, 0.4)!important;
     display: none; /* Κρυφό αρχικά */
-    font-family: monospace;
+    font-family:'Courier New', monospace;
 }
-
+/* Overlay για να "παγώνει" η εφαρμογή από πίσω */
+.debug-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.7);
+    z-index: 999999;
+    display: none;
+}
 .debug-panel h4 {
     margin: 0 0 10px 0;
     color: #ff0000;
@@ -1274,3 +1282,4 @@ body.viewing-original .col-stage {
     margin-top: 10px;
 }
 .debug-btn:hover { background: #cc0000; }
+

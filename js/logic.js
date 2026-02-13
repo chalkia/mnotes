@@ -116,6 +116,9 @@ async function switchContext(targetId) {
 
     await loadContextData();
     updateUIForRole();
+   if (typeof renderBandManager === 'function') {
+        renderBandManager();
+    }
 }
 
 function updateUIForRole() {

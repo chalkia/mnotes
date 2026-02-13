@@ -212,16 +212,16 @@ function createDebugPanel() {
 }
 
 function activateGodMode() {
-    const panel = document.getElementById('debugPanel');
+    let panel = document.getElementById('debugPanel');
+    // Αν δεν υπάρχει, κάλεσε τη δημιουργία (Bypass)
+    if (!panel) {
+        createDebugPanel(); 
+        panel = document.getElementById('debugPanel');
+    }
+
     if (panel) {
         panel.style.display = 'block';
-        
-        // Φόρτωση τρεχουσών τιμών
-        if (userProfile) {
-            document.getElementById('debugTier').value = userProfile.subscription_tier || 'free';
-        }
-        document.getElementById('debugRole').value = currentRole || 'owner';
-        
-        showToast("🔓 God Mode Activated!");
+        showToast("🔓 SUPER USER ACCESS GRANTED");
+        console.log("🚀 God Mode Panel is now visible in the center of the screen.");
     }
 }

@@ -1133,44 +1133,95 @@ async function toggleRecording() {
         recStartTime = Date.now(); recTimerInterval = setInterval(() => { const diff = Math.floor((Date.now() - recStartTime) / 1000); const m = Math.floor(diff / 60).toString().padStart(2,'0'); const s = (diff % 60).toString().padStart(2,'0'); timer.innerText = `${m}:${s}`; }, 1000);
     } catch (err) { alert("Microphone Error: " + err.message); }
 }
-
 async function uploadAndLinkCurrent() {
     if (!currentRecordedBlob) { showToast("No recording!"); return; }
     if (!currentSongId) { showToast("Select song!"); return; }
     if (typeof currentUser === 'undefined' || !currentUser) { document.getElementById('authModal').style.display='flex'; return; }
+    
     const s = library.find(x => x.id === currentSongId);
     if (!confirm(`Save to "${s.title}" in Cloud?`)) return;
+    
     const btnLink = document.getElementById('btnLinkRec');
-    btnLink.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; btnLink.style.opacity = '0.7';
+    btnLink.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; 
+    btnLink.style.opacity = '0.7';
     
     if (!s.recordings) s.recordings = [];
     const takeNum = s.recordings.length + 1;
     const filename = `Song_${currentSongId}_Take${takeNum}_${Date.now()}.webm`;
 
     try {
-        // Direct upload using Supabase Client (Bypassing audio.js input logic)
+        // Direct upload using Supabase Client
         const { data, error } = await supabaseClient.storage.from('audio_files').upload(`${currentUser.id}/${filename}`, currentRecordedBlob);
         
-        if(!error) {
-            const { data: { publicUrl } } = supabaseClient.storage.from('audio_files').getPublicUrl(`${currentUser.id}/${filename}`);
-            
-            // Add to Database (Overrides)
-            if(typeof addRecordingToCurrentSong === 'function') {
-                 await addRecordingToCurrentSong({ id: Date.now(), name: `Take ${takeNum}`, url: publicUrl, date: Date.now() });
-            } else {
-                 // Fallback: Local only
-                 s.recordings.push({ url: publicUrl, label: `Take ${takeNum}`, date: Date.now() });
-                 saveData(); 
-            }
-            showToast(`Take ${takeNum} Saved! ☁️`);
-            btnLink.style.display = 'none'; renderPlayer(s);
+        // Αν υπάρχει error, το πετάμε αμέσως στην catch
+        if (error) throw error; 
+
+        // Αν φτάσαμε εδώ, όλα πήγαν καλά
+        const { data: { publicUrl } } = supabaseClient.storage.from('audio_files').getPublicUrl(`${currentUser.id}/${filename}`);
+        
+        const newRec = { id: Date.now(), name: `Take ${takeNum}`, url: publicUrl, date: Date.now() };
+        
+        if (typeof addRecordingToCurrentSong === 'function') {
+             await addRecordingToCurrentSong(newRec);
         } else {
-            throw error;
+             saveData(); 
         }
+        
+        // Το βάζουμε στη μνήμη ΠΑΝΤΑ για να μην το σβήσει η renderPlayer
+        s.recordings.push(newRec);
+
+        showToast(`Take ${takeNum} Saved! ☁️`);
+        btnLink.style.display = 'none'; 
+        renderPlayer(s);
+
     } catch(e) {
-         console.error(e);
-         showToast("Upload Error: " + e.message);
-         btnLink.style.opacity = '1'; btnLink.innerHTML = '<i class="fas fa-cloud-upload-alt"></i>';
+         console.error("Upload Error:", e);
+         showToast("Upload Error: " + e.message, "error");
+         btnLink.style.opacity = '1'; 
+         btnLink.innerHTML = '<i class="fas fa-cloud-upload-alt"></i>';
+    }
+}
+
+// Συνάρτηση για ανέβασμα έτοιμων αρχείων ήχου (MP3/WAV)
+async function uploadAudioToCloud(inputElement) {
+    const file = inputElement.files[0];
+    if (!file) return;
+    if (!currentSongId) { showToast("Επιλέξτε τραγούδι πρώτα!"); return; }
+    if (!currentUser) { document.getElementById('authModal').style.display='flex'; return; }
+
+    const s = library.find(x => x.id === currentSongId);
+    if (!s.recordings) s.recordings = [];
+    
+    // UI Elements
+    const progBox = document.getElementById('uploadProgressBox');
+    const progBar = document.getElementById('uploadBar');
+    if(progBox) progBox.style.display = 'block';
+    if(progBar) progBar.style.width = '50%'; // Fake progress for direct upload
+
+    const filename = `Upload_${currentSongId}_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`;
+
+    try {
+        const { data, error } = await supabaseClient.storage.from('audio_files').upload(`${currentUser.id}/${filename}`, file);
+        
+        if (error) throw error;
+
+        const { data: { publicUrl } } = supabaseClient.storage.from('audio_files').getPublicUrl(`${currentUser.id}/${filename}`);
+        
+        const newRec = { id: Date.now(), name: file.name, url: publicUrl, date: Date.now() };
+
+        if(typeof addRecordingToCurrentSong === 'function') {
+             await addRecordingToCurrentSong(newRec);
+        }
+        s.recordings.push(newRec);
+        
+        showToast("Audio Track Uploaded! 🎵");
+        renderPlayer(s);
+    } catch (err) {
+        console.error("Upload Error:", err);
+        showToast("Αποτυχία Upload: " + err.message, "error");
+    } finally {
+        if(progBox) progBox.style.display = 'none';
+        inputElement.value = ""; // Reset input
     }
 }
 

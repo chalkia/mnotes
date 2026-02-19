@@ -803,11 +803,13 @@ details[open] summary::after { transform: rotate(180deg); color: var(--accent); 
     align-items: center; /* Κάθετη στοίχιση στο κέντρο */
     gap: 10px;           /* Απόσταση κουμπιού από κείμενο */
 }
+/* Τα 3 μεγέθη γραμματοσειράς (ΔΙΟΡΘΩΜΕΝΑ) */
+.intro-size-0 { font-size: 0.9rem !important; color: var(--text-muted) !important; }
+.intro-size-1 { font-size: 1.1rem !important; color: var(--text-main) !important; font-weight: bold !important; }
+.intro-size-2 { font-size: 1.3rem !important; color: var(--accent) !important; font-weight: 900 !important; line-height: 1.2 !important; }
 
-/* Τα 3 μεγέθη γραμματοσειράς */
-.intro-size-0 { font-size: 0.9rem; color: var(--text-muted); } /* Small */
-.intro-size-1 { font-size: 1.1rem; color: var(--text-main); font-weight: bold; } /* Medium */
-.intro-size-2 { font-size: 1.3rem; color: var(--accent);    font-weight: 900; line-height: 1.2; } /* Large */
+/* Εξασφαλίζουμε ότι και τα παιδιά (span, strong) θα κληρονομήσουν το μέγεθος */
+.intro-size-0 span, .intro-size-1 span, .intro-size-2 span { font-size: inherit; color: inherit; }
 
 /* Το κουμπάκι */
 .size-toggle-btn {
@@ -1406,4 +1408,5 @@ body.viewing-original .col-stage {
 @media (max-width: 768px) {
     .pricing-card.featured { transform: scale(1); }
 }
+
 

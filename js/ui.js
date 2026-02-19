@@ -1282,14 +1282,19 @@ function navSetlist(dir) {
 // ===========================================================
 
 function cycleIntroSize() {
-    // Αλλαγή: 0 -> 1 -> 2 -> 0
-    introSizeLevel = (introSizeLevel + 1) % 3;
-    localStorage.setItem('mnotes_intro_size', introSizeLevel);
+    // Σιγουρευόμαστε ότι διαβάζει αριθμό
+    window.introSizeLevel = parseInt(localStorage.getItem('mnotes_intro_size')) || 0;
     
-    // Ξαναφορτώνουμε τον Player για να φανεί η αλλαγή άμεσα
-    if (currentSongId) {
+    // Αλλαγή: 0 -> 1 -> 2 -> 0
+    window.introSizeLevel = (window.introSizeLevel + 1) % 3;
+    localStorage.setItem('mnotes_intro_size', window.introSizeLevel);
+    
+    // Ξαναφορτώνουμε τον Player
+    if (typeof currentSongId !== 'undefined' && currentSongId) {
         var s = library.find(x => x.id === currentSongId);
-        if (s) renderPlayer(s);
+        if (s) {
+            renderPlayer(s);
+        }
     }
 }
 function deleteRecording(songId, typeOrIndex) {

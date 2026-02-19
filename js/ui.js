@@ -500,27 +500,32 @@ function loadSong(id) {
 function renderPlayer(s) {
     if (!s) return;
     
-    // 1. Δηλώνουμε ΟΛΕΣ τις μεταβλητές στην αρχή
+   // 1. Δικλείδα Ασφαλείας για τον αριθμό μεγέθους
+    window.introSizeLevel = parseInt(localStorage.getItem('mnotes_intro_size')) || 0;
+    const sizeClass = `intro-size-${window.introSizeLevel}`; 
+    
     let metaHtml = ""; 
     const personalNotesMap = JSON.parse(localStorage.getItem('mnotes_personal_notes') || '{}');
     const hasNotes = (s.conductorNotes && s.conductorNotes.trim().length > 0) || (personalNotesMap[s.id] && personalNotesMap[s.id].trim().length > 0);
-    const sizeClass = `intro-size-${introSizeLevel}`; 
     const btnHtml = `<button id="btnIntroToggle" onclick="cycleIntroSize()" class="size-toggle-btn" title="Change Text Size"><i class="fas fa-text-height"></i></button>`;
 
-    // 2. Λογική Intro/Inter (Μία φορά, με σωστή σειρά)
-    if (s.intro || s.interlude) {
+    // 2. Λογική Intro/Inter (Διορθωμένο το s.inter)
+    const introText = s.intro;
+    const interText = s.inter || s.interlude; // Πιάνει και τα δύο για σιγουριά
+
+    if (introText || interText) {
         metaHtml += `<div class="meta-info-box">`;
         
-        if (s.intro) {
+        if (introText) {
             metaHtml += `<div class="meta-row ${sizeClass}">
-                            ${btnHtml} <span><strong>Intro:</strong> ${parseMetaLine(s.intro)}</span>
+                            ${btnHtml} <span><strong>Intro:</strong> ${parseMetaLine(introText)}</span>
                          </div>`;
         }
         
-        if (s.interlude) {
-            const showBtnHere = (!s.intro) ? btnHtml : '<span class="spacer-btn"></span>'; 
+        if (interText) {
+            const showBtnHere = (!introText) ? btnHtml : '<span class="spacer-btn"></span>'; 
             metaHtml += `<div class="meta-row ${sizeClass}">
-                            ${showBtnHere} <span><strong>Inter:</strong> ${parseMetaLine(s.interlude)}</span>
+                            ${showBtnHere} <span><strong>Inter:</strong> ${parseMetaLine(interText)}</span>
                          </div>`;
         }
         metaHtml += `</div>`;

@@ -154,18 +154,23 @@ async function loadContextData() {
                     library = Array.isArray(parsed) ? parsed.map(ensureSongStructure) : [];
                 }
             }
+            
+            // Εξασφαλίζουμε ότι υπάρχει πάντα ο πίνακας recordings στα προσωπικά τραγούδια
+            library.forEach(song => {
+                if (!song.recordings) song.recordings = [];
+            });
+            
         } else {
             // --- BAND CONTEXT ---
             // 1. Φέρνουμε τα τραγούδια της μπάντας
             const songs = await fetchBandSongs(currentGroupId);
             
             // 2. Φέρνουμε τα προσωπικά Overrides του χρήστη για αυτή την μπάντα
-            // (Προϋποθέτει ότι έχεις φτιάξει τον πίνακα 'personal_overrides' στη βάση)
             const { data: overrides } = await supabaseClient
                 .from('personal_overrides')
                 .select('*')
                 .eq('user_id', currentUser.id)
-                .eq('group_id', currentGroupId); // Φιλτράρισμα και με group για ταχύτητα
+                .eq('group_id', currentGroupId);
 
             // 3. Merge: Ενσωματώνουμε τα overrides στο αντικείμενο του τραγουδιού
             library = songs.map(song => {
@@ -177,7 +182,14 @@ async function loadContextData() {
                     cleanSong.personal_key = userOverride.personal_key; 
                     cleanSong.personal_notes = userOverride.personal_notes;
                     cleanSong.personal_transpose = userOverride.local_transpose || 0;
+                    
+                    // --- ΔΙΟΡΘΩΣΗ 1: Φέρνουμε τις εγγραφές/uploads από τα overrides ---
+                    cleanSong.recordings = userOverride.recordings || [];
+                    
                     cleanSong.has_override = true; // Flag για το UI
+                } else {
+                    // Αν δεν έχει override, βάζουμε κενό πίνακα για να μην κρασάρει το push()
+                    if (!cleanSong.recordings) cleanSong.recordings = [];
                 }
                 return cleanSong;
             });
@@ -198,7 +210,6 @@ async function loadContextData() {
         showToast("Error loading library", "error");
     }
 }
-
 
 function canUserPerform(action) {
     const tier = (userProfile && userProfile.subscription_tier) ? userProfile.subscription_tier : 'free';

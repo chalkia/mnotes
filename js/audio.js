@@ -321,3 +321,4 @@ toggleStepData: function(instId, stepIdx, isActive) {
             }
         }
     }
+};

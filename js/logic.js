@@ -221,27 +221,60 @@ function canUserPerform(action) {
     }
 }
 
-// --- AUDIO RECORDING SAVING ---
-async function addRecordingToCurrentSong(recordingObj) {
-    if (!currentSongId || !currentUser) return;
-
-    const { data: existingData } = await supabaseClient
+// --- AUDIO & ATTACHMENT RECORDING SAVING ---
+async function addRecordingToCurrentSong(newRec) {
+    if (!currentSongId || typeof currentUser === 'undefined' || !currentUser) return;
+    
+    // Έξυπνη ανάκτηση για αποφυγή 409 Conflict
+    const { data } = await supabaseClient
         .from('personal_overrides')
-        .select('recordings')
-        .eq('song_id', currentSongId)
+        .select('id, recordings')
         .eq('user_id', currentUser.id)
-        .maybeSingle();
+        .eq('song_id', currentSongId)
+        .single();
+        
+    let recs = (data && data.recordings) ? data.recordings : [];
+    recs.push(newRec);
+    
+    if (data) {
+        // Υπάρχει ήδη -> κάνουμε απλό Update
+        await supabaseClient.from('personal_overrides').update({ recordings: recs }).eq('id', data.id);
+    } else {
+        // Δεν υπάρχει -> κάνουμε Insert
+        await supabaseClient.from('personal_overrides').insert([{ 
+            user_id: currentUser.id, 
+            song_id: currentSongId, 
+            group_id: (typeof currentGroupId !== 'undefined' && currentGroupId !== 'personal') ? currentGroupId : null,
+            recordings: recs 
+        }]);
+    }
+    
+    if (typeof renderRecordingsList === 'function') renderRecordingsList(recs);
+}
 
-    let currentRecs = existingData?.recordings || [];
-    currentRecs.push(recordingObj);
-
-    await supabaseClient.from('personal_overrides').upsert({
-        user_id: currentUser.id,
-        song_id: currentSongId,
-        recordings: currentRecs
-    }, { onConflict: 'user_id, song_id' });
-
-    if (typeof renderRecordingsList === 'function') renderRecordingsList(currentRecs);
+async function addAttachmentToCurrentSong(newDoc) {
+    if (!currentSongId || typeof currentUser === 'undefined' || !currentUser) return;
+    
+    const { data } = await supabaseClient
+        .from('personal_overrides')
+        .select('id, attachments')
+        .eq('user_id', currentUser.id)
+        .eq('song_id', currentSongId)
+        .single();
+        
+    let docs = (data && data.attachments) ? data.attachments : [];
+    docs.push(newDoc);
+    
+    if (data) {
+        await supabaseClient.from('personal_overrides').update({ attachments: docs }).eq('id', data.id);
+    } else {
+        await supabaseClient.from('personal_overrides').insert([{ 
+            user_id: currentUser.id, 
+            song_id: currentSongId, 
+            group_id: (typeof currentGroupId !== 'undefined' && currentGroupId !== 'personal') ? currentGroupId : null,
+            attachments: docs 
+        }]);
+    }
 }
 /**
  * Ανάκτηση προσωπικών τραγουδιών από το Cloud (Solo/Maestro/Admin)
@@ -640,6 +673,7 @@ function applyEditorPlaceholders() {
         const el = document.getElementById(f.id);
         if (el) el.placeholder = t(f.key);
     });
+}
    /**
  * Επεξεργασία δεδομένων που εισάγονται από αρχείο ή URL
  */
@@ -685,7 +719,7 @@ function processImportedData(data) {
         showToast("No new songs found.");
     }
 }
-}
+
 /**
  * UI για την επιλογή δράσης (Clone vs Proposal)
  */

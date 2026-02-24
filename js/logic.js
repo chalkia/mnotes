@@ -144,7 +144,7 @@ async function loadContextData() {
 
     try {
         if (currentGroupId === 'personal') {
-            // --- PERSONAL CONTEXT ---
+            // --- ΠΡΟΣΩΠΙΚΗ ΒΙΒΛΙΟΘΗΚΗ ---
             if (canUserPerform('CLOUD_SAVE')) {
                 library = await fetchPrivateSongs();
             } else {
@@ -155,50 +155,60 @@ async function loadContextData() {
                 }
             }
             
-            // Εξασφαλίζουμε ότι υπάρχει πάντα ο πίνακας recordings στα προσωπικά τραγούδια
+            // Βεβαιωνόμαστε ότι υπάρχουν οι πίνακες και τα μαρκάρουμε ως private 
+            // (αφού στο personal context όλα είναι αποκλειστικά δικά σου)
             library.forEach(song => {
-                if (!song.recordings) song.recordings = [];
+                song.recordings = (song.recordings || []).map(r => ({...r, origin: 'private'}));
+                song.attachments = (song.attachments || []).map(a => ({...a, origin: 'private'}));
             });
             
         } else {
-            // --- BAND CONTEXT ---
-            // 1. Φέρνουμε τα τραγούδια της μπάντας
+            // --- ΒΙΒΛΙΟΘΗΚΗ ΜΠΑΝΤΑΣ (ΜΕ ΕΞΥΠΝΟ MERGE) ---
             const songs = await fetchBandSongs(currentGroupId);
             
-            // 2. Φέρνουμε τα προσωπικά Overrides του χρήστη για αυτή την μπάντα
             const { data: overrides } = await supabaseClient
                 .from('personal_overrides')
                 .select('*')
                 .eq('user_id', currentUser.id)
                 .eq('group_id', currentGroupId);
 
-            // 3. Merge: Ενσωματώνουμε τα overrides στο αντικείμενο του τραγουδιού
             library = songs.map(song => {
                 const cleanSong = ensureSongStructure(song);
                 const userOverride = overrides?.find(o => o.song_id === song.id);
                 
+                // 1. Μαρκάρουμε τα Δημόσια αρχεία της μπάντας (από τον κεντρικό πίνακα)
+                let publicRecs = (cleanSong.recordings || []).map(r => ({...r, origin: 'public'}));
+                let publicDocs = (cleanSong.attachments || []).map(a => ({...a, origin: 'public'}));
+                
                 if (userOverride) {
-                    // Προσθέτουμε τα overrides ως ιδιότητες
+                    // 2. Περνάμε τις προσωπικές ρυθμίσεις τόνου/σημειώσεων
                     cleanSong.personal_key = userOverride.personal_key; 
                     cleanSong.personal_notes = userOverride.personal_notes;
                     cleanSong.personal_transpose = userOverride.local_transpose || 0;
                     
-                    // --- ΔΙΟΡΘΩΣΗ 1: Φέρνουμε τις εγγραφές/uploads από τα overrides ---
-                    cleanSong.recordings = userOverride.recordings || [];
+                    // 3. Μαρκάρουμε τα Ιδιωτικά αρχεία του χρήστη (από τα overrides του)
+                    let privateRecs = (userOverride.recordings || []).map(r => ({...r, origin: 'private'}));
+                    let privateDocs = (userOverride.attachments || []).map(a => ({...a, origin: 'private'}));
                     
-                    cleanSong.has_override = true; // Flag για το UI
+                    // 4. Ενώνουμε Δημόσια και Ιδιωτικά σε μία ενιαία λίστα για τον Player
+                    cleanSong.recordings = [...publicRecs, ...privateRecs];
+                    cleanSong.attachments = [...publicDocs, ...privateDocs];
+                    
+                    cleanSong.has_override = true;
                 } else {
-                    // Αν δεν έχει override, βάζουμε κενό πίνακα για να μην κρασάρει το push()
-                    if (!cleanSong.recordings) cleanSong.recordings = [];
+                    // Αν δεν έχει overrides, βλέπει μόνο τα Δημόσια
+                    cleanSong.recordings = publicRecs;
+                    cleanSong.attachments = publicDocs;
                 }
+                
                 return cleanSong;
             });
         }
 
-        // Refresh UI
+        // Ανανέωση UI Sidebar
         if (typeof renderSidebar === 'function') renderSidebar();
         
-        // Auto-load first song
+        // Φόρτωση πρώτου τραγουδιού αυτόματα
         if (library.length > 0) {
             currentSongId = library[0].id;
             if (typeof toViewer === 'function') toViewer(true);
@@ -685,20 +695,18 @@ function applyEditorPlaceholders() {
    /**
  * Επεξεργασία δεδομένων που εισάγονται από αρχείο ή URL
  */
+
 function processImportedData(data) {
     if (!data) return;
     
-    // 1. Καθαρισμός προηγούμενων μαρκαρισμάτων (μόνο για αυτή τη συνεδρία)
     lastImportedIds.clear(); 
     
-    // Μετατροπή σε πίνακα αν είναι ένα τραγούδι
     let newSongs = Array.isArray(data) ? data : (data.songs ? data.songs : [data]);
     let hasNew = false;
 
     newSongs.forEach(song => {
         let cleanSong = ensureSongStructure(song);
         
-        // Έλεγχος αν υπάρχει ήδη
         const exists = library.find(s => 
             s.title.toLowerCase() === cleanSong.title.toLowerCase() && 
             (s.artist || "").toLowerCase() === (cleanSong.artist || "").toLowerCase()
@@ -706,17 +714,15 @@ function processImportedData(data) {
 
         if (!exists) {
             library.push(cleanSong);
-            lastImportedIds.add(cleanSong.id); // Μαρκάρισμα ως νέο για το UI
+            lastImportedIds.add(cleanSong.id); 
             hasNew = true;
         }
     });
 
     if (hasNew) {
-        saveToLocalStorage(); // Ενημέρωση LocalStorage
+        saveToLocalStorage(); 
         if (typeof renderSidebar === 'function') renderSidebar(); 
 
-        // 2. Αυτόματη πλοήγηση στο πρώτο νέο τραγούδι (βάσει ταξινόμησης)
-        // Η visiblePlaylist είναι ενημερωμένη από τη renderSidebar
         const firstNew = visiblePlaylist.find(s => lastImportedIds.has(s.id));
         if (firstNew) {
             loadSong(firstNew.id);
@@ -727,7 +733,6 @@ function processImportedData(data) {
         showToast("No new songs found.");
     }
 }
-
 /**
  * UI για την επιλογή δράσης (Clone vs Proposal)
  */
@@ -993,5 +998,63 @@ async function deleteBand() {
         // Αλλά αν έχεις βάλει ON DELETE CASCADE στη βάση, αρκεί αυτό:
         await supabaseClient.from('groups').delete().eq('id', currentGroupId);
         window.location.reload();
+    }
+}
+// --- ΚΕΝΤΡΙΚΗ ΣΥΝΑΡΤΗΣΗ ΠΡΟΑΓΩΓΗΣ / ΠΡΟΤΑΣΗΣ (Promote/Propose) ---
+async function promoteItem(songId, itemType, itemObjStr) {
+    if (!songId || !currentUser || currentGroupId === 'personal') return;
+
+    // Επαναφορά του JSON αντικειμένου
+    const itemObj = JSON.parse(decodeURIComponent(itemObjStr));
+    const isGod = (currentRole === 'admin' || currentRole === 'owner' || currentRole === 'maestro');
+
+    try {
+        if (isGod) {
+            // 1. Ο GOD ΤΟ ΚΑΝΕΙ PUBLIC
+            const { data: globalSong, error: fetchErr } = await supabaseClient.from('songs').select(itemType).eq('id', songId).single();
+            if (fetchErr) throw fetchErr;
+
+            let globalItems = (globalSong && globalSong[itemType]) ? globalSong[itemType] : [];
+            
+            // Προσθήκη στα Public
+            if (!globalItems.find(i => i.id === itemObj.id)) {
+                globalItems.push(itemObj);
+                await supabaseClient.from('songs').update({ [itemType]: globalItems }).eq('id', songId);
+            }
+
+            // Αφαίρεση από τα Private
+            const { data: myOverride } = await supabaseClient.from('personal_overrides').select(`id, ${itemType}`).eq('user_id', currentUser.id).eq('song_id', songId).maybeSingle();
+            if (myOverride && myOverride[itemType]) {
+                let personalItems = myOverride[itemType].filter(i => i.id !== itemObj.id);
+                await supabaseClient.from('personal_overrides').update({ [itemType]: personalItems }).eq('id', myOverride.id);
+            }
+
+            showToast("Το αρχείο έγινε Δημόσιο για την μπάντα! 📢");
+
+        } else {
+            // 2. ΤΟ ΜΕΛΟΣ ΚΑΝΕΙ ΠΡΟΤΑΣΗ
+            const proposalPayload = {
+                group_id: currentGroupId,
+                song_id: songId,
+                proposed_by: currentUser.id,
+                status: 'pending',
+                title: `Νέο ${itemType === 'attachments' ? 'Αρχείο' : 'Ηχητικό'}: ${itemObj.name}`,
+                // Κρύβουμε το αρχείο μέσα στις σημειώσεις για να το βρει ο Admin
+                notes: `PROPOSAL_ASSET|${itemType}|${JSON.stringify(itemObj)}`
+            };
+
+            const { error: propErr } = await supabaseClient.from('proposals').insert([proposalPayload]);
+            if (propErr) throw propErr;
+
+            showToast("Η πρόταση στάλθηκε στον Maestro! 📩");
+        }
+        
+        // Ανανέωση οθόνης
+        await loadContextData();
+        if (typeof toViewer === 'function') toViewer(true);
+
+    } catch (error) {
+        console.error("Promote Error:", error);
+        alert("Σφάλμα κατά την αλλαγή δικαιωμάτων: " + error.message);
     }
 }

@@ -255,25 +255,33 @@ async function addRecordingToCurrentSong(newRec) {
 async function addAttachmentToCurrentSong(newDoc) {
     if (!currentSongId || typeof currentUser === 'undefined' || !currentUser) return;
     
-    const { data } = await supabaseClient
+    // Χρησιμοποιούμε maybeSingle() αντί για single() για να μην σκάει αν είναι άδειο
+    const { data, error: fetchErr } = await supabaseClient
         .from('personal_overrides')
         .select('id, attachments')
         .eq('user_id', currentUser.id)
         .eq('song_id', currentSongId)
-        .single();
+        .maybeSingle();
+        
+    if (fetchErr) {
+        alert("Σφάλμα ανάγνωσης Βάσης: " + fetchErr.message);
+        return;
+    }
         
     let docs = (data && data.attachments) ? data.attachments : [];
     docs.push(newDoc);
     
     if (data) {
-        await supabaseClient.from('personal_overrides').update({ attachments: docs }).eq('id', data.id);
+        const { error: updErr } = await supabaseClient.from('personal_overrides').update({ attachments: docs }).eq('id', data.id);
+        if (updErr) alert("Σφάλμα ενημέρωσης: " + updErr.message);
     } else {
-        await supabaseClient.from('personal_overrides').insert([{ 
+        const { error: insErr } = await supabaseClient.from('personal_overrides').insert([{ 
             user_id: currentUser.id, 
             song_id: currentSongId, 
             group_id: (typeof currentGroupId !== 'undefined' && currentGroupId !== 'personal') ? currentGroupId : null,
             attachments: docs 
         }]);
+        if (insErr) alert("Σφάλμα δημιουργίας εγγραφής: " + insErr.message);
     }
 }
 /**

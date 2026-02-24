@@ -1224,7 +1224,51 @@ async function uploadAudioToCloud(inputElement) {
         inputElement.value = ""; // Reset input
     }
 }
+// Συνάρτηση για ανέβασμα εγγράφων/παρτιτούρων (PDF/Images)
+async function uploadAttachment(inputElement) {
+    const file = inputElement.files[0];
+    if (!file) return;
+    if (!currentSongId) { showToast("Επιλέξτε τραγούδι πρώτα!"); return; }
+    if (!currentUser) { document.getElementById('authModal').style.display='flex'; return; }
 
+    const s = library.find(x => x.id === currentSongId);
+    if (!s.attachments) s.attachments = [];
+    
+    // Καθαρίζουμε το όνομα του αρχείου
+    const filename = `Doc_${currentSongId}_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`;
+
+    try {
+        // ΣΗΜΕΙΩΣΗ: Πρέπει να έχεις φτιάξει ένα Storage Bucket στη Supabase με το όνομα 'attachments'
+        const { data, error } = await supabaseClient.storage.from('attachments').upload(`${currentUser.id}/${filename}`, file);
+        
+        if (error) throw error;
+
+        const { data: { publicUrl } } = supabaseClient.storage.from('attachments').getPublicUrl(`${currentUser.id}/${filename}`);
+        
+        const newDoc = { id: Date.now(), name: file.name, url: publicUrl, type: file.type };
+
+        // 1. Το βάζουμε στην τοπική μνήμη
+        s.attachments.push(newDoc);
+        
+        // 2. Το σώζουμε στο Cloud (καλούμε τη saveData αν δεν υπάρχει ειδική συνάρτηση)
+        if (typeof addAttachmentToCurrentSong === 'function') {
+             await addAttachmentToCurrentSong(newDoc);
+        } else if (typeof saveData === 'function') {
+             saveData(); 
+        }
+        
+        showToast("Το αρχείο ανέβηκε επιτυχώς! 📄");
+        
+        // 3. Ξαναζωγραφίζουμε τον Player για να εμφανιστεί στη λίστα
+        renderPlayer(s);
+        
+    } catch (err) {
+        console.error("Upload Error:", err);
+        showToast("Αποτυχία Upload: " + err.message, "error");
+    } finally {
+        inputElement.value = ""; // Μηδενισμός για να μπορείς να ξανανεβάσεις
+    }
+}
 // ===========================================================
 // 8. SETLIST MANAGER
 // ===========================================================

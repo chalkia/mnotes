@@ -1231,7 +1231,6 @@ async function uploadAttachment(inputElement) {
     if (!file) return;
     if (!currentSongId) { showToast("Επιλέξτε τραγούδι!"); return; }
     
-    // Αλλάζουμε το κουμπί προσωρινά για να ξέρεις ότι "δουλεύει"
     const btn = inputElement.previousElementSibling;
     const originalHtml = btn.innerHTML;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
@@ -1241,30 +1240,25 @@ async function uploadAttachment(inputElement) {
         if (!s.attachments) s.attachments = [];
         const filename = `Doc_${currentSongId}_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`;
 
-        // Ανέβασμα στο Bucket
         const { data, error } = await supabaseClient.storage.from('attachments').upload(`${currentUser.id}/${filename}`, file);
         if (error) throw error;
 
-        // Λήψη URL
         const { data: { publicUrl } } = supabaseClient.storage.from('attachments').getPublicUrl(`${currentUser.id}/${filename}`);
         const newDoc = { id: Date.now(), name: file.name, url: publicUrl, type: file.type };
 
-        // Αποθήκευση στη Βάση (Καλεί το logic.js)
         if (typeof addAttachmentToCurrentSong === 'function') {
              await addAttachmentToCurrentSong(newDoc);
         }
         
-        // Ενημέρωση μνήμης & οθόνης
-        s.attachments.push(newDoc);
-        renderPlayer(s);
         showToast("Το αρχείο ανέβηκε επιτυχώς! 📄");
+        // Δεν κάνουμε εδώ push στο s.attachments, θα το κάνει το loadContextData που καλείται από το logic!
         
     } catch (err) {
         console.error("Upload Error:", err);
-        alert("Αποτυχία Upload: " + err.message);
+        showToast("Αποτυχία Upload: " + err.message, "error");
     } finally {
         inputElement.value = ""; 
-        btn.innerHTML = originalHtml; // Επαναφορά κουμπιού
+        btn.innerHTML = originalHtml; 
     }
 }
 // ===========================================================
@@ -1398,22 +1392,97 @@ function deleteRecording(songId, typeOrIndex) {
     saveData(); renderPlayer(s); showToast("Deleted");
 }
 
-function renderRecordingsList(personalRecs = [], publicRecs = []) {
-    const listEl = document.getElementById('sideRecList'); if (!listEl) return;
-    listEl.innerHTML = ''; let hasItems = false;
-    const appendTrack = (rec, type, index) => {
-        const el = document.createElement('div'); el.className = 'track-item';
-        const colorVar = type === 'private' ? 'var(--rec-private)' : 'var(--rec-public)';
-        const iconClass = type === 'private' ? 'fas fa-lock' : 'fas fa-globe';
-        const tooltip = type === 'private' ? 'Private' : 'Public';
-        el.style.cssText = `display:flex; justify-content:space-between; align-items:center; background:var(--input-bg); padding:8px; margin-bottom:5px; border-radius:4px; border-left: 3px solid ${type === 'private' ? '#ffb74d' : '#4db6ac'}; border-left-color: ${colorVar};`;
-        el.innerHTML = `<div onclick="playAudio('${rec.url}')" style="cursor:pointer; flex:1; display:flex; align-items:center; overflow:hidden;"><i class="${iconClass}" title="${tooltip}" style="color:${colorVar}; margin-right:8px;"></i><span style="font-size:0.85rem; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${rec.name || rec.label}</span></div><button onclick="deleteRecording('${currentSongId}', ${index})" style="background:none; border:none; color:var(--text-muted); cursor:pointer; padding:0 5px;" title="Delete"><i class="fas fa-times"></i></button>`;
-        listEl.appendChild(el); hasItems = true;
-    };
-    if (personalRecs && personalRecs.length > 0) { personalRecs.forEach((r, i) => appendTrack(r, 'private', i)); }
+// --- ΕΜΦΑΝΙΣΗ ΗΧΗΤΙΚΩΝ ΑΡΧΕΙΩΝ ---
+function renderRecordingsList(recs = []) {
+    const listEl = document.getElementById('sideRecList'); 
+    if (!listEl) return;
+    
+    listEl.innerHTML = ''; 
+    let hasItems = false;
+    
+    recs.forEach((rec, index) => {
+        const el = document.createElement('div'); 
+        el.className = 'track-item'; 
+        
+        const isPrivate = (rec.origin === 'private' || !rec.origin);
+        const colorVar = isPrivate ? '#ffb74d' : '#4db6ac'; // Πορτοκαλί για private, Τιρκουάζ για public
+        const iconClass = isPrivate ? 'fas fa-lock' : 'fas fa-globe';
+        const tooltip = isPrivate ? 'Private Track' : 'Public Band Track';
+        
+        el.style.cssText = `display:flex; justify-content:space-between; align-items:center; background:var(--input-bg); padding:8px; margin-bottom:5px; border-radius:4px; border-left: 3px solid ${colorVar};`;
+        
+        const safeObjStr = encodeURIComponent(JSON.stringify(rec));
+        
+        // Κουμπί Share/Propose για ήχους
+        let promoteBtnHtml = '';
+       if (isPrivate && typeof currentGroupId !== 'undefined' && currentGroupId !== 'personal') {
+            promoteBtnHtml = `<button onclick="promoteItem('${currentSongId}', 'recordings', &quot;${safeObjStr}&quot;)" style="background:none; border:none; color:var(--accent); cursor:pointer; padding:0 8px; font-size:1.1rem;" title="Share / Propose"><i class="fas fa-bullhorn"></i></button>`;
+        }
+
+        el.innerHTML = `
+            <div onclick="playAudio('${rec.url}')" style="cursor:pointer; flex:1; display:flex; align-items:center; overflow:hidden;" title="${tooltip}">
+                <i class="${iconClass}" style="color:${colorVar}; margin-right:8px;"></i>
+                <span style="font-size:0.85rem; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${rec.name || rec.label}</span>
+            </div>
+            ${promoteBtnHtml}
+            <button onclick="deleteRecording('${currentSongId}', ${index})" style="background:none; border:none; color:var(--text-muted); cursor:pointer; padding:0 5px;" title="Delete">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        listEl.appendChild(el); 
+        hasItems = true;
+    });
+    
     if (!hasItems) listEl.innerHTML = '<div class="empty-state">No recordings yet</div>';
 }
+// --- ΕΜΦΑΝΙΣΗ ΑΡΧΕΙΩΝ & ΠΑΡΤΙΤΟΥΡΩΝ ---
+function renderAttachmentsList(docs = []) {
+    const listEl = document.getElementById('list-sheets'); 
+    if (!listEl) return;
+    
+    listEl.innerHTML = ''; 
+    let hasItems = false;
+    
+    docs.forEach((doc, index) => {
+        const el = document.createElement('div'); 
+        el.className = 'track-item'; 
+        
+        // Οπτικός διαχωρισμός Private (Πορτοκαλί) vs Public (Μωβ)
+        const isPrivate = (doc.origin === 'private' || !doc.origin);
+        const borderColor = isPrivate ? '#ffb74d' : '#9c27b0';
+        const tooltip = isPrivate ? 'Private (Μόνο για σένα)' : 'Public (Κοινό της μπάντας)';
+        
+        el.style.cssText = `display:flex; justify-content:space-between; align-items:center; background:var(--input-bg); padding:8px; margin-bottom:5px; border-radius:4px; border-left: 3px solid ${borderColor};`;
+        
+        const iconClass = (doc.type && doc.type.includes('image')) ? 'fas fa-image' : 'fas fa-file-pdf';
+        
+        // Κωδικοποίηση για να περάσει το αντικείμενο με ασφάλεια στη συνάρτηση
+        const safeObjStr = encodeURIComponent(JSON.stringify(doc));
 
+        // Κουμπί Share/Propose: Μόνο για private αρχεία, όταν βρισκόμαστε σε μπάντα!
+        let promoteBtnHtml = '';
+     if (isPrivate && typeof currentGroupId !== 'undefined' && currentGroupId !== 'personal') {
+            promoteBtnHtml = `<button onclick="promoteItem('${currentSongId}', 'attachments', &quot;${safeObjStr}&quot;)" style="background:none; border:none; color:var(--accent); cursor:pointer; padding:0 8px; font-size:1.1rem;" title="Share / Propose"><i class="fas fa-bullhorn"></i></button>`;
+        }
+
+        el.innerHTML = `
+            <div onclick="window.open('${doc.url}', '_blank')" style="cursor:pointer; flex:1; display:flex; align-items:center; overflow:hidden;" title="${tooltip}">
+                <i class="${iconClass}" style="color:${borderColor}; margin-right:8px;"></i>
+                <span style="font-size:0.85rem; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${doc.name}</span>
+            </div>
+            ${promoteBtnHtml}
+            <button onclick="deleteAttachment('${currentSongId}', ${index})" style="background:none; border:none; color:var(--text-muted); cursor:pointer; padding:0 5px;" title="Delete">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        listEl.appendChild(el);
+        hasItems = true;
+    });
+
+    if (!hasItems) {
+        listEl.innerHTML = '<div class="empty-state" data-i18n="msg_no_attachments">No attachments</div>';
+    }
+}
 function playAudio(url) { const audio = document.getElementById('masterAudio'); if(audio) { audio.src = url; audio.play(); } }
 
 function renderStickyNotes(s) {

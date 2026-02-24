@@ -568,7 +568,8 @@ function renderPlayer(s) {
 
     if(typeof renderStickyNotes === 'function') renderStickyNotes(s);
     if(typeof renderRecordingsList === 'function') renderRecordingsList(s.recordings || [], []); 
-
+    if(typeof renderAttachmentsList === 'function') renderAttachmentsList(s.attachments || []);
+   
     const dValT = document.getElementById('val-t'); const dValC = document.getElementById('val-c');
     if(dValT) dValT.innerText = (state.t > 0 ? "+" : "") + state.t; if(dValC) dValC.innerText = state.c;
     const mValT = document.getElementById('drawer-val-t'); const mValC = document.getElementById('drawer-val-c');
@@ -1228,45 +1229,42 @@ async function uploadAudioToCloud(inputElement) {
 async function uploadAttachment(inputElement) {
     const file = inputElement.files[0];
     if (!file) return;
-    if (!currentSongId) { showToast("Επιλέξτε τραγούδι πρώτα!"); return; }
-    if (!currentUser) { document.getElementById('authModal').style.display='flex'; return; }
-
-    const s = library.find(x => x.id === currentSongId);
-    if (!s.attachments) s.attachments = [];
+    if (!currentSongId) { showToast("Επιλέξτε τραγούδι!"); return; }
     
-    // Καθαρίζουμε το όνομα του αρχείου
-    const filename = `Doc_${currentSongId}_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`;
+    // Αλλάζουμε το κουμπί προσωρινά για να ξέρεις ότι "δουλεύει"
+    const btn = inputElement.previousElementSibling;
+    const originalHtml = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
 
     try {
-        // ΣΗΜΕΙΩΣΗ: Πρέπει να έχεις φτιάξει ένα Storage Bucket στη Supabase με το όνομα 'attachments'
+        const s = library.find(x => x.id === currentSongId);
+        if (!s.attachments) s.attachments = [];
+        const filename = `Doc_${currentSongId}_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`;
+
+        // Ανέβασμα στο Bucket
         const { data, error } = await supabaseClient.storage.from('attachments').upload(`${currentUser.id}/${filename}`, file);
-        
         if (error) throw error;
 
+        // Λήψη URL
         const { data: { publicUrl } } = supabaseClient.storage.from('attachments').getPublicUrl(`${currentUser.id}/${filename}`);
-        
         const newDoc = { id: Date.now(), name: file.name, url: publicUrl, type: file.type };
 
-        // 1. Το βάζουμε στην τοπική μνήμη
-        s.attachments.push(newDoc);
-        
-        // 2. Το σώζουμε στο Cloud (καλούμε τη saveData αν δεν υπάρχει ειδική συνάρτηση)
+        // Αποθήκευση στη Βάση (Καλεί το logic.js)
         if (typeof addAttachmentToCurrentSong === 'function') {
              await addAttachmentToCurrentSong(newDoc);
-        } else if (typeof saveData === 'function') {
-             saveData(); 
         }
         
-        showToast("Το αρχείο ανέβηκε επιτυχώς! 📄");
-        
-        // 3. Ξαναζωγραφίζουμε τον Player για να εμφανιστεί στη λίστα
+        // Ενημέρωση μνήμης & οθόνης
+        s.attachments.push(newDoc);
         renderPlayer(s);
+        showToast("Το αρχείο ανέβηκε επιτυχώς! 📄");
         
     } catch (err) {
         console.error("Upload Error:", err);
-        showToast("Αποτυχία Upload: " + err.message, "error");
+        alert("Αποτυχία Upload: " + err.message);
     } finally {
-        inputElement.value = ""; // Μηδενισμός για να μπορείς να ξανανεβάσεις
+        inputElement.value = ""; 
+        btn.innerHTML = originalHtml; // Επαναφορά κουμπιού
     }
 }
 // ===========================================================

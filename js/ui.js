@@ -144,15 +144,21 @@ function applySortAndRender() {
 }
 
 function clearLibrary() {
-    if(confirm(window.t ? t('msg_confirm_clear') : "Delete all local data?")) {
-        const safeEnsure = (typeof ensureSongStructure === 'function') ? ensureSongStructure : (s) => s;
-        library = [safeEnsure(JSON.parse(JSON.stringify(DEFAULT_DATA[0])))];
+    if(confirm(window.t ? t('msg_confirm_clear') : "Διαγραφή όλων των δεδομένων;")) {
+        // Επαναφορά όλων των Demos από το data.js με φρέσκα IDs
+        library = DEFAULT_DEMO_SONGS.map((ds, idx) => ({ ...ds, id: "s_" + Date.now() + idx }));
         liveSetlist = [];
+        
         localStorage.setItem('mnotes_setlist', JSON.stringify(liveSetlist));
-        saveData();
+        
+        if (typeof canUserPerform === 'function' && !canUserPerform('USE_SUPABASE')) {
+            saveData(); 
+        }
+        
         document.getElementById('searchInp').value = "";
         applyFilters();
         loadSong(library[0].id);
+        showToast("Η βιβλιοθήκη καθαρίστηκε και επανήλθαν τα Demos.");
     }
 }
 /* ===========================================================

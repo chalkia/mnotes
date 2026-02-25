@@ -1975,3 +1975,69 @@ function updateToggleButton(s) {
         btn.classList.remove('active-mode');
     }
 }
+// --- CUSTOM MODAL ΓΙΑ ΔΙΑΧΩΡΙΣΜΟ PUBLIC/PRIVATE ---
+function askVisibilityRole() {
+    return new Promise((resolve) => {
+        // Δημιουργία του μαύρου φόντου
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); display:flex; align-items:center; justify-content:center; z-index:99999;';
+        
+        // Δημιουργία του κουτιού
+        const box = document.createElement('div');
+        box.style.cssText = 'background:var(--bg-panel); padding:25px; border-radius:12px; max-width:350px; text-align:center; box-shadow:0 10px 25px rgba(0,0,0,0.5); border: 1px solid var(--border-color);';
+        
+        box.innerHTML = `
+            <h3 style="margin-top:0; color:var(--text-main); font-size:1.2rem;">Πού να αποθηκευτεί;</h3>
+            <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:20px;">Επιλέξτε αν αυτό το αρχείο θα είναι ορατό σε όλη την μπάντα ή μόνο σε εσάς.</p>
+            <div style="display:flex; flex-direction:column; gap:10px;">
+                <button id="btnPub" style="background:#4db6ac; color:#000; padding:12px; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-size:1rem;"><i class="fas fa-users"></i> Κοινόχρηστο (Μπάντα)</button>
+                <button id="btnPriv" style="background:#ffb74d; color:#000; padding:12px; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-size:1rem;"><i class="fas fa-lock"></i> Ιδιωτικό (Μόνο εγώ)</button>
+                <button id="btnCancel" style="background:transparent; color:var(--text-muted); padding:10px; border:1px solid var(--border-color); border-radius:8px; margin-top:5px; cursor:pointer;">Ακύρωση</button>
+            </div>
+        `;
+        
+        overlay.appendChild(box);
+        document.body.appendChild(overlay);
+
+        // Λειτουργίες κουμπιών
+        document.getElementById('btnPub').onclick = () => { document.body.removeChild(overlay); resolve('public'); };
+        document.getElementById('btnPriv').onclick = () => { document.body.removeChild(overlay); resolve('private'); };
+        document.getElementById('btnCancel').onclick = () => { document.body.removeChild(overlay); resolve(null); };
+    });
+}
+// --- MODAL ΓΙΑ ΚΟΙΝΟΠΟΙΗΣΗ ΣΤΗ ΜΠΑΝΤΑ ---
+function showTransferModal() {
+    if (!currentSongId) return;
+    
+    // Βρίσκουμε σε ποιες μπάντες ανήκει ο χρήστης
+    const availableBands = myGroups.filter(g => g.role === 'owner' || g.role === 'admin' || g.role === 'member');
+    
+    if (availableBands.length === 0) {
+        alert("Δεν ανήκετε σε καμία μπάντα για να κοινοποιήσετε το τραγούδι.");
+        return;
+    }
+
+    const currentSongTitle = library.find(s => s.id === currentSongId)?.title || "το τραγούδι";
+
+    // Χτίζουμε τα κουμπιά για κάθε μπάντα
+    let optionsHtml = availableBands.map(g => 
+        `<button onclick="transferSong('${g.group_id}'); document.body.removeChild(this.closest('.modal-overlay'));" 
+                 style="display:flex; align-items:center; justify-content:center; gap:10px; width:100%; margin-bottom:10px; padding:12px; background:var(--accent); color:#000; font-weight:bold; border:none; border-radius:8px; cursor:pointer; font-size:1rem;">
+            <i class="fas fa-users"></i> Προς: ${g.groups?.name || 'Άγνωστη'}
+        </button>`
+    ).join('');
+
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); display:flex; align-items:center; justify-content:center; z-index:99999;';
+    
+    overlay.innerHTML = `
+        <div style="background:var(--bg-panel); padding:25px; border-radius:12px; width:320px; text-align:center; border: 1px solid var(--border-color);">
+            <h3 style="margin-top:0; color:var(--text-main);">Κοινοποίηση Τραγουδιού</h3>
+            <p style="font-size:0.9rem; color:var(--text-muted); margin-bottom:20px;">Επιλέξτε πού θέλετε να στείλετε <b>"${currentSongTitle}"</b>:</p>
+            ${optionsHtml}
+            <button onclick="document.body.removeChild(this.closest('.modal-overlay'));" style="margin-top:5px; padding:10px; width:100%; background:transparent; border:1px solid var(--border-color); color:var(--text-muted); border-radius:8px; cursor:pointer;">Ακύρωση</button>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+}

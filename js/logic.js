@@ -139,6 +139,7 @@ function updateUIForRole() {
 /* =========================================
    DATA LOADING & SYNC
    ========================================= */
+
 async function loadContextData() {
     library = [];
     const listEl = document.getElementById('songList');
@@ -146,24 +147,54 @@ async function loadContextData() {
 
     try {
         if (currentGroupId === 'personal') {
-            if (canUserPerform('CLOUD_SAVE')) {
+            // --- Δρομολόγηση βάσει Πολιτικής (Storage Routing) ---
+            if (canUserPerform('USE_SUPABASE')) {
                 library = await fetchPrivateSongs();
-            } else {
+                
+                // Προστασία: Αν η Supabase είναι άδεια, βάλε τα Demos
+                if (library.length === 0) {
+                    const myDemos = DEFAULT_DEMO_SONGS.map((ds, idx) => ({ 
+                        ...ds, 
+                        id: "s_" + Date.now() + idx, 
+                        user_id: currentUser.id, 
+                        group_id: null 
+                    }));
+                    await supabaseClient.from('songs').insert(myDemos);
+                    library = myDemos;
+                }
+            } 
+            else if (canUserPerform('USE_DRIVE')) {
+                // library = await fetchDriveSongs(); // Έτοιμο για το μέλλον
+                library = []; 
+            } 
+            else {
+                // Free Mode - Τοπική Αποθήκευση
                 const localData = localStorage.getItem('mnotes_data');
                 if (localData) {
                     const parsed = JSON.parse(localData);
-                    library = Array.isArray(parsed) ? parsed.map(ensureSongStructure) : [];
+                    library = Array.isArray(parsed) && parsed.length > 0 ? parsed.map(ensureSongStructure) : [];
+                }
+                
+                // Προστασία: Αν το LocalStorage είναι άδειο
+                if (library.length === 0) {
+                    library = DEFAULT_DEMO_SONGS.map((ds, idx) => ({ 
+                        ...ds, 
+                        id: "s_" + Date.now() + idx 
+                    }));
+                    localStorage.setItem('mnotes_data', JSON.stringify(library));
                 }
             }
+            
+            // Μαρκάρουμε ό,τι βρήκαμε ως private
             library.forEach(song => {
                 song.recordings = (song.recordings || []).map(r => ({...r, origin: 'private'}));
                 song.attachments = (song.attachments || []).map(a => ({...a, origin: 'private'}));
             });
             
         } else {
+            // --- ΣΕΝΑΡΙΟ ΜΠΑΝΤΑΣ ---
             const songs = await fetchBandSongs(currentGroupId);
             
-            // ΕΔΩ ΗΤΑΝ ΤΟ ΛΑΘΟΣ: Έλειπε το group_id
             const { data: overrides } = await supabaseClient
                 .from('personal_overrides')
                 .select('*')
@@ -209,6 +240,7 @@ async function loadContextData() {
         showToast("Error loading library", "error");
     }
 }
+
 function canUserPerform(action) {
     const tier = (userProfile && userProfile.subscription_tier) ? userProfile.subscription_tier : 'free';
     const config = TIER_CONFIG[tier] || TIER_CONFIG.free;
@@ -891,13 +923,26 @@ async function createNewBandUI() {
     const { data, error } = await supabaseClient.from('groups').insert([{ name: name, owner_id: currentUser.id }]).select();
 
     if(error) { 
-        console.error(error); 
-        showToast("Error creating band", "error"); 
+        if (error.code === '23505') {
+            alert("⚠️ Αυτό το όνομα μπάντας χρησιμοποιείται ήδη! Παρακαλώ επιλέξτε ένα άλλο.");
+        } else {
+            console.error(error); 
+            showToast("Σφάλμα κατά τη δημιουργία μπάντας", "error"); 
+        }
         return; 
     }
 
     const newGroupId = data[0].id;
     await supabaseClient.from('group_members').insert([{ group_id: newGroupId, user_id: currentUser.id, role: 'owner' }]);
+
+    // Αυτόματη εισαγωγή των Demo Songs στη νέα μπάντα (Δώρο καλωσορίσματος)
+    const bandDemoSongs = DEFAULT_DEMO_SONGS.map((ds, idx) => ({
+        ...ds,
+        id: "s_" + Date.now() + idx + Math.random().toString(16).slice(2),
+        user_id: currentUser.id,
+        group_id: newGroupId
+    }));
+    await supabaseClient.from('songs').insert(bandDemoSongs);
 
     showToast("Band Created! 🎉");
     window.location.reload(); 

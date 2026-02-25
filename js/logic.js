@@ -12,12 +12,13 @@ let lastImportedIds = new Set(); // Κρατάει τα IDs μόνο της τε
 let showingOriginal = false; // False = My View (Default), True = Band View
 let originalSongSnapshot = null; // Για σύγκριση αλλαγών κατά το Save
 
-// --- TIER CONFIGURATION ---
+// --- TIER CONFIGURATION (UPDATED) ---
 const TIER_CONFIG = {
-    free: { label: "Free Mode", canCloudSync: false, canPrint: true, maxBands: 0 },
-    solo: { label: "Solo Pro", canCloudSync: true, canPrint: true, maxBands: 0 },
-    maestro: { label: "Maestro", canCloudSync: true, canPrint: true, maxBands: 5 },
-    band_admin: { label: "Band Leader", canCloudSync: true, canPrint: true, maxBands: 1 }
+    free: { label: "Free Mode", canCloudSync: false, canJoinBands: false, maxBandsOwned: 0 },
+    solo: { label: "Solo Pro", canCloudSync: true, canJoinBands: false, maxBandsOwned: 0 },
+    member: { label: "Band Member", canCloudSync: true, canJoinBands: true, maxBandsOwned: 0 },
+    owner: { label: "Band Owner", canCloudSync: true, canJoinBands: true, maxBandsOwned: 1 },
+    maestro: { label: "Maestro", canCloudSync: true, canJoinBands: true, maxBandsOwned: 5 }
 };
 
 // Helper translation function
@@ -134,6 +135,7 @@ function updateUIForRole() {
     }
 }
 
+
 /* =========================================
    DATA LOADING & SYNC
    ========================================= */
@@ -144,7 +146,6 @@ async function loadContextData() {
 
     try {
         if (currentGroupId === 'personal') {
-            // --- ΠΡΟΣΩΠΙΚΗ ΒΙΒΛΙΟΘΗΚΗ ---
             if (canUserPerform('CLOUD_SAVE')) {
                 library = await fetchPrivateSongs();
             } else {
@@ -154,61 +155,49 @@ async function loadContextData() {
                     library = Array.isArray(parsed) ? parsed.map(ensureSongStructure) : [];
                 }
             }
-            
-            // Βεβαιωνόμαστε ότι υπάρχουν οι πίνακες και τα μαρκάρουμε ως private 
-            // (αφού στο personal context όλα είναι αποκλειστικά δικά σου)
             library.forEach(song => {
                 song.recordings = (song.recordings || []).map(r => ({...r, origin: 'private'}));
                 song.attachments = (song.attachments || []).map(a => ({...a, origin: 'private'}));
             });
             
         } else {
-            // --- ΒΙΒΛΙΟΘΗΚΗ ΜΠΑΝΤΑΣ (ΜΕ ΕΞΥΠΝΟ MERGE) ---
             const songs = await fetchBandSongs(currentGroupId);
             
+            // ΕΔΩ ΗΤΑΝ ΤΟ ΛΑΘΟΣ: Έλειπε το group_id
             const { data: overrides } = await supabaseClient
                 .from('personal_overrides')
                 .select('*')
                 .eq('user_id', currentUser.id)
-                .eq('group_id', currentGroupId);
+                .eq('group_id', currentGroupId); 
 
             library = songs.map(song => {
                 const cleanSong = ensureSongStructure(song);
                 const userOverride = overrides?.find(o => o.song_id === song.id);
                 
-                // 1. Μαρκάρουμε τα Δημόσια αρχεία της μπάντας (από τον κεντρικό πίνακα)
                 let publicRecs = (cleanSong.recordings || []).map(r => ({...r, origin: 'public'}));
                 let publicDocs = (cleanSong.attachments || []).map(a => ({...a, origin: 'public'}));
                 
                 if (userOverride) {
-                    // 2. Περνάμε τις προσωπικές ρυθμίσεις τόνου/σημειώσεων
                     cleanSong.personal_key = userOverride.personal_key; 
                     cleanSong.personal_notes = userOverride.personal_notes;
                     cleanSong.personal_transpose = userOverride.local_transpose || 0;
                     
-                    // 3. Μαρκάρουμε τα Ιδιωτικά αρχεία του χρήστη (από τα overrides του)
                     let privateRecs = (userOverride.recordings || []).map(r => ({...r, origin: 'private'}));
                     let privateDocs = (userOverride.attachments || []).map(a => ({...a, origin: 'private'}));
                     
-                    // 4. Ενώνουμε Δημόσια και Ιδιωτικά σε μία ενιαία λίστα για τον Player
                     cleanSong.recordings = [...publicRecs, ...privateRecs];
                     cleanSong.attachments = [...publicDocs, ...privateDocs];
                     
                     cleanSong.has_override = true;
                 } else {
-                    // Αν δεν έχει overrides, βλέπει μόνο τα Δημόσια
                     cleanSong.recordings = publicRecs;
                     cleanSong.attachments = publicDocs;
                 }
-                
                 return cleanSong;
             });
         }
 
-        // Ανανέωση UI Sidebar
         if (typeof renderSidebar === 'function') renderSidebar();
-        
-        // Φόρτωση πρώτου τραγουδιού αυτόματα
         if (library.length > 0) {
             currentSongId = library[0].id;
             if (typeof toViewer === 'function') toViewer(true);
@@ -220,80 +209,105 @@ async function loadContextData() {
         showToast("Error loading library", "error");
     }
 }
-
 function canUserPerform(action) {
     const tier = (userProfile && userProfile.subscription_tier) ? userProfile.subscription_tier : 'free';
     const config = TIER_CONFIG[tier] || TIER_CONFIG.free;
     switch(action) {
         case 'CLOUD_SAVE': return config.canCloudSync;
-        case 'PRINT': return config.canPrint;
+        case 'JOIN_BAND': return config.canJoinBands;
+        case 'CREATE_BAND': return config.maxBandsOwned > 0 || (userProfile?.special_unlocks?.extra_bands > 0);
+        case 'PRINT': return true; // Εδώ μπορείς να βάλεις ό,τι θες
         default: return false;
     }
 }
 
 // --- AUDIO & ATTACHMENT RECORDING SAVING ---
+// --- AUDIO & ATTACHMENT RECORDING SAVING ---
 async function addRecordingToCurrentSong(newRec) {
     if (!currentSongId || typeof currentUser === 'undefined' || !currentUser) return;
     
-    // Έξυπνη ανάκτηση για αποφυγή 409 Conflict
-    const { data } = await supabaseClient
-        .from('personal_overrides')
-        .select('id, recordings')
-        .eq('user_id', currentUser.id)
-        .eq('song_id', currentSongId)
-        .single();
-        
-    let recs = (data && data.recordings) ? data.recordings : [];
-    recs.push(newRec);
-    
-    if (data) {
-        // Υπάρχει ήδη -> κάνουμε απλό Update
-        await supabaseClient.from('personal_overrides').update({ recordings: recs }).eq('id', data.id);
-    } else {
-        // Δεν υπάρχει -> κάνουμε Insert
-        await supabaseClient.from('personal_overrides').insert([{ 
-            user_id: currentUser.id, 
-            song_id: currentSongId, 
-            group_id: (typeof currentGroupId !== 'undefined' && currentGroupId !== 'personal') ? currentGroupId : null,
-            recordings: recs 
-        }]);
+    let saveToGlobal = false;
+    if (currentGroupId === 'personal') {
+        saveToGlobal = true; 
+    } else if (currentRole === 'admin' || currentRole === 'owner' || currentRole === 'maestro') {
+        saveToGlobal = confirm("Θέλετε αυτό το ΗΧΗΤΙΚΟ να είναι ορατό σε ΟΛΗ την μπάντα;\n\n[OK] = Κοινό για όλους\n[Ακύρωση] = Μόνο για εμένα (Personal)");
     }
-    
-    if (typeof renderRecordingsList === 'function') renderRecordingsList(recs);
+
+    if (saveToGlobal) {
+        const { data: songData } = await supabaseClient.from('songs').select('recordings').eq('id', currentSongId).single();
+        let recs = (songData && songData.recordings) ? songData.recordings : [];
+        recs.push(newRec);
+        const { error } = await supabaseClient.from('songs').update({ recordings: recs }).eq('id', currentSongId);
+        if (error) alert("Σφάλμα κεντρικής αποθήκευσης: " + error.message);
+    } else {
+        const { data } = await supabaseClient.from('personal_overrides').select('id, recordings').eq('user_id', currentUser.id).eq('song_id', currentSongId).eq('group_id', currentGroupId).maybeSingle();
+        let recs = (data && data.recordings) ? data.recordings : [];
+        recs.push(newRec);
+        if (data) {
+            await supabaseClient.from('personal_overrides').update({ recordings: recs }).eq('id', data.id);
+        } else {
+            await supabaseClient.from('personal_overrides').insert([{ user_id: currentUser.id, song_id: currentSongId, group_id: currentGroupId, recordings: recs }]);
+        }
+    }
+    await loadContextData(); 
 }
 
 async function addAttachmentToCurrentSong(newDoc) {
     if (!currentSongId || typeof currentUser === 'undefined' || !currentUser) return;
     
-    // Χρησιμοποιούμε maybeSingle() αντί για single() για να μην σκάει αν είναι άδειο
-    const { data, error: fetchErr } = await supabaseClient
-        .from('personal_overrides')
-        .select('id, attachments')
-        .eq('user_id', currentUser.id)
-        .eq('song_id', currentSongId)
-        .maybeSingle();
-        
-    if (fetchErr) {
-        alert("Σφάλμα ανάγνωσης Βάσης: " + fetchErr.message);
-        return;
+    let saveToGlobal = false;
+    if (currentGroupId === 'personal') {
+        saveToGlobal = true;
+    } else if (currentRole === 'admin' || currentRole === 'owner' || currentRole === 'maestro') {
+        saveToGlobal = confirm("Θέλετε αυτό το ΑΡΧΕΙΟ να είναι ορατό σε ΟΛΗ την μπάντα;\n\n[OK] = Κοινό για όλους\n[Ακύρωση] = Μόνο για εμένα (Personal)");
     }
-        
-    let docs = (data && data.attachments) ? data.attachments : [];
-    docs.push(newDoc);
-    
-    if (data) {
-        const { error: updErr } = await supabaseClient.from('personal_overrides').update({ attachments: docs }).eq('id', data.id);
-        if (updErr) alert("Σφάλμα ενημέρωσης: " + updErr.message);
+
+    if (saveToGlobal) {
+        const { data: songData } = await supabaseClient.from('songs').select('attachments').eq('id', currentSongId).single();
+        let docs = (songData && songData.attachments) ? songData.attachments : [];
+        docs.push(newDoc);
+        const { error } = await supabaseClient.from('songs').update({ attachments: docs }).eq('id', currentSongId);
+        if (error) alert("Σφάλμα κεντρικής αποθήκευσης: " + error.message);
     } else {
-        const { error: insErr } = await supabaseClient.from('personal_overrides').insert([{ 
-            user_id: currentUser.id, 
-            song_id: currentSongId, 
-            group_id: (typeof currentGroupId !== 'undefined' && currentGroupId !== 'personal') ? currentGroupId : null,
-            attachments: docs 
-        }]);
-        if (insErr) alert("Σφάλμα δημιουργίας εγγραφής: " + insErr.message);
+        const { data } = await supabaseClient.from('personal_overrides').select('id, attachments').eq('user_id', currentUser.id).eq('song_id', currentSongId).eq('group_id', currentGroupId).maybeSingle();
+        let docs = (data && data.attachments) ? data.attachments : [];
+        docs.push(newDoc);
+        if (data) {
+            await supabaseClient.from('personal_overrides').update({ attachments: docs }).eq('id', data.id);
+        } else {
+            await supabaseClient.from('personal_overrides').insert([{ user_id: currentUser.id, song_id: currentSongId, group_id: currentGroupId, attachments: docs }]);
+        }
+    }
+    await loadContextData();
+}
+
+/**
+ * Αποθήκευση προσωπικών ρυθμίσεων πάνω σε κοινό τραγούδι μπάντας (Layer)
+ */
+async function saveAsOverride(songData) {
+    if (!currentSongId || !currentUser) return;
+
+    console.log("💾 Saving personal override layer...");
+
+    const payload = {
+        user_id: currentUser.id,
+        song_id: currentSongId,
+        group_id: currentGroupId, // ΠΡΟΣΟΧΗ: Εδώ προστέθηκε
+        local_transpose: state.t || 0,
+        local_capo: state.c || 0,
+        personal_notes: document.getElementById('inpPersonalNotes')?.value || ""
+    };
+
+    const { error } = await supabaseClient
+        .from('personal_overrides')
+        .upsert(payload, { onConflict: 'user_id, song_id, group_id' });
+
+    if (error) {
+        console.error("Override Save Error:", error);
+        throw error;
     }
 }
+
 /**
  * Ανάκτηση προσωπικών τραγουδιών από το Cloud (Solo/Maestro/Admin)
  */
@@ -455,33 +469,6 @@ function saveToLocalStorage(songData) {
     }
     localStorage.setItem('mnotes_data', JSON.stringify(library));
 }
-/**
- * Αποθήκευση προσωπικών ρυθμίσεων πάνω σε κοινό τραγούδι μπάντας (Layer)
- */
-async function saveAsOverride(songData) {
-    if (!currentSongId || !currentUser) return;
-
-    console.log("💾 Saving personal override layer...");
-
-    const payload = {
-        user_id: currentUser.id,
-        song_id: currentSongId,
-        // Σώζουμε τα προσωπικά στοιχεία που διαφέρουν ανά μουσικό
-        local_transpose: state.t || 0,
-        local_capo: state.c || 0,
-        personal_notes: document.getElementById('inpPersonalNotes')?.value || ""
-    };
-
-    // Χρήση upsert: αν υπάρχει ήδη override το ενημερώνει, αλλιώς το δημιουργεί
-    const { error } = await supabaseClient
-        .from('personal_overrides')
-        .upsert(payload, { onConflict: 'user_id, song_id' });
-
-    if (error) {
-        console.error("Override Save Error:", error);
-        throw error;
-    }
-}
 
 /* =========================================
    HELPER FUNCTIONS & PARSING
@@ -556,36 +543,7 @@ function convertBracketsToBang(text) {
     // Αντικαθιστά το [Chord] με !Chord
     return text.replace(/\[([a-zA-G][b#]?[m]?[maj7|sus4|7|add9|dim|0-9|\/]*)\]/g, "!$1");
 }
-async function loadContextData() {
-    library = [];
-    const listEl = document.getElementById('songList');
-    if(listEl) listEl.innerHTML = '<div class="loading-msg">Loading songs...</div>';
 
-    if (currentGroupId === 'personal') {
-        if (canUserPerform('CLOUD_SAVE')) {
-            library = await fetchPrivateSongs();
-        } else {
-            const localData = localStorage.getItem('mnotes_data');
-            if (localData) {
-                const parsed = JSON.parse(localData);
-                library = Array.isArray(parsed) ? parsed.map(ensureSongStructure) : [];
-            }
-        }
-    } else {
-        library = await fetchBandSongs(currentGroupId);
-    }
-
-    // Refresh UI
-    if (typeof renderSidebar === 'function') renderSidebar();
-    
-    // Auto-load first song
-    if (library.length > 0) {
-        currentSongId = library[0].id;
-        if (typeof toViewer === 'function') toViewer(true);
-    } else {
-        if (typeof toEditor === 'function') toEditor();
-    }
-}
 /**
  * Ενημερώνει το dropdown επιλογής περιβάλλοντος (Personal/Band)
  */
@@ -909,28 +867,28 @@ async function renderBandManager() {
 // --- ACTIONS ---
 
 async function createNewBandUI() {
+    const tier = userProfile?.subscription_tier || 'free';
+    const config = TIER_CONFIG[tier] || TIER_CONFIG.free;
+
+    const extraBandsAllowed = userProfile?.special_unlocks?.extra_bands || 0;
+    const totalAllowedBands = config.maxBandsOwned + extraBandsAllowed;
+
+    if (totalAllowedBands === 0) {
+        alert(`Το πλάνο σας (${config.label}) δεν επιτρέπει τη δημιουργία μπάντας.\nΑναβαθμίστε λογαριασμό ή χρησιμοποιήστε κάποιον κωδικό δώρου!`);
+        return;
+    }
+
+    const myOwnedGroups = myGroups.filter(g => g.role === 'owner' || g.role === 'admin');
+    
+    if (myOwnedGroups.length >= totalAllowedBands) {
+        alert(`Έχετε φτάσει το μέγιστο όριο δημιουργίας (${totalAllowedBands} μπάντες) για το λογαριασμό σας.`);
+        return;
+    }
+
     const name = prompt("Όνομα νέας μπάντας:");
     if(!name) return;
 
-    // Έλεγχος: Αν είσαι Solo Pro και έχεις ήδη Owner role σε group
-    const myOwnedGroups = myGroups.filter(g => g.role === 'owner');
-    // ΠΡΟΣΟΧΗ: Εδώ ελέγχουμε το userProfile.subscription_tier
-    const tier = userProfile?.subscription_tier || 'free';
-    
-    if (tier === 'solo' && myOwnedGroups.length >= 1) {
-        alert("Ως Solo Pro, μπορείτε να είστε ιδιοκτήτης μόνο σε 1 μπάντα.");
-        return;
-    }
-    if (tier === 'free') {
-        alert("Αναβαθμίστε σε Solo Pro για να δημιουργήσετε μπάντα!");
-        return;
-    }
-
-    // Insert Group
-    const { data, error } = await supabaseClient
-        .from('groups')
-        .insert([{ name: name, owner_id: currentUser.id }])
-        .select();
+    const { data, error } = await supabaseClient.from('groups').insert([{ name: name, owner_id: currentUser.id }]).select();
 
     if(error) { 
         console.error(error); 
@@ -939,15 +897,9 @@ async function createNewBandUI() {
     }
 
     const newGroupId = data[0].id;
-
-    // Insert Member (Owner)
-    await supabaseClient
-        .from('group_members')
-        .insert([{ group_id: newGroupId, user_id: currentUser.id, role: 'owner' }]);
+    await supabaseClient.from('group_members').insert([{ group_id: newGroupId, user_id: currentUser.id, role: 'owner' }]);
 
     showToast("Band Created! 🎉");
-    
-    // Refresh για να φανεί παντού
     window.location.reload(); 
 }
 
@@ -1001,6 +953,7 @@ async function deleteBand() {
     }
 }
 // --- ΚΕΝΤΡΙΚΗ ΣΥΝΑΡΤΗΣΗ ΠΡΟΑΓΩΓΗΣ / ΠΡΟΤΑΣΗΣ (Promote/Propose) ---
+// --- ΚΕΝΤΡΙΚΗ ΣΥΝΑΡΤΗΣΗ ΠΡΟΑΓΩΓΗΣ / ΠΡΟΤΑΣΗΣ (Promote/Propose) ---
 async function promoteItem(songId, itemType, itemObjStr) {
     if (!songId || !currentUser || currentGroupId === 'personal') return;
 
@@ -1022,8 +975,15 @@ async function promoteItem(songId, itemType, itemObjStr) {
                 await supabaseClient.from('songs').update({ [itemType]: globalItems }).eq('id', songId);
             }
 
-            // Αφαίρεση από τα Private
-            const { data: myOverride } = await supabaseClient.from('personal_overrides').select(`id, ${itemType}`).eq('user_id', currentUser.id).eq('song_id', songId).maybeSingle();
+            // Αφαίρεση από τα Private (ΠΡΟΣΤΕΘΗΚΕ ΤΟ eq('group_id', currentGroupId) ΕΔΩ!)
+            const { data: myOverride } = await supabaseClient
+                .from('personal_overrides')
+                .select(`id, ${itemType}`)
+                .eq('user_id', currentUser.id)
+                .eq('song_id', songId)
+                .eq('group_id', currentGroupId) 
+                .maybeSingle();
+
             if (myOverride && myOverride[itemType]) {
                 let personalItems = myOverride[itemType].filter(i => i.id !== itemObj.id);
                 await supabaseClient.from('personal_overrides').update({ [itemType]: personalItems }).eq('id', myOverride.id);
@@ -1039,7 +999,6 @@ async function promoteItem(songId, itemType, itemObjStr) {
                 proposed_by: currentUser.id,
                 status: 'pending',
                 title: `Νέο ${itemType === 'attachments' ? 'Αρχείο' : 'Ηχητικό'}: ${itemObj.name}`,
-                // Κρύβουμε το αρχείο μέσα στις σημειώσεις για να το βρει ο Admin
                 notes: `PROPOSAL_ASSET|${itemType}|${JSON.stringify(itemObj)}`
             };
 
@@ -1056,5 +1015,45 @@ async function promoteItem(songId, itemType, itemObjStr) {
     } catch (error) {
         console.error("Promote Error:", error);
         alert("Σφάλμα κατά την αλλαγή δικαιωμάτων: " + error.message);
+    }
+}
+// --- GIFT CODES & SPECIAL UNLOCKS ---
+async function redeemGiftCode() {
+    const codeInput = prompt("Εισάγετε τον κωδικό δώρου σας:");
+    if (!codeInput || !currentUser) return;
+    
+    const cleanCode = codeInput.trim().toUpperCase();
+
+    try {
+        const { data: codeObj, error: findErr } = await supabaseClient
+            .from('gift_codes').select('*').eq('code', cleanCode).eq('is_used', false).single();
+
+        if (findErr || !codeObj) {
+            alert("Ο κωδικός δεν βρέθηκε ή έχει ήδη εξαργυρωθεί.");
+            return;
+        }
+
+        let currentUnlocks = userProfile.special_unlocks || {};
+
+        if (codeObj.reward_type === 'extra_bands') {
+            const currentExtra = currentUnlocks.extra_bands || 0;
+            currentUnlocks.extra_bands = currentExtra + parseInt(codeObj.reward_value);
+            showToast(`Συγχαρητήρια! Κερδίσατε δικαίωμα για +${codeObj.reward_value} μπάντα! 🎉`);
+        } 
+        else if (codeObj.reward_type === 'tier_upgrade') {
+            userProfile.subscription_tier = codeObj.reward_value;
+            await supabaseClient.from('profiles').update({ subscription_tier: codeObj.reward_value }).eq('id', currentUser.id);
+            showToast(`Συγχαρητήρια! Το προφίλ σας αναβαθμίστηκε σε ${codeObj.reward_value}! 🚀`);
+        }
+
+        await supabaseClient.from('profiles').update({ special_unlocks: currentUnlocks }).eq('id', currentUser.id);
+        await supabaseClient.from('gift_codes').update({ is_used: true, used_by: currentUser.id, used_at: new Date().toISOString() }).eq('id', codeObj.id);
+        
+        userProfile.special_unlocks = currentUnlocks;
+        if (typeof updateUIForRole === 'function') updateUIForRole();
+
+    } catch (err) {
+        console.error("Gift Code Error:", err);
+        alert("Προέκυψε σφάλμα κατά την εξαργύρωση.");
     }
 }

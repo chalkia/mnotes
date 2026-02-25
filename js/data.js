@@ -1,5 +1,5 @@
 /* =========================================
-   DATA & CONFIG (js/data.js) - FINAL v7
+   DATA & CONFIG (js/data.js) - FINAL v8
    ========================================= */
 
 const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
@@ -7,20 +7,38 @@ const NOTES_FLAT = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", 
 
 var currentLang = localStorage.getItem('mnotes_lang') || 'en'; 
 
+function t(key) { 
+    if (typeof TRANSLATIONS !== 'undefined' && TRANSLATIONS[currentLang]) {
+        return TRANSLATIONS[currentLang][key] || key; 
+    }
+    return key;
+}
 
-function t(key) { return TRANSLATIONS[currentLang][key] || key; }
-
-const DEFAULT_DATA = [
-  {
-    "id": "demo_instruction",
-    "title": "Οδηγίες Χρήσης (Demo)",
-    "artist": "mNotes Team",
-    "key": "C",
-    "intro": "",
+// --- DEFAULT DEMO SONGS (Αντικαθιστά το παλιό DEFAULT_DATA) ---
+const DEFAULT_DEMO_SONGS = [
+    {
+    "id": "demo_milo",
+    "title": "Μήλο μου κόκκινο (Demo)",
+    "artist": "Παραδοσιακό",
+    "key": "Am",
+    "intro": "!Am !Dm !G !C",
     "interlude": "",
-    "notes": "Διαβάστε παρακάτω για όλες τις δυνατότητες!",
-    "playlists": ["Help", "Manual"],
-    "body": "Καλωσήρθατε στο mNotes! !ΑmΜια εφαρμογή για τη δημιουργία και χρήση στίχων με συγχορδίες για κιθάρα.\nΣτο περιβάλλον του editor για την εισαγωγή συγχορδίας προηγείται το θαυμαστικό (!) και τελειώνει σε κενό (π.χ. !C ).\n(Το κενό δεν είναι απαραίτητο όταν ο επόμενος χαρακτήρας είναι ελληνικός).\nΟι στροφές διαχωρίζονται με κενή γραμμή.\n\n=====================================\nΟΔΗΓΙΕΣ ΧΡΗΣΗΣ & ΔΥΝΑΤΟΤΗΤΕΣ\n=====================================\n\n1. ΒΙΒΛΙΟΘΗΚΗ\nΗ εφαρμογή δημιουργεί μια βιβλιοθήκη τραγουδιών που παραμένει στη συσκευή σας και μετά το κλείσιμο της εφαρμογής. Εμπλουτίζεται όταν κάνετε εισαγωγή κομματιών.\n\n2. ΠΡΟΣΩΡΙΝΗ ΛΙΣΤΑ (Setlist)\nΜπορείτε να δημιουργείτε Προσωρινή Λίστα (Setlist) για τα Live σας, στην οποία μετακινείτε τα τραγούδια σε όποια σειρά θέλετε (Drag & Drop).\n\n3. ΔΙΑΜΟΙΡΑΣΜΟΣ (Sharing)\n• QR Song (Μέσα στον Editor): Μοιράζεται ΜΟΝΟ το τραγούδι που βλέπετε τώρα.\n• QR Setlist (Στο Tab της Λίστας): Μοιράζεται ΜΟΝΟ τη σειρά των τραγουδιών (IDs) για να συγχρονιστείτε με την μπάντα (προϋποθέτει την ύπαρξη της βιβλιοθήκης στην άλλη συσκευή).\n• Export / Backup:\n  -> Σε PC: Κατεβάζει αρχείο ασφαλείας .mnote.\n  -> Σε Κινητό: Ανοίγει το Viber/WhatsApp/Email για άμεση αποστολή του αρχείου.\n*Προτείνεται να εξάγετε συχνά τη βιβλιοθήκη ώστε να μην τη χάσετε αν απεγκαταστήσετε την εφαρμογή.*\n\n4. ΕΙΣΑΓΩΓΗ (Import)\nΜπορείτε να εισάγετε αρχεία .mnote για τον εμπλουτισμό της βιβλιοθήκης σας, καθώς και αρχεία που ακολουθούν το πρότυπο ChordPro.\n\n5. ΜΟΥΣΙΚΑ ΕΡΓΑΛΕΙΑ\n• Transpose: Αλλάζει τον τόνο του τραγουδιού (-6 έως +6).\n• Capo: Μεταγράφει τις συγχορδίες ώστε να διαβάζονται εύκολα όταν χρησιμοποιείται capo.\n• Smart Capo: Ο αλγόριθμος προτείνει το καλύτερο τάστο για το Capo για να παίξετε με τις πιο εύκολες (ανοιχτές) συγχορδίες.\n• Lyrics Mode: Κρύβει τις συγχορδίες, μεγαλώνει τα γράμματα και ενώνει το κείμενο."
+    "notes": "Δοκιμάστε να αλλάξετε τον τόνο με το Transpose!",
+    "tags": ["Παραδοσιακά", "Demo"],
+    "body": "Μήλο μου κόκκινο, ρόιδο βαμμένο\n!Am                     !Dm           !Am\nΓιατί με μάρανες το πικραμένο\n!Am            !G    !F      !E\n\nΠαγαίνω κι έρχομαι μα δεν σε βρίσκω\n!Am                     !Dm           !Am\nΒρίσκω την πόρτα σου μανταλωμένη\n!Am            !G    !F      !E",
+    "video": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+  },
+  {
+    "id": "demo_grace",
+    "title": "Amazing Grace (Demo)",
+    "artist": "Traditional",
+    "key": "G",
+    "intro": "!G !C !G !D",
+    "interlude": "",
+    "notes": "Try the Smart Capo feature on this song!",
+    "tags": ["Traditional", "Demo"],
+    "body": "Amazing grace! How sweet the sound\n!G                   !C        !G\nThat saved a wretch like me!\n!G                       !D\nI once was lost, but now am found;\n!G                   !C     !G\nWas blind, but now I see.\n!G             !D    !G",
+    "video": "https://www.youtube.com/watch?v=CDdvReNKKuk"
   }
 ];
 

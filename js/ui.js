@@ -74,7 +74,7 @@ function applyTheme() {
     document.body.style.setProperty('--chord-scale', userSettings.chordSize || 1);
     document.body.style.setProperty('--chord-mb', (userSettings.chordDist || 0) + "px");
     
-   / Αν έχει επιλέξει 'default', σβήνουμε το custom χρώμα για να "ξυπνήσει" το χρώμα του Theme!
+   // Αν έχει επιλέξει 'default', σβήνουμε το custom χρώμα για να "ξυπνήσει" το χρώμα του Theme!
     if (userSettings.chordColor && userSettings.chordColor !== 'default') {
         document.body.style.setProperty('--chord-color', userSettings.chordColor);
     } else {

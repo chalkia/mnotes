@@ -34,7 +34,8 @@ var allSetlists = {};
 // Settings Default (ΑΦΑΙΡΕΘΗΚΕ ΤΟ backupReminder)
 var userSettings = JSON.parse(localStorage.getItem('mnotes_settings')) || {
     scrollSpeed: 50, maxCapo: 12, hideDemo: false, theme: 'theme-slate', introScale: 0, keepScreenOn: false, sortMethod: 'alpha',
-    customColors: { '--bg-main': '#000000', '--bg-panel': '#222222', '--text-main': '#ffffff', '--accent': '#00ff00', '--chord-color': '#ffff00' }
+    chordSize: 1, chordDist: 0, chordColor: '#ffb74d',
+   customColors: { '--bg-main': '#000000', '--bg-panel': '#222222', '--text-main': '#ffffff', '--accent': '#00ff00', '--chord-color': '#ffff00' }
 };
 var tempIntroScale = 0; 
 
@@ -70,6 +71,9 @@ function applyTheme() {
     } 
     var newSize = 1.1 + ((userSettings.introScale || 0) * 0.11); 
     root.style.setProperty('--intro-size', newSize.toFixed(2) + "rem"); 
+    root.style.setProperty('--chord-scale', userSettings.chordSize || 1);
+    root.style.setProperty('--chord-mb', (userSettings.chordDist || 0) + "px");
+    root.style.setProperty('--chord-color', userSettings.chordColor || '#ffb74d');
 }
 
 // ===========================================================
@@ -1690,20 +1694,25 @@ function openSettings() {
         console.error("Settings Modal ID not found!");
         return;
     }
-
+  // Έλεγχος αν υπάρχουν τα userSettings (αν όχι, τα δημιουργούμε)
+    if (typeof userSettings === 'undefined') {
+        userSettings = JSON.parse(localStorage.getItem('mnotes_settings')) || { theme: 'theme-dark', lang: 'el', sortMethod: 'alpha' };
+    }
     // Φόρτωση των τρεχουσών τιμών στα dropdowns
     const themeSel = document.getElementById('setTheme');
     const langSel = document.getElementById('langSelect');
     const sortSel = document.getElementById('sortDefaultSelect'); 
-    
-    // Έλεγχος αν υπάρχουν τα userSettings (αν όχι, τα δημιουργούμε)
-    if (typeof userSettings === 'undefined') {
-        userSettings = JSON.parse(localStorage.getItem('mnotes_settings')) || { theme: 'theme-dark', lang: 'el', sortMethod: 'alpha' };
-    }
+    const sizeInp = document.getElementById('setChordSize');
+    const distInp = document.getElementById('setChordDist');
+    const colInp = document.getElementById('setChordColor');
+  
 
     if(themeSel) themeSel.value = userSettings.theme || 'theme-dark';
     if(langSel) langSel.value = userSettings.lang || 'el';
     if(sortSel) sortSel.value = userSettings.sortMethod || 'alpha';
+    if(sizeInp) sizeInp.value = userSettings.chordSize || 1;
+    if(distInp) distInp.value = userSettings.chordDist || 0;
+    if(colInp) colInp.value = userSettings.chordColor || '#ffb74d';
 
     // Εμφάνιση του παραθύρου
     modal.style.display = 'flex';
@@ -1718,7 +1727,10 @@ function saveSettings() {
     const themeSel = document.getElementById('setTheme');
     const langSel = document.getElementById('langSelect');
     const sortSel = document.getElementById('sortDefaultSelect');
-
+    const sizeInp = document.getElementById('setChordSize');
+    const distInp = document.getElementById('setChordDist');
+    const colInp = document.getElementById('setChordColor');
+   
     // 1. Εφαρμογή Θέματος
     if (themeSel) {
         userSettings.theme = themeSel.value;
@@ -1736,11 +1748,12 @@ function saveSettings() {
              }
         }
     }
+    if (sizeInp) userSettings.chordSize = parseFloat(sizeInp.value);
+    if (distInp) userSettings.chordDist = parseInt(distInp.value);
+    if (colInp) userSettings.chordColor = colInp.value;
     
-    // 3. Προεπιλογή Ταξινόμησης
-    if (sortSel) {
-        userSettings.sortMethod = sortSel.value;
-    }
+   // 3. Προεπιλογή Ταξινόμησης
+    if (sortSel) {userSettings.sortMethod = sortSel.value;}
     
     // 4. Αποθήκευση στη μνήμη
     localStorage.setItem('mnotes_settings', JSON.stringify(userSettings));

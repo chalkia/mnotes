@@ -767,18 +767,20 @@ function showToast(msg) {
 // PDF / PRINT FUNCTION (FINAL PRO STYLE + LOGO + TOKEN SYSTEM)
 
 function printSongPDF() {
-    // 1. Διάβασμα Δεδομένων από τον Editor
+// 🔒 Έλεγχος Δικαιώματος
+    if (typeof canUserPerform === 'function' && !canUserPerform('PRINT')) {
+        if (typeof promptUpgrade === 'function') promptUpgrade('Εκτύπωση σε PDF');
+        return; 
+    }
+
     var title = document.getElementById('inpTitle').value || "Untitled";
     var artist = document.getElementById('inpArtist').value || "";
     var bodyRaw = document.getElementById('inpBody').value || "";
     var key = document.getElementById('inpKey').value || "-";
-    // Η "Μαγική" εντολή: Ξεχωρίζει τους τόνους και τους σβήνει, μετά κάνει κεφαλαία
+    
     var title = title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
-   
-   // 🚀 Μετατροπή ChordPro για την εκτύπωση
-    bodyRaw = bodyRaw.replace(/\[([a-zA-G][b#]?[m]?[maj7|sus4|7|add9|dim|0-9|\/]*)\]/g, "!$1 ");
-   
-   // 2. Ανάλυση στίχων και συγχορδιών (Token System Logic)
+    bodyRaw = bodyRaw.replace(/\[(.*?)\]/g, "!$1 ");
+
     var lines = bodyRaw.split('\n');
     var htmlBody = "";
 
@@ -1125,8 +1127,13 @@ document.addEventListener('click', function(e) {
 // ===========================================================
 // 7. RECORDING (AUDIO & CLOUD)
 // ===========================================================
-
 async function toggleRecording() {
+    // 🔒 Έλεγχος Δικαιώματος
+    if (typeof canUserPerform === 'function' && !canUserPerform('SAVE_ATTACHMENTS')) {
+        if (typeof promptUpgrade === 'function') promptUpgrade('Εγγραφή & Αποθήκευση Ήχου');
+        return; 
+    }
+
     const btn = document.getElementById('btnRecord');
     const timer = document.getElementById('recTimer');
     const btnLink = document.getElementById('btnLinkRec');
@@ -1139,6 +1146,7 @@ async function toggleRecording() {
         clearInterval(recTimerInterval);
         return;
     }
+    
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
@@ -1155,6 +1163,7 @@ async function toggleRecording() {
         recStartTime = Date.now(); recTimerInterval = setInterval(() => { const diff = Math.floor((Date.now() - recStartTime) / 1000); const m = Math.floor(diff / 60).toString().padStart(2,'0'); const s = (diff % 60).toString().padStart(2,'0'); timer.innerText = `${m}:${s}`; }, 1000);
     } catch (err) { alert("Microphone Error: " + err.message); }
 }
+
 async function uploadAndLinkCurrent() {
     if (!currentRecordedBlob) { showToast("No recording!"); return; }
     if (!currentSongId) { showToast("Select song!"); return; }
@@ -1206,6 +1215,13 @@ async function uploadAndLinkCurrent() {
 
 // Συνάρτηση για ανέβασμα έτοιμων αρχείων ήχου (MP3/WAV)
 async function uploadAudioToCloud(inputElement) {
+    // 🔒 Έλεγχος Δικαιώματος
+    if (typeof canUserPerform === 'function' && !canUserPerform('SAVE_ATTACHMENTS')) {
+        if (typeof promptUpgrade === 'function') promptUpgrade('Αποθήκευση Backing Tracks');
+        inputElement.value = ""; // Μηδενισμός της επιλογής
+        return; 
+    }
+
     const file = inputElement.files[0];
     if (!file) return;
     if (!currentSongId) { showToast("Επιλέξτε τραγούδι πρώτα!"); return; }
@@ -1214,21 +1230,18 @@ async function uploadAudioToCloud(inputElement) {
     const s = library.find(x => x.id === currentSongId);
     if (!s.recordings) s.recordings = [];
     
-    // UI Elements
     const progBox = document.getElementById('uploadProgressBox');
     const progBar = document.getElementById('uploadBar');
     if(progBox) progBox.style.display = 'block';
-    if(progBar) progBar.style.width = '50%'; // Fake progress for direct upload
+    if(progBar) progBar.style.width = '50%'; 
 
     const filename = `Upload_${currentSongId}_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`;
 
     try {
         const { data, error } = await supabaseClient.storage.from('audio_files').upload(`${currentUser.id}/${filename}`, file);
-        
         if (error) throw error;
 
         const { data: { publicUrl } } = supabaseClient.storage.from('audio_files').getPublicUrl(`${currentUser.id}/${filename}`);
-        
         const newRec = { id: Date.now(), name: file.name, url: publicUrl, date: Date.now() };
 
         if(typeof addRecordingToCurrentSong === 'function') {
@@ -1243,11 +1256,18 @@ async function uploadAudioToCloud(inputElement) {
         showToast("Αποτυχία Upload: " + err.message, "error");
     } finally {
         if(progBox) progBox.style.display = 'none';
-        inputElement.value = ""; // Reset input
+        inputElement.value = ""; 
     }
 }
 // Συνάρτηση για ανέβασμα εγγράφων/παρτιτούρων (PDF/Images)
 async function uploadAttachment(inputElement) {
+    // 🔒 Έλεγχος Δικαιώματος
+    if (typeof canUserPerform === 'function' && !canUserPerform('SAVE_ATTACHMENTS')) {
+        if (typeof promptUpgrade === 'function') promptUpgrade('Αποθήκευση Παρτιτούρας / Εικόνων');
+        inputElement.value = ""; 
+        return; 
+    }
+
     const file = inputElement.files[0];
     if (!file) return;
     if (!currentSongId) { showToast("Επιλέξτε τραγούδι!"); return; }
@@ -1272,7 +1292,6 @@ async function uploadAttachment(inputElement) {
         }
         
         showToast("Το αρχείο ανέβηκε επιτυχώς! 📄");
-        // Δεν κάνουμε εδώ push στο s.attachments, θα το κάνει το loadContextData που καλείται από το logic!
         
     } catch (err) {
         console.error("Upload Error:", err);

@@ -37,7 +37,7 @@ const DEFAULT_DEMO_SONGS = [
     "interlude": "",
     "notes": "Try the Smart Capo feature on this song!",
     "tags": ["Traditional", "Demo"],
-    "body": "Amazing grace! How sweet the sound\n!G                   !C        !G\nThat saved a wretch like me!\n!G                       !D\nI once was lost, but now am found;\n!G                   !C     !G\nWas blind, but now I see.\n!G             !D    !G",
+    "body": "[G]Amazing grace! How  [C]sweet the [G]sound \n That saved a wretch like [D]me! \n  [G]I once was lost, but [C]now am [G]found; \nWas [D]blind, but now I [G]see.",
     "video": "https://www.youtube.com/watch?v=CDdvReNKKuk"
   }
 ];

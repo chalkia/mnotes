@@ -594,6 +594,7 @@ function renderPlayer(s) {
 function renderArea(elemId, text) { 
     var container = document.getElementById(elemId); if (!container) return; 
     container.innerHTML = ""; 
+    text = text.replace(/\[([a-zA-G][b#]?[m]?[maj7|sus4|7|add9|dim|0-9|\/]*)\]/g, "!$1 ");
     var lines = text.split('\n'); 
     lines.forEach(line => { 
         var row = document.createElement('div'); row.className = 'line-row'; 
@@ -767,7 +768,11 @@ function printSongPDF() {
     var key = document.getElementById('inpKey').value || "-";
     // Η "Μαγική" εντολή: Ξεχωρίζει τους τόνους και τους σβήνει, μετά κάνει κεφαλαία
     var title = title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
-    // 2. Ανάλυση στίχων και συγχορδιών (Token System Logic)
+   
+   // 🚀 Μετατροπή ChordPro για την εκτύπωση
+    bodyRaw = bodyRaw.replace(/\[([a-zA-G][b#]?[m]?[maj7|sus4|7|add9|dim|0-9|\/]*)\]/g, "!$1 ");
+   
+   // 2. Ανάλυση στίχων και συγχορδιών (Token System Logic)
     var lines = bodyRaw.split('\n');
     var htmlBody = "";
 
@@ -1663,7 +1668,11 @@ function calculateOptimalCapo(originalKey, body) {
 }
 function parseMetaLine(text) {
     if (!text) return "";
-    // Regex που δέχεται και μικρά [a-zA-G]
+    
+   // 🚀 Μετατροπή ChordPro on-the-fly για τα Intro/Interlude
+    text = text.replace(/\[([a-zA-G][b#]?[m]?[maj7|sus4|7|add9|dim|0-9|\/]*)\]/g, "!$1 ");
+   
+   // Regex που δέχεται και μικρά [a-zA-G]
     return text.replace(/!([a-zA-G][b#]?[m]?[maj7|sus4|7|add9|dim|0-9|\/]*)/g, (match, chord) => {
         
         // 1. Προσωρινό κεφαλαίο για τον υπολογισμό

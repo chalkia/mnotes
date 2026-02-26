@@ -1758,7 +1758,10 @@ function saveSettings() {
     // 4. Αποθήκευση στη μνήμη
     localStorage.setItem('mnotes_settings', JSON.stringify(userSettings));
     
-    // Κλείσιμο παραθύρου & Ενημέρωση
+   // ΕΦΑΡΜΟΓΗ ΟΠΤΙΚΩΝ ΑΛΛΑΓΩΝ ΑΜΕΣΑ!
+     if (typeof applyTheme === 'function') applyTheme();
+   
+   // Κλείσιμο παραθύρου & Ενημέρωση
     closeSettings();
     
     // Ανανέωση λίστας με τις νέες ρυθμίσεις

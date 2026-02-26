@@ -1688,8 +1688,8 @@ function parseMetaLine(text) {
             translated = translated.charAt(0).toLowerCase() + translated.slice(1);
         }
 
-        // Επιστροφή με την κλάση .chord για να πάρει το σωστό χρώμα
-        return `<span class="chord" style="display:inline; position:static; font-size:inherit;">${translated}</span>`;
+       // Επιστροφή με την κλάση .chord και αναγκαστικό χρώμα από τις ρυθμίσεις!
+return `<span class="chord" style="display:inline; position:static; font-size:inherit; color: var(--chord-color);">${translated}</span>`;
     });
 }
 

@@ -385,7 +385,9 @@ async function fetchBandSongs(groupId) {
 async function saveSong() {
     // 1. Συλλογή δεδομένων από τον Editor
     const title = document.getElementById('inpTitle').value;
-    const body = convertBracketsToBang(document.getElementById('inpBody').value);
+    
+    // 🚀 ΑΦΑΙΡΕΘΗΚΕ ΤΟ convertBracketsToBang! Παίρνουμε το κείμενο όπως ακριβώς είναι.
+    const body = document.getElementById('inpBody').value; 
     
     if (!title || !body) { showToast(t('msg_title_body_req'), "error"); return; }
 
@@ -401,7 +403,7 @@ async function saveSong() {
         tags: document.getElementById('inpTags')?.value.split(',').map(t => t.trim()).filter(t => t !== "") || [],
         updated_at: new Date().toISOString()
     };
-
+   
     const personalNotesVal = document.getElementById('inpPersonalNotes')?.value || "";
 
     try {

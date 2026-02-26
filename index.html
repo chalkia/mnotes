@@ -355,7 +355,22 @@
 
             <label><span data-i18n="lbl_scroll_speed">Scroll Speed:</span> <input type="range" id="setScroll" min="10" max="200"></label>
             <label><span data-i18n="lbl_max_capo">Max Capo:</span> <input type="number" id="setMaxCapo" value="12"></label>
+
+            <hr style="border-color:#444; margin:10px 0;">
+            <div style="margin-bottom: 5px; font-weight: bold; color: var(--accent);" data-i18n="lbl_chord_appearance">Εμφάνιση Συγχορδιών</div>
             
+            <label><span data-i18n="lbl_chord_size">Μέγεθος:</span> 
+                <input type="range" id="setChordSize" min="0.5" max="2" step="0.1" value="1">
+            </label>
+            
+            <label><span data-i18n="lbl_chord_dist">Απόσταση (Ύψος):</span> 
+                <input type="range" id="setChordDist" min="-10" max="20" step="1" value="0">
+            </label>
+            
+            <label><span data-i18n="lbl_chord_color">Χρώμα:</span> 
+                <input type="color" id="setChordColor" value="#ffb74d" style="width: 100%; height: 30px; border: none; border-radius: 4px; cursor: pointer;">
+            </label>
+            <hr style="border-color:#444; margin:10px 0;">
             <label><input type="checkbox" id="setHideDemo"> <span data-i18n="lbl_hide_demo">Hide Demo</span></label>
             <label><input type="checkbox" id="setWakeLock"> <span data-i18n="lbl_keep_screen">Keep Screen On</span></label>
             <hr style="border-color:#444; margin:15px 0;">
@@ -560,6 +575,7 @@
     <script src="js/app.js"></script>
 </body>
 </html>
+
 
 
 

@@ -99,7 +99,7 @@ body { background: var(--bg-main); color: var(--text-main); font-family: var(--f
 
 .line-row { display: flex; flex-wrap: wrap; align-items: flex-end; margin-bottom: 5px; line-height: 1.1; }
 .token { display: flex; flex-direction: column; margin-right: 1px; align-items: flex-start; }
-.chord { color: var(--chord-color); font-size: calc(var(--lyric-size) * 0.85); font-weight: bold; margin-bottom: -2px; z-index: 10; line-height: 1; min-height: 1em; }
+.chord {color: var(--chord-color); font-size: calc((var(--lyric-size) * 0.85) * var(--chord-scale, 1)); font-weight: bold; margin-bottom: calc(-2px + var(--chord-mb, 0px)); z-index: 10; line-height: 1; min-height: 1em;}
 .lyric { color: var(--text-main); font-size: var(--lyric-size); white-space: pre; line-height: 1; padding-top: 2px; }
 
 body.lyrics-mode .chord { display: none !important; }
@@ -1443,4 +1443,5 @@ body.band-mode .top-nav {
     background-color: #2c1e3e; /* Ένα πιο 'σκοτεινό'/διαφορετικό χρώμα */
     border-bottom: 2px solid #e91e63;
 }
+
 

@@ -34,7 +34,7 @@ var allSetlists = {};
 // Settings Default (ΑΦΑΙΡΕΘΗΚΕ ΤΟ backupReminder)
 var userSettings = JSON.parse(localStorage.getItem('mnotes_settings')) || {
     scrollSpeed: 50, maxCapo: 12, hideDemo: false, theme: 'theme-slate', introScale: 0, keepScreenOn: false, sortMethod: 'alpha',
-    chordSize: 1, chordDist: 0, chordColor: '#ffb74d',
+    chordSize: 1, chordDist: 0, chordColor: 'default',
    customColors: { '--bg-main': '#000000', '--bg-panel': '#222222', '--text-main': '#ffffff', '--accent': '#00ff00', '--chord-color': '#ffff00' }
 };
 var tempIntroScale = 0; 
@@ -73,7 +73,13 @@ function applyTheme() {
     root.style.setProperty('--intro-size', newSize.toFixed(2) + "rem"); 
     document.body.style.setProperty('--chord-scale', userSettings.chordSize || 1);
     document.body.style.setProperty('--chord-mb', (userSettings.chordDist || 0) + "px");
-    document.body.style.setProperty('--chord-color', userSettings.chordColor || '#ffb74d');
+    
+   / Αν έχει επιλέξει 'default', σβήνουμε το custom χρώμα για να "ξυπνήσει" το χρώμα του Theme!
+    if (userSettings.chordColor && userSettings.chordColor !== 'default') {
+        document.body.style.setProperty('--chord-color', userSettings.chordColor);
+    } else {
+        document.body.style.removeProperty('--chord-color'); 
+    }
 }
 
 // ===========================================================
@@ -1699,31 +1705,41 @@ return `<span class="chord" style="display:inline; position:static; font-size:in
 
 function openSettings() {
     const modal = document.getElementById('settingsModal');
-    if (!modal) {
-        console.error("Settings Modal ID not found!");
-        return;
-    }
-  // Έλεγχος αν υπάρχουν τα userSettings (αν όχι, τα δημιουργούμε)
+    if (!modal) return;
+
     if (typeof userSettings === 'undefined') {
         userSettings = JSON.parse(localStorage.getItem('mnotes_settings')) || { theme: 'theme-dark', lang: 'el', sortMethod: 'alpha' };
     }
-    // Φόρτωση των τρεχουσών τιμών στα dropdowns
+
     const themeSel = document.getElementById('setTheme');
     const langSel = document.getElementById('langSelect');
     const sortSel = document.getElementById('sortDefaultSelect'); 
     const sizeInp = document.getElementById('setChordSize');
     const distInp = document.getElementById('setChordDist');
     const colInp = document.getElementById('setChordColor');
-  
+    const chkDef = document.getElementById('chkDefaultColor'); // ΝΕΟ
 
     if(themeSel) themeSel.value = userSettings.theme || 'theme-dark';
     if(langSel) langSel.value = userSettings.lang || 'el';
     if(sortSel) sortSel.value = userSettings.sortMethod || 'alpha';
     if(sizeInp) sizeInp.value = userSettings.chordSize || 1;
     if(distInp) distInp.value = userSettings.chordDist || 0;
-    if(colInp) colInp.value = userSettings.chordColor || '#ffb74d';
 
-    // Εμφάνιση του παραθύρου
+    // Λογική για το Χρώμα
+    if(colInp && chkDef) {
+        if (!userSettings.chordColor || userSettings.chordColor === 'default') {
+            chkDef.checked = true;
+            colInp.disabled = true;
+            colInp.style.opacity = '0.3';
+            colInp.value = '#ffb74d'; // Ένα τυχαίο χρώμα για να μην φαίνεται άσπρο
+        } else {
+            chkDef.checked = false;
+            colInp.disabled = false;
+            colInp.style.opacity = '1';
+            colInp.value = userSettings.chordColor;
+        }
+    }
+
     modal.style.display = 'flex';
 }
 
@@ -1739,6 +1755,7 @@ function saveSettings() {
     const sizeInp = document.getElementById('setChordSize');
     const distInp = document.getElementById('setChordDist');
     const colInp = document.getElementById('setChordColor');
+    const chkDef = document.getElementById('chkDefaultColor');
    
     // 1. Εφαρμογή Θέματος
     if (themeSel) {
@@ -1759,8 +1776,11 @@ function saveSettings() {
     }
     if (sizeInp) userSettings.chordSize = parseFloat(sizeInp.value);
     if (distInp) userSettings.chordDist = parseInt(distInp.value);
-    if (colInp) userSettings.chordColor = colInp.value;
-    
+    if (chkDef && chkDef.checked) {
+        userSettings.chordColor = 'default';
+    } else if (colInp) {
+        userSettings.chordColor = colInp.value;
+    }
    // 3. Προεπιλογή Ταξινόμησης
     if (sortSel) {userSettings.sortMethod = sortSel.value;}
     

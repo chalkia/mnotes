@@ -71,9 +71,9 @@ function applyTheme() {
     } 
     var newSize = 1.1 + ((userSettings.introScale || 0) * 0.11); 
     root.style.setProperty('--intro-size', newSize.toFixed(2) + "rem"); 
-    root.style.setProperty('--chord-scale', userSettings.chordSize || 1);
-    root.style.setProperty('--chord-mb', (userSettings.chordDist || 0) + "px");
-    root.style.setProperty('--chord-color', userSettings.chordColor || '#ffb74d');
+    document.body.style.setProperty('--chord-scale', userSettings.chordSize || 1);
+    document.body.style.setProperty('--chord-mb', (userSettings.chordDist || 0) + "px");
+    document.body.style.setProperty('--chord-color', userSettings.chordColor || '#ffb74d');
 }
 
 // ===========================================================

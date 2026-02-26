@@ -28,9 +28,9 @@
                             <button id="btnAuth" onclick="document.getElementById('authModal').style.display='flex'" class="action-btn" title="Login">
                                 <i class="fas fa-user"></i>
                             </button>
-                            <button id="btnAddSong" onclick="createNewSong()" class="action-btn" data-i18n="btn_add_song_title">
+                            <button id="btnAddSong" onclick="createNewSong()" class="action-btn" title="Add Song / Προσθήκη">
                                 <i class="fas fa-plus"></i>
-                            </button>
+                            </button>    
                         </div>
                     </div>
                     <div id="userDisplayName" style="font-size: 0.8rem; color: var(--accent); font-weight: bold; min-height: 1.2em; margin-left: 2px;"></div>
@@ -98,7 +98,7 @@
                 <button onclick="document.getElementById('importChoiceModal').style.display='flex'" class="footer-btn">
                     <i class="fas fa-file-import"></i> <span data-i18n="btn_import">Import</span>
                 </button>
-                <button onclick="exportJSON()" class="footer-btn icon-only" data-i18n="btn_export_title">
+                <button onclick="exportJSON()" class="footer-btn icon-only" title="Export / Εξαγωγή">
                     <i class="fas fa-file-export"></i>
                 </button>
                 <button onclick="clearLibrary()" class="footer-btn icon-only danger">
@@ -156,6 +156,9 @@
                     <button id="btnEditSong" onclick="switchToEditor()" class="round-btn">
                         <i class="fas fa-pen"></i>
                     </button>
+                    <button id="btnShareBand" onclick="showTransferModal()" class="round-btn" title="Κοινοποίηση στη Μπάντα">
+                     <i class="fas fa-share-square"></i>
+                     </button>
                     <button id="btnNextSong" onclick="navSetlist(1)" class="round-btn">
                         <i class="fas fa-step-forward"></i>
                     </button>
@@ -355,6 +358,13 @@
             
             <label><input type="checkbox" id="setHideDemo"> <span data-i18n="lbl_hide_demo">Hide Demo</span></label>
             <label><input type="checkbox" id="setWakeLock"> <span data-i18n="lbl_keep_screen">Keep Screen On</span></label>
+            <hr style="border-color:#444; margin:15px 0;">
+            
+            <div style="text-align:center;">
+                  <button onclick="redeemGiftCode()" class="modal-btn" style="width:100%; background:var(--bg-panel); border:1px dashed var(--accent); color:var(--accent);">
+                      <i class="fas fa-gift"></i> Έχετε Κωδικό Δώρου;
+                  </button>
+            </div>
             
             <div style="margin-top:15px; display:flex; gap:10px;">
                 <button onclick="saveSettings()" class="modal-btn accent" data-i18n="btn_save">Save</button>
@@ -550,6 +560,7 @@
     <script src="js/app.js"></script>
 </body>
 </html>
+
 
 
 

@@ -86,21 +86,31 @@ if (typeof window.t === 'undefined') {
    ========================================= */
 async function initUserData() {
     if (!currentUser) return;
-
     try {
-        // 1. Προφίλ & Tier (Όπως το είχες)
-        const { data: profile, error: pError } = await supabaseClient
-            .from('profiles').select('*').eq('id', currentUser.id).single();
-
-        if (pError && pError.code !== 'PGRST116') throw pError;
+        const { data: profile } = await supabaseClient
+            .from('profiles').select('*').eq('id', currentUser.id).maybeSingle();
 
         if (profile) {
             userProfile = profile;
+            // Επιβολή μικρών γραμμάτων για συμβατότητα με το DB Constraint
+            userProfile.subscription_tier = profile.subscription_tier.toLowerCase();
         } else {
             const newProfile = { id: currentUser.id, email: currentUser.email, subscription_tier: 'free' };
             await supabaseClient.from('profiles').insert([newProfile]);
             userProfile = newProfile;
         }
+
+        const { data: groups } = await supabaseClient.from('group_members')
+            .select('group_id, role, groups(name)').eq('user_id', currentUser.id);
+        myGroups = groups || [];
+
+        updateGroupDropdown();
+        await switchContext('personal'); 
+
+    } catch (err) {
+        console.error("❌ Init Error:", err);
+    }
+}
 
         // 2. Groups (Bands) - ΔΙΟΡΘΩΜΕΝΟ JOIN ΓΙΑ ΑΠΟΦΥΓΗ 500 ERROR
         const { data: groups, error: gError } = await supabaseClient
@@ -189,92 +199,52 @@ function updateUIForRole() {
 /* =========================================
    DATA LOADING & SYNC
    ========================================= */
-/* =========================================
-   DATA LOADING & SYNC
-   ========================================= */
 async function loadContextData() {
     library = [];
     const listEl = document.getElementById('songList');
-    if(listEl) listEl.innerHTML = '<div class="loading-msg">Loading...</div>';
+    if(listEl) listEl.innerHTML = '<div class="loading-msg">Loading Library...</div>';
 
     try {
         if (currentGroupId === 'personal') {
-            if (canUserPerform('USE_SUPABASE')) {
-                library = await fetchPrivateSongs();
-                
-                // ΠΡΟΣΘΗΚΗ ΠΟΥ ΕΛΕΙΠΕ: Αν η Supabase είναι άδεια, βάλε τα Demos
-                if (library.length === 0) {
-                    const myDemos = DEFAULT_DEMO_SONGS.map((ds, idx) => ({ 
-                        ...ds, 
-                        id: "s_" + Date.now() + idx, 
-                        user_id: currentUser.id, 
-                        group_id: null 
-                    }));
-                    await supabaseClient.from('songs').insert(myDemos);
-                    library = myDemos;
-                }
-            } 
-            else if (canUserPerform('USE_DRIVE')) {
-                library = []; 
-            } 
-            else {
+            // 1. Προσπάθεια για Cloud αν είναι Maestro/Solo
+            if (canUserPerform('CLOUD_SAVE')) {
+                const cloudSongs = await fetchPrivateSongs();
+                if (cloudSongs && cloudSongs.length > 0) library = cloudSongs;
+            }
+            
+            // 2. Fallback στο LocalStorage αν το Cloud είναι άδειο (ή αν είναι Free)
+            if (library.length === 0) {
                 const localData = localStorage.getItem('mnotes_data');
                 if (localData) {
                     const parsed = JSON.parse(localData);
-                    library = Array.isArray(parsed) && parsed.length > 0 ? parsed.map(ensureSongStructure) : [];
-                }
-                
-                if (library.length === 0) {
-                    library = DEFAULT_DEMO_SONGS.map((ds, idx) => ({ 
-                        ...ds, 
-                        id: "s_" + Date.now() + idx 
-                    }));
-                    localStorage.setItem('mnotes_data', JSON.stringify(library));
+                    library = Array.isArray(parsed) ? parsed.map(ensureSongStructure) : [];
                 }
             }
-            
-            library.forEach(song => {
-                song.recordings = (song.recordings || []).map(r => ({...r, origin: 'private'}));
-                song.attachments = (song.attachments || []).map(a => ({...a, origin: 'private'}));
-            });
-            
         } else {
-            const songs = await fetchBandSongs(currentGroupId);
+            // Context Μπάντας
+            library = await fetchBandSongs(currentGroupId);
             
+            // Φόρτωση προσωπικών overrides (σημειώσεις, transpose)
             const { data: overrides } = await supabaseClient
                 .from('personal_overrides')
                 .select('*')
                 .eq('user_id', currentUser.id)
-                .eq('group_id', currentGroupId); 
+                .eq('group_id', currentGroupId);
 
-            library = songs.map(song => {
-                const cleanSong = ensureSongStructure(song);
+            library = library.map(song => {
                 const userOverride = overrides?.find(o => o.song_id === song.id);
-                
-                let publicRecs = (cleanSong.recordings || []).map(r => ({...r, origin: 'public'}));
-                let publicDocs = (cleanSong.attachments || []).map(a => ({...a, origin: 'public'}));
-                
                 if (userOverride) {
-                    cleanSong.personal_key = userOverride.personal_key; 
-                    cleanSong.personal_notes = userOverride.personal_notes;
-                    cleanSong.personal_transpose = userOverride.local_transpose || 0;
-                    
-                    let privateRecs = (userOverride.recordings || []).map(r => ({...r, origin: 'private'}));
-                    let privateDocs = (userOverride.attachments || []).map(a => ({...a, origin: 'private'}));
-                    
-                    cleanSong.recordings = [...publicRecs, ...privateRecs];
-                    cleanSong.attachments = [...publicDocs, ...privateDocs];
-                    
-                    cleanSong.has_override = true;
-                } else {
-                    cleanSong.recordings = publicRecs;
-                    cleanSong.attachments = publicDocs;
+                    song.personal_notes = userOverride.personal_notes;
+                    song.personal_transpose = userOverride.local_transpose || 0;
+                    song.has_override = true;
                 }
-                return cleanSong;
+                return song;
             });
         }
 
         if (typeof renderSidebar === 'function') renderSidebar();
+        
+        // Αυτόματη επιλογή τραγουδιού
         if (library.length > 0) {
             currentSongId = library[0].id;
             if (typeof toViewer === 'function') toViewer(true);
@@ -283,9 +253,10 @@ async function loadContextData() {
         }
     } catch (err) {
         console.error("❌ Load Context Error:", err);
-        showToast("Error loading library", "error");
+        showToast("Error loading context", "error");
     }
 }
+
 
 // --- Ο ΠΟΡΤΙΕΡΗΣ (Ελεγκτής Δικαιωμάτων) ---
 function canUserPerform(action) {
@@ -563,6 +534,69 @@ function saveToLocalStorage(songData) {
     }
     localStorage.setItem('mnotes_data', JSON.stringify(library));
 }
+/**
+ * Αντιγράφει ένα τραγούδι από τη βιβλιοθήκη της Μπάντας 
+ * στην Προσωπική Βιβλιοθήκη του χρήστη.
+ */
+async function cloneToPersonal() {
+    // 1. Βρίσκουμε το τραγούδι που βλέπει ο χρήστης αυτή τη στιγμή
+    const sourceSong = library.find(s => s.id === currentSongId);
+    if (!sourceSong) {
+        showToast("Δεν βρέθηκε το τραγούδι", "error");
+        return;
+    }
+
+    if (!currentUser) {
+        showToast("Πρέπει να είστε συνδεδεμένος", "error");
+        return;
+    }
+
+    // 2. Προετοιμασία του Κλώνου
+    // Φτιάχνουμε νέο ID για να είναι ανεξάρτητο
+    const newId = "s_" + Date.now() + Math.random().toString(16).slice(2);
+
+    const clonedSong = {
+        id: newId,
+        title: sourceSong.title + " (Copy)", // Προσθήκη για να το ξεχωρίζει
+        artist: sourceSong.artist,
+        body: sourceSong.body,
+        key: sourceSong.key,
+        intro: sourceSong.intro,
+        interlude: sourceSong.interlude,
+        video: sourceSong.video || "",
+        tags: sourceSong.tags || [],
+        user_id: currentUser.id,
+        group_id: null, // <--- ΕΔΩ ΕΙΝΑΙ ΤΟ ΚΛΕΙΔΙ: Γίνεται προσωπικό
+        notes: sourceSong.personal_notes || sourceSong.notes || "", // Παίρνει τις προσωπικές του σημειώσεις αν υπάρχουν
+        recordings: [], // Συνήθως δεν αντιγράφουμε τα αρχεία για λόγους χώρου, αλλά αν θες προσθέτεις sourceSong.recordings
+        attachments: []
+    };
+
+    try {
+        // 3. Αποθήκευση (Cloud αν είναι Solo/Maestro, αλλιώς Local)
+        if (canUserPerform('CLOUD_SAVE')) {
+            const { error } = await supabaseClient.from('songs').insert([clonedSong]);
+            if (error) throw error;
+        } else {
+            // Για Free χρήστες που είναι σε μπάντα αλλά θέλουν το τραγούδι τοπικά
+            let localData = JSON.parse(localStorage.getItem('mnotes_data') || "[]");
+            localData.push(clonedSong);
+            localStorage.setItem('mnotes_data', JSON.stringify(localData));
+        }
+
+        showToast("Αντιγράφηκε στην Προσωπική Βιβλιοθήκη! 🏠");
+        
+        // 4. Προαιρετικά: Ρωτάμε αν θέλει να μεταβεί εκεί για να το δει
+        if (confirm("Το τραγούδι αντιγράφηκε! Θέλετε να μεταβείτε στην Προσωπική σας Βιβλιοθήκη;")) {
+            await switchContext('personal');
+        }
+
+    } catch (err) {
+        console.error("Clone Error:", err);
+        showToast("Αποτυχία αντιγραφής", "error");
+    }
+}
+
 /* =========================================
    HELPER FUNCTIONS & PARSING
    ========================================= */
@@ -718,7 +752,6 @@ async function processSyncQueue() {
 
 // --- SONG TRANSFER & PROPOSALS ---
 async function transferSong(targetContext) {
-    // 🔒 Έλεγχος δικαιώματος Supabase
     if (!canUserPerform('USE_SUPABASE')) {
         promptUpgrade('Κοινοποίηση σε Μπάντα');
         return;
@@ -727,8 +760,11 @@ async function transferSong(targetContext) {
     const sourceSong = library.find(s => s.id === currentSongId);
     if (!sourceSong) return;
 
+    // ✨ Νέο ID για το αντίγραφο της μπάντας (για να μην "κλαπεί" το προσωπικό)
+    const newId = "s_" + Date.now() + Math.random().toString(16).slice(2);
+
     const newSongData = {
-        id: sourceSong.id, 
+        id: newId, 
         title: sourceSong.title,
         artist: sourceSong.artist,
         body: sourceSong.body,
@@ -744,19 +780,22 @@ async function transferSong(targetContext) {
         attachments: [] 
     };
 
-    if (targetContext !== 'personal' && currentRole !== 'admin' && currentRole !== 'owner') {
-        await submitProposal(newSongData, targetContext);
-        await migrateAttachmentsToOverrides(sourceSong, targetContext);
-    } else {
-        const { error } = await supabaseClient.from('songs').upsert([newSongData]);
-        if (error) {
-            console.error("Transfer Error:", error);
-            showToast("Σφάλμα μεταφοράς", "error");
-            return;
+    try {
+        if (targetContext !== 'personal' && currentRole !== 'admin' && currentRole !== 'owner') {
+            await submitProposal(newSongData, targetContext);
+            showToast("Η πρόταση στάλθηκε στον Maestro! 📩");
+        } else {
+            // Χρησιμοποιούμε insert αντί για upsert για απόλυτη ασφάλεια
+            const { error } = await supabaseClient.from('songs').insert([newSongData]);
+            if (error) throw error;
+            
+            await migrateAttachmentsToOverrides(sourceSong, targetContext);
+            showToast("Αντιγράφηκε επιτυχώς στη Μπάντα! ✅");
         }
-        await migrateAttachmentsToOverrides(sourceSong, targetContext);
-        showToast("Το τραγούδι κοινοποιήθηκε! ✅");
-        await loadContextData();
+        await loadContextData(); // Επαναφόρτωση για να δεις το αποτέλεσμα
+    } catch (err) {
+        console.error("Transfer Error:", err);
+        showToast("Σφάλμα κατά τη μεταφορά", "error");
     }
 }
 
@@ -1253,3 +1292,4 @@ function promptUpgrade(featureName) {
         window.open(upgradeUrl, '_blank');
     }
 }
+

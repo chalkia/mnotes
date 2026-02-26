@@ -44,28 +44,28 @@
                     </div>
                 </div>
             </div>
-            <div id="library-controls" class="sidebar-search">
-                <input id="searchInp" type="text" data-i18n="search_ph" oninput="applyFilters()">
-                <select id="tagFilter" onchange="applyFilters()">
-                    <option value="" data-i18n="opt_all_tags">All Tags</option>
-                </select>
-                <select id="sortFilter" onchange="applySortAndRender()" class="sort-select-v2">
-                    <option value="alpha" data-i18n="sort_alpha">🔤 Αλφαβητικά</option>
-                    <option value="created" data-i18n="sort_newest">✨ Νεότερα</option>
-                    <option value="modified" data-i18n="sort_modified">✏️ Πρόσφατα</option>
-                </select>
-            </div>
 
-            <div id="setlist-controls" class="sidebar-search" style="display:none; border-bottom: 2px solid var(--accent); display:flex; flex-direction:column; gap:10px;">
-                <div>
-                    <label class="small-label-v2">
-                        <i class="fas fa-users"></i> <span data-i18n="lbl_active_group">ACTIVE GROUP</span>
-                    </label>
-                    <select id="selGroup" onchange="switchContext(this.value)" class="context-select-v2">
-                        <option value="personal" data-i18n="opt_personal_lib">My Personal Library</option>
+            <div id="library-controls" class="sidebar-search" style="display:flex; flex-direction:column; gap:8px;">
+                
+                <select id="selGroup" onchange="switchContext(this.value)" class="context-select-v2" style="width: 100%; padding: 8px; border-radius: 6px; background: var(--bg-panel); color: var(--text-main); font-weight: bold; border: 1px solid var(--accent); cursor: pointer;">
+                    <option value="personal" data-i18n="opt_personal_lib">🏠 My Personal Library</option>
+                </select>
+
+                <input id="searchInp" type="text" data-i18n="search_ph" oninput="applyFilters()" style="width: 100%;">
+                
+                <div style="display:flex; gap:5px;">
+                    <select id="tagFilter" onchange="applyFilters()" style="flex:1;">
+                        <option value="" data-i18n="opt_all_tags">All Tags</option>
+                    </select>
+                    <select id="sortFilter" onchange="applySortAndRender()" class="sort-select-v2" style="flex:1;">
+                        <option value="alpha" data-i18n="sort_alpha">🔤 Αλφαβητικά</option>
+                        <option value="created" data-i18n="sort_newest">✨ Νεότερα</option>
+                        <option value="modified" data-i18n="sort_modified">✏️ Πρόσφατα</option>
                     </select>
                 </div>
-
+            </div>
+            
+            <div id="setlist-controls" class="sidebar-search" style="display:none; flex-direction:column; gap:10px; border-bottom: 2px solid var(--accent);">
                 <div id="setlist-area">
                     <label class="small-label-v2">
                         <i class="fas fa-list"></i> <span data-i18n="lbl_active_setlist">ACTIVE SETLIST</span>
@@ -75,7 +75,7 @@
                         <option value="Default">Default Setlist</option>
                     </select>
             
-                    <div style="display:flex; gap:5px;">
+                    <div style="display:flex; gap:5px; margin-top:5px;">
                         <button onclick="createSetlist()" class="footer-btn" data-i18n="btn_new_list_title">
                             <i class="fas fa-plus"></i>
                         </button>
@@ -87,7 +87,7 @@
                         </button>   
                     </div>
                 </div>
-            </div>
+            </div>  
             
             <ul id="songList" class="song-list"></ul>
             
@@ -560,6 +560,7 @@
     <script src="js/app.js"></script>
 </body>
 </html>
+
 
 
 

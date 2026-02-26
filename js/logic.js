@@ -504,16 +504,13 @@ function saveToLocalStorage(songData) {
     }
     localStorage.setItem('mnotes_data', JSON.stringify(library));
 }
-
 /* =========================================
    HELPER FUNCTIONS & PARSING
    ========================================= */
 function ensureSongStructure(song) {
     if (!song) song = {};
-    // Δημιουργία ID αν λείπει
     if (!song.id) song.id = "s_" + Date.now() + Math.random().toString(16).slice(2); 
     
-    // Μεταφορά παλιών πεδίων στα νέα
     const cleaned = {
         id: song.id,
         title: song.title || "Untitled",
@@ -523,7 +520,6 @@ function ensureSongStructure(song) {
         intro: song.intro || "",
         interlude: song.interlude || "",
         video: song.video || "",
-        // Εδώ η κρίσιμη αλλαγή για το αρχείο που έστειλες:
         tags: Array.isArray(song.playlists) ? song.playlists : (song.tags || []),
         notes: song.notes || "",
         updatedAt: song.updatedAt || Date.now()
@@ -544,25 +540,70 @@ function parseSongLogic(song) {
             state.parsedChords.push({ type: 'br' });
             return;
         }
-        if (line.indexOf('!') === -1) {
+        
+        // Αν δεν έχει ούτε ! ούτε [, είναι σκέτος στίχος
+        if (line.indexOf('!') === -1 && line.indexOf('[') === -1) {
             state.parsedChords.push({ type: 'lyricOnly', text: line });
             return;
         }
+        
         var tokens = [], buffer = "", i = 0;
         while (i < line.length) {
             var char = line[i];
+            
+            // --- ΕΛΕΓΧΟΣ: Σύστημα ! ή απλό σημείο στίξης; ---
             if (char === '!') {
+                // Κοιτάμε τον επόμενο χαρακτήρα (lookahead)
+                var nextChar = (i + 1 < line.length) ? line[i+1] : '';
+                
+                // Είναι τέλος γραμμής (''), κενό (' '), ή άλλο σημείο στίξης;
+                var isPunctuation = nextChar === '' || nextChar === ' ' || /^[.,;?!:'"\-]$/.test(nextChar);
+                // Είναι ελληνικό γράμμα; (Αποκλείεται να είναι συγχορδία)
+                var isGreek = nextChar >= '\u0370' && nextChar <= '\u03FF';
+
+                if (isPunctuation || isGreek) {
+                    // Αντιμετώπισέ το ως κανονικό κείμενο (σημείο στίξης)
+                    buffer += char; 
+                    i++;
+                    continue; 
+                }
+
+                // --- ΛΕΙΤΟΥΡΓΙΑ 1: Το Δικό σου Σύστημα (!) ---
                 if (buffer.length > 0) { tokens.push({ c: "", t: buffer }); buffer = ""; }
-                i++; var chordBuf = "", stopChord = false;
+                i++; // Προσπερνάμε το '!' της συγχορδίας
+                var chordBuf = "", stopChord = false;
                 while (i < line.length && !stopChord) {
                     var c = line[i];
-                    if (c === '!' || c === ' ' || (c >= '\u0370' && c <= '\u03FF')) {
-                        stopChord = true; if (c === ' ') i++; 
-                    } else { chordBuf += c; i++; }
+                    if (c === '!' || c === ' ' || c === '[' || (c >= '\u0370' && c <= '\u03FF')) {
+                        stopChord = true; 
+                        if (c === ' ') i++; // Καταπίνουμε το κενό μετά τη συγχορδία
+                    } else { 
+                        chordBuf += c; i++; 
+                    }
                 }
                 tokens.push({ c: chordBuf, t: "" });
-            } else { buffer += char; i++; }
+            } 
+            // --- ΛΕΙΤΟΥΡΓΙΑ 2: Πρότυπο ChordPro ([...]) ---
+            else if (char === '[') {
+                if (buffer.length > 0) { tokens.push({ c: "", t: buffer }); buffer = ""; }
+                i++; // Προσπερνάμε το '['
+                var chordBuf = "", stopChord = false;
+                while (i < line.length && !stopChord) {
+                    var c = line[i];
+                    if (c === ']') {
+                        stopChord = true; i++; // Προσπερνάμε το ']'
+                    } else { 
+                        chordBuf += c; i++; 
+                    }
+                }
+                tokens.push({ c: chordBuf, t: "" });
+            } 
+            // --- ΚΑΝΟΝΙΚΟ ΚΕΙΜΕΝΟ ---
+            else { 
+                buffer += char; i++; 
+            }
         }
+        
         if (buffer.length > 0) {
             if (tokens.length > 0 && tokens[tokens.length-1].t === "") tokens[tokens.length-1].t = buffer;
             else tokens.push({ c: "", t: buffer });
@@ -570,40 +611,29 @@ function parseSongLogic(song) {
         state.parsedChords.push({ type: 'mixed', tokens: tokens });
     });
 }
-/**
- * Μετατρέπει συγχορδίες σε στυλ [Am] σε στυλ !Am για εσωτερική χρήση
- */
-function convertBracketsToBang(text) {
-    if (!text) return "";
-    // Αντικαθιστά το [Chord] με !Chord
-    return text.replace(/\[([a-zA-G][b#]?[m]?[maj7|sus4|7|add9|dim|0-9|\/]*)\]/g, "!$1");
-}
+
+// ΠΡΟΣΟΧΗ: Η convertBracketsToBang ΑΦΑΙΡΕΘΗΚΕ.
 
 /**
  * Ενημερώνει το dropdown επιλογής περιβάλλοντος (Personal/Band)
  */
 function updateGroupDropdown() {
-    const sel = document.getElementById('selGroup'); // Το ID του <select> στο HTML σου
+    const sel = document.getElementById('selGroup'); 
     if (!sel) return;
 
-    // Καθαρισμός και προσθήκη της σταθερής επιλογής "Personal"
     sel.innerHTML = '<option value="personal">🏠 My Personal Library</option>';
 
-    // Προσθήκη των Groups από το global state 'myGroups'
     myGroups.forEach(g => {
         const opt = document.createElement('option');
         opt.value = g.group_id;
-        // Το g.groups.name έρχεται από το join query στην initUserData
         opt.innerText = `🎸 ${g.groups?.name || 'Unknown Band'} (${g.role})`;
         sel.appendChild(opt);
     });
     
-    // Επιλογή του τρέχοντος context
     sel.value = currentGroupId;
-
-    // Listener για την εναλλαγή
     sel.onchange = (e) => switchContext(e.target.value);
 }
+
 // --- OFFLINE SYNC SYSTEM ---
 function addToSyncQueue(type, data) {
     let queue = JSON.parse(localStorage.getItem('mnotes_sync_queue') || "[]");

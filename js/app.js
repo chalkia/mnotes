@@ -3,30 +3,24 @@
    ========================================= */
 
 var hasUnsavedChanges = false;
-
-window.addEventListener('load', async function() {
+window.addEventListener('load', function() {
     console.log("🚀 mNotes Pro v2.1 Initializing...");
 
-    // 1. UI & Theme
     if (typeof applyTheme === 'function') applyTheme();
     
-    // 2. Offline Resilience: Listener για επαναφορά σύνδεσης
     window.addEventListener('online', () => {
         if (typeof processSyncQueue === 'function') processSyncQueue();
     });
 
-    // 3. Auth & Data Initialization
-    // Ο έλεγχος χρήστη γίνεται αυτόματα από το supabase-client.js
-    // Αν δεν υπάρχει χρήστης, η loadLibrary() του ui.js θα δείξει τα τοπικά
-    if (typeof loadLibrary === 'function') loadLibrary();
+    // ΑΦΑΙΡΕΘΗΚΕ Η loadLibrary() από εδώ. 
+    // Η φόρτωση θα γίνει αυτόματα από την initUserData στο logic.js 
+    // μόλις ολοκληρωθεί το Auth check.
 
-    // 4. Listeners
     setupDirtyListeners();
     initResizers();
 
     console.log("✅ App Ready");
 });
-
 
 /**
  * Παρακολουθεί τα inputs του editor για αλλαγές

@@ -847,41 +847,76 @@ function applyEditorPlaceholders() {
    /**
  * Επεξεργασία δεδομένων που εισάγονται από αρχείο ή URL
  */
-
 async function processImportedData(data) {
+    console.log("📥 Import Started (Tier-Aware Mode)...");
     if (!data) return;
+    
     let newSongs = Array.isArray(data) ? data : (data.songs ? data.songs : [data]);
     let importCount = 0;
 
-    if (currentGroupId !== 'personal') await switchContext('personal');
+    // Εξασφάλιση πρόσβασης στην καθολική library
+    if (!window.library) window.library = [];
+
+    // Αν είμαστε σε context μπάντας, γυρίζουμε στα προσωπικά για το import
+    if (typeof currentGroupId !== 'undefined' && currentGroupId !== 'personal') {
+        if (typeof switchContext === 'function') await switchContext('personal');
+    }
 
     for (let song of newSongs) {
         let cleanSong = ensureSongStructure(song);
         
-        // Αν το τραγούδι δεν έχει ID ή είναι από άλλη συσκευή/demo, δίνουμε νέο ID
+        // 1. Εξασφάλιση ID (Απαραίτητο για όλους)
         if (!cleanSong.id || String(cleanSong.id).startsWith('demo')) {
             cleanSong.id = "s_" + Date.now() + Math.random().toString(16).slice(2);
         }
 
-        const exists = library.find(s => s.title.toLowerCase() === cleanSong.title.toLowerCase());
-        
+        // 2. Έλεγχος αν υπάρχει ήδη
+        const exists = window.library.find(s => 
+            s.title.toLowerCase() === cleanSong.title.toLowerCase() && 
+            (s.artist || "").toLowerCase() === (cleanSong.artist || "").toLowerCase()
+        );
+
         if (!exists) {
-            library.push(cleanSong);
+            window.library.push(cleanSong);
             importCount++;
             
-            // Αν ο χρήστης έχει Tier με Cloud, σώσε και εκεί
-            if (canUserPerform('USE_SUPABASE')) {
-                await supabaseClient.from('songs').upsert({ ...cleanSong, user_id: currentUser.id });
+            // --- TIER CHECK ΓΙΑ CLOUD SYNC ---
+            // Μόνο αν το Tier επιτρέπει Supabase και ο χρήστης είναι συνδεδεμένος
+            if (typeof canUserPerform === 'function' && canUserPerform('USE_SUPABASE')) {
+                if (typeof currentUser !== 'undefined' && currentUser) {
+                    const payload = { 
+                        ...cleanSong, 
+                        user_id: currentUser.id, 
+                        group_id: null // Πάντα προσωπικό κατά το import
+                    };
+                    
+                    // Μη-blocking upsert για να μην καθυστερεί η λούπα
+                    supabaseClient.from('songs').upsert(payload).catch(err => {
+                        console.warn("Cloud sync failed for song:", cleanSong.title, err);
+                    });
+                }
             }
         }
     }
 
-    // ✨ Τελική αποθήκευση στο LocalStorage (για Free/Solo και offline χρήση)
-    localStorage.setItem('mnotes_data', JSON.stringify(library));
-    
-    if (typeof renderSidebar === 'function') renderSidebar();
-    showToast(`${importCount} τραγούδια εισήχθησαν επιτυχώς! 📥`);
+    if (importCount > 0) {
+        // 3. Τοπική αποθήκευση (Για ΟΛΟΥΣ τους χρήστες - Free/Solo/Maestro)
+        saveData(); 
+        
+        // 4. Ενημέρωση UI
+        if (typeof renderSidebar === 'function') renderSidebar();
+        
+        showToast(`${importCount} τραγούδια εισήχθησαν επιτυχώς! ✅`);
+        
+        // Φόρτωση του τελευταίου τραγουδιού
+        if (window.library.length > 0) {
+            loadSong(window.library[window.library.length - 1].id);
+        }
+    } else {
+        showToast("Δεν βρέθηκαν νέα τραγούδια.");
+    }
 }
+
 /**
  * UI για την επιλογή δράσης (Clone vs Proposal)
  */

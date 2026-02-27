@@ -416,22 +416,26 @@ async function fetchBandSongs(groupId) {
  * Διαχειρίζεται αυτόματα Local Storage, Personal Cloud και Band Cloud.
  */
 async function saveSong() {
-    // 1. Συλλογή δεδομένων από τον Editor
     const title = document.getElementById('inpTitle').value;
-    
-    // 🚀 ΑΦΑΙΡΕΘΗΚΕ ΤΟ convertBracketsToBang! Παίρνουμε το κείμενο όπως ακριβώς είναι.
     const body = document.getElementById('inpBody').value; 
     
     if (!title || !body) { showToast(t('msg_title_body_req'), "error"); return; }
 
+    // ✨ Εξασφάλιση ID: Αν είναι νέο τραγούδι, φτιάχνουμε ένα προσωρινό ID τώρα.
+    // Αν αργότερα σωθεί στη Supabase, θα πάρει το μόνιμο εκεί.
+    if (!currentSongId || currentSongId === 'null') {
+        currentSongId = "s_" + Date.now() + Math.random().toString(16).slice(2);
+    }
+
     const songData = {
+        id: currentSongId,
         title: title,
         artist: document.getElementById('inpArtist').value,
         key: document.getElementById('inpKey').value,
         body: body,
         intro: document.getElementById('inpIntro').value,
         interlude: document.getElementById('inpInter').value,
-        notes: document.getElementById('inpConductorNotes')?.value || "", // Public Notes
+        notes: document.getElementById('inpConductorNotes')?.value || "",
         video: document.getElementById('inpVideo')?.value || "",
         tags: document.getElementById('inpTags')?.value.split(',').map(t => t.trim()).filter(t => t !== "") || [],
         updated_at: new Date().toISOString()
@@ -442,55 +446,40 @@ async function saveSong() {
     try {
         // --- ΣΕΝΑΡΙΟ Α: ΠΡΟΣΩΠΙΚΗ ΒΙΒΛΙΟΘΗΚΗ ---
         if (currentGroupId === 'personal') {
-            if (canUserPerform('CLOUD_SAVE')) {
-                // Σώζουμε και τα personal notes στο metadata αν είναι προσωπικό
-                // (Σε προσωπικό τραγούδι, το πεδίο notes παίζει τον ρόλο του personal)
+            
+            // 1. MAESTRO / SOLO (με Cloud Sync ενεργό) -> Supabase
+            if (canUserPerform('USE_SUPABASE')) {
                 songData.notes = personalNotesVal || songData.notes; 
                 await saveToCloud(songData, null);
-            } else {
+                showToast("Saved to My Cloud! ☁️");
+            } 
+            // 2. SOLO (με Google Drive) -> Drive
+            else if (canUserPerform('USE_DRIVE')) {
+                saveToLocalStorage(songData); // Πρώτα τοπικά για ταχύτητα
+                if (typeof saveToDrive === 'function') await saveToDrive(library);
+                showToast("Saved to Google Drive! 📂");
+            } 
+            // 3. FREE -> LocalStorage
+            else {
                 saveToLocalStorage(songData);
+                showToast("Saved Locally! 💾");
             }
-            showToast("Saved to My Songs! 💾");
-            await loadContextData(); // Reload για να φανεί
-            if (typeof toViewer === 'function') toViewer(true);
-        
+
         } else {
             // --- ΣΕΝΑΡΙΟ Β: ΜΠΑΝΤΑ (Band Context) ---
-            
-            // B1. Είμαι ADMIN/OWNER -> Push to Everyone
             if (currentRole === 'admin' || currentRole === 'owner') {
-                console.log("Saving to Band Cloud (Admin)...");
+                // Admin/Owner σώζει απευθείας στο κοινό Cloud
                 await saveToCloud(songData, currentGroupId);
                 showToast("Band Library Updated! 🎸");
-                await loadContextData();
-                if (typeof toViewer === 'function') toViewer(true);
-            } 
-            // B2. Είμαι MEMBER -> Έλεγχος Αλλαγών
-            else {
-                // Βρίσκουμε το αρχικό τραγούδι για σύγκριση
-                const original = library.find(s => s.id === currentSongId);
-                
-                // Έλεγχος ΔΟΜΙΚΩΝ αλλαγών
-                const bodyChanged = original && (original.body !== songData.body);
-                const chordsChanged = original && (original.key !== songData.key); // Αν άλλαξε το Base Key
-
-                if (bodyChanged || chordsChanged) {
-                    // ΕΡΩΤΗΣΗ: Clone ή Proposal;
-                    showActionModal(songData); 
-                    return; // Σταματάμε εδώ
-                }
-
-                // Αν άλλαξε ΜΟΝΟ Metadata (Notes, Transpose) -> Save Override
-                console.log("Saving Personal Override...");
-                await saveAsOverride({
-                    ...songData,
-                    personal_notes: personalNotesVal
-                });
-                showToast("Personal settings saved! (Local Override) 👤");
-                await loadContextData();
-                if (typeof toViewer === 'function') toViewer(true);
+            } else {
+                // Member σώζει μόνο Overrides (δικές του σημειώσεις)
+                await saveAsOverride({ ...songData, personal_notes: personalNotesVal });
+                showToast("Personal settings saved! 👤");
             }
         }
+
+        await loadContextData(); // Επαναφόρτωση για να δούμε τις αλλαγές
+        if (typeof toViewer === 'function') toViewer(true);
 
     } catch (err) {
         console.error("❌ Save failed:", err);
@@ -504,18 +493,19 @@ async function saveSong() {
 async function saveToCloud(songData, groupId) {
     if (!currentUser) return;
 
+    // Αν το τραγούδι είναι προσωπικό (groupId === null) και έχει το πρόθεμα "s_", 
+    // το αφήνουμε να πάρει νέο ID από τη Supabase ή κρατάμε το υπάρχον αν δεν είναι "s_".
     const payload = {
         ...songData,
         user_id: currentUser.id,
         group_id: groupId,
-        id: (currentSongId && !currentSongId.startsWith('s_')) ? currentSongId : undefined
+        // Αν είναι ήδη στη βάση (UUID), το κρατάμε. Αν είναι "s_", η Supabase θα κάνει upsert βάσει τίτλου/user αν το ορίσεις, 
+        // αλλά εδώ στέλνουμε το ID ρητά για να αποφύγουμε το NOT NULL error.
+        id: songData.id 
     };
 
-    // Έλεγχος αν είμαστε Offline
     if (!navigator.onLine) {
-        console.warn("🌐 Offline mode: Adding to sync queue");
         addToSyncQueue('SAVE_SONG', payload);
-        showToast("Offline: Saved locally, will sync when online 📶", "warning");
         return;
     }
 
@@ -1297,4 +1287,52 @@ function promptUpgrade(featureName) {
         window.open(upgradeUrl, '_blank');
     }
 }
+async function deleteCurrentSong() {
+    if (!currentSongId) {
+        showToast("Επιλέξτε ένα τραγούδι πρώτα", "error");
+        return;
+    }
 
+    const s = library.find(x => x.id === currentSongId);
+    const title = s ? s.title : "αυτό το τραγούδι";
+
+    if (!confirm(`Οριστική διαγραφή του "${title}";`)) return;
+
+    try {
+        // 1. ΠΕΡΙΠΤΩΣΗ SUPABASE (Bands ή Maestro/Solo Cloud)
+        if (canUserPerform('USE_SUPABASE') && !String(currentSongId).startsWith('s_')) {
+            console.log("🗑️ Deleting from Supabase Cloud...");
+            const { error } = await supabaseClient.from('songs').delete().eq('id', currentSongId);
+            if (error) throw error;
+            
+            // Καθαρισμός και των προσωπικών σημειώσεων (overrides) για αυτό το τραγούδι
+            await supabaseClient.from('personal_overrides').delete().eq('song_id', currentSongId);
+        } 
+        
+        // 2. ΠΕΡΙΠΤΩΣΗ GOOGLE DRIVE (Solo Tier)
+        else if (canUserPerform('USE_DRIVE')) {
+            console.log("🗑️ Deleting from Google Drive...");
+            // Εδώ καλείς τη δική σου υλοποίηση για το Drive αν υπάρχει, 
+            // αλλιώς το αφαιρείς από την τοπική λίστα και κάνεις sync.
+            library = library.filter(x => x.id !== currentSongId);
+            if (typeof saveToDrive === 'function') await saveToDrive(library);
+        } 
+        
+        // 3. ΠΕΡΙΠΤΩΣΗ LOCAL STORAGE (Free Tier & Demos)
+        else {
+            console.log("🗑️ Deleting from LocalStorage...");
+            library = library.filter(x => x.id !== currentSongId);
+            saveData(); // Η κλασική σου συνάρτηση που σώζει στο mnotes_data
+        }
+
+        showToast(`Το τραγούδι διαγράφηκε.`);
+        
+        // Καθαρισμός του state και ανανέωση
+        currentSongId = null;
+        await loadContextData(); 
+
+    } catch (err) {
+        console.error("❌ Delete Error:", err);
+        showToast("Σφάλμα κατά τη διαγραφή", "error");
+    }
+}

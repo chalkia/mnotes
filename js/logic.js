@@ -850,45 +850,37 @@ function applyEditorPlaceholders() {
 
 async function processImportedData(data) {
     if (!data) return;
-    
     let newSongs = Array.isArray(data) ? data : (data.songs ? data.songs : [data]);
     let importCount = 0;
 
-    // ΠΡΟΣΘΗΚΗ ΠΟΥ ΕΛΕΙΠΕ: Γυρίζουμε ΑΝΑΓΚΑΣΤΙΚΑ τον χρήστη στο Personal Context
-    if (currentGroupId !== 'personal') {
-        await switchContext('personal');
-    }
+    if (currentGroupId !== 'personal') await switchContext('personal');
 
     for (let song of newSongs) {
         let cleanSong = ensureSongStructure(song);
-        cleanSong.group_id = null; // Καθαρίζουμε τυχόν "σκουπίδια"
         
-        const exists = library.find(s => 
-            s.title.toLowerCase() === cleanSong.title.toLowerCase() && 
-            (s.artist || "").toLowerCase() === (cleanSong.artist || "").toLowerCase()
-        );
+        // Αν το τραγούδι δεν έχει ID ή είναι από άλλη συσκευή/demo, δίνουμε νέο ID
+        if (!cleanSong.id || String(cleanSong.id).startsWith('demo')) {
+            cleanSong.id = "s_" + Date.now() + Math.random().toString(16).slice(2);
+        }
 
+        const exists = library.find(s => s.title.toLowerCase() === cleanSong.title.toLowerCase());
+        
         if (!exists) {
             library.push(cleanSong);
             importCount++;
             
-            // ΠΡΟΣΘΗΚΗ ΠΟΥ ΕΛΕΙΠΕ: AUTO-SAVE Logic
-            if (typeof currentUser !== 'undefined' && currentUser && canUserPerform('USE_SUPABASE')) {
-                cleanSong.user_id = currentUser.id;
-                await saveToCloud(cleanSong, null);
-            } else {
-                saveToLocalStorage(cleanSong);
+            // Αν ο χρήστης έχει Tier με Cloud, σώσε και εκεί
+            if (canUserPerform('USE_SUPABASE')) {
+                await supabaseClient.from('songs').upsert({ ...cleanSong, user_id: currentUser.id });
             }
         }
     }
 
-    if (importCount > 0) {
-        if (typeof renderSidebar === 'function') renderSidebar(); 
-        showToast(`${importCount} ${t('msg_imported') || "τραγούδια αποθηκεύτηκαν!"} 📥`);
-        loadSong(library[library.length - importCount].id);
-    } else {
-        showToast("Δεν βρέθηκαν νέα τραγούδια.");
-    }
+    // ✨ Τελική αποθήκευση στο LocalStorage (για Free/Solo και offline χρήση)
+    localStorage.setItem('mnotes_data', JSON.stringify(library));
+    
+    if (typeof renderSidebar === 'function') renderSidebar();
+    showToast(`${importCount} τραγούδια εισήχθησαν επιτυχώς! 📥`);
 }
 /**
  * UI για την επιλογή δράσης (Clone vs Proposal)
@@ -1288,51 +1280,42 @@ function promptUpgrade(featureName) {
     }
 }
 async function deleteCurrentSong() {
-    if (!currentSongId) {
-        showToast("Επιλέξτε ένα τραγούδι πρώτα", "error");
-        return;
-    }
-
+    if (!currentSongId) return;
     const s = library.find(x => x.id === currentSongId);
-    const title = s ? s.title : "αυτό το τραγούδι";
+    if (!s) return;
 
-    if (!confirm(`Οριστική διαγραφή του "${title}";`)) return;
+    if (!confirm(`Οριστική διαγραφή του "${s.title}";`)) return;
 
     try {
-        // 1. ΠΕΡΙΠΤΩΣΗ SUPABASE (Bands ή Maestro/Solo Cloud)
-        if (canUserPerform('USE_SUPABASE') && !String(currentSongId).startsWith('s_')) {
-            console.log("🗑️ Deleting from Supabase Cloud...");
-            const { error } = await supabaseClient.from('songs').delete().eq('id', currentSongId);
-            if (error) throw error;
-            
-            // Καθαρισμός και των προσωπικών σημειώσεων (overrides) για αυτό το τραγούδι
-            await supabaseClient.from('personal_overrides').delete().eq('song_id', currentSongId);
-        } 
+        // --- STEP 1: CLOUD DELETION (Αν αφορά το Tier) ---
         
-        // 2. ΠΕΡΙΠΤΩΣΗ GOOGLE DRIVE (Solo Tier)
+        // A. Supabase (Maestro / Bands)
+        if (canUserPerform('USE_SUPABASE') && !String(currentSongId).startsWith('demo')) {
+             await supabaseClient.from('songs').delete().eq('id', currentSongId);
+             await supabaseClient.from('personal_overrides').delete().eq('song_id', currentSongId);
+        }
+        
+        // B. Google Drive (Solo Tier - αν υπάρχει η υλοποίηση)
         else if (canUserPerform('USE_DRIVE')) {
-            console.log("🗑️ Deleting from Google Drive...");
-            // Εδώ καλείς τη δική σου υλοποίηση για το Drive αν υπάρχει, 
-            // αλλιώς το αφαιρείς από την τοπική λίστα και κάνεις sync.
-            library = library.filter(x => x.id !== currentSongId);
-            if (typeof saveToDrive === 'function') await saveToDrive(library);
-        } 
-        
-        // 3. ΠΕΡΙΠΤΩΣΗ LOCAL STORAGE (Free Tier & Demos)
-        else {
-            console.log("🗑️ Deleting from LocalStorage...");
-            library = library.filter(x => x.id !== currentSongId);
-            saveData(); // Η κλασική σου συνάρτηση που σώζει στο mnotes_data
+            // Εδώ θα καλούσες τη διαγραφή αρχείου από το Drive
         }
 
-        showToast(`Το τραγούδι διαγράφηκε.`);
+        // --- STEP 2: LOCAL DELETION (Αφορά ΟΛΑ τα Tiers) ---
+        library = library.filter(x => x.id !== currentSongId);
         
-        // Καθαρισμός του state και ανανέωση
+        // ✨ Σώζουμε την αλλαγή τοπικά (κρίσιμο για Free/Solo)
+        localStorage.setItem('mnotes_data', JSON.stringify(library));
+
         currentSongId = null;
-        await loadContextData(); 
+        renderSidebar();
+        showToast("Το τραγούδι διαγράφηκε.");
+        
+        // Φόρτωση επόμενου ή Editor
+        if (library.length > 0) loadSong(library[0].id);
+        else if (typeof toEditor === 'function') toEditor();
 
     } catch (err) {
-        console.error("❌ Delete Error:", err);
+        console.error("Delete Error:", err);
         showToast("Σφάλμα κατά τη διαγραφή", "error");
     }
 }

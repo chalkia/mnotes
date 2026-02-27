@@ -70,11 +70,27 @@ function applyTheme() {
 function loadLibrary() {
     initSetlists();
     populateTags();
-    if (typeof sortLibrary === 'function') sortLibrary(userSettings.sortMethod || 'alpha');
+    
+    // Αν η βιβλιοθήκη είναι ήδη γεμάτη (από το logic.js), σταμάτα εδώ.
     if (library.length > 0) {
         renderSidebar();
-        if (!currentSongId) currentSongId = library[0].id;
+        return;
     }
+
+    const saved = localStorage.getItem('mnotes_data');
+    if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.length > 0) library = parsed.map(ensureSongStructure);
+    }
+
+    // ΜΟΝΟ αν μετά από όλα αυτά είναι ακόμα 0, βάλε τα demos
+    if (library.length === 0 && typeof DEFAULT_DEMO_SONGS !== 'undefined') {
+        console.log("📦 Library empty, injecting demos...");
+        library = DEFAULT_DEMO_SONGS.map((ds, idx) => ({ ...ds, id: "demo_" + Date.now() + idx }));
+    }
+
+    if (typeof sortLibrary === 'function') sortLibrary(userSettings.sortMethod || 'alpha');
+    renderSidebar();
 }
 
 // Helper to ensure structure

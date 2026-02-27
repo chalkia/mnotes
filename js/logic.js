@@ -1335,16 +1335,22 @@ async function deleteCurrentSong() {
             // Εδώ θα καλούσες τη διαγραφή αρχείου από το Drive
         }
 
-        // --- STEP 2: LOCAL DELETION (Αφορά ΟΛΑ τα Tiers) ---
-        library = library.filter(x => x.id !== currentSongId);
+         // --- STEP 2: LOCAL DELETION ---
+        window.library = window.library.filter(x => x.id !== currentSongId);
         
-        // ✨ Σώζουμε την αλλαγή τοπικά (κρίσιμο για Free/Solo)
-        localStorage.setItem('mnotes_data', JSON.stringify(library));
+        // ✨ ΕΠΙΒΟΛΗ: Σώζουμε το άδειο ή φιλτραρισμένο array ΑΜΕΣΩΣ
+        localStorage.setItem('mnotes_data', JSON.stringify(window.library));
 
         currentSongId = null;
-        renderSidebar();
-        showToast("Το τραγούδι διαγράφηκε.");
         
+        // Αντί για loadContextData, κάνουμε απευθείας render για ταχύτητα
+        renderSidebar(); 
+        showToast("Το τραγούδι διαγράφηκε.");
+
+        // Δικλίδα Demos: Αν η λίστα άδειασε τελείως, η loadLibrary θα τα επαναφέρει στο επόμενο refresh
+        if (window.library.length === 0) {
+             console.log("Library is now empty.");
+        }
         // Φόρτωση επόμενου ή Editor
         if (library.length > 0) loadSong(library[0].id);
         else if (typeof toEditor === 'function') toEditor();

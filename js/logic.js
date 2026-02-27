@@ -82,17 +82,21 @@ if (typeof window.t === 'undefined') {
 }
 
 /* =========================================
-   USER & CONTEXT MANAGEMENT
+   USER & CONTEXT MANAGEMENT (CLEANED)
    ========================================= */
+
 async function initUserData() {
     if (!currentUser) return;
     try {
-        const { data: profile } = await supabaseClient
+        // 1. Προφίλ & Tier
+        const { data: profile, error: pError } = await supabaseClient
             .from('profiles').select('*').eq('id', currentUser.id).maybeSingle();
+
+        if (pError && pError.code !== 'PGRST116') throw pError;
 
         if (profile) {
             userProfile = profile;
-            // Επιβολή μικρών γραμμάτων για συμβατότητα με το DB Constraint
+            // Σιγουρευόμαστε ότι το tier είναι μικρά γράμματα
             userProfile.subscription_tier = profile.subscription_tier.toLowerCase();
         } else {
             const newProfile = { id: currentUser.id, email: currentUser.email, subscription_tier: 'free' };
@@ -100,19 +104,7 @@ async function initUserData() {
             userProfile = newProfile;
         }
 
-        const { data: groups } = await supabaseClient.from('group_members')
-            .select('group_id, role, groups(name)').eq('user_id', currentUser.id);
-        myGroups = groups || [];
-
-        updateGroupDropdown();
-        await switchContext('personal'); 
-
-    } catch (err) {
-        console.error("❌ Init Error:", err);
-    }
-}
-
-        // 2. Groups (Bands) - ΔΙΟΡΘΩΜΕΝΟ JOIN ΓΙΑ ΑΠΟΦΥΓΗ 500 ERROR
+        // 2. Groups (Bands) - Με σωστό Join και Error Handling
         const { data: groups, error: gError } = await supabaseClient
             .from('group_members')
             .select(`
@@ -127,21 +119,20 @@ async function initUserData() {
 
         if (gError) {
             console.warn("⚠️ Join failed, trying simple fetch...");
-            // Αν το Join βγάλει 500, φέρνουμε μόνο τα IDs για να δουλέψει η εφαρμογή
             const { data: simpleGroups } = await supabaseClient
                 .from('group_members')
                 .select('group_id, role')
                 .eq('user_id', currentUser.id);
-            
             myGroups = simpleGroups || [];
         } else {
             myGroups = groups || [];
             console.log(`🎸 Συνδέθηκαν ${myGroups.length} μπάντες.`);
         }
 
+        // Ενημέρωση UI
         updateGroupDropdown();
 
-        // 3. Αρχικοποίηση Context
+        // 3. Αρχικοποίηση Context (Προσωπική Βιβλιοθήκη)
         await switchContext('personal');
 
         if (typeof refreshUIByTier === 'function') refreshUIByTier();
@@ -156,7 +147,6 @@ async function initUserData() {
         showToast("Database connection issue. Working locally.", "error");
     }
 }
-
 
 /**
  * Εναλλαγή περιβάλλοντος εργασίας (Personal vs Band)
@@ -177,15 +167,26 @@ async function switchContext(targetId) {
 
     await loadContextData();
     updateUIForRole();
-   if (typeof renderBandManager === 'function') {
+    
+    if (typeof renderBandManager === 'function') {
         renderBandManager();
     }
 }
 
+/**
+ * Ενημέρωση ορατότητας στοιχείων βάσει ρόλου και context
+ */
 function updateUIForRole() {
     const btnDel = document.getElementById('btnDelSetlist'); 
     const btnAdd = document.getElementById('btnAddSong');
+    const btnClone = document.getElementById('btnCloneToPersonal');
 
+    // 1. Έλεγχος για το κουμπί Clone (Αντιγραφή στα Προσωπικά)
+    if (btnClone) {
+        btnClone.style.display = (currentGroupId !== 'personal' && currentSongId) ? 'inline-block' : 'none';
+    }
+
+    // 2. Έλεγχος για δικαιώματα διαχείρισης (Viewer vs Admin)
     if (currentGroupId !== 'personal' && currentRole === 'viewer') {
         if(btnDel) btnDel.style.display = 'none';
         if(btnAdd) btnAdd.style.display = 'none';
@@ -193,7 +194,11 @@ function updateUIForRole() {
         if(btnDel) btnDel.style.display = 'inline-block';
         if(btnAdd) btnAdd.style.display = 'flex';
     }
+    
+    // 3. Ενημέρωση του Header (Τίτλος Μπάντας vs My Songs)
+    if (typeof refreshHeaderUI === 'function') refreshHeaderUI();
 }
+
 
 
 /* =========================================

@@ -3,17 +3,15 @@
    =========================================================== */
 // ===========================================================
 // 1. GLOBALS & INITIALIZATION (CLEANED UP)
-// ===========================================================
 
-if(typeof library === 'undefined') var library = [];
-if(typeof state === 'undefined') var state = { t: 0, c: 0, meta: {}, parsedChords: [] };
 if (typeof window.library === 'undefined') window.library = [];
-var visiblePlaylist = [];
-var state = state || { t: 0, c: 0, meta: {}, parsedChords: [] };
-var currentSongId = currentSongId || null;
-if(typeof currentSongId === 'undefined') var currentSongId = null;
+var library = window.library; 
 
-var visiblePlaylist = [];
+if (typeof window.state === 'undefined') window.state = { t: 0, c: 0, meta: {}, parsedChords: [] };
+var state = window.state;
+
+var currentSongId = window.currentSongId || null;
+var visiblePlaylist = []; // <--- ΚΡΑΤΑΜΕ ΜΟΝΟ ΑΥΤΗ
 var sortableInstance = null;
 var editorTags = [];
 var viewMode = 'library'; 
@@ -71,29 +69,27 @@ function loadLibrary() {
     initSetlists();
     populateTags();
     
-    // 1. Αν η library έχει ήδη δεδομένα (π.χ. από προηγούμενη async φόρτωση), σταμάτα
+    // 1. Συγχρονισμός με το window
+    library = window.library;
+
+    // 2. Αν η library έχει ήδη δεδομένα από το logic.js (Cloud), εμφάνισέ τα
     if (library && library.length > 0) {
         renderSidebar();
         return;
     }
 
-    // 2. Έλεγχος LocalStorage
+    // 3. Έλεγχος LocalStorage αν η library είναι άδεια
     const saved = localStorage.getItem('mnotes_data');
-    
     if (saved !== null) {
-        // Υπάρχει το κλειδί 'mnotes_data', άρα ο χρήστης έχει δεδομένα (έστω και άδεια λίστα [])
         const parsed = JSON.parse(saved);
-        library = Array.isArray(parsed) ? parsed.map(ensureSongStructure) : [];
-        // Αν είναι [], σημαίνει ότι ο χρήστης τα διέγραψε όλα. ΔΕΝ βάζουμε demo.
+        window.library = Array.isArray(parsed) ? parsed.map(ensureSongStructure) : [];
+        library = window.library;
     } else {
-        // Το κλειδί δεν υπάρχει ΚΑΘΟΛΟΥ (Πρώτη εκτέλεση της εφαρμογής ποτέ)
-        console.log("📦 First run ever: Injecting demos...");
+        // ΠΡΩΤΗ ΦΟΡΑ: Inject Demos
         if (typeof DEFAULT_DEMO_SONGS !== 'undefined') {
-            library = DEFAULT_DEMO_SONGS.map((ds, idx) => ({ 
-                ...ds, 
-                id: "demo_" + Date.now() + idx 
-            }));
-            saveData(); // Δημιουργεί το mnotes_data για να μην ξαναμπεί εδώ
+            window.library = DEFAULT_DEMO_SONGS.map((ds, idx) => ({ ...ds, id: "demo_" + Date.now() + idx }));
+            library = window.library;
+            saveData();
         }
     }
 

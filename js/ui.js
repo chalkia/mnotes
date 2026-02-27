@@ -39,25 +39,6 @@ var userSettings = JSON.parse(localStorage.getItem('mnotes_settings')) || {
 };
 var tempIntroScale = 0; 
 
-// Start Up
-window.addEventListener('load', function() {
-    console.log("🚀 mNotes Pro v18.0 Loaded");
-    
-    applyTheme(); 
-    applyTranslations(); 
-    loadLibrary(); 
-    setupEvents(); 
-    setupGestures(); 
-    initResizers();
-    
-    // Mobile Setup
-    if (window.innerWidth <= 1024) {
-        const h = document.getElementById('drawerHandle');
-        if(h) h.style.display = 'flex';
-        if(typeof switchMobileTab === 'function') switchMobileTab('stage'); 
-    }
-});
-
 function toggleLanguage() { currentLang = (currentLang === 'en') ? 'el' : 'en'; localStorage.setItem('mnotes_lang', currentLang); applyTranslations(); renderSidebar(); populateTags(); if(currentSongId && currentSongId.includes('demo')) loadSong(currentSongId); }
 function applyTranslations() { if(typeof TRANSLATIONS === 'undefined') return; document.querySelectorAll('[data-i18n]').forEach(el => { var key = el.getAttribute('data-i18n'); if (TRANSLATIONS[currentLang][key]) el.innerText = TRANSLATIONS[currentLang][key]; }); var btn = document.getElementById('btnLang'); if(btn) btn.innerHTML = (currentLang === 'en') ? '<i class="fas fa-globe"></i> EN' : '<i class="fas fa-globe"></i> EL'; }
 function applyTheme() { 

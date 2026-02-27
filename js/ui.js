@@ -7,7 +7,8 @@
 
 if(typeof library === 'undefined') var library = [];
 if(typeof state === 'undefined') var state = { t: 0, c: 0, meta: {}, parsedChords: [] };
-var library = library || [];
+if (typeof window.library === 'undefined') window.library = [];
+var visiblePlaylist = [];
 var state = state || { t: 0, c: 0, meta: {}, parsedChords: [] };
 var currentSongId = currentSongId || null;
 if(typeof currentSongId === 'undefined') var currentSongId = null;
@@ -1618,7 +1619,12 @@ function switchDrawerTab(tabName) {
 
 function getYoutubeId(url) { if (!url) return null; var regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/; var match = url.match(regExp); return (match && match[2].length === 11) ? match[2] : null; }
 function showToast(msg) { var x = document.getElementById("toast"); if(x) { x.innerText = msg; x.className = "show"; setTimeout(function(){ x.className = x.className.replace("show", ""); }, 3000); } }
-function saveData() { localStorage.setItem('mnotes_data', JSON.stringify(library)); }
+function saveData() {
+    if (Array.isArray(window.library)) {
+        localStorage.setItem('mnotes_data', JSON.stringify(window.library));
+        console.log("💾 LocalStorage Updated. Songs count:", window.library.length);
+    }
+}
 function filterByKey(e, key) { e.stopPropagation(); var inp = document.getElementById('searchInp'); if(inp) { inp.value = key; applyFilters(); showToast("Filter: " + key); } }
 
 /* ΔΙΟΡΘΩΣΗ: Χρήση των μεταβλητών όπως ορίζονται στο data.js 

@@ -847,7 +847,7 @@ function applyEditorPlaceholders() {
    /**
  * Επεξεργασία δεδομένων που εισάγονται από αρχείο ή URL
  */
-async function processImportedData(data) {
+window.processImportedData= async function(data) {
     console.log("📥 Import Started (Tier-Aware Mode)...");
     if (!data) return;
     

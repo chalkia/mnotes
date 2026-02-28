@@ -323,9 +323,9 @@ window.processImportedData = async function(data) {
                         const safePayload = window.sanitizeForDatabase(cleanSong, currentUser.id, null);
                         
                         if (typeof supabaseClient !== 'undefined') {
-                            supabaseClient.from('songs').upsert(safePayload).catch(err => {
-                                console.error("❌ Cloud sync failed for song:", safePayload.title, err);
-                            });
+                          supabaseClient.from('songs').upsert(safePayload).then(({ error }) => {
+                               if (error) console.error("❌ Cloud sync failed for song:", safePayload.title, error);
+                           });
                         }
                     } else {
                         console.error("⚠️ Ο Μεταφραστής sanitizeForDatabase δεν βρέθηκε! Τα τραγούδια σώθηκαν μόνο τοπικά.");

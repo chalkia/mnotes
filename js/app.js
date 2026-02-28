@@ -12,9 +12,8 @@ window.addEventListener('load', function() {
         if (typeof processSyncQueue === 'function') processSyncQueue();
     });
 
-    // ΑΦΑΙΡΕΘΗΚΕ Η loadLibrary() από εδώ. 
-    // Η φόρτωση θα γίνει αυτόματα από την initUserData στο logic.js 
-    // μόλις ολοκληρωθεί το Auth check.
+    // ✨ ΑΥΤΟ ΕΛΕΙΠΕ! Ενεργοποιεί το Import και τα κλικ της οθόνης
+    if (typeof setupEvents === 'function') setupEvents();
 
     setupDirtyListeners();
     initResizers();

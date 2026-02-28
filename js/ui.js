@@ -426,62 +426,6 @@ async function importFromURL() {
         showToast("Import Failed: " + err.message, "error"); 
     } 
 }
-// ===========================================================
-// IMPORT PROCESSING & DATA CONVERSION
-// ===========================================================
-async function processImportedData(data) {
-    console.log("📥 processImportedData Triggered. Tier Check...");
-    try {
-        if (!data) return;
-        let newSongs = Array.isArray(data) ? data : (data.songs ? data.songs : [data]);
-        let importCount = 0;
-
-        // Force Global Context
-        if (currentGroupId !== 'personal') await switchContext('personal');
-
-        for (let song of newSongs) {
-            let cleanSong = ensureSongStructure(song);
-            
-            // Tier-Safe ID generation
-            if (!cleanSong.id || String(cleanSong.id).startsWith('demo')) {
-                cleanSong.id = "s_" + Date.now() + Math.random().toString(16).slice(2);
-            }
-
-            // Έλεγχος αν υπάρχει ήδη στην global library
-            const exists = window.library.find(s => 
-                s.title.toLowerCase() === cleanSong.title.toLowerCase()
-            );
-
-            if (!exists) {
-                window.library.push(cleanSong);
-                importCount++;
-                
-                // Tier Logic: Supabase Sync μόνο αν επιτρέπεται
-                if (canUserPerform('USE_SUPABASE') && currentUser) {
-                    const payload = { ...cleanSong, user_id: currentUser.id };
-                    await supabaseClient.from('songs').upsert(payload);
-                }
-            }
-        }
-
-        if (importCount > 0) {
-            // Σώζουμε στο LocalStorage για Free/Solo
-            localStorage.setItem('mnotes_data', JSON.stringify(window.library));
-            
-            if (typeof renderSidebar === 'function') renderSidebar();
-            showToast(`${importCount} Songs Imported! ✅`);
-            
-            if (window.library.length > 0) {
-                loadSong(window.library[window.library.length - 1].id);
-            }
-        } else {
-            showToast("No new songs found.");
-        }
-    } catch (criticalErr) {
-        console.error("❌ CRITICAL IMPORT ERROR:", criticalErr);
-        alert("Σφάλμα κατά την εισαγωγή. Δες την κονσόλα (F12).");
-    }
-}
 
 // ===========================================================
 // 5. PLAYER LOGIC

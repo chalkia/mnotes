@@ -2176,3 +2176,37 @@ function showTransferModal() {
     `;
     document.body.appendChild(overlay);
 }
+window.processFileDirectly = async function(input) {
+    console.log("🔥 DIRECT HTML TRIGGER: Αρχείο επιλέχθηκε!");
+    
+    const file = input.files[0];
+    if (!file) {
+        console.log("Δεν επιλέχθηκε αρχείο.");
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async function(ex) {
+        try {
+            console.log("📄 Διαβάζω τα δεδομένα του αρχείου...");
+            const imported = JSON.parse(ex.target.result);
+            
+            if (typeof window.processImportedData === 'function') {
+                console.log("🚀 Στέλνω τα δεδομένα στο logic.js...");
+                await window.processImportedData(imported);
+            } else {
+                alert("Σφάλμα: Η συνάρτηση processImportedData λείπει!");
+            }
+
+            const modal = document.getElementById('importChoiceModal');
+            if(modal) modal.style.display = 'none';
+        } catch(err) {
+            console.error("❌ Σφάλμα ανάγνωσης:", err);
+            alert("Το αρχείο δεν είναι έγκυρο.");
+        }
+    };
+    reader.readAsText(file);
+    
+    // Καθαρίζουμε το input για να μπορούμε να ξαναδιαλέξουμε το ίδιο αρχείο
+    input.value = ''; 
+};

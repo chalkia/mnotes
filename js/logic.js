@@ -493,23 +493,15 @@ async function saveSong() {
 async function saveToCloud(songData, groupId) {
     if (!currentUser) return;
 
-    // Αν το τραγούδι είναι προσωπικό (groupId === null) και έχει το πρόθεμα "s_", 
-    // το αφήνουμε να πάρει νέο ID από τη Supabase ή κρατάμε το υπάρχον αν δεν είναι "s_".
-    const payload = {
-        ...songData,
-        user_id: currentUser.id,
-        group_id: groupId,
-        // Αν είναι ήδη στη βάση (UUID), το κρατάμε. Αν είναι "s_", η Supabase θα κάνει upsert βάσει τίτλου/user αν το ορίσεις, 
-        // αλλά εδώ στέλνουμε το ID ρητά για να αποφύγουμε το NOT NULL error.
-        id: songData.id 
-    };
+    // ✨ ΦΙΛΤΡΑΡΟΥΜΕ ΤΑ ΔΕΔΟΜΕΝΑ ΠΡΙΝ ΤΑ ΣΤΕΙΛΟΥΜΕ
+    const safePayload = window.sanitizeForDatabase(songData, currentUser.id, groupId);
 
     if (!navigator.onLine) {
-        addToSyncQueue('SAVE_SONG', payload);
+        addToSyncQueue('SAVE_SONG', safePayload);
         return;
     }
 
-    const { error } = await supabaseClient.from('songs').upsert(payload);
+    const { error } = await supabaseClient.from('songs').upsert(safePayload);
     if (error) throw error;
 }
 
@@ -844,115 +836,7 @@ function applyEditorPlaceholders() {
         if (el) el.placeholder = t(f.key);
     });
 }
-   /**
- * Επεξεργασία δεδομένων που εισάγονται από αρχείο ή URL
- */
-window.processImportedData= async function(data) {
-    console.log("📥 Import Started (Tier-Aware Mode)...");
-    if (!data) return;
-    
-    let newSongs = Array.isArray(data) ? data : (data.songs ? data.songs : [data]);
-    let importCount = 0;
 
-    // Εξασφάλιση πρόσβασης στην καθολική library
-    if (!window.library) window.library = [];
-
-    // Αν είμαστε σε context μπάντας, γυρίζουμε στα προσωπικά για το import
-    if (typeof currentGroupId !== 'undefined' && currentGroupId !== 'personal') {
-        if (typeof switchContext === 'function') await switchContext('personal');
-    }
-
-    for (let song of newSongs) {
-        let cleanSong = ensureSongStructure(song);
-        
-        // 1. Εξασφάλιση ID (Απαραίτητο για όλους)
-        if (!cleanSong.id || String(cleanSong.id).startsWith('demo')) {
-            cleanSong.id = "s_" + Date.now() + Math.random().toString(16).slice(2);
-        }
-
-        // 2. Έλεγχος αν υπάρχει ήδη
-        const exists = window.library.find(s => 
-            s.title.toLowerCase() === cleanSong.title.toLowerCase() && 
-            (s.artist || "").toLowerCase() === (cleanSong.artist || "").toLowerCase()
-        );
-
-        if (!exists) {
-            window.library.push(cleanSong);
-            importCount++;
-            
-            // --- TIER CHECK ΓΙΑ CLOUD SYNC ---
-            // Μόνο αν το Tier επιτρέπει Supabase και ο χρήστης είναι συνδεδεμένος
-            if (typeof canUserPerform === 'function' && canUserPerform('USE_SUPABASE')) {
-                if (typeof currentUser !== 'undefined' && currentUser) {
-                    const payload = { 
-                        ...cleanSong, 
-                        user_id: currentUser.id, 
-                        group_id: null // Πάντα προσωπικό κατά το import
-                    };
-                    
-                    // Μη-blocking upsert για να μην καθυστερεί η λούπα
-                    supabaseClient.from('songs').upsert(payload).catch(err => {
-                        console.warn("Cloud sync failed for song:", cleanSong.title, err);
-                    });
-                }
-            }
-        }
-    }
-
-    if (importCount > 0) {
-        // 3. Τοπική αποθήκευση (Για ΟΛΟΥΣ τους χρήστες - Free/Solo/Maestro)
-        saveData(); 
-        
-        // 4. Ενημέρωση UI
-        if (typeof renderSidebar === 'function') renderSidebar();
-        
-        showToast(`${importCount} τραγούδια εισήχθησαν επιτυχώς! ✅`);
-        
-        // Φόρτωση του τελευταίου τραγουδιού
-        if (window.library.length > 0) {
-            loadSong(window.library[window.library.length - 1].id);
-        }
-    } else {
-        showToast("Δεν βρέθηκαν νέα τραγούδια.");
-    }
-}
-
-/**
- * UI για την επιλογή δράσης (Clone vs Proposal)
- */
-function showActionModal(songData) {
-    // Φάση 1: Proposal
-    if (confirm("Δεν έχετε δικαίωμα απευθείας αλλαγής στίχων στην Μπάντα.\n\nΘέλετε να στείλετε ΠΡΟΤΑΣΗ (Proposal) στον Μαέστρο;")) {
-        submitProposal(songData, currentGroupId);
-        return;
-    }
-
-    // Φάση 2: Clone
-    if (confirm("Θέλετε να αποθηκεύσετε τις αλλαγές ως ΠΡΟΣΩΠΙΚΟ ΑΝΤΙΓΡΑΦΟ (Clone) στη δική σας βιβλιοθήκη;")) {
-        importToPersonalLibraryFromData(songData);
-    }
-}
-
-/**
- * Δημιουργία καθαρού αντιγράφου από δεδομένα (Clone)
- */
-async function importToPersonalLibraryFromData(data) {
-    const cleanCopy = {
-        ...data,
-        user_id: currentUser.id,
-        group_id: null, // Γίνεται Personal
-        id: undefined   // Νέο ID
-    };
-
-    const { error } = await supabaseClient.from('songs').insert([cleanCopy]);
-    
-    if (!error) {
-        showToast("Saved copy to My Library! 🏠");
-        // Προαιρετικά: switchContext('personal');
-    } else {
-        showToast("Error copying song", "error");
-    }
-}
 /**
  * Εφαρμογή των ρυθμίσεων του God Mode
  */

@@ -5,6 +5,7 @@
 // 1. GLOBALS & INITIALIZATION (CLEANED UP)
 
 if (typeof window.library === 'undefined') window.library = [];
+window.library = window.library || [];
 var library = window.library; 
 
 if (typeof window.state === 'undefined') window.state = { t: 0, c: 0, meta: {}, parsedChords: [] };
@@ -1560,8 +1561,53 @@ function toggleStickyNotes() { const area = document.getElementById('stickyNotes
 
 function setupEvents() {
     const fileInput = document.getElementById('hiddenFileInput');
-    if(fileInput) { fileInput.addEventListener('change', function(e) { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = function(ex) { try { const imported = JSON.parse(ex.target.result); processImportedData(imported); const modal = document.getElementById('importChoiceModal'); if(modal) modal.style.display = 'none'; } catch(err) { alert("Error reading file"); } }; reader.readAsText(file); fileInput.value = ''; }); }
-    document.addEventListener('click', function(e) { var wrap = document.querySelector('.tag-wrapper'); var sugg = document.getElementById('tagSuggestions'); if (wrap && sugg && !wrap.contains(e.target) && !sugg.contains(e.target)) { sugg.style.display = 'none'; } });
+    if(fileInput) {
+        console.log("✅ Event Listener attached to #hiddenFileInput");
+        
+        fileInput.addEventListener('change', function(e) {
+            console.log("📂 File selected from disk!");
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async function(ex) {
+                try {
+                    console.log("📄 Reading file content...");
+                    const imported = JSON.parse(ex.target.result);
+                    
+                    // ✨ ΕΔΩ ΕΙΝΑΙ Η ΑΛΛΑΓΗ: Καλούμε ρητά τη συνάρτηση του logic.js μέσω window
+                    if (typeof window.processImportedData === 'function') {
+                        console.log("🚀 Calling window.processImportedData...");
+                        await window.processImportedData(imported);
+                    } else if (typeof processImportedData === 'function') {
+                        console.log("🚀 Calling local processImportedData...");
+                        await processImportedData(imported);
+                    } else {
+                        console.error("❌ ERROR: processImportedData NOT FOUND ANYWHERE!");
+                        alert("Σφάλμα: Η λειτουργία εισαγωγής δεν βρέθηκε.");
+                    }
+
+                    const modal = document.getElementById('importChoiceModal');
+                    if(modal) modal.style.display = 'none';
+                } catch(err) {
+                    console.error("❌ JSON PARSE ERROR:", err);
+                    alert("Το αρχείο δεν είναι έγκυρο mNotes format.");
+                }
+            };
+            reader.readAsText(file);
+            fileInput.value = ''; // Reset για επόμενη χρήση
+        });
+    } else {
+        console.error("❌ CRITICAL: #hiddenFileInput NOT FOUND IN DOM!");
+    }
+
+    document.addEventListener('click', function(e) {
+        var wrap = document.querySelector('.tag-wrapper');
+        var sugg = document.getElementById('tagSuggestions');
+        if (wrap && sugg && !wrap.contains(e.target) && !sugg.contains(e.target)) {
+            sugg.style.display = 'none';
+        }
+    });
 }
 
 function switchMobileTab(tabName) {

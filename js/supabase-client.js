@@ -190,5 +190,29 @@ supabaseClient.auth.onAuthStateChange((event, session) => {
         // Επιστροφή στα τοπικά δεδομένα (Free mode)
         if (typeof loadContextData === 'function') loadContextData();
     }
+   // --- DTO & SANITIZATION ΓΙΑ TH SUPABASE ---
+// Κρατάει ΜΟΝΟ τις στήλες που περιμένει η βάση, αποτρέποντας τα Error 400.
+window.sanitizeForDatabase = function(song, userId, groupId = null) {
+    return {
+        id: song.id,
+        title: song.title || "Untitled",
+        artist: song.artist || "",
+        key: song.key || "",
+        body: song.body || "",
+        intro: song.intro || "",
+        // Πιάνει και το "inter" και το "interlude"
+        interlude: song.interlude || song.inter || "", 
+        // Πιάνει και το "conductorNotes"
+        notes: song.notes || song.conductorNotes || "", 
+        video: song.video || "",
+        // Εξασφαλίζει ότι τα tags είναι Array (και σώζει τα παλιά playlists)
+        tags: Array.isArray(song.tags) ? song.tags : (Array.isArray(song.playlists) ? song.playlists : []),
+        recordings: Array.isArray(song.recordings) ? song.recordings : [],
+        attachments: Array.isArray(song.attachments) ? song.attachments : [],
+        user_id: userId,
+        group_id: groupId,
+        updated_at: new Date().toISOString()
+    };
+};
 });
 

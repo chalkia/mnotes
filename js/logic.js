@@ -368,8 +368,7 @@ window.processImportedData = async function(data) {
             
             if (typeof canUserPerform === 'function' && canUserPerform('USE_SUPABASE') && currentUser) {
                 if (typeof window.sanitizeForDatabase === 'function') {
-                    // Διορθώθηκε το τυπογραφικό window.window
-                    const safePayload = window.sanitizeForDatabase(cleanSong, currentUser.id, null);
+                         const safePayload = window.sanitizeForDatabase(cleanSong, currentUser.id, null);
                     if (typeof supabaseClient !== 'undefined') {
                         supabaseClient.from('songs').upsert(safePayload).then(({ error }) => {
                             if (error) console.error("❌ Sync Error:", error);
@@ -1316,6 +1315,12 @@ function promptUpgrade(featureName) {
 }
 async function deleteCurrentSong() {
     if (!currentSongId) return;
+   
+   // ✨ ΔΙΚΛΙΔΑ ΑΣΦΑΛΕΙΑΣ: Απαγόρευση διαγραφής αν είσαι viewer σε μπάντα!
+    if (currentGroupId !== 'personal' && currentRole === 'viewer') {
+        showToast("Δεν έχετε δικαίωμα διαγραφής σε αυτή τη μπάντα.", "error");
+        return;
+    }
     const s = library.find(x => x.id === currentSongId);
     if (!s) return;
 

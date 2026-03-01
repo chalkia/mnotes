@@ -31,10 +31,8 @@ function createSequencerPanel() {
     div.className = 'sequencer-box';
     div.style.display = 'none';
 
-    // Helper για μεταφράσεις (αν υπάρχει το σύστημα στο ui.js ή translations.js)
+    // Helper για μεταφράσεις
     const safeT = (k, def) => (typeof t === 'function' ? t(k) : def);
-    
-    // Ασφαλής ανάγνωση των beats
     const currentBeats = (typeof AudioEngine !== 'undefined' && AudioEngine.beats) ? AudioEngine.beats : 4;
 
     div.innerHTML = `
@@ -65,11 +63,22 @@ function createSequencerPanel() {
 
             <div class="toolbar-group">
                 <i class="fas fa-tachometer-alt" style="color:#888;"></i>
-                <input type="range" min="40" max="200" value="100" style="width:80px;" oninput="AudioEngine.setBpm(this.value)">
+                <input type="range" id="rngBpm" min="40" max="200" value="100" style="width:80px;" oninput="AudioEngine.setBpm(this.value)">
                 <span id="seq-bpm-val" style="font-size:0.8rem; width:30px;">100</span>
             </div>
 
-            <button onclick="toggleSoundLab()" class="icon-btn" style="border:1px solid #555; padding:5px 15px;">
+            <div class="toolbar-group">
+                <select id="selDrumKit" class="inp" style="width:110px; font-size:0.8rem; padding:4px;" onchange="AudioEngine.loadDrumKit(this.value)">
+                    <option value="synth" selected>🤖 Retro Synth</option>
+                    <option value="standard">🥁 Standard Kit</option>
+                    <option value="acoustic">🪘 Acoustic Kit</option>
+                </select>
+                <label style="font-size:0.75rem; color:#ccc; display:flex; align-items:center; gap:5px; margin-left:5px;">
+                    <input type="checkbox" onchange="AudioEngine.toggleMidi(this.checked)"> MIDI Out
+                </label>
+            </div>
+
+            <button id="btnSoundLab" onclick="toggleSoundLab()" class="icon-btn" style="border:1px solid #555; padding:5px 15px;">
                 <i class="fas fa-sliders-h"></i> ${safeT('btn_sound_lab', 'Sound Lab')}
             </button>
         </div>
@@ -136,28 +145,28 @@ function generateGridRows(container) {
                 // Περνάμε το χρώμα στο CSS Variable
                 cell.style.setProperty('--active-color', inst.c);
               
-  cell.onclick = function() {
-    // 1. Άναψε/Σβήσε το φωτάκι στο UI
-    this.classList.toggle('active');
-    
-    // 2. Πάρε το όνομα του οργάνου (HAT, RIM κλπ)
-    const instId = inst.rowId.replace('row-', '');
-    const stepIdx = parseInt(this.dataset.step);
-    const isActive = this.classList.contains('active');
+                cell.onclick = function() {
+                    // 1. Άναψε/Σβήσε το φωτάκι στο UI
+                    this.classList.toggle('active');
+                    
+                    // 2. Πάρε το όνομα του οργάνου (HAT, RIM κλπ)
+                    const instId = inst.rowId.replace('row-', '');
+                    const stepIdx = parseInt(this.dataset.step);
+                    const isActive = this.classList.contains('active');
 
-    // 3. Ενημέρωσε τη μηχανή ήχου για να το παίξει
-    if (typeof AudioEngine !== 'undefined') {
-        AudioEngine.toggleStepData(instId, stepIdx, isActive);
-        
-        // Αν το άναψες, παίξε τον ήχο για επιβεβαίωση
-        if (isActive) {
-            AudioEngine.playPercussion(AudioEngine.ctx.currentTime, instId.toLowerCase());
-        }
-    }
-    
-    // 4. Χρώμα (Για σιγουριά)
-    this.style.backgroundColor = isActive ? inst.c : 'rgba(255,255,255,0.1)';
-};          
+                    // 3. Ενημέρωσε τη μηχανή ήχου για να το παίξει
+                    if (typeof AudioEngine !== 'undefined') {
+                        AudioEngine.toggleStepData(instId, stepIdx, isActive);
+                        
+                        // Αν το άναψες, παίξε τον ήχο για επιβεβαίωση
+                        if (isActive) {
+                            AudioEngine.playPercussion(AudioEngine.ctx.currentTime, instId.toLowerCase());
+                        }
+                    }
+                    
+                    // 4. Χρώμα (Για σιγουριά)
+                    this.style.backgroundColor = isActive ? inst.c : 'rgba(255,255,255,0.1)';
+                };          
                 stepsDiv.appendChild(cell);
             }
             row.appendChild(stepsDiv);
@@ -243,25 +252,40 @@ function createSoundLabModal() {
     `;
     document.body.appendChild(d);
 }
+
 // =========================================
 // 5. BRIDGE TO MAIN APP (Load Logic)
 // =========================================
 
-function syncSequencerToSong(s) {
-    // Αν το τραγούδι δεν έχει πληροφορία ρυθμού, δεν κάνουμε τίποτα (ή βάζουμε default)
-    if (!s || !s.rhythm || !s.rhythm.bpm) return;
+// Η συνάρτηση που καλείται από το ui.js (loadSong) όταν ανοίγεις ένα τραγούδι
+async function syncSequencerToSong(s) {
+    if (!s) return;
+    if (typeof AudioEngine === 'undefined') return;
 
-    // 1. Ενημέρωση του Audio Engine
-    if(typeof AudioEngine !== 'undefined') {
+    // 1. Ψάχνουμε να δούμε αν το τραγούδι έχει συνδεδεμένο Ρυθμό (rhythmId) από τη βάση
+    if (s.rhythmId && typeof supabaseClient !== 'undefined') {
+        try {
+            const { data, error } = await supabaseClient.from('rhythms').select('*').eq('id', s.rhythmId).maybeSingle();
+            
+            if (data) {
+                // Φόρτωση ολόκληρου του ρυθμού (Grid, Kit, BPM, Beats)
+                AudioEngine.loadRhythm(data);
+                console.log("🥁 Auto-loaded linked rhythm:", data.name);
+            }
+        } catch (e) { 
+            console.error("Error loading rhythm:", e); 
+        }
+    } 
+    // 2. Fallback: Αν έχει μόνο ένα ξεκάρφωτο BPM (από παλιά αποθήκευση)
+    else if (s.rhythm && s.rhythm.bpm) {
         AudioEngine.setBpm(s.rhythm.bpm);
+        console.log(`🥁 Sequencer synced to: ${s.rhythm.bpm} BPM`);
     }
 
-    // 2. Ενημέρωση των UI controls του Sequencer (αν υπάρχουν)
-    const seqRange = document.querySelector('.seq-toolbar input[type="range"]');
+    // 3. Ενημέρωση των UI controls του Sequencer
+    const seqRange = document.getElementById('rngBpm');
     const seqVal = document.getElementById('seq-bpm-val');
     
-    if (seqRange) seqRange.value = s.rhythm.bpm;
-    if (seqVal) seqVal.innerText = s.rhythm.bpm;
-
-    console.log(`🥁 Sequencer synced to: ${s.rhythm.bpm} BPM`);
+    if (seqRange) seqRange.value = AudioEngine.bpm;
+    if (seqVal) seqVal.innerText = AudioEngine.bpm;
 }

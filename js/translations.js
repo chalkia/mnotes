@@ -47,6 +47,7 @@ const TRANSLATIONS = {
         sum_metadata: "Metadata & Notes",
         inp_key: "Key",
         inp_tags: "Tags",
+        inp_video: "YouTube Link",
 
         // --- Tools & Rhythm ---
         title_tools: "TOOLS & ASSETS",
@@ -154,11 +155,12 @@ const TRANSLATIONS = {
         placeholder_intro: "Εισαγωγή (Συγχορδίες)...",
         placeholder_inter: "Οργανικό / Σόλο...",
         placeholder_body: "Στίχοι & Συγχορδίες (βάλτε '!' πριν τη συγχορδία)...",
-        placeholder_notes_pub: "Σημειώσεις Μαέστρου (Δημόσιες)...",
+        placeholder_notes_pub: "Σημειώσεις Μπάντας (Κοινές)...",
         placeholder_notes_priv: "Προσωπικές Σημειώσεις (Ιδιωτικές)...",
         sum_metadata: "Πληροφορίες & Σημειώσεις",
         inp_key: "Τόνος",
         inp_tags: "Ετικέτες",
+        inp_video: "YouTube Link",
 
         // --- Εργαλεία & Ρυθμός ---
         title_tools: "ΕΡΓΑΛΕΙΑ & ΥΛΙΚΟ",

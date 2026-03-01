@@ -98,15 +98,6 @@ function loadLibrary() {
     renderSidebar();
 }
 
-
-// Helper to ensure structure
-function ensureSongStructure(s) {
-    if (!s.playlists) s.playlists = [];
-    if (!s.recordings) s.recordings = [];
-    if (!s.id) s.id = Date.now().toString();
-    return s;
-}
-
 function populateTags() {
     const select = document.getElementById('tagFilter');
     if(!select) return;
@@ -139,17 +130,32 @@ function applyFilters() {
 
 function sortLibrary(method) {
     if(!method) method = 'alpha';
+    
     if (method === 'alpha') {
         library.sort((a, b) => a.title.localeCompare(b.title));
-    } else if (method === 'created') {
-        library.sort((a, b) => b.createdAt - a.createdAt);
-    } else if (method === 'modified') {
-        library.sort((a, b) => b.updatedAt - a.updatedAt);
+    } 
+    else if (method === 'created') {
+        // Εξάγουμε το Timestamp (Date.now) κατευθείαν μέσα από το ID (π.χ. s_1700000000_xyz)
+        library.sort((a, b) => {
+            let timeA = parseInt(String(a.id).split('_')[1]) || 0;
+            let timeB = parseInt(String(b.id).split('_')[1]) || 0;
+            return timeB - timeA;
+        });
+    } 
+    else if (method === 'modified') {
+        // Μετατρέπουμε το ISO String του updated_at σε αριθμό για να κάνουμε την αφαίρεση
+        library.sort((a, b) => {
+            let timeA = new Date(a.updated_at || a.updatedAt || 0).getTime();
+            let timeB = new Date(b.updated_at || b.updatedAt || 0).getTime();
+            return timeB - timeA;
+        });
     }
+    
     userSettings.sortMethod = method;
     localStorage.setItem('mnotes_settings', JSON.stringify(userSettings));
     renderSidebar();
 }
+
 
 function applySortAndRender() {
     const sortSel = document.getElementById('sortFilter');

@@ -592,9 +592,26 @@ async function saveSong() {
                 showToast("Personal settings saved! 👤");
             }
         }
+         // --- Η ΔΙΟΡΘΩΣΗ ΓΙΑ ΤΗΝ ΕΠΙΣΤΡΟΦΗ ---
+        
+        // 1. Κρατάμε το ID πριν το "χάσουμε" στην επαναφόρτωση
+        const targetId = currentSongId;
 
-        await loadContextData(); // Επαναφόρτωση για να δούμε τις αλλαγές
-        if (typeof toViewer === 'function') toViewer(true);
+        // 2. Επαναφόρτωση δεδομένων (βιβλιοθήκη)
+        await loadContextData(); 
+
+        // 3. Επιστροφή στον Viewer
+        // Αντί για toViewer(true), καλούμε την εμφάνιση του συγκεκριμένου ID
+        if (typeof displaySong === 'function') {
+            displaySong(targetId); 
+        } else if (typeof toViewer === 'function') {
+            toViewer(true);
+        }
+
+        // 4. Εξασφαλίζουμε ότι το View αλλάζει
+        if (typeof switchView === 'function') {
+            switchView('view-details');
+        }
 
     } catch (err) {
         console.error("❌ Save failed:", err);

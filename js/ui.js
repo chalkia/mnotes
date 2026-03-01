@@ -1402,15 +1402,58 @@ function cycleIntroSize() {
         }
     }
 }
-function deleteRecording(songId, typeOrIndex) {
-    const s = library.find(x => x.id === songId); if (!s || !s.recordings) return;
-    if (!confirm(`Delete recording?`)) return;
-    // Simple Index deletion for now (Phase 1)
-    if(typeof typeOrIndex === 'number') { s.recordings.splice(typeOrIndex, 1); } 
-    saveData(); renderPlayer(s); showToast("Deleted");
-}
+// ===========================================================
+// ΕΝΙΑΙΑ ΔΙΑΓΡΑΦΗ ΜΕΣΩΝ ΚΑΙ ΑΡΧΕΙΩΝ (CLOUD & LOCAL)
+// ===========================================================
+window.deleteMediaItem = async function(songId, type, itemIndex) {
+    const s = library.find(x => x.id === songId);
+    if (!s || !s[type] || !s[type][itemIndex]) return;
+
+    const item = s[type][itemIndex];
+    const isPrivate = (item.origin === 'private' || !item.origin);
+
+    if (!confirm(`Οριστική διαγραφή του "${item.name || 'αρχείου'}";`)) return;
+
+    // Αφαίρεση από το UI αμέσως
+    s[type].splice(itemIndex, 1);
+    if (typeof renderPlayer === 'function') renderPlayer(s); 
+
+    try {
+        if (currentGroupId === 'personal') {
+            if (typeof canUserPerform === 'function' && canUserPerform('USE_SUPABASE')) {
+                await supabaseClient.from('songs').update({ [type]: s[type] }).eq('id', songId);
+            } else {
+                if (typeof saveData === 'function') saveData();
+            }
+        } else {
+            // BAND CONTEXT
+            if (isPrivate) {
+                // Διαγραφή από τα προσωπικά Overrides
+                const { data: myOverride } = await supabaseClient.from('personal_overrides')
+                    .select(`id, ${type}`).eq('user_id', currentUser.id).eq('song_id', songId).eq('group_id', currentGroupId).maybeSingle();
+                
+                if (myOverride) {
+                    let updatedArray = (myOverride[type] || []).filter(i => i.url !== item.url);
+                    await supabaseClient.from('personal_overrides').update({ [type]: updatedArray }).eq('id', myOverride.id);
+                }
+            } else {
+                // Διαγραφή από τα Κοινά (Public)
+                const { data: globalSong } = await supabaseClient.from('songs').select(type).eq('id', songId).maybeSingle();
+                if (globalSong) {
+                    let updatedArray = (globalSong[type] || []).filter(i => i.url !== item.url);
+                    await supabaseClient.from('songs').update({ [type]: updatedArray }).eq('id', songId);
+                }
+            }
+        }
+        showToast("Διαγράφηκε οριστικά.");
+    } catch(e) {
+        console.error("Delete Error:", e);
+        showToast("Σφάλμα συγχρονισμού διαγραφής", "error");
+    }
+};
 
 // --- ΕΜΦΑΝΙΣΗ ΗΧΗΤΙΚΩΝ ΑΡΧΕΙΩΝ ---
+
 function renderRecordingsList(recs = []) {
     const listEl = document.getElementById('sideRecList'); 
     if (!listEl) return;
@@ -1433,8 +1476,17 @@ function renderRecordingsList(recs = []) {
         
         // Κουμπί Share/Propose για ήχους
         let promoteBtnHtml = '';
-       if (isPrivate && typeof currentGroupId !== 'undefined' && currentGroupId !== 'personal') {
+        if (isPrivate && typeof currentGroupId !== 'undefined' && currentGroupId !== 'personal') {
             promoteBtnHtml = `<button onclick="promoteItem('${currentSongId}', 'recordings', &quot;${safeObjStr}&quot;)" style="background:none; border:none; color:var(--accent); cursor:pointer; padding:0 8px; font-size:1.1rem;" title="Share / Propose"><i class="fas fa-bullhorn"></i></button>`;
+        }
+
+        // Έλεγχος αν επιτρέπεται η διαγραφή
+        const isOwnerOrAdmin = (typeof currentRole !== 'undefined' && (currentRole === 'owner' || currentRole === 'admin'));
+        const canDelete = isPrivate || currentGroupId === 'personal' || isOwnerOrAdmin;
+
+        let deleteBtnHtml = '';
+        if (canDelete) {
+            deleteBtnHtml = `<button onclick="deleteMediaItem('${currentSongId}', 'recordings', ${index})" style="background:none; border:none; color:var(--danger); cursor:pointer; padding:0 5px;" title="Delete"><i class="fas fa-times"></i></button>`;
         }
 
         el.innerHTML = `
@@ -1443,9 +1495,7 @@ function renderRecordingsList(recs = []) {
                 <span style="font-size:0.85rem; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${rec.name || rec.label}</span>
             </div>
             ${promoteBtnHtml}
-            <button onclick="deleteRecording('${currentSongId}', ${index})" style="background:none; border:none; color:var(--text-muted); cursor:pointer; padding:0 5px;" title="Delete">
-                <i class="fas fa-times"></i>
-            </button>
+            ${deleteBtnHtml}
         `;
         listEl.appendChild(el); 
         hasItems = true;
@@ -1454,6 +1504,7 @@ function renderRecordingsList(recs = []) {
     if (!hasItems) listEl.innerHTML = '<div class="empty-state">No recordings yet</div>';
 }
 // --- ΕΜΦΑΝΙΣΗ ΑΡΧΕΙΩΝ & ΠΑΡΤΙΤΟΥΡΩΝ ---
+
 function renderAttachmentsList(docs = []) {
     const listEl = document.getElementById('list-sheets'); 
     if (!listEl) return;
@@ -1479,8 +1530,17 @@ function renderAttachmentsList(docs = []) {
 
         // Κουμπί Share/Propose: Μόνο για private αρχεία, όταν βρισκόμαστε σε μπάντα!
         let promoteBtnHtml = '';
-     if (isPrivate && typeof currentGroupId !== 'undefined' && currentGroupId !== 'personal') {
+        if (isPrivate && typeof currentGroupId !== 'undefined' && currentGroupId !== 'personal') {
             promoteBtnHtml = `<button onclick="promoteItem('${currentSongId}', 'attachments', &quot;${safeObjStr}&quot;)" style="background:none; border:none; color:var(--accent); cursor:pointer; padding:0 8px; font-size:1.1rem;" title="Share / Propose"><i class="fas fa-bullhorn"></i></button>`;
+        }
+
+        // Έλεγχος αν επιτρέπεται η διαγραφή
+        const isOwnerOrAdmin = (typeof currentRole !== 'undefined' && (currentRole === 'owner' || currentRole === 'admin'));
+        const canDelete = isPrivate || currentGroupId === 'personal' || isOwnerOrAdmin;
+
+        let deleteBtnHtml = '';
+        if (canDelete) {
+            deleteBtnHtml = `<button onclick="deleteMediaItem('${currentSongId}', 'attachments', ${index})" style="background:none; border:none; color:var(--danger); cursor:pointer; padding:0 5px;" title="Delete"><i class="fas fa-times"></i></button>`;
         }
 
         el.innerHTML = `
@@ -1489,9 +1549,7 @@ function renderAttachmentsList(docs = []) {
                 <span style="font-size:0.85rem; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${doc.name}</span>
             </div>
             ${promoteBtnHtml}
-            <button onclick="deleteAttachment('${currentSongId}', ${index})" style="background:none; border:none; color:var(--text-muted); cursor:pointer; padding:0 5px;" title="Delete">
-                <i class="fas fa-times"></i>
-            </button>
+            ${deleteBtnHtml}
         `;
         listEl.appendChild(el);
         hasItems = true;

@@ -167,27 +167,25 @@
       
             <div id="view-editor" class="view-section">
                 <div class="editor-toolbar">
-    <button onclick="exitEditor()" class="text-btn">
-        <i class="fas fa-times"></i> 
-        <span data-i18n="btn_cancel">Cancel</span>
-    </button>
+                    <button onclick="exitEditor()" class="text-btn">
+                        <i class="fas fa-times"></i> 
+                        <span data-i18n="btn_cancel">Cancel</span>
+                    </button>
 
-    <div style="display:flex; gap:15px; align-items:center;">
-        <button onclick="deleteCurrentSong()" class="icon-btn danger" title="Delete Song">
-            <i class="fas fa-trash-alt"></i>
-        </button>
-
-        <button onclick="printSongPDF()" class="icon-btn" title="Print PDF">
-            <i class="fas fa-file-pdf"></i>
-        </button>
+                <div style="display:flex; gap:15px; align-items:center;">
+                    <button onclick="deleteCurrentSong()" class="icon-btn danger" title="Delete Song">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                    <button onclick="printSongPDF()" class="icon-btn" title="Print PDF">
+                         <i class="fas fa-file-pdf"></i>
+                    </button>
+                    <button id="btnCloneToPersonal" onclick="cloneToPersonal()" class="tool-btn highlight-btn" title="Save Copy to My Library" style="display:none;">
+                         <i class="fas fa-file-import"></i>
+                    </button>
         
-        <button id="btnCloneToPersonal" onclick="cloneToPersonal()" class="tool-btn highlight-btn" title="Save Copy to My Library" style="display:none;">
-         <i class="fas fa-file-import"></i>
-        </button>
-        
-        <button onclick="saveEdit()" class="icon-btn accent" title="Save Changes">
-            <i class="fas fa-save"></i>
-        </button>
+                    <button onclick="saveEdit()" class="icon-btn accent" title="Save Changes">
+                        <i class="fas fa-save"></i>
+                    </button>
     </div>
 </div>
                 <div class="editor-body">
@@ -570,6 +568,29 @@
         </div>
     </div>
 </div>
+ <div id="rhythmSaveModal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center;">
+    <div style="background:var(--bg-panel); padding:20px; border-radius:10px; width:300px; border:1px solid var(--border-color);">
+        <h3 style="margin-top:0; color:var(--text-main);">Αποθήκευση Ρυθμού</h3>
+        <input type="text" id="saveRhythmName" class="inp" placeholder="Όνομα (π.χ. Ζεϊμπέκικο 9/8)" style="width:100%; margin-bottom:10px; box-sizing:border-box;">
+        <input type="text" id="saveRhythmTags" class="inp" placeholder="Ετικέτες (χωρισμένες με κόμμα)" style="width:100%; margin-bottom:20px; box-sizing:border-box;">
+        <div style="display:flex; justify-content:flex-end; gap:10px;">
+            <button onclick="document.getElementById('rhythmSaveModal').style.display='none'" style="background:transparent; color:var(--text-muted); border:none; cursor:pointer;">Ακύρωση</button>
+            <button onclick="AudioEngine.saveRhythm()" style="background:var(--accent); color:#000; padding:8px 15px; border:none; border-radius:5px; font-weight:bold; cursor:pointer;">Αποθήκευση</button>
+        </div>
+    </div>
+ </div>
+ <div id="rhythmLoadModal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center;">
+    <div style="background:var(--bg-panel); padding:20px; border-radius:10px; width:350px; max-height:80vh; display:flex; flex-direction:column; border:1px solid var(--border-color);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <h3 style="margin:0; color:var(--text-main);">Βιβλιοθήκη Ρυθμών</h3>
+            <button onclick="document.getElementById('rhythmLoadModal').style.display='none'" style="background:transparent; border:none; color:var(--text-muted); font-size:1.2rem; cursor:pointer;"><i class="fas fa-times"></i></button>
+        </div>
+        <input type="text" id="searchRhythm" class="inp" placeholder="Αναζήτηση..." onkeyup="AudioEngine.searchRhythms()" style="width:100%; margin-bottom:10px; box-sizing:border-box;">
+        
+        <div id="rhythmResults" style="flex:1; overflow-y:auto; border:1px solid var(--border-color); border-radius:5px; background:var(--bg-main); min-height:200px;">
+            </div>
+    </div> 
+ </div>
     <script src="js/sortable.min.js"></script>
     <script src="js/config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -584,6 +605,7 @@
     <script src="js/app.js"></script>
 </body>
 </html>
+
 
 
 

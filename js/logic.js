@@ -28,12 +28,12 @@ const TIER_CONFIG = {
     solo: { 
         label: "Solo Pro", 
         canCloudSync: true, 
-        useSupabase: false, 
-        useDrive: true, 
+        useSupabase: true, 
+        useDrive: false, 
         canJoinBands: false, 
         maxBandsOwned: 0,
         canSaveAttachments: true,  // ✅ Ναι
-        hasAdvancedDrums: true,    // ✅ Ναι
+        hasAdvancedDrums: false,    
         canPrint: true             // ✅ Ναι
     },
     member: { 
@@ -44,7 +44,7 @@ const TIER_CONFIG = {
         canJoinBands: true, 
         maxBandsOwned: 0,
         canSaveAttachments: true, 
-        hasAdvancedDrums: true, 
+        hasAdvancedDrums: true, // ✅ Πλήρες Sequencer/MIDI
         canPrint: true 
     },
     owner: { 

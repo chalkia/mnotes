@@ -400,7 +400,121 @@ function setupGestures() {
 // ===========================================================
 // 4. IMPORT / EXPORT (CLEANED - NO QR)
 // ===========================================================
+// ==========================================
+// IMPORT ΛΕΙΤΟΥΡΓΙΑ (SMART MERGE ΜΕ ΕΓΚΡΙΣΗ ΧΡΗΣΤΗ)
+// ==========================================
+window.processImportedData = async function(data) {
+    console.log("📥 Import Started (Interactive Merge Mode)...");
+    if (!data) return;
+    
+    let newSongs = Array.isArray(data) ? data : (data.songs ? data.songs : [data]);
+    let importCount = 0;
+    let updateCount = 0;
 
+    if (!window.library) window.library = [];
+
+    // Context switch στα προσωπικά
+    if (typeof currentGroupId !== 'undefined' && currentGroupId !== 'personal') {
+        if (typeof switchContext === 'function') await switchContext('personal');
+    }
+
+    for (let song of newSongs) {
+        let cleanSong = typeof ensureSongStructure === 'function' ? ensureSongStructure(song) : song;
+        
+        if (!cleanSong.id || String(cleanSong.id).startsWith('demo')) {
+            cleanSong.id = "s_" + Date.now() + Math.random().toString(16).slice(2);
+        }
+
+        const existingIndex = window.library.findIndex(s => s.id === cleanSong.id);
+
+        if (existingIndex !== -1) {
+            // --- ΣΥΓΚΡΟΥΣΗ ΒΡΕΘΗΚΕ: ΕΛΕΓΧΟΣ ΗΜΕΡΟΜΗΝΙΩΝ ---
+            const existingSong = window.library[existingIndex];
+            const importedTime = new Date(cleanSong.updated_at || 0).getTime();
+            const localTime = new Date(existingSong.updated_at || 0).getTime();
+
+            // Αν είναι ακριβώς το ίδιο αρχείο (ίδια ώρα), το προσπερνάμε αθόρυβα για να μην κουράζουμε τον χρήστη
+            if (importedTime === localTime) {
+                console.log(`⏭️ Παράβλεψη: Το "${cleanSong.title}" είναι ακριβώς το ίδιο.`);
+                continue; 
+            }
+
+            // Καθορισμός του λεκτικού (Νεότερη/Παλαιότερη)
+            const ageStatus = importedTime > localTime ? "ΝΕΟΤΕΡΗ" : "ΠΑΛΑΙΟΤΕΡΗ";
+            
+            // Το μήνυμα που θα δει ο χρήστης
+            const confirmMsg = `Στη βιβλιοθήκη σας βρέθηκε μια ${ageStatus} έκδοση του τραγουδιού με τίτλο "${cleanSong.title}" που προσπαθείτε να εισάγετε.\n\nΝα γίνει αντικατάσταση; (OK = Ναι, Ακύρωση = Όχι)`;
+            
+            // Ερώτηση στον χρήστη (παγώνει την εκτέλεση μέχρι να απαντήσει)
+            const userAgrees = confirm(confirmMsg);
+
+            if (userAgrees) {
+                console.log(`🔄 Εγκρίθηκε: Αντικατάσταση για το "${cleanSong.title}".`);
+                
+                // Πάντρεμα (Smart Merge): Κρατάμε ηχητικά/αρχεία από το παλιό
+                cleanSong.recordings = existingSong.recordings || [];
+                cleanSong.attachments = existingSong.attachments || [];
+                
+                window.library[existingIndex] = cleanSong;
+                updateCount++;
+                
+                // Cloud Sync
+                if (typeof canUserPerform === 'function' && canUserPerform('USE_SUPABASE') && currentUser) {
+                    if (typeof window.sanitizeForDatabase === 'function') {
+                        const safePayload = window.sanitizeForDatabase(cleanSong, currentUser.id, existingSong.group_id);
+                        if (typeof supabaseClient !== 'undefined') {
+                            supabaseClient.from('songs').upsert(safePayload).then(({ error }) => {
+                                if (error) console.error("❌ Sync Error:", error);
+                            });
+                        }
+                    }
+                }
+            } else {
+                console.log(`🚫 Ακυρώθηκε: Ο χρήστης απέρριψε την αντικατάσταση για το "${cleanSong.title}".`);
+            }
+
+        } else {
+            // --- ΝΕΟ ΤΡΑΓΟΥΔΙ ---
+            console.log(`✨ Προσθήκη νέου: "${cleanSong.title}"`);
+            
+            // Νέο ID για απόλυτη ασφάλεια στη βάση
+            cleanSong.id = "s_" + Date.now() + Math.random().toString(16).slice(2);
+            if (!cleanSong.updated_at) cleanSong.updated_at = new Date().toISOString();
+
+            window.library.push(cleanSong);
+            importCount++;
+            
+            if (typeof canUserPerform === 'function' && canUserPerform('USE_SUPABASE') && currentUser) {
+                if (typeof window.sanitizeForDatabase === 'function') {
+                    const safePayload = window.window.sanitizeForDatabase(cleanSong, currentUser.id, null);
+                    if (typeof supabaseClient !== 'undefined') {
+                        supabaseClient.from('songs').upsert(safePayload).then(({ error }) => {
+                            if (error) console.error("❌ Sync Error:", error);
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    // --- ΤΕΛΙΚΗ ΕΝΗΜΕΡΩΣΗ UI ---
+    if (importCount > 0 || updateCount > 0) {
+        if (typeof saveData === 'function') saveData(); 
+        if (typeof renderSidebar === 'function') renderSidebar();
+        
+        let msg = "";
+        if (importCount > 0) msg += `${importCount} Νέα ✅ `;
+        if (updateCount > 0) msg += `${updateCount} Ενημερώθηκαν 🔄`;
+        if (typeof showToast === 'function') showToast(msg.trim());
+        
+        if (window.library.length > 0 && typeof loadSong === 'function') {
+            loadSong(window.library[window.library.length - 1].id);
+        }
+    } else {
+        console.log("ℹ️ Η εισαγωγή ολοκληρώθηκε χωρίς αλλαγές.");
+        if (typeof showToast === 'function') showToast("Δεν έγιναν νέες εισαγωγές ή αντικαταστάσεις.");
+    }
+};
 function selectImport(type) { 
     const modal = document.getElementById('importChoiceModal'); 
     if(modal) modal.style.display = 'none'; 

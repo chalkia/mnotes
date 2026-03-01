@@ -1317,7 +1317,7 @@ async function deleteCurrentSong() {
     if (!currentSongId) return;
    
    // ✨ ΔΙΚΛΙΔΑ ΑΣΦΑΛΕΙΑΣ: Απαγόρευση διαγραφής αν είσαι viewer σε μπάντα!
-    if (currentGroupId !== 'personal' && currentRole === 'viewer') {
+    if (currentGroupId !== 'personal' && (currentRole !== 'owner' && currentRole !== 'admin')) {
         showToast("Δεν έχετε δικαίωμα διαγραφής σε αυτή τη μπάντα.", "error");
         return;
     }

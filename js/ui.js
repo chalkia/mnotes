@@ -933,6 +933,13 @@ function printSongPDF() {
 // ===========================================================
 
 function switchToEditor() {
+   // ✨ ΕΛΕΓΧΟΣ ΔΙΚΑΙΩΜΑΤΩΝ: Μπλοκάρισμα του Editor σε απλά μέλη/θεατές της μπάντας
+    if (typeof currentGroupId !== 'undefined' && currentGroupId !== 'personal') {
+        if (typeof currentRole !== 'undefined' && currentRole !== 'admin' && currentRole !== 'owner') {
+            showToast("Μόνο οι διαχειριστές μπορούν να επεξεργαστούν τα τραγούδια της μπάντας. Κάντε 'Clone' για δική σας χρήση!", "error");
+            return; // Σταματάει εδώ, δεν ανοίγει ο Editor!
+        }
+    }
     document.getElementById('view-player').classList.remove('active-view'); 
     document.getElementById('view-editor').classList.add('active-view');
     

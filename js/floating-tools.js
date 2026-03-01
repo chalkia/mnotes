@@ -76,6 +76,7 @@ const FloatingTools = {
             document.onmousemove = null;
             document.ontouchend = null;
             document.ontouchmove = null;
+            FloatingTools.saveLayout(); 
         }
     },
 
@@ -100,6 +101,7 @@ const FloatingTools = {
         function stopResize(e) {
             window.removeEventListener('mousemove', Resize, false);
             window.removeEventListener('mouseup', stopResize, false);
+            FloatingTools.saveLayout();
         }
     },
 
@@ -134,3 +136,49 @@ const FloatingTools = {
         this.isOpen = false;
     }
 };
+// Αποθήκευση θέσης και μεγέθους
+saveLayout: function() {
+    const el = document.getElementById('floating-viewer');
+    if (!el) return;
+
+    const layout = {
+        top: el.style.top,
+        left: el.style.left,
+        width: el.style.width,
+        height: el.style.height,
+        isMinimized: this.isMinimized
+    };
+    localStorage.setItem('mnotes_viewer_layout', JSON.stringify(layout));
+},
+
+// Επαναφορά θέσης και μεγέθους
+applySavedLayout: function() {
+    const saved = localStorage.getItem('mnotes_viewer_layout');
+    if (!saved) return;
+
+    const layout = JSON.parse(saved);
+    const el = document.getElementById('floating-viewer');
+    
+    if (el) {
+        el.style.top = layout.top;
+        el.style.left = layout.left;
+        el.style.width = layout.width;
+        el.style.height = layout.height;
+        if (layout.isMinimized) this.toggleMinimize();
+    }
+}
+async function autoLoadAttachment(songId) {
+    // 1. Κλείνουμε το προηγούμενο αν υπάρχει
+    FloatingTools.close();
+
+    // 2. Ζητάμε από τη γέφυρα της Supabase αν υπάρχει αρχείο
+    const attachment = await getSongAttachment(songId);
+
+    if (attachment && attachment.file_url) {
+        // 3. Εμφάνιση περιεχομένου
+        FloatingTools.loadContent(attachment.file_url, attachment.file_type);
+        
+        // 4. Εφαρμογή της αποθηκευμένης θέσης (x, y, w, h)
+        FloatingTools.applySavedLayout();
+    }
+}

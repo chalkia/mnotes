@@ -219,108 +219,102 @@
             </div>
         </main>
 <div class="resizer" id="dragMeRight"></div>
-     <aside class="col-tools" id="rhythmTools">
-            <div class="sidebar-header-tools">
-                <span data-i18n="title_tools" style="font-weight:bold; color:var(--text-muted); font-size:0.9rem;">TOOLS & ASSETS</span>
+    <aside class="col-tools" id="rhythmTools">
+    <div class="sidebar-header-tools">
+        <span data-i18n="title_tools" style="font-weight:bold; color:var(--text-muted); font-size:0.9rem;">TOOLS & ASSETS</span>
+    </div>
+
+    <div id="video-sidebar-container" style="display:none; padding: 10px; border-bottom: 1px solid var(--border-color); background: rgba(0,0,0,0.1);">
+        <div id="video-embed-box" class="video-responsive" style="position:relative; padding-bottom:56.25%; height:0; overflow:hidden; border-radius:8px; background:#000;">
+            </div>
+    </div>
+
+    <div class="tool-panel">
+        <div class="tool-section">
+            <div class="section-title"><i class="fas fa-microphone-alt"></i> <span data-i18n="title_audio_hub">AUDIO HUB</span></div>
+            <div class="recorder-compact">
+                <span id="recTimer" class="rec-timer">00:00</span>
+                <button id="btnRecord" onclick="toggleRecording()" class="rec-btn" title="Record">
+                    <i class="fas fa-circle"></i>
+                </button>
+                <button id="btnLinkRec" onclick="uploadAndLinkCurrent()" class="save-rec-btn" style="display:none;" title="Save to Song">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                </button>
             </div>
 
-            <div class="tool-panel">
-                <div class="tool-section">
-                    <div class="section-title"><i class="fas fa-microphone-alt"></i> <span data-i18n="title_audio_hub">AUDIO HUB</span></div>
-                    <div class="recorder-compact">
-                        <span id="recTimer" class="rec-timer">00:00</span>
-                        <button id="btnRecord" onclick="toggleRecording()" class="rec-btn" title="Record">
-                            <i class="fas fa-circle"></i>
-                        </button>
-                        <button id="btnLinkRec" onclick="uploadAndLinkCurrent()" class="save-rec-btn" style="display:none;" title="Save to Song">
-                            <i class="fas fa-cloud-upload-alt"></i>
-                        </button>
-                    </div>
-
-                    <div class="upload-wrapper" style="text-align:center; margin-top:10px; margin-bottom:10px;">
-                        <input type="file" id="inpImportAudio" accept="audio/*, .mp3, .m4a, .wav" style="display:none;" onchange="uploadAudioToCloud(this)">
-                        <label for="inpImportAudio" class="upload-btn-styled">
-                            <i class="fas fa-cloud-upload-alt"></i> <span data-i18n="btn_upload_backing">Upload Backing Track</span>
-                        </label>
-                        <div id="uploadProgressBox" style="display:none;">
-                            <div class="prog-bg"><div id="uploadBar" class="prog-fill"></div></div>
-                            <span id="uploadText" data-i18n="msg_uploading" style="font-size:0.7rem; color:#888;">Uploading...</span>
-                        </div>
-                    </div>
-
-                    <audio id="masterAudio" controls class="master-player" style="margin-top:10px;"></audio>
-                    <div class="audio-list-container">
-                        <label class="list-label" data-i18n="lbl_tracks">TRACKS:</label>
-                        <div id="sideRecList" class="compact-list">
-                            <div class="empty-state" data-i18n="msg_no_recordings">No recordings yet</div> 
-                        </div>
-                    </div>
+            <div class="upload-wrapper" style="text-align:center; margin-top:10px; margin-bottom:10px;">
+                <input type="file" id="inpImportAudio" accept="audio/*, .mp3, .m4a, .wav" style="display:none;" onchange="uploadAudioToCloud(this)">
+                <label for="inpImportAudio" class="upload-btn-styled">
+                    <i class="fas fa-cloud-upload-alt"></i> <span data-i18n="btn_upload_backing">Upload Backing Track</span>
+                </label>
+                <div id="uploadProgressBox" style="display:none;">
+                    <div class="prog-bg"><div id="uploadBar" class="prog-fill"></div></div>
+                    <span id="uploadText" data-i18n="msg_uploading" style="font-size:0.7rem; color:#888;">Uploading...</span>
                 </div>
-
-                <hr class="sep">
-
-                <details class="tool-group" open>
-                    <summary><i class="fas fa-folder-open"></i> <span data-i18n="sum_files">FILES & SHEETS</span></summary>
-                    <div class="group-content">
-                        <div id="list-sheets" class="file-list compact">
-                            <div class="empty-state" data-i18n="msg_no_attachments">No attachments</div>
-                        </div>
-                        <button class="add-mini-btn" onclick="document.getElementById('inpPdfUpload').click()">
-                            <i class="fas fa-plus"></i> <span data-i18n="btn_add_file">Add File</span>
-                        </button>
-                        <input type="file" id="inpPdfUpload" accept="application/pdf, image/*" style="display:none" onchange="uploadAttachment(this)">
-                    </div>
-                </details>
-
-                <hr class="sep">
-
-                <details class="tool-group" id="bandToolGroup">
-                    <summary>
-                        <i class="fas fa-users-cog"></i> <span data-i18n="sum_band_manager">BAND MANAGER</span>
-                    </summary>
-                    <div class="group-content" id="bandManagerContent">
-                        <div class="loading-placeholder">Select a Band or Create New...</div>
-                    </div>
-                </details>
-
-                <hr class="sep">
-
-                <details class="tool-group" open>
-                    <summary><i class="fas fa-drum"></i> <span data-i18n="sum_metronome">METRONOME</span></summary>
-                    <div class="group-content">
-                        <div class="bpm-row">
-                            <button id="btnPlayRhythm" onclick="AudioEngine.togglePlay()" class="play-mini-btn" title="Play Rhythm">
-                                <i class="fas fa-play"></i>
-                            </button>
-                            <div class="bpm-display"><span id="dispBpm">100</span> <span style="font-size:0.7rem;" data-i18n="lbl_bpm">BPM</span></div>
-                        </div>
-                        <input type="range" id="rngBpm" min="40" max="200" value="100" class="compact-range" oninput="AudioEngine.setBpm(this.value)">
-                        <button onclick="toggleSequencerUI()" class="toggle-grid-btn-v2">
-                            <i class="fas fa-drum"></i> <span data-i18n="btn_open_drum">Open Drum Machine</span>
-                        </button>    
-                    </div>
-                </details>                
-
-                <hr class="sep">
-
-                <details class="tool-group">
-                    <summary><i class="fab fa-youtube"></i> <span data-i18n="sum_video">VIDEO REFERENCE</span></summary>
-                    <div class="group-content" id="video-sidebar-container" style="display:none;">
-                        <div id="video-embed-box" class="video-responsive"></div>
-                    </div>
-                </details>
             </div>
 
-            <div class="tools-footer">
-                <button class="footer-btn" onclick="openSettings()" title="Settings">
-                    <i class="fas fa-cog"></i>
-                </button>
-                <button id="btnAuthBottom" class="footer-btn" onclick="document.getElementById('authModal').style.display='flex'">
-                    <i class="fas fa-user"></i> <span data-i18n="btn_account">Account</span> 
-                </button>
+            <audio id="masterAudio" controls class="master-player" style="margin-top:10px;"></audio>
+            <div class="audio-list-container">
+                <label class="list-label" data-i18n="lbl_tracks">TRACKS:</label>
+                <div id="sideRecList" class="compact-list">
+                    <div class="empty-state" data-i18n="msg_no_recordings">No recordings yet</div> 
+                </div>
             </div>
-        </aside>
+        </div>
 
+        <hr class="sep">
+
+        <details class="tool-group" open>
+            <summary><i class="fas fa-folder-open"></i> <span data-i18n="sum_files">FILES & SHEETS</span></summary>
+            <div class="group-content">
+                <div id="list-sheets" class="file-list compact">
+                    <div class="empty-state" data-i18n="msg_no_attachments">No attachments</div>
+                </div>
+                <button class="add-mini-btn" onclick="document.getElementById('inpPdfUpload').click()">
+                    <i class="fas fa-plus"></i> <span data-i18n="btn_add_file">Add File</span>
+                </button>
+                <input type="file" id="inpPdfUpload" accept="application/pdf, image/*" style="display:none" onchange="uploadAttachment(this)">
+            </div>
+        </details>
+
+        <hr class="sep">
+
+        <details class="tool-group" id="bandToolGroup">
+            <summary>
+                <i class="fas fa-users-cog"></i> <span data-i18n="sum_band_manager">BAND MANAGER</span>
+            </summary>
+            <div class="group-content" id="bandManagerContent">
+                <div class="loading-placeholder">Select a Band or Create New...</div>
+            </div>
+        </details>
+
+        <hr class="sep">
+
+        <details class="tool-group" open>
+            <summary><i class="fas fa-drum"></i> <span data-i18n="sum_metronome">METRONOME</span></summary>
+            <div class="group-content">
+                <div class="bpm-row">
+                    <button id="btnPlayRhythm" onclick="AudioEngine.togglePlay()" class="play-mini-btn" title="Play Rhythm">
+                        <i class="fas fa-play"></i>
+                    </button>
+                    <div class="bpm-display"><span id="dispBpm">100</span> <span style="font-size:0.7rem;" data-i18n="lbl_bpm">BPM</span></div>
+                </div>
+                <input type="range" id="rngBpm" min="40" max="200" value="100" class="compact-range" oninput="AudioEngine.setBpm(this.value)">
+                <button onclick="toggleSequencerUI()" class="toggle-grid-btn-v2">
+                    <i class="fas fa-drum"></i> <span data-i18n="btn_open_drum">Open Drum Machine</span>
+                </button>     
+            </div>
+        </details>
+
+    </div> <div class="tools-footer">
+        <button class="footer-btn" onclick="openSettings()" title="Settings">
+            <i class="fas fa-cog"></i>
+        </button>
+        <button id="btnAuthBottom" class="footer-btn" onclick="document.getElementById('authModal').style.display='flex'">
+            <i class="fas fa-user"></i> <span data-i18n="btn_account">Account</span> 
+        </button>
+    </div>
+</aside> 
     </div>
 
     <div id="importChoiceModal" class="modal" style="display:none;">
@@ -605,6 +599,7 @@
     <script src="js/app.js"></script>
 </body>
 </html>
+
 
 
 

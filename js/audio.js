@@ -1,5 +1,5 @@
 /* =========================================
-   AUDIO ENGINE v2.3 (Final: Vertical Grid & Volume)
+   PRO AUDIO ENGINE v4.0 (Synth + Sampler + MIDI)
    ========================================= */
 
 const AudioEngine = {
@@ -10,25 +10,55 @@ const AudioEngine = {
     currentStep: 0,
     scheduleAheadTime: 0.1,
     lookahead: 25.0,
-    noiseBuffer: null,
+    
+    // Grid Data & Settings
     gridData: { HAT: [], RIM: [], TOM: [], KICK: [] },
-    // Rhythm Settings
     beats: 4,          
     bpm: 100,
     currentRhythmId: null,
 
-    // SOUND LAB CONFIG (Final Settings)
+    // --- 1. SYNTH ENGINE (Η παλιά παραμετροποιήσιμη μηχανή) ---
+    noiseBuffer: null,
     soundConfig: {
-        kick: { startFreq: 54,  endFreq: 12,   decay: 0.25, vol: 1.0 },
-        tom:  { freq: 85,       decay: 0.2,    type: 'sine', vol: 0.7 },
-        rim:  { freq: 260,      decay: 0.03,   type: 'square', vol: 0.4 },
-        hat:  { freq: 2200,     decay: 0.06,   vol: 0.3 }
+        kick: { startFreq: 54,  endFreq: 12,  decay: 0.25, vol: 1.0 },
+        tom:  { freq: 85,       decay: 0.2,   type: 'sine', vol: 0.7 },
+        rim:  { freq: 260,      decay: 0.03,  type: 'square', vol: 0.4 },
+        hat:  { freq: 2200,     decay: 0.06,  vol: 0.3 }
     },
+
+    // --- 2. SAMPLER ENGINE (Νέα αρχεία ήχου) ---
+    currentKit: 'synth', // Προεπιλογή το Synth
+    audioBuffers: { HAT: null, RIM: null, TOM: null, KICK: null },
+    kits: {
+        synth: {}, // Δεν χρειάζεται URLs, παράγεται δυναμικά
+        standard: {
+            KICK: 'assets/audio/kits/standard/kick.wav',
+            TOM:  'assets/audio/kits/standard/snare.wav', 
+            RIM:  'assets/audio/kits/standard/tom.wav',
+            HAT:  'assets/audio/kits/standard/hihat.wav'
+        },
+        acoustic: {
+            KICK: 'assets/audio/kits/acoustic/cajon_low.wav',
+            TOM:  'assets/audio/kits/acoustic/cajon_high.wav',
+            RIM:  'assets/audio/kits/acoustic/clap.wav',
+            HAT:  'assets/audio/kits/acoustic/shaker.wav'
+        }
+    },
+
+    // --- 3. MIDI ENGINE ---
+    midiOutput: null,
+    useMidi: false,
+    // Στάνταρ νούμερα του General MIDI Drum Map (Channel 10)
+    midiNotes: { KICK: 36, TOM: 38, RIM: 43, HAT: 42 },
 
     init: function() {
         if (!this.ctx) {
             this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-            this.createNoiseBuffer();
+            this.createNoiseBuffer(); // Απαραίτητο για το Synth Hi-Hat
+            this.initMidi();
+            
+            // Αν είχε επιλεγεί κάτι άλλο εκτός από synth, φορτώνουμε τα αρχεία
+            if (this.currentKit !== 'synth') this.loadDrumKit(this.currentKit);
         }
         if (this.ctx.state === 'suspended') this.ctx.resume();
     },
@@ -41,11 +71,57 @@ const AudioEngine = {
         this.noiseBuffer = buffer;
     },
 
+    loadDrumKit: async function(kitName) {
+        this.currentKit = kitName;
+        
+        // Αν επιλέξει το παλιό Synth, δεν φορτώνουμε αρχεία. Απλά δείχνουμε το Sound Lab.
+        const btnLab = document.getElementById('btnSoundLab');
+        if (kitName === 'synth') {
+            if (btnLab) btnLab.style.display = 'inline-block';
+            return;
+        }
+
+        // Κρύβουμε το Sound Lab για τα έτοιμα αρχεία (δεν έχει νόημα εκεί)
+        if (btnLab) btnLab.style.display = 'none';
+        console.log(`🥁 Loading Drum Kit: ${kitName}...`);
+
+        const kitUrls = this.kits[kitName];
+        for (const inst in kitUrls) {
+            try {
+                const response = await fetch(kitUrls[inst]);
+                const arrayBuffer = await response.arrayBuffer();
+                this.audioBuffers[inst] = await this.ctx.decodeAudioData(arrayBuffer);
+            } catch (err) {
+                console.warn(`⚠️ Missing audio file for ${inst}.`);
+                this.audioBuffers[inst] = null; 
+            }
+        }
+    },
+
+    initMidi: function() {
+        if (navigator.requestMIDIAccess) {
+            navigator.requestMIDIAccess().then(midiAccess => {
+                const outputs = Array.from(midiAccess.outputs.values());
+                if (outputs.length > 0) {
+                    this.midiOutput = outputs[0];
+                    console.log(`🎹 MIDI Connected: ${this.midiOutput.name}`);
+                }
+            }).catch(err => console.warn("MIDI Access Denied or Unavailable."));
+        }
+    },
+
+    toggleMidi: function(enable) {
+        this.useMidi = enable;
+        if (enable && !this.midiOutput) {
+            alert("Δεν βρέθηκε συσκευή MIDI. Παρακαλώ συνδέστε ένα MIDI interface και ανανεώστε τη σελίδα.");
+            this.useMidi = false;
+        }
+    },
+
     togglePlay: function() {
         this.init();
         this.isPlaying = !this.isPlaying;
         
-        // Update Buttons
         const btn = document.getElementById('btnPlaySeq');
         if(btn) btn.innerHTML = this.isPlaying ? '<i class="fas fa-stop"></i> STOP' : '<i class="fas fa-play"></i> PLAY';
         const btnSide = document.getElementById('btnPlayRhythm');
@@ -58,6 +134,13 @@ const AudioEngine = {
         } else {
             window.clearTimeout(this.timerID);
             document.querySelectorAll('.cell.highlight').forEach(c => c.classList.remove('highlight'));
+            
+            // "Κόψιμο" των MIDI νοτών αν πατηθεί Stop
+            if (this.useMidi && this.midiOutput) {
+                ['HAT', 'RIM', 'TOM', 'KICK'].forEach(type => {
+                    this.midiOutput.send([0x89, this.midiNotes[type], 0]);
+                });
+            }
         }
     },
 
@@ -71,11 +154,9 @@ const AudioEngine = {
     setBeats: function(n) {
         if(n < 1 || n > 32) return;
         this.beats = n;
-        
         const disp = document.getElementById('beat-count-display');
         if(disp) disp.innerText = n;
         
-        // Redraw Vertical Grid
         const container = document.getElementById('rhythm-tracks');
         if(container && typeof generateGridRows === 'function') {
             const oldState = this.getGridState();
@@ -95,42 +176,90 @@ const AudioEngine = {
 
     nextStep: function() {
         const secondsPerBeat = 60.0 / this.bpm;
-        this.nextNoteTime += 0.25 * secondsPerBeat;
+        this.nextNoteTime += 0.25 * secondsPerBeat; // 16th notes
         this.currentStep++;
         if (this.currentStep >= this.beats * 4) this.currentStep = 0;
     },
+
     scheduleNote: function(stepNumber, time) {
-    // Visual Feedback (Η γραμμή που τρέχει)
-    const drawTime = (time - this.ctx.currentTime) * 1000;
-    setTimeout(() => {
-        document.querySelectorAll('.cell.highlight').forEach(c => c.classList.remove('highlight'));
-        const activeCells = document.querySelectorAll(`.cell[data-step="${stepNumber}"]`);
-        activeCells.forEach(c => c.classList.add('highlight'));
-    }, drawTime > 0 ? drawTime : 0);
+        const drawTime = (time - this.ctx.currentTime) * 1000;
+        setTimeout(() => {
+            document.querySelectorAll('.cell.highlight').forEach(c => c.classList.remove('highlight'));
+            document.querySelectorAll(`.cell[data-step="${stepNumber}"]`).forEach(c => c.classList.add('highlight'));
+        }, drawTime > 0 ? drawTime : 0);
 
-    // Audio Trigger - ΤΩΡΑ ΔΙΑΒΑΖΕΙ ΑΠΟ ΤΗ ΜΝΗΜΗ (gridData)
-    ['HAT', 'RIM', 'TOM', 'KICK'].forEach(type => {
-        if (this.gridData[type] && this.gridData[type][stepNumber]) {
-            this.playPercussion(time, type.toLowerCase());
+        // --- ΕΛΕΓΧΟΣ ΔΙΚΑΙΩΜΑΤΩΝ ---
+        const isAdvanced = (typeof canUserPerform === 'function' && canUserPerform('ADVANCED_DRUMS'));
+
+        if (!isAdvanced) {
+            // SOLO TIER: Metronome mode (Μόνο 1 χτύπημα ανά τέταρτο)
+            if (stepNumber % 4 === 0) {
+                let isFirstBeat = (stepNumber === 0);
+                this.playPercussion(time, 'KICK', isFirstBeat ? 1.0 : 0.5); 
+            }
+            return; 
         }
-    });
-},
-toggleStepData: function(instId, stepIdx, isActive) {
-    if (!this.gridData[instId]) this.gridData[instId] = [];
-    this.gridData[instId][stepIdx] = isActive;
-},
 
-    playPercussion: function(time, type) {
+        // BAND TIER: Sequencer mode
+        ['HAT', 'RIM', 'TOM', 'KICK'].forEach(type => {
+            if (this.gridData[type] && this.gridData[type][stepNumber]) {
+                this.playPercussion(time, type, 1.0);
+            }
+        });
+    },
+
+    toggleStepData: function(instId, stepIdx, isActive) {
+        if (!this.gridData[instId]) this.gridData[instId] = [];
+        this.gridData[instId][stepIdx] = isActive;
+    },
+
+    // Ο ΜΕΓΑΛΟΣ ΔΡΟΜΟΛΟΓΗΤΗΣ (Router)
+    playPercussion: function(time, type, volumeMult = 1.0) {
+        // 1. MIDI Output
+        if (this.useMidi && this.midiOutput) {
+            const note = this.midiNotes[type];
+            const velocity = Math.floor(volumeMult * 127);
+            const delayInMs = (time - this.ctx.currentTime) * 1000;
+            setTimeout(() => {
+                this.midiOutput.send([0x99, note, velocity]);
+                setTimeout(() => this.midiOutput.send([0x89, note, 0]), 100);
+            }, delayInMs > 0 ? delayInMs : 0);
+            return; 
+        }
+
+        // 2. SYNTH Engine (Η παλιά μηχανή)
+        if (this.currentKit === 'synth') {
+            this.playSynth(time, type.toLowerCase(), volumeMult);
+            return;
+        }
+
+        // 3. SAMPLER Engine (Πραγματικά .wav αρχεία)
+        const buffer = this.audioBuffers[type];
+        if (!buffer) return; 
+
+        const source = this.ctx.createBufferSource();
+        source.buffer = buffer;
+        const gainNode = this.ctx.createGain();
+        gainNode.gain.value = volumeMult;
+
+        source.connect(gainNode);
+        gainNode.connect(this.ctx.destination);
+        source.start(time);
+    },
+
+    // Η παλιά παραμετροποιήσιμη μηχανή
+    playSynth: function(time, type, volumeMult) {
         const gain = this.ctx.createGain();
         gain.connect(this.ctx.destination);
         const cfg = this.soundConfig[type];
+        const finalVol = cfg.vol * volumeMult;
 
         if (type === 'kick') { 
             const osc = this.ctx.createOscillator();
             osc.connect(gain);
             osc.frequency.setValueAtTime(cfg.startFreq, time);
             osc.frequency.exponentialRampToValueAtTime(cfg.endFreq, time + cfg.decay);
-            gain.gain.setValueAtTime(cfg.vol, time);
+            gain.gain.setValueAtTime(finalVol, time);
             gain.gain.exponentialRampToValueAtTime(0.01, time + cfg.decay);
             osc.start(time); osc.stop(time + cfg.decay);
         } else if (type === 'tom') { 
@@ -139,7 +268,7 @@ toggleStepData: function(instId, stepIdx, isActive) {
             osc.type = cfg.type;
             osc.frequency.setValueAtTime(cfg.freq, time);
             osc.frequency.linearRampToValueAtTime(cfg.freq * 0.8, time + cfg.decay);
-            gain.gain.setValueAtTime(cfg.vol, time);
+            gain.gain.setValueAtTime(finalVol, time);
             gain.gain.exponentialRampToValueAtTime(0.01, time + cfg.decay);
             osc.start(time); osc.stop(time + cfg.decay + 0.05);
         } else if (type === 'rim') { 
@@ -147,17 +276,18 @@ toggleStepData: function(instId, stepIdx, isActive) {
             osc.connect(gain);
             osc.type = cfg.type;
             osc.frequency.setValueAtTime(cfg.freq, time);
-            gain.gain.setValueAtTime(cfg.vol, time);
+            gain.gain.setValueAtTime(finalVol, time);
             gain.gain.exponentialRampToValueAtTime(0.01, time + cfg.decay);
             osc.start(time); osc.stop(time + cfg.decay + 0.01);
         } else if (type === 'hat') { 
+            if(!this.noiseBuffer) return;
             const bs = this.ctx.createBufferSource();
             bs.buffer = this.noiseBuffer;
             const f = this.ctx.createBiquadFilter();
             f.type = "highpass";
             f.frequency.value = cfg.freq;
             bs.connect(f); f.connect(gain);
-            gain.gain.setValueAtTime(cfg.vol, time);
+            gain.gain.setValueAtTime(finalVol, time);
             gain.gain.exponentialRampToValueAtTime(0.01, time + cfg.decay);
             bs.start(time); bs.stop(time + cfg.decay + 0.01);
         }
@@ -168,6 +298,7 @@ toggleStepData: function(instId, stepIdx, isActive) {
             c.classList.remove('active');
             c.style.backgroundColor = '#333';
         });
+        this.gridData = { HAT: [], RIM: [], TOM: [], KICK: [] };
         this.currentRhythmId = null;
         if(document.getElementById('seq-current-name')) 
             document.getElementById('seq-current-name').innerText = "No rhythm loaded";
@@ -177,7 +308,7 @@ toggleStepData: function(instId, stepIdx, isActive) {
         let state = { HAT: [], RIM: [], TOM: [], KICK: [] };
         ['HAT', 'RIM', 'TOM', 'KICK'].forEach(inst => {
             document.querySelectorAll(`.row-${inst} .cell.active`).forEach(c => {
-                state[inst].push(parseInt(c.dataset.step));
+                state[inst][parseInt(c.dataset.step)] = true;
             });
         });
         return state;
@@ -185,22 +316,37 @@ toggleStepData: function(instId, stepIdx, isActive) {
 
     loadGridState: function(state) {
         if(!state) return;
+        this.gridData = { HAT: [], RIM: [], TOM: [], KICK: [] };
         ['HAT', 'RIM', 'TOM', 'KICK'].forEach(inst => {
             if(state[inst]) {
-                state[inst].forEach(step => {
-                    const cell = document.querySelector(`.row-${inst} .cell[data-step="${step}"]`);
-                    if(cell) {
-                        cell.classList.add('active');
-                        const colors = {HAT:"#f1c40f", RIM:"#3498db", TOM:"#2ecc71", KICK:"#e74c3c"};
-                        cell.style.backgroundColor = colors[inst];
+                const isArrayOfIndexes = (state[inst].length > 0 && typeof state[inst][0] === 'number');
+                if (isArrayOfIndexes) {
+                    state[inst].forEach(step => {
+                        this.gridData[inst][step] = true;
+                        this.activateCellInUI(inst, step);
+                    });
+                } else {
+                    for(let step = 0; step < state[inst].length; step++) {
+                        if(state[inst][step]) {
+                            this.gridData[inst][step] = true;
+                            this.activateCellInUI(inst, step);
+                        }
                     }
-                });
+                }
             }
         });
     },
 
-    // --- DATABASE OPERATIONS ---
+    activateCellInUI: function(inst, step) {
+        const cell = document.querySelector(`.row-${inst} .cell[data-step="${step}"]`);
+        if(cell) {
+            cell.classList.add('active');
+            const colors = {HAT:"#f1c40f", RIM:"#3498db", TOM:"#2ecc71", KICK:"#e74c3c"};
+            cell.style.backgroundColor = colors[inst];
+        }
+    },
 
+    // --- DATABASE OPERATIONS (Συγχρονισμένα με τον νέο πίνακα rhythms) ---
     openSaveModal: function() {
         if(!currentUser) { alert("Please login to save rhythms!"); return; }
         document.getElementById('rhythmSaveModal').style.display = 'flex';
@@ -210,23 +356,21 @@ toggleStepData: function(instId, stepIdx, isActive) {
         const name = document.getElementById('saveRhythmName').value;
         const tagsInput = document.getElementById('saveRhythmTags').value;
         const tags = tagsInput ? tagsInput.split(',').map(t => t.trim()) : [];
-        
         if(!name) return alert("Please enter a name");
 
-        const rhythmData = {
-            version: 1,
-            beats: this.beats,
-            soundConfig: this.soundConfig,
-            grid: this.getGridState()
-        };
+        const rhythmId = this.currentRhythmId || ("r_" + Date.now());
 
         const payload = {
+            id: rhythmId,
             name: name,
-            owner_id: currentUser.id,
-            bpm: this.bpm,
+            beats: this.beats,
+            default_bpm: this.bpm,
+            default_kit: this.currentKit,
+            pattern: this.getGridState(),
             tags: tags,
+            owner_id: currentUser.id,
             is_public: false,
-            data: rhythmData
+            updated_at: new Date().toISOString()
         };
 
         const { data, error } = await supabaseClient.from('rhythms').upsert(payload).select();
@@ -247,38 +391,29 @@ toggleStepData: function(instId, stepIdx, isActive) {
     },
 
     searchRhythms: async function() {
-        const query = document.getElementById('searchRhythm').value;
         const resContainer = document.getElementById('rhythmResults');
         resContainer.innerHTML = 'Loading...';
 
         let rpc = supabaseClient.from('rhythms').select('*');
-        if(currentUser) {
-            rpc = rpc.or(`is_public.eq.true,owner_id.eq.${currentUser.id}`);
-        } else {
-            rpc = rpc.eq('is_public', true);
-        }
+        if(currentUser) { rpc = rpc.or(`is_public.eq.true,owner_id.eq.${currentUser.id}`); } 
+        else { rpc = rpc.eq('is_public', true); }
 
-        if(query) rpc = rpc.ilike('name', `%${query}%`);
+        const { data, error } = await rpc.order('name', { ascending: true });
 
-        const { data, error } = await rpc.order('created_at', { ascending: false }).limit(20);
-
-        if(error) {
-            resContainer.innerHTML = 'Error fetching rhythms'; return;
-        }
-
+        if(error) { resContainer.innerHTML = 'Error fetching rhythms'; return; }
         resContainer.innerHTML = '';
+        
         if(!data || data.length === 0) {
             resContainer.innerHTML = '<div style="padding:10px; color:#666;">No rhythms found.</div>'; return;
         }
 
         data.forEach(r => {
-            const rBeats = (r.data && r.data.beats) ? r.data.beats : 4;
             const div = document.createElement('div');
             div.style.cssText = "padding:10px; border-bottom:1px solid #444; cursor:pointer; display:flex; justify-content:space-between; align-items:center;";
             div.innerHTML = `
                 <div>
                     <span style="font-weight:bold; color:var(--text-main);">${r.name}</span>
-                    <div style="font-size:0.75rem; color:#888;">${r.bpm} BPM • ${rBeats}/4 • ${r.is_public ? 'Public' : 'Private'}</div>
+                    <div style="font-size:0.75rem; color:#888;">${r.default_bpm} BPM • ${r.beats}/4 • Kit: ${r.default_kit || 'synth'}</div>
                 </div>
                 <i class="fas fa-play-circle" style="color:var(--accent);"></i>
             `;
@@ -292,14 +427,21 @@ toggleStepData: function(instId, stepIdx, isActive) {
 
     loadRhythm: function(r) {
         this.currentRhythmId = r.id;
-        document.getElementById('seq-current-name').innerText = r.name;
-        this.setBpm(r.bpm);
-        if(r.data) {
-            if(r.data.beats) this.setBeats(r.data.beats);
-            if(r.data.soundConfig) this.soundConfig = r.data.soundConfig;
-            this.clearGrid();
-            if(r.data.grid) this.loadGridState(r.data.grid);
+        if (document.getElementById('seq-current-name')) {
+            document.getElementById('seq-current-name').innerText = r.name;
         }
+        
+        this.setBpm(r.default_bpm);
+        this.setBeats(r.beats);
+        
+        const targetKit = r.default_kit || 'synth';
+        if (targetKit !== this.currentKit) {
+            this.loadDrumKit(targetKit);
+            if(document.getElementById('selDrumKit')) document.getElementById('selDrumKit').value = targetKit;
+        }
+
+        this.clearGrid();
+        if(r.pattern) this.loadGridState(r.pattern);
     },
 
     linkRhythmToSong: function() {
@@ -308,17 +450,8 @@ toggleStepData: function(instId, stepIdx, isActive) {
         const song = library.find(s => s.id === currentSongId);
         if(song) {
             song.rhythmId = this.currentRhythmId;
-            saveData(); alert(`Linked rhythm to song: ${song.title}`);
-        }
-    },
-    
-    checkLinkedRhythm: async function(song) {
-        if(song.rhythmId) {
-            const { data } = await supabaseClient.from('rhythms').select('*').eq('id', song.rhythmId).single();
-            if(data) {
-                this.loadRhythm(data);
-                console.log("Auto-loaded linked rhythm:", data.name);
-            }
+            if (typeof saveData === 'function') saveData(); 
+            alert(`Linked rhythm to song: ${song.title}`);
         }
     }
 };

@@ -479,16 +479,32 @@
         </div>
     </div>
 
-     <div id="rhythmLoadModal" class="modal" style="display:none;">
-        <div class="modal-content">
-            <h3 data-i18n="title_load_rhythm">Load Rhythm</h3>
-            <input id="searchRhythm" class="inp" data-i18n="ph_search_rhythm" oninput="AudioEngine.searchRhythms()">
-            <div id="rhythmResults" class="rhythm-results-box"></div>
-            <button onclick="document.getElementById('rhythmLoadModal').style.display='none'" class="modal-btn cancel">
-                <i class="fas fa-times"></i> <span data-i18n="btn_close">Close</span>
+    <div id="rhythmLoadModal" class="modal" style="display:none;">
+    <div class="modal-content" style="max-width: 450px;">
+        <h3 data-i18n="title_load_rhythm">Load Rhythm</h3>
+        
+        <div style="display:flex; gap:5px; margin-bottom:15px; border-bottom:1px solid var(--border-color); padding-bottom:10px;">
+            <button id="tabRhythmSystem" class="modal-btn active" onclick="loadRhythmTab('presets')" style="flex:1; padding:8px; font-size:0.85rem;">
+                <i class="fas fa-server"></i> System
+            </button>
+            <button id="tabRhythmPersonal" class="modal-btn" onclick="loadRhythmTab('personal')" style="flex:1; padding:8px; font-size:0.85rem;">
+                <i class="fas fa-cloud"></i> My Cloud
+            </button>
+            <button id="tabRhythmBand" class="modal-btn" onclick="loadRhythmTab('band')" style="flex:1; padding:8px; font-size:0.85rem; display:none;">
+                <i class="fas fa-users"></i> Band
             </button>
         </div>
+
+        <input id="searchRhythm" class="inp" data-i18n="ph_search_rhythm" oninput="AudioEngine.searchRhythms()" placeholder="Αναζήτηση..." style="margin-bottom:10px;">
+        
+        <div id="rhythmResults" class="rhythm-results-box" style="min-height:250px; max-height:400px; overflow-y:auto; border:1px solid var(--border-color); border-radius:6px; padding:10px; margin-bottom:15px; background:var(--bg-main);">
+        </div>
+        
+        <button onclick="document.getElementById('rhythmLoadModal').style.display='none'" class="modal-btn cancel" style="width:100%;">
+            <i class="fas fa-times"></i> <span data-i18n="btn_close">Close</span>
+        </button>
     </div>
+</div>
 
     <div id="rhythmSaveModal" class="modal" style="display:none;">
         <div class="modal-content">
@@ -599,6 +615,7 @@
     <script src="js/app.js"></script>
 </body>
 </html>
+
 
 
 

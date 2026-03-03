@@ -4,23 +4,43 @@
 
 // 1. ΕΚΚΙΝΗΣΗ / ΕΜΦΑΝΙΣΗ
 function toggleSequencerUI() {
-    let p = document.getElementById('sequencer-panel');
-    // Δημιουργία του παραθύρου αν δεν υπάρχει
-    if (!p) { createSequencerPanel(); p = document.getElementById('sequencer-panel'); }
-    
-    if (p.style.display === 'none' || p.style.display === '') {
-        p.style.display = 'flex';
-        // Αρχικοποίηση Ήχου (από το audio.js)
-        if(typeof AudioEngine !== 'undefined') AudioEngine.init();
-        
-        // Αν το Grid είναι άδειο, το ζωγραφίζουμε
-        if(document.getElementById('rhythm-tracks').innerHTML === "") {
-             generateGridRows(document.getElementById('rhythm-tracks'));
+    // 🔒 1. Ο "Πορτιέρης" - Έλεγχος Δικαιωμάτων (Business Model)
+    // Αν δεν επιτρέπεται η χρήση Sequencer, πετάμε το Pricing Modal και σταματάμε.
+    if (typeof canUserPerform === 'function' && !canUserPerform('USE_SEQUENCER')) {
+        if (typeof promptUpgrade === 'function') {
+            promptUpgrade('Πλήρες Sequencer & Βιβλιοθήκη Drum Kits');
         }
-    } else {
-        p.style.display = 'none';
-        // Stop αν κλείσει
-        if(typeof AudioEngine !== 'undefined') AudioEngine.togglePlay(); 
+        return; 
+    }
+
+    // 2. Η κανονική σου λογική
+    let p = document.getElementById('sequencer-panel');
+    
+    // Δημιουργία του παραθύρου αν δεν υπάρχει
+    if (!p) { 
+        if (typeof createSequencerPanel === 'function') createSequencerPanel(); 
+        p = document.getElementById('sequencer-panel'); 
+    }
+    
+    if (p) {
+        if (p.style.display === 'none' || p.style.display === '') {
+            p.style.display = 'flex';
+            
+            // Αρχικοποίηση Ήχου (από το audio.js)
+            if(typeof AudioEngine !== 'undefined') AudioEngine.init();
+            
+            // Αν το Grid είναι άδειο, το ζωγραφίζουμε
+            const trackContainer = document.getElementById('rhythm-tracks');
+            if(trackContainer && trackContainer.innerHTML === "") {
+                 if (typeof generateGridRows === 'function') generateGridRows(trackContainer);
+            }
+        } else {
+            p.style.display = 'none';
+            // Stop αν κλείσει (προαιρετικά μπορείς να το κάνεις .stop() αντί για .togglePlay() αν θες να σβήνει τελείως)
+            if(typeof AudioEngine !== 'undefined' && AudioEngine.isPlaying) {
+                AudioEngine.togglePlay(); 
+            }
+        }
     }
 }
 
@@ -288,4 +308,168 @@ async function syncSequencerToSong(s) {
     
     if (seqRange) seqRange.value = AudioEngine.bpm;
     if (seqVal) seqVal.innerText = AudioEngine.bpm;
+}
+// ===========================================================
+// DRUM STORE / RHYTHM LIBRARY (PRO ONLY)
+// ===========================================================
+
+
+function openDrumStore() {
+    // 🔒 Προστασία: Ελέγχουμε αν έχει Pro/Band
+    if (typeof canUserPerform === 'function' && !canUserPerform('USE_SEQUENCER')) {
+        if (typeof promptUpgrade === 'function') promptUpgrade('Drum Store & Cloud Rhythms');
+        return; 
+    }
+
+    const modal = document.getElementById('rhythmLoadModal');
+    if(modal) {
+        modal.style.display = 'flex';
+        loadRhythmTab('presets'); // Ξεκινάμε πάντα δείχνοντας τα Presets
+    }
+}
+async function loadRhythmTab(tab) {
+    const listContainer = document.getElementById('rhythmResults');
+    if (!listContainer) return;
+
+    // Ενημέρωση UI: Κατάσταση Φόρτωσης
+    listContainer.innerHTML = '<div style="text-align:center; padding:30px; color:var(--text-muted);"><i class="fas fa-spinner fa-spin fa-2x"></i><br><br>Αναζήτηση Ρυθμών...</div>';
+    console.log(`🥁 [Rhythm Library] Ζητήθηκε το tab: ${tab}`);
+
+    // Ασφάλεια: Αν δεν υπάρχει συνδεδεμένος χρήστης, σταματάμε
+    if (typeof currentUser === 'undefined' || !currentUser) {
+        console.warn("🥁 [Rhythm Library] Αποτυχία: Ο χρήστης δεν είναι συνδεδεμένος.");
+        listContainer.innerHTML = '<div class="empty-state">Απαιτείται σύνδεση.</div>';
+        return;
+    }
+
+    let fetchedRhythms = [];
+
+    try {
+        if (tab === 'presets') {
+            console.log("🥁 [Rhythm Library] Φόρτωση System Presets...");
+            // Αν έχεις τοπικά Presets στο data.js:
+            if (typeof SYSTEM_RHYTHMS !== 'undefined') {
+                fetchedRhythms = SYSTEM_RHYTHMS;
+            } else {
+                // Εναλλακτικά, από τη βάση (π.χ. is_public = true)
+                const { data, error } = await supabaseClient.from('rhythms').select('*').eq('is_public', true);
+                if (error) throw error;
+                fetchedRhythms = data || [];
+            }
+        } 
+        else if (tab === 'personal') {
+            console.log(`🥁 [Rhythm Library] Fetching Personal Rhythms για User ID: ${currentUser.id}`);
+            // Φέρνουμε ρυθμούς που ανήκουν στον χρήστη και ΔΕΝ ανήκουν σε μπάντα
+            const { data, error } = await supabaseClient
+                .from('rhythms')
+                .select('*')
+                .eq('owner_id', currentUser.id)
+                .is('group_id', null);
+            
+            if (error) throw error;
+            fetchedRhythms = data || [];
+        } 
+        else if (tab === 'band') {
+            if (currentGroupId === 'personal') {
+                console.log("🥁 [Rhythm Library] Ακύρωση: Δεν υπάρχει ενεργή μπάντα.");
+                listContainer.innerHTML = '<div class="empty-state">Επιλέξτε μια μπάντα από το μενού.</div>';
+                return;
+            }
+            console.log(`🥁 [Rhythm Library] Fetching Band Rhythms για Group ID: ${currentGroupId}`);
+            const { data, error } = await supabaseClient
+                .from('rhythms')
+                .select('*')
+                .eq('group_id', currentGroupId);
+            
+            if (error) throw error;
+            fetchedRhythms = data || [];
+        }
+
+        console.log(`🥁 [Rhythm Library] Επιτυχία! Βρέθηκαν ${fetchedRhythms.length} ρυθμοί.`, fetchedRhythms);
+        renderRhythmItems(fetchedRhythms, tab);
+
+    } catch (err) {
+        console.error("❌ [Rhythm Library] Σφάλμα φόρτωσης ρυθμών:", err);
+        listContainer.innerHTML = `<div class="empty-state" style="color:var(--danger);">Σφάλμα: ${err.message}</div>`;
+    }
+}
+
+function renderRhythmItems(rhythms, currentTab) {
+    const listContainer = document.getElementById('rhythmResults');
+    if (!listContainer) return;
+
+    listContainer.innerHTML = ''; // Καθαρίζουμε το spinner
+
+    if (!rhythms || rhythms.length === 0) {
+        listContainer.innerHTML = '<div class="empty-state">Δεν βρέθηκαν ρυθμοί σε αυτή την κατηγορία.</div>';
+        return;
+    }
+
+    rhythms.forEach(rhythm => {
+        const item = document.createElement('div');
+        // CSS in JS για να μην ψάχνεις στο style.css τώρα
+        item.style.cssText = 'display:flex; justify-content:space-between; align-items:center; padding:12px; border-bottom:1px solid var(--border-color); background:var(--bg-panel); margin-bottom:5px; border-radius:6px;';
+
+        const infoDiv = document.createElement('div');
+        infoDiv.style.cssText = 'flex:1; cursor:pointer;';
+        infoDiv.innerHTML = `
+            <div style="font-weight:bold; color:var(--accent); font-size:1.1rem;">${rhythm.name || 'Unnamed Rhythm'}</div>
+            <div style="font-size:0.85rem; color:var(--text-muted); margin-top:3px;">
+                <i class="fas fa-tag"></i> ${rhythm.tags || 'Custom'} | <i class="fas fa-heartbeat"></i> ${rhythm.bpm ? rhythm.bpm + ' BPM' : 'N/A'}
+            </div>
+        `;
+        
+        // 🚀 Πατώντας την πληροφορία καλούμε τη συνάρτηση που τον φορτώνει στον AudioEngine
+        infoDiv.onclick = () => {
+            console.log(`🎧 [Rhythm Library] Φόρτωση ρυθμού στο Sequencer:`, rhythm.name);
+            if (typeof AudioEngine !== 'undefined' && typeof AudioEngine.loadRhythm === 'function') {
+                 AudioEngine.loadRhythm(rhythm);
+                 document.getElementById('rhythmLoadModal').style.display = 'none'; // Κλείνει το modal αυτόματα
+                 showToast(`Ο ρυθμός ${rhythm.name} φορτώθηκε! 🥁`);
+            }
+        };
+
+        const actionsDiv = document.createElement('div');
+        actionsDiv.style.cssText = 'display:flex; gap:10px; align-items:center;';
+
+        // Κουμπί Διαγραφής (Αν ο χρήστης έχει δικαίωμα)
+        const canDelete = (currentTab === 'personal') || 
+                          (currentTab === 'band' && typeof currentRole !== 'undefined' && (currentRole === 'owner' || currentRole === 'admin'));
+        
+        if (canDelete) {
+            const btnDelete = document.createElement('button');
+            btnDelete.innerHTML = '<i class="fas fa-trash"></i>';
+            btnDelete.style.cssText = 'background:transparent; color:var(--danger); border:1px solid var(--danger); border-radius:4px; padding:6px 12px; cursor:pointer;';
+            btnDelete.onclick = (e) => {
+                e.stopPropagation();
+                deleteRhythmFromCloud(rhythm.id, currentTab);
+            };
+            actionsDiv.appendChild(btnDelete);
+        }
+
+        item.appendChild(infoDiv);
+        item.appendChild(actionsDiv);
+        listContainer.appendChild(item);
+    });
+}
+
+async function deleteRhythmFromCloud(rhythmId, tab) {
+    if (!confirm("Σίγουρα θέλεις να διαγράψεις αυτόν τον ρυθμό οριστικά;")) return;
+    
+    console.log(`🥁 [Rhythm Library] Αίτημα διαγραφής ρυθμού με ID: ${rhythmId}`);
+    try {
+        const { error } = await supabaseClient
+            .from('rhythms')
+            .delete()
+            .eq('id', rhythmId);
+            
+        if (error) throw error;
+        
+        console.log(`✅ [Rhythm Library] Επιτυχία. Ο ρυθμός διεγράφη.`);
+        showToast("Ο ρυθμός διεγράφηκε! 🗑️");
+        loadRhythmTab(tab); // Επαναφόρτωση της τρέχουσας λίστας για να φύγει από την οθόνη
+    } catch (err) {
+        console.error("❌ [Rhythm Library] Σφάλμα διαγραφής:", err);
+        showToast("Αποτυχία διαγραφής: " + err.message, "error");
+    }
 }

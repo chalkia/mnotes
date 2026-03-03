@@ -389,7 +389,19 @@ window.processImportedData = async function(data) {
         if (updateCount > 0) msg += `${updateCount} Ενημερώθηκαν 🔄`;
         if (typeof showToast === 'function') showToast(msg.trim());
         
-        if (window.library.length > 0 && typeof loadSong === 'function') {
+        // 🚀 Η ΔΙΟΡΘΩΣΗ ΓΙΑ ΤΟ IMPORT (Ζήτημα 1):
+        // Βρίσκουμε το ID του τραγουδιού που μόλις κάναμε import/update
+        // και το "κλειδώνουμε" ώστε να φορτώσει αυτό αντί για το πρώτο της λίστας.
+        let targetSongId = null;
+        if (newSongs.length > 0) {
+             targetSongId = newSongs[newSongs.length - 1].id; // Το ID του τελευταίου τραγουδιού που ήρθε
+        }
+
+        if (targetSongId && typeof loadSong === 'function') {
+            currentSongId = targetSongId;
+            loadSong(targetSongId);
+            if (typeof switchView === 'function') switchView('view-details');
+        } else if (window.library.length > 0 && typeof loadSong === 'function') {
             loadSong(window.library[window.library.length - 1].id);
         }
     } else {
@@ -1382,3 +1394,24 @@ async function deleteCurrentSong() {
         showToast("Σφάλμα κατά τη διαγραφή", "error");
     }
 }
+// ==========================================
+// 🛡️ ΑΣΠΙΔΑ EDITOR (Για αποφυγή απώλειας δεδομένων)
+// ==========================================
+window.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+        const editorEl = document.getElementById('view-editor');
+        // Αν ο Editor είναι ανοιχτός (active-view), ΜΗΝ κάνεις fetch από τη βάση!
+        if (editorEl && editorEl.classList.contains('active-view')) {
+            console.log("🛡️ Auto-Sync Blocked: Ο χρήστης επεξεργάζεται τραγούδι.");
+        } else {
+            console.log("🔄 Auto-Sync: Φόρτωση νέων δεδομένων από Cloud...");
+            if (typeof loadContextData === 'function') loadContextData();
+        }
+    }
+});
+
+window.addEventListener('focus', () => {
+    const editorEl = document.getElementById('view-editor');
+    if (editorEl && editorEl.classList.contains('active-view')) return; // Ασπίδα
+    if (typeof loadContextData === 'function') loadContextData();
+});

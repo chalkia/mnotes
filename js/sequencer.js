@@ -313,22 +313,34 @@ async function syncSequencerToSong(s) {
 // DRUM STORE / RHYTHM LIBRARY (PRO ONLY)
 // ===========================================================
 
-
 function openDrumStore() {
-    // 🔒 Προστασία: Ελέγχουμε αν έχει Pro/Band
     if (typeof canUserPerform === 'function' && !canUserPerform('USE_SEQUENCER')) {
         if (typeof promptUpgrade === 'function') promptUpgrade('Drum Store & Cloud Rhythms');
         return; 
     }
-
     const modal = document.getElementById('rhythmLoadModal');
     if(modal) {
+        // Εμφάνιση ή Απόκρυψη του Band Tab
+        const bandTab = document.getElementById('tabRhythmBand');
+        if (bandTab) {
+            if (typeof currentGroupId !== 'undefined' && currentGroupId !== 'personal') {
+                bandTab.style.display = 'block'; // Είμαστε σε μπάντα, το δείχνουμε
+            } else {
+                bandTab.style.display = 'none'; // Είμαστε στο προσωπικό, το κρύβουμε
+            }
+       }
         modal.style.display = 'flex';
-        loadRhythmTab('presets'); // Ξεκινάμε πάντα δείχνοντας τα Presets
+        loadRhythmTab('presets');
     }
 }
 async function loadRhythmTab(tab) {
-    const listContainer = document.getElementById('rhythmResults');
+    document.getElementById('tabRhythmSystem')?.classList.remove('accent');
+    document.getElementById('tabRhythmPersonal')?.classList.remove('accent');
+    document.getElementById('tabRhythmBand')?.classList.remove('accent'); 
+    if (tab === 'presets') document.getElementById('tabRhythmSystem')?.classList.add('accent');
+    if (tab === 'personal') document.getElementById('tabRhythmPersonal')?.classList.add('accent');
+    if (tab === 'band') document.getElementById('tabRhythmBand')?.classList.add('accent');
+   const listContainer = document.getElementById('rhythmResults');
     if (!listContainer) return;
 
     // Ενημέρωση UI: Κατάσταση Φόρτωσης

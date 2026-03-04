@@ -15,9 +15,10 @@ const ASSETS_TO_CACHE = [
     'js/audio.js',            // <-- ΝΕΟ (Audio Player)
     'js/supabase-client.js',  // <-- ΝΕΟ (Login/Upload)
     'js/app.js',
-    'js/qrcodegen.js',
-    'js/html5-qrcode.min.js',
+    'js/floating-tools.js',
     'js/sortable.min.js',
+    'js/sequencer.js'
+    'js/translations.js'
 
     // FontAwesome (Χωρίς την κάθετο μπροστά για να παίζει στο GitHub)
     'fa/css/all.min.css',
@@ -73,5 +74,6 @@ self.addEventListener('activate', (event) => {
         })
     );
 });
+
 
 

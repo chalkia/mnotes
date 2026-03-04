@@ -1238,6 +1238,7 @@ async function uploadAudioToCloud(inputElement) {
     }
 }
 // Συνάρτηση για ανέβασμα εγγράφων/παρτιτούρων (PDF/Images)
+
 async function uploadAttachment(inputElement) {
     // 🔒 Έλεγχος Δικαιώματος
     if (typeof canUserPerform === 'function' && !canUserPerform('SAVE_ATTACHMENTS')) {
@@ -1249,28 +1250,30 @@ async function uploadAttachment(inputElement) {
     const file = inputElement.files[0];
     if (!file) return;
 
-    // 🛡️ ΑΣΠΙΔΑ 1
+    // 🛡️ ΑΣΠΙΔΑ 1: Έλεγχος αν υπάρχει επιλεγμένο τραγούδι
     if (!currentSongId || currentSongId === 'null') { 
         showToast("Επιλέξτε ή αποθηκεύστε το τραγούδι πρώτα!", "error"); 
         inputElement.value = "";
         return; 
     }
     
-    // 🛡️ ΑΣΠΙΔΑ 2: Απόλυτος συγχρονισμός μνήμης και ID
+    // 🛡️ ΑΣΠΙΔΑ 2: Βεβαιωνόμαστε ότι το τραγούδι υπάρχει στη μνήμη (library)
+    // Χρησιμοποιούμε την "Απόλυτη Ασπίδα" για να μην σκαλώσει σε ασυμφωνίες ID
     const activeLibrary = window.library || library || [];
     const s = activeLibrary.find(x => String(x.id) === String(currentSongId));
     
     if (!s) {
-        console.error("DEBUG: Δεν βρέθηκε το τραγούδι με ID:", currentSongId, "στη μνήμη μεγέθους:", activeLibrary.length);
         showToast("Πρέπει να κάνετε 'Save' το νέο τραγούδι πριν ανεβάσετε αρχεία.", "error");
         inputElement.value = ""; 
         return;
     }
+
     const btn = inputElement.previousElementSibling;
     const originalHtml = btn ? btn.innerHTML : '';
     if (btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
 
     try {
+        // 🛡️ ΑΣΠΙΔΑ 3: Δημιουργία πίνακα attachments αν δεν υπάρχει
         if (!s.attachments) s.attachments = [];
         
         const filename = `Doc_${currentSongId}_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`;
@@ -1285,8 +1288,7 @@ async function uploadAttachment(inputElement) {
              await addAttachmentToCurrentSong(newDoc);
         }
         
-        // ✨ ΕΔΩ ΕΙΝΑΙ Η ΛΥΣΗ: Το βάζουμε στη μνήμη και ξαναζωγραφίζουμε τον Player
-        //s.attachments.push(newDoc); 
+        // 🚀 ΕΝΗΜΕΡΩΣΗ UI: Ζωγραφίζουμε ξανά τον Player για να εμφανιστεί το αρχείο στη λίστα ΑΜΕΣΩΣ
         renderPlayer(s);
         
         showToast("Το αρχείο ανέβηκε επιτυχώς! 📄");

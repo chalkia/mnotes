@@ -265,7 +265,10 @@ async function loadContextData() {
             if (typeof toEditor === 'function') toEditor();
         }
     } catch (err) {
-        
+        console.error("❌ Load Context Error:", err);
+        showToast("Error loading context", "error");
+    }
+}
 
 
 // --- Ο ΠΟΡΤΙΕΡΗΣ (Ελεγκτής Δικαιωμάτων) ---
@@ -1311,7 +1314,7 @@ async function redeemGiftCode() {
 
         if (codeObj.reward_type === 'extra_bands') {
             const currentExtra = currentUnlocks.extra_bands || 0;
-            currentUnlocks.extra_bands = currentExtra + parseInt(codeObj.reward_value);
+            currentUnlocks.extra_bands = currentExtra + parseInt(codeObj.reward_value, 10);
             showToast(`Συγχαρητήρια! Κερδίσατε δικαίωμα για +${codeObj.reward_value} μπάντα! 🎉`);
         } 
         else if (codeObj.reward_type === 'tier_upgrade') {
@@ -1319,32 +1322,30 @@ async function redeemGiftCode() {
             await supabaseClient.from('profiles').update({ subscription_tier: codeObj.reward_value }).eq('id', currentUser.id);
             showToast(`Συγχαρητήρια! Το προφίλ σας αναβαθμίστηκε σε ${codeObj.reward_value}! 🚀`);
         }
+        else if (codeObj.reward_type === 'extra_storage') {
+            const currentStorage = currentUnlocks.extra_storage_mb || 0;
+            currentUnlocks.extra_storage_mb = currentStorage + parseInt(codeObj.reward_value, 10);
+            showToast(`Κερδίσατε +${codeObj.reward_value}MB έξτρα χώρο στο Cloud! 💾`);
+        }
+        else if (codeObj.reward_type === 'rhythm_credits') {
+            const currentCredits = currentUnlocks.rhythm_credits || 0;
+            currentUnlocks.rhythm_credits = currentCredits + parseInt(codeObj.reward_value, 10);
+            showToast(`Κερδίσατε ${codeObj.reward_value} δωρεάν ρυθμούς (Beats) για το Drum Store! 🥁`);
+        }
 
+        // Αποθήκευση των νέων unlocks στο προφίλ του χρήστη
         await supabaseClient.from('profiles').update({ special_unlocks: currentUnlocks }).eq('id', currentUser.id);
+        
+        // Σήμανση του κωδικού ως χρησιμοποιημένου
         await supabaseClient.from('gift_codes').update({ is_used: true, used_by: currentUser.id, used_at: new Date().toISOString() }).eq('id', codeObj.id);
         
+        // Ενημέρωση της τοπικής μνήμης και του UI
         userProfile.special_unlocks = currentUnlocks;
         if (typeof updateUIForRole === 'function') updateUIForRole();
 
     } catch (err) {
         console.error("Gift Code Error:", err);
         alert("Προέκυψε σφάλμα κατά την εξαργύρωση.");
-    }
-}
-/**
- * Εμφανίζει μήνυμα αναβάθμισης και οδηγεί σε εξωτερικό Link
- */
-function promptUpgrade(featureName) {
-    // Φτιάχνουμε το κείμενο που ζήτησες
-    const msg = `Η λειτουργία "${featureName}" δεν είναι διαθέσιμη στο τρέχον πακέτο.\n\nΚάνε αναβάθμιση λογαριασμού για να την αποκτήσεις!\nΘέλεις να δεις τα διαθέσιμα πακέτα;`;
-    
-    // Ρωτάμε τον χρήστη
-    if (confirm(msg)) {
-        // Η ψεύτικη διεύθυνση (άλλαξέ την στο μέλλον με το πραγματικό σου site)
-        const upgradeUrl = "https://example.com/pricing-info"; 
-        
-        // Ανοίγει το link σε νέα καρτέλα για να μην χάσει τη δουλειά του στην εφαρμογή
-        window.open(upgradeUrl, '_blank');
     }
 }
 async function deleteCurrentSong() {

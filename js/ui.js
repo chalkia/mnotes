@@ -1256,14 +1256,16 @@ async function uploadAttachment(inputElement) {
         return; 
     }
     
-    // 🛡️ ΑΣΠΙΔΑ 2
-    const s = library.find(x => x.id === currentSongId);
+    // 🛡️ ΑΣΠΙΔΑ 2: Απόλυτος συγχρονισμός μνήμης και ID
+    const activeLibrary = window.library || library || [];
+    const s = activeLibrary.find(x => String(x.id) === String(currentSongId));
+    
     if (!s) {
+        console.error("DEBUG: Δεν βρέθηκε το τραγούδι με ID:", currentSongId, "στη μνήμη μεγέθους:", activeLibrary.length);
         showToast("Πρέπει να κάνετε 'Save' το νέο τραγούδι πριν ανεβάσετε αρχεία.", "error");
         inputElement.value = ""; 
         return;
     }
-
     const btn = inputElement.previousElementSibling;
     const originalHtml = btn ? btn.innerHTML : '';
     if (btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';

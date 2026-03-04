@@ -266,7 +266,7 @@ async function loadContextData() {
         }
     } catch (err) {
         console.error("❌ Load Context Error:", err);
-        showToast("Error loading context", "error");
+        if (typeof showToast === 'function') showToast("Error loading context", "error");
     }
 }
 
@@ -448,7 +448,12 @@ async function addRecordingToCurrentSong(newRec) {
             await supabaseClient.from('personal_overrides').insert([{ user_id: currentUser.id, song_id: currentSongId, group_id: currentGroupId, recordings: recs }]);
         }
     }
-    await loadContextData(); 
+   // await loadContextData();
+   const s = library.find(x => x.id === currentSongId);
+    if (s) {
+        if (!s.recordings) s.recordings = [];
+        if (!s.recordings.find(r => r.id === newRec.id)) s.recordings.push(newRec);
+    }
 }
 
 async function addAttachmentToCurrentSong(newDoc) {
@@ -480,7 +485,12 @@ async function addAttachmentToCurrentSong(newDoc) {
             await supabaseClient.from('personal_overrides').insert([{ user_id: currentUser.id, song_id: currentSongId, group_id: currentGroupId, attachments: docs }]);
         }
     }
-    await loadContextData();
+    // await loadContextData();
+   const s = library.find(x => x.id === currentSongId);
+    if (s) {
+        if (!s.attachments) s.attachments = [];
+        if (!s.attachments.find(a => a.id === newDoc.id)) s.attachments.push(newDoc);
+    }
 }
 
 /**

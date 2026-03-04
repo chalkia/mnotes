@@ -1542,9 +1542,9 @@ function renderAttachmentsList(docs = []) {
         if (canDelete) {
             deleteBtnHtml = `<button onclick="deleteMediaItem('${currentSongId}', 'attachments', ${index})" style="background:none; border:none; color:var(--danger); cursor:pointer; padding:0 5px;" title="Delete"><i class="fas fa-times"></i></button>`;
         }
-
+        const fileType = (doc.type && doc.type.toLowerCase().includes('image')) ? 'image' : 'pdf';
         el.innerHTML = `
-            <div onclick="window.open('${doc.url}', '_blank')" style="cursor:pointer; flex:1; display:flex; align-items:center; overflow:hidden;" title="${tooltip}">
+            <div onclick="FloatingTools.loadContent('${doc.url}', '${fileType}')" style="cursor:pointer; flex:1; display:flex; align-items:center; overflow:hidden;" title="${tooltip}">
                 <i class="${iconClass}" style="color:${borderColor}; margin-right:8px;"></i>
                 <span style="font-size:0.85rem; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${doc.name}</span>
             </div>

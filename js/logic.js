@@ -248,19 +248,24 @@ async function loadContextData() {
         }
 
         if (typeof renderSidebar === 'function') renderSidebar();
-        
-        // Αυτόματη επιλογή τραγουδιού
+              
+        // 🚀 ΔΙΟΡΘΩΣΗ: Αυτόματη επιλογή τραγουδιού ΜΕ διατήρηση μνήμης
         if (library.length > 0) {
-            currentSongId = library[0].id;
+            // Ψάχνουμε αν το τραγούδι που βλέπαμε ήδη, υπάρχει ακόμα στη νέα λίστα
+            const songStillExists = currentSongId ? library.find(s => s.id === currentSongId) : null;
+            
+            if (!songStillExists) {
+                // Μόνο αν ΔΕΝ υπάρχει (π.χ. μόλις το διαγράψαμε), πάμε στο 1ο της λίστας
+                currentSongId = library[0].id;
+            }
+            // Αν υπάρχει, το currentSongId μένει ως έχει!
+            
             if (typeof toViewer === 'function') toViewer(true);
         } else {
             if (typeof toEditor === 'function') toEditor();
         }
     } catch (err) {
-        console.error("❌ Load Context Error:", err);
-        showToast("Error loading context", "error");
-    }
-}
+        
 
 
 // --- Ο ΠΟΡΤΙΕΡΗΣ (Ελεγκτής Δικαιωμάτων) ---

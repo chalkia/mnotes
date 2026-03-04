@@ -143,21 +143,22 @@ const FloatingTools = {
         this.isOpen = false;
     },
 
-    // ✨ Η ΔΙΟΡΘΩΣΗ ΕΙΝΑΙ ΕΔΩ (.includes αντί για ===)
+
     loadContent: function(url, type) {
         let html = '';
         const cleanType = type ? type.toLowerCase() : 'pdf';
         
+        // ✨ Η ΔΙΟΡΘΩΣΗ: .includes() αντί για === (για να πιάνει το 'application/pdf')
         if (cleanType.includes('pdf')) {
             html = `<iframe src="${url}#toolbar=0" style="width:100%; height:100%; border:none;"></iframe>`;
         } else if (cleanType.includes('image') || ['jpg', 'jpeg', 'png', 'webp'].some(t => cleanType.includes(t))) {
             html = `<div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:#111;"><img src="${url}" style="max-width:100%; max-height:100%; object-fit:contain;"></div>`;
         } else {
-            // Fallback
             html = `<iframe src="${url}" style="width:100%; height:100%; border:none;"></iframe>`;
         }
         this.show(html);
-        this.applySavedLayout(); // Φέρνει το παράθυρο στη θέση που το είχες αφήσει
+        
+        if (typeof this.applySavedLayout === 'function') this.applySavedLayout();
     },
 
     // 6. Μνήμη Layout (LocalStorage)

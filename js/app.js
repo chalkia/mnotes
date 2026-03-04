@@ -198,6 +198,22 @@ function createDebugPanel() {
             </select>
         </div>
 
+        <hr style="border-color:#555; margin:15px 0 10px 0;">
+        <h5 style="margin:0 0 10px 0; color:#28a745;"><i class="fas fa-gift"></i> PROMO GENERATOR</h5>
+        
+        <input type="text" id="adminPromoCode" placeholder="Όνομα Κωδικού (π.χ. SUMMER26)" class="debug-select" style="margin-bottom:5px; width:100%; box-sizing:border-box;">
+        
+        <select id="adminPromoType" class="debug-select" style="margin-bottom:5px; width:100%; box-sizing:border-box;">
+            <option value="tier_upgrade">Tier Upgrade (solo ή maestro)</option>
+            <option value="extra_bands">Extra Bands (αριθμός)</option>
+            <option value="extra_storage">Extra Storage MB (αριθμός)</option>
+            <option value="rhythm_credits">Rhythm Credits (αριθμός)</option>
+        </select>
+        
+        <input type="text" id="adminPromoValue" placeholder="Αξία (π.χ. solo ή 50)" class="debug-select" style="margin-bottom:10px; width:100%; box-sizing:border-box;">
+        
+        <button onclick="generatePromoCode()" class="debug-btn" style="background:#28a745; margin-bottom:15px;">ΔΗΜΙΟΥΡΓΙΑ ΚΩΔΙΚΟΥ</button>
+
         <button onclick="applySimulation()" class="debug-btn">APPLY & RELOAD</button>
         <button onclick="document.getElementById('debugPanel').style.display='none'" class="debug-btn" style="background:#555; margin-top:5px;">CLOSE</button>
     `;
@@ -267,4 +283,31 @@ function setupEvents() {
             sugg.style.display = 'none';
         }
     });
+}
+async function generatePromoCode() {
+    const codeInp = document.getElementById('adminPromoCode').value.trim().toUpperCase();
+    const typeInp = document.getElementById('adminPromoType').value;
+    const valInp = document.getElementById('adminPromoValue').value.trim();
+
+    if (!codeInp || !valInp) {
+        alert("⚠️ Συμπλήρωσε τον Κωδικό και την Αξία!");
+        return;
+    }
+
+    try {
+        const { error } = await supabaseClient.from('gift_codes').insert([{
+            code: codeInp,
+            reward_type: typeInp,
+            reward_value: valInp
+        }]);
+
+        if (error) throw error;
+
+        alert(`✅ Επιτυχία! Ο κωδικός ${codeInp} είναι έτοιμος για χρήση.`);
+        document.getElementById('adminPromoCode').value = ''; // Καθαρίζουμε το πεδίο για τον επόμενο
+        
+    } catch (err) {
+        console.error("Generator Error:", err);
+        alert("❌ Σφάλμα: " + err.message);
+    }
 }

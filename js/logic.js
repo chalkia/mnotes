@@ -205,7 +205,7 @@ function updateUIForRole() {
    DATA LOADING & SYNC
    ========================================= */
 async function loadContextData() {
-    library = [];
+    //library = [];
     const listEl = document.getElementById('songList');
     if(listEl) listEl.innerHTML = '<div class="loading-msg">Loading Library...</div>';
 
@@ -1424,10 +1424,4 @@ window.addEventListener('visibilitychange', () => {
             if (typeof loadContextData === 'function') loadContextData();
         }
     }
-});
-
-window.addEventListener('focus', () => {
-    const editorEl = document.getElementById('view-editor');
-    if (editorEl && editorEl.classList.contains('active-view')) return; // Ασπίδα
-    if (typeof loadContextData === 'function') loadContextData();
 });

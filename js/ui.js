@@ -1249,14 +1249,14 @@ async function uploadAttachment(inputElement) {
     const file = inputElement.files[0];
     if (!file) return;
 
-    // 🛡️ ΑΣΠΙΔΑ 1: Έλεγχος αν υπάρχει επιλεγμένο τραγούδι
+    // 🛡️ ΑΣΠΙΔΑ 1
     if (!currentSongId || currentSongId === 'null') { 
         showToast("Επιλέξτε ή αποθηκεύστε το τραγούδι πρώτα!", "error"); 
         inputElement.value = "";
         return; 
     }
     
-    // 🛡️ ΑΣΠΙΔΑ 2: Βεβαιωνόμαστε ότι το τραγούδι υπάρχει στη μνήμη (library)
+    // 🛡️ ΑΣΠΙΔΑ 2
     const s = library.find(x => x.id === currentSongId);
     if (!s) {
         showToast("Πρέπει να κάνετε 'Save' το νέο τραγούδι πριν ανεβάσετε αρχεία.", "error");
@@ -1269,7 +1269,6 @@ async function uploadAttachment(inputElement) {
     if (btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
 
     try {
-        // 🛡️ ΑΣΠΙΔΑ 3: Δημιουργία πίνακα attachments αν δεν υπάρχει (τώρα το 's' είναι εγγυημένο)
         if (!s.attachments) s.attachments = [];
         
         const filename = `Doc_${currentSongId}_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`;
@@ -1283,6 +1282,10 @@ async function uploadAttachment(inputElement) {
         if (typeof addAttachmentToCurrentSong === 'function') {
              await addAttachmentToCurrentSong(newDoc);
         }
+        
+        // ✨ ΕΔΩ ΕΙΝΑΙ Η ΛΥΣΗ: Το βάζουμε στη μνήμη και ξαναζωγραφίζουμε τον Player
+        s.attachments.push(newDoc); 
+        renderPlayer(s);
         
         showToast("Το αρχείο ανέβηκε επιτυχώς! 📄");
         

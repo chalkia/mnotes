@@ -1286,7 +1286,7 @@ async function uploadAttachment(inputElement) {
         }
         
         // ✨ ΕΔΩ ΕΙΝΑΙ Η ΛΥΣΗ: Το βάζουμε στη μνήμη και ξαναζωγραφίζουμε τον Player
-        s.attachments.push(newDoc); 
+        //s.attachments.push(newDoc); 
         renderPlayer(s);
         
         showToast("Το αρχείο ανέβηκε επιτυχώς! 📄");

@@ -1,5 +1,5 @@
 /* ===========================================================
-   FLOATING TOOLS & ATTACHMENTS v1.1 (Final Corrected)
+   FLOATING TOOLS & ATTACHMENTS v1.2 (Final Polished)
    =========================================================== */
 
 const FloatingTools = {
@@ -13,23 +13,23 @@ const FloatingTools = {
         const viewer = document.createElement('div');
         viewer.id = 'floating-viewer';
         viewer.className = 'floating-window';
-        viewer.style.display = 'none';
+        viewer.style.cssText = 'position:fixed; top:15%; left:10%; width:450px; height:550px; background:var(--bg-panel); border:1px solid var(--accent); border-radius:8px; z-index:99999; display:none; flex-direction:column; box-shadow:0 10px 30px rgba(0,0,0,0.5); overflow:hidden; resize:both; min-width:250px; min-height:200px;';
         
         viewer.innerHTML = `
-            <div class="fw-header" id="fw-header">
-                <span class="fw-title"><i class="fas fa-file-pdf"></i> Score Viewer</span>
+            <div class="fw-header" id="fw-header" style="background:#111; padding:10px; cursor:move; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--accent);">
+                <span class="fw-title" style="color:var(--text-main); font-weight:bold; font-size:0.9rem;"><i class="fas fa-file-pdf"></i> Score Viewer</span>
                 <div class="fw-controls">
-                    <button onclick="FloatingTools.toggleMinimize()"><i class="fas fa-minus"></i></button>
-                    <button onclick="FloatingTools.close()"><i class="fas fa-times"></i></button>
+                    <button onclick="FloatingTools.toggleMinimize()" style="background:none; border:none; color:#fff; cursor:pointer; margin-right:15px;"><i class="fas fa-minus"></i></button>
+                    <button onclick="FloatingTools.close()" style="background:none; border:none; color:var(--danger); cursor:pointer;"><i class="fas fa-times"></i></button>
                 </div>
             </div>
-            <div class="fw-body" id="fw-body">
+            <div class="fw-body" id="fw-body" style="flex:1; background:#fff; overflow:hidden;">
                 <div id="fw-content-placeholder" style="padding:20px; text-align:center; color:#666;">
                     <i class="fas fa-cloud-upload-alt fa-2x"></i>
                     <p>No attachment loaded</p>
                 </div>
             </div>
-            <div class="fw-resizer" id="fw-resizer"></div>
+            <div class="fw-resizer" id="fw-resizer" style="position:absolute; bottom:0; right:0; width:15px; height:15px; cursor:se-resize;"></div>
         `;
 
         document.body.appendChild(viewer);
@@ -59,6 +59,7 @@ const FloatingTools = {
 
         function elementDrag(e) {
             e = e || window.event;
+            e.preventDefault(); // Αποτρέπει το scrolling από πίσω στα κινητά
             let clientX = e.clientX || (e.touches ? e.touches[0].clientX : 0);
             let clientY = e.clientY || (e.touches ? e.touches[0].clientY : 0);
             
@@ -75,7 +76,7 @@ const FloatingTools = {
             document.onmousemove = null;
             document.ontouchend = null;
             document.ontouchmove = null;
-            FloatingTools.saveLayout(); // ✨ Αποθήκευση θέσης
+            FloatingTools.saveLayout();
         }
     },
 
@@ -83,12 +84,13 @@ const FloatingTools = {
     makeResizable: function(el) {
         const resizer = document.getElementById('fw-resizer');
         resizer.addEventListener('mousedown', initResize, false);
-        resizer.addEventListener('touchstart', initResize, false);
+        resizer.addEventListener('touchstart', initResize, {passive: false});
 
         function initResize(e) {
+            e.preventDefault();
             window.addEventListener('mousemove', Resize, false);
             window.addEventListener('mouseup', stopResize, false);
-            window.addEventListener('touchmove', Resize, false);
+            window.addEventListener('touchmove', Resize, {passive: false});
             window.addEventListener('touchend', stopResize, false);
         }
         function Resize(e) {
@@ -100,7 +102,9 @@ const FloatingTools = {
         function stopResize(e) {
             window.removeEventListener('mousemove', Resize, false);
             window.removeEventListener('mouseup', stopResize, false);
-            FloatingTools.saveLayout(); // ✨ Αποθήκευση μεγέθους
+            window.removeEventListener('touchmove', Resize, false);
+            window.removeEventListener('touchend', stopResize, false);
+            FloatingTools.saveLayout();
         }
     },
 
@@ -113,11 +117,10 @@ const FloatingTools = {
         if (this.isMinimized) {
             body.style.display = 'none';
             viewer.style.height = 'auto';
-            viewer.style.width = '200px';
+            viewer.style.width = '250px';
         } else {
             body.style.display = 'block';
-            viewer.style.height = '300px';
-            viewer.style.width = '400px';
+            this.applySavedLayout(); // Επαναφέρει το παλιό μέγεθος!
         }
         this.saveLayout();
     },
@@ -134,36 +137,27 @@ const FloatingTools = {
 
     close: function() {
         const viewer = document.getElementById('floating-viewer');
+        const body = document.getElementById('fw-body');
         if (viewer) viewer.style.display = 'none';
+        if (body) body.innerHTML = ''; // Αδειάζει τη μνήμη
         this.isOpen = false;
     },
 
+    // ✨ Η ΔΙΟΡΘΩΣΗ ΕΙΝΑΙ ΕΔΩ (.includes αντί για ===)
     loadContent: function(url, type) {
         let html = '';
-        const cleanType = type.toLowerCase();
+        const cleanType = type ? type.toLowerCase() : 'pdf';
         
-        if (cleanType === 'pdf') {
+        if (cleanType.includes('pdf')) {
+            html = `<iframe src="${url}#toolbar=0" style="width:100%; height:100%; border:none;"></iframe>`;
+        } else if (cleanType.includes('image') || ['jpg', 'jpeg', 'png', 'webp'].some(t => cleanType.includes(t))) {
+            html = `<div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:#111;"><img src="${url}" style="max-width:100%; max-height:100%; object-fit:contain;"></div>`;
+        } else {
+            // Fallback
             html = `<iframe src="${url}" style="width:100%; height:100%; border:none;"></iframe>`;
-        } else if (['jpg', 'jpeg', 'png', 'webp'].includes(cleanType)) {
-            html = `<div style="padding:5px;"><img src="${url}" style="width:100%; height:auto;"></div>`;
         }
         this.show(html);
-    },
-
-    handleFileUpload: async function(file) {
-        if (!typeof uploadFileToStorage === 'function') return;
-        try {
-            showToast("Ανέβασμα παρτιτούρας... ⏳");
-            const result = await uploadFileToStorage(file, 'attachments', currentSongId);
-            if (result) {
-                await linkAttachmentToSong(currentSongId, result.url, result.type);
-                showToast("Η παρτιτούρα αποθηκεύτηκε! 🎼");
-                this.loadContent(result.url, result.type);
-            }
-        } catch (err) {
-            console.error(err);
-            showToast("Αποτυχία ανεβάσματος.", "error");
-        }
+        this.applySavedLayout(); // Φέρνει το παράθυρο στη θέση που το είχες αφήσει
     },
 
     // 6. Μνήμη Layout (LocalStorage)
@@ -171,14 +165,24 @@ const FloatingTools = {
         const el = document.getElementById('floating-viewer');
         if (!el || el.style.display === 'none') return;
 
-        const layout = {
+        // Σώζουμε το μέγεθος ΜΟΝΟ αν δεν είναι ελαχιστοποιημένο
+        let layoutToSave = {
             top: el.style.top,
             left: el.style.left,
-            width: el.style.width,
-            height: el.style.height,
             isMinimized: this.isMinimized
         };
-        localStorage.setItem('mnotes_viewer_layout', JSON.stringify(layout));
+
+        if (!this.isMinimized) {
+            layoutToSave.width = el.style.width;
+            layoutToSave.height = el.style.height;
+        } else {
+            // Αν είναι ελαχιστοποιημένο, κρατάμε το παλιό του μέγεθος από τη μνήμη
+            const old = JSON.parse(localStorage.getItem('mnotes_viewer_layout') || "{}");
+            layoutToSave.width = old.width || '450px';
+            layoutToSave.height = old.height || '550px';
+        }
+
+        localStorage.setItem('mnotes_viewer_layout', JSON.stringify(layoutToSave));
     },
 
     applySavedLayout: function() {
@@ -189,17 +193,18 @@ const FloatingTools = {
         const el = document.getElementById('floating-viewer');
         
         if (el) {
-            el.style.top = layout.top;
-            el.style.left = layout.left;
-            el.style.width = layout.width;
-            el.style.height = layout.height;
-            // Αν ήταν ελαχιστοποιημένο, το επαναφέρουμε στην κατάσταση αυτή
-            if (layout.isMinimized && !this.isMinimized) this.toggleMinimize();
+            if(layout.top) el.style.top = layout.top;
+            if(layout.left) el.style.left = layout.left;
+            
+            if (!this.isMinimized) {
+                if(layout.width) el.style.width = layout.width;
+                if(layout.height) el.style.height = layout.height;
+            }
         }
     }
 };
 
-// 7. Γέφυρα Αυτόματης Φόρτωσης (Global Function)
+// 7. Γέφυρα Αυτόματης Φόρτωσης (Αν χρειαστεί στο μέλλον)
 async function autoLoadAttachment(songId) {
     FloatingTools.close();
     if (typeof getSongAttachment !== 'function') return;
@@ -207,6 +212,5 @@ async function autoLoadAttachment(songId) {
     const attachment = await getSongAttachment(songId);
     if (attachment && attachment.file_url) {
         FloatingTools.loadContent(attachment.file_url, attachment.file_type);
-        FloatingTools.applySavedLayout();
     }
 }

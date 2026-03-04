@@ -17,7 +17,7 @@ const ASSETS_TO_CACHE = [
     'js/app.js',
     'js/floating-tools.js',
     'js/sortable.min.js',
-    'js/sequencer.js'
+    'js/sequencer.js',
     'js/translations.js'
 
     // FontAwesome (Χωρίς την κάθετο μπροστά για να παίζει στο GitHub)
@@ -74,6 +74,7 @@ self.addEventListener('activate', (event) => {
         })
     );
 });
+
 
 
 

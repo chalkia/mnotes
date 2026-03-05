@@ -154,20 +154,28 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function startPressTimer(e) {
-    // Ακύρωση του default click για να μην ανοίξει το Auth Modal αμέσως
-    // (Προαιρετικό, αλλά βοηθάει να μην πετάγεται το modal)
-    
     console.log("⏳ Starting Super User Timer...");
-    pressTimer = setTimeout(() => {
+    pressTimer = setTimeout(async () => {
         const pass = prompt("🔐 SUPER USER ACCESS\nEnter Password:");
-        if (pass === SUPER_USER_PASS) {
-            activateGodMode();
-        } else {
-            if(pass !== null) alert("Access Denied");
+        if (!pass) return; // Αν πατήσει ακύρωση, σταματάμε
+
+        try {
+            // Ρωτάμε τη Supabase (το Backend) αν ο κωδικός είναι σωστός
+            const { data: isCorrect, error } = await supabaseClient.rpc('verify_god_mode', { pass_attempt: pass });
+            
+            if (error) throw error;
+
+            if (isCorrect) {
+                activateGodMode();
+            } else {
+                alert("Access Denied");
+            }
+        } catch (err) {
+            console.error("Auth Error:", err);
+            alert("Σφάλμα επαλήθευσης!");
         }
     }, 5000); // 5 δευτερόλεπτα
 }
-
 function cancelPressTimer() {
     clearTimeout(pressTimer);
 }

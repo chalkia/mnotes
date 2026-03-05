@@ -57,6 +57,7 @@ const TRANSLATIONS = {
         inp_notes_public: "Conductor Notes (Public)",
         inp_notes_private: "My Private Notes",
         inp_body: "Lyrics and Chords...\n(Use ! for chords e.g. !Am or [Am])",
+        placeholder_video: "🔗 Paste YouTube Link (e.g. https://youtu.be/...)",
 
         // --- Tools & Rhythm ---
         title_tools: "TOOLS & ASSETS",
@@ -196,6 +197,7 @@ const TRANSLATIONS = {
         inp_notes_public: "Οδηγίες Μαέστρου (Κοινές)",
         inp_notes_private: "Προσωπικές Σημειώσεις (Ιδιωτικές)",
         inp_body: "Στίχοι & Συγχορδίες...\n(Βάλε ! πριν τη συγχορδία)",
+        placeholder_video: "🔗 Επικόλληση YouTube Link (π.χ. https://youtu.be/...)",
 
         // --- Εργαλεία & Ρυθμός ---
         title_tools: "ΕΡΓΑΛΕΙΑ & ΥΛΙΚΟ",

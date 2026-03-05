@@ -363,3 +363,25 @@ async function generatePromoCode() {
         alert("❌ Σφάλμα: " + err.message);
     }
 }
+// ===========================================================
+// PAYWALL / UPGRADE PROMPT
+// ===========================================================
+window.promptUpgrade = function(featureName) {
+    const pModal = document.getElementById('pricingModal');
+    if (pModal) {
+        // 1. Εμφανίζουμε το παράθυρο με τις τιμές/πακέτα
+        pModal.style.display = 'flex';
+        
+        // 2. Πετάμε και ένα ωραίο μήνυμα για να ξέρει τι έγινε
+        if (typeof showToast === 'function') {
+            const lang = localStorage.getItem('mnotes_lang') || 'el';
+            const msg = lang === 'el' 
+                ? `Το εργαλείο "${featureName}" απαιτεί αναβάθμιση λογαριασμού!` 
+                : `The feature "${featureName}" requires a premium account!`;
+            showToast(msg);
+        }
+    } else {
+        // Ασφάλεια αν για κάποιο λόγο λείπει το HTML του modal
+        alert("Απαιτείται αναβάθμιση λογαριασμού για: " + featureName);
+    }
+};

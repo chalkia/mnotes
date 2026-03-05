@@ -194,9 +194,15 @@ function cancelPressTimer() {
 }
 
 function createDebugPanel() {
+    // Αν υπάρχει ήδη, μην το ξαναφτιάξεις
+    if(document.getElementById('debugPanel')) return;
+
     const div = document.createElement('div');
     div.id = "debugPanel";
     div.className = "debug-panel";
+    div.style.display = "none"; // ΠΡΟΣΘΗΚΗ: Κρύψιμο κατευθείαν από τη JS
+    
+    // Το υπόλοιπο HTML παραμένει ΟΠΩΣ ΑΚΡΙΒΩΣ ΤΟ ΕΙΧΕΣ!
     div.innerHTML = `
         <h4>🛠️ GOD MODE</h4>
         
@@ -204,7 +210,8 @@ function createDebugPanel() {
             <label>Subscription Tier:</label>
             <select id="debugTier" class="debug-select">
                 <option value="free">Free User</option>
-                <option value="solo">Solo Pro</option>
+                <option value="solo">Solo</option>
+                <option value="band owner">Band Owner</option>
                 <option value="maestro">Maestro</option>
             </select>
         </div>
@@ -222,18 +229,28 @@ function createDebugPanel() {
         <hr style="border-color:#555; margin:15px 0 10px 0;">
         <h5 style="margin:0 0 10px 0; color:#28a745;"><i class="fas fa-gift"></i> PROMO GENERATOR</h5>
         
-        <input type="text" id="adminPromoCode" placeholder="Όνομα Κωδικού (π.χ. SUMMER26)" class="debug-select" style="margin-bottom:5px; width:100%; box-sizing:border-box;">
+        <input type="text" id="adminPromoCode" placeholder="Όνομα (άστο κενό για τυχαίο)" class="debug-select" style="margin-bottom:8px; width:100%; box-sizing:border-box; text-align:center;">
         
-        <select id="adminPromoType" class="debug-select" style="margin-bottom:5px; width:100%; box-sizing:border-box;">
-            <option value="tier_upgrade">Tier Upgrade (solo ή maestro)</option>
-            <option value="extra_bands">Extra Bands (αριθμός)</option>
-            <option value="extra_storage">Extra Storage MB (αριθμός)</option>
-            <option value="rhythm_credits">Rhythm Credits (αριθμός)</option>
-        </select>
+        <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; margin-bottom: 12px; border: 1px dashed #555;">
+            <label style="display:block; font-size:0.75rem; color:#aaa; margin-bottom:5px; text-transform:uppercase;">Κατηγορια Δωρου:</label>
+            <select id="adminPromoType" class="debug-select" style="margin-bottom:12px; width:100%; box-sizing:border-box;" onchange="updatePromoPlaceholder()">
+                <optgroup label="👑 Συνδρομές">
+                    <option value="tier_upgrade">Αναβάθμιση Πακέτου (Tier)</option>
+                </optgroup>
+                <optgroup label="🎸 Επεκτάσεις (Add-ons)">
+                    <option value="extra_bands">Επιπλέον Μπάντες (+Slots)</option>
+                    <option value="extra_storage">Επιπλέον Χώρος (+Cloud MB)</option>
+                </optgroup>
+                <optgroup label="🥁 Ρυθμοί & Ήχοι">
+                    <option value="rhythm_credits">Μονάδες Ρυθμών (Credits)</option>
+                </optgroup>
+            </select>
+            
+            <label style="display:block; font-size:0.75rem; color:#aaa; margin-bottom:5px; text-transform:uppercase;">Αξια Δωρου:</label>
+            <input type="text" id="adminPromoValue" placeholder="solo, band owner ή maestro" class="debug-select" style="margin-bottom:5px; width:100%; box-sizing:border-box; text-align:center; font-weight:bold; color:var(--accent);">
+        </div>
         
-        <input type="text" id="adminPromoValue" placeholder="Αξία (π.χ. solo ή 50)" class="debug-select" style="margin-bottom:10px; width:100%; box-sizing:border-box;">
-        
-        <button onclick="generatePromoCode()" class="debug-btn" style="background:#28a745; margin-bottom:15px;">ΔΗΜΙΟΥΡΓΙΑ ΚΩΔΙΚΟΥ</button>
+        <button onclick="generatePromoCode()" class="debug-btn" style="background:#28a745; margin-bottom:15px; font-weight:bold;">ΔΗΜΙΟΥΡΓΙΑ ΚΩΔΙΚΟΥ</button>
 
         <button onclick="applySimulation()" class="debug-btn">APPLY & RELOAD</button>
         <button onclick="document.getElementById('debugPanel').style.display='none'" class="debug-btn" style="background:#555; margin-top:5px;">CLOSE</button>
@@ -250,7 +267,8 @@ function activateGodMode() {
     }
 
     if (panel) {
-        panel.style.display = 'block';
+        // ΠΡΟΣΘΗΚΗ: Βάζουμε το !important μέσω JS για να είμαστε 100% σίγουροι
+        panel.style.setProperty('display', 'block', 'important'); 
         showToast("🔓 SUPER USER ACCESS GRANTED");
         console.log("🚀 God Mode Panel is now visible in the center of the screen.");
     }

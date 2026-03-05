@@ -306,12 +306,22 @@ function setupEvents() {
     });
 }
 async function generatePromoCode() {
-    const codeInp = document.getElementById('adminPromoCode').value.trim().toUpperCase();
+    let codeInp = document.getElementById('adminPromoCode').value.trim().toUpperCase();
     const typeInp = document.getElementById('adminPromoType').value;
     const valInp = document.getElementById('adminPromoValue').value.trim();
 
-    if (!codeInp || !valInp) {
-        alert("⚠️ Συμπλήρωσε τον Κωδικό και την Αξία!");
+    // Αν δεν έγραψες κωδικό, ο God φτιάχνει έναν τυχαίο επαγγελματικό κωδικό!
+    if (!codeInp) {
+        const randomString = Math.random().toString(36).substring(2, 8).toUpperCase();
+        
+        // Προθέματα ανάλογα με το δώρο
+        if (valInp === 'solo') codeInp = `SOLO-${randomString}`;
+        else if (valInp === 'maestro') codeInp = `MAESTRO-${randomString}`;
+        else codeInp = `GIFT-${randomString}`; 
+    }
+
+    if (!valInp) {
+        alert("⚠️ Συμπλήρωσε την Αξία του δώρου (π.χ. 'solo', 'maestro' ή '5')!");
         return;
     }
 
@@ -324,8 +334,11 @@ async function generatePromoCode() {
 
         if (error) throw error;
 
-        alert(`✅ Επιτυχία! Ο κωδικός ${codeInp} είναι έτοιμος για χρήση.`);
-        document.getElementById('adminPromoCode').value = ''; // Καθαρίζουμε το πεδίο για τον επόμενο
+        // Εμφανίζει παράθυρο για πανεύκολη αντιγραφή (Copy)
+        prompt("✅ Ο κωδικός δημιουργήθηκε επιτυχώς!\nΑντέγραψέ τον και στείλε τον στον χρήστη:", codeInp);
+        
+        document.getElementById('adminPromoCode').value = ''; // Καθαρίζουμε το πεδίο
+        document.getElementById('adminPromoValue').value = ''; // Καθαρίζουμε την αξία
         
     } catch (err) {
         console.error("Generator Error:", err);

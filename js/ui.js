@@ -1763,9 +1763,7 @@ function splitSongBody(body) {
     if (typeof userSettings !== 'undefined' && userSettings.disableSplit) {
         return { fixed: "", scroll: body }; // Τα στέλνει όλα στο scroll!
     }
-    const stanzas = body.split(/\n\s*\n/);
-   
-    // 1. Χωρίζουμε το τραγούδι σε στροφές (όπου υπάρχει κενή γραμμή)
+     // 1. Χωρίζουμε το τραγούδι σε στροφές (όπου υπάρχει κενή γραμμή)
     const stanzas = body.split(/\n\s*\n/);
     
     let splitIndex = -1;

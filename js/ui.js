@@ -519,7 +519,13 @@ function renderPlayer(s) {
     }
     
     if (hasNotes) {
-        metaHtml += `<div style="margin-top:5px;"><span class="meta-note-badge"><i class="fas fa-sticky-note"></i> Note</span></div>`;
+        metaHtml += `<div style="margin-top:8px;">
+                        <button onclick="toggleStickyNotes()" style="background:none; border:none; cursor:pointer; padding:0; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                            <span class="meta-note-badge" style="background: var(--accent); color: #000; font-size: 0.85rem; padding: 4px 12px; border-radius: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
+                                <i class="fas fa-sticky-note"></i> Εμφάνιση Σημειώσεων
+                            </span>
+                        </button>
+                     </div>`;
     }
     
        // --- PLAYER HEADER ---
@@ -1754,7 +1760,11 @@ function getNote(note, semitones) {
 /* --- ΔΙΟΡΘΩΜΕΝΟ SPLIT (Smart Split βάσει συγχορδιών) --- */
 function splitSongBody(body) {
     if (!body) return { fixed: "", scroll: "" };
-
+    if (typeof userSettings !== 'undefined' && userSettings.disableSplit) {
+        return { fixed: "", scroll: body }; // Τα στέλνει όλα στο scroll!
+    }
+    const stanzas = body.split(/\n\s*\n/);
+   
     // 1. Χωρίζουμε το τραγούδι σε στροφές (όπου υπάρχει κενή γραμμή)
     const stanzas = body.split(/\n\s*\n/);
     
@@ -1832,6 +1842,8 @@ return `<span class="chord" style="display:inline; position:static; font-size:in
 
 function openSettings() {
     const modal = document.getElementById('settingsModal');
+   const chkSplit = document.getElementById('setDisableSplit');
+    if (chkSplit) chkSplit.checked = userSettings.disableSplit || false;
     if (!modal) return;
 
     if (typeof userSettings === 'undefined') {
@@ -1910,7 +1922,9 @@ function saveSettings() {
     }
    // 3. Προεπιλογή Ταξινόμησης
     if (sortSel) {userSettings.sortMethod = sortSel.value;}
-    
+     
+   const chkSplit = document.getElementById('setDisableSplit');
+   if (chkSplit) userSettings.disableSplit = chkSplit.checked;
     // 4. Αποθήκευση στη μνήμη
     localStorage.setItem('mnotes_settings', JSON.stringify(userSettings));
     

@@ -984,6 +984,7 @@ function applyEditorPlaceholders() {
     const fields = [
         { id: 'inpTitle', key: 'placeholder_title' },
         { id: 'inpArtist', key: 'placeholder_artist' },
+        { id: 'inpVideo', key: 'placeholder_video' }, // Προστέθηκε το πεδίο του YouTube!
         { id: 'inpKey', key: 'placeholder_key' },
         { id: 'tagInput', key: 'placeholder_tags' },
         { id: 'inpIntro', key: 'placeholder_intro' },

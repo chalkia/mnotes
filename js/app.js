@@ -128,7 +128,6 @@ function prevSong() {
    =========================================================== */
 
 let pressTimer;
-const SUPER_USER_PASS = "admin123"; // Ο κωδικός σου
 
 // 1. Setup Listeners στο ξεκίνημα
 document.addEventListener('DOMContentLoaded', () => {
@@ -156,6 +155,20 @@ document.addEventListener('DOMContentLoaded', () => {
 function startPressTimer(e) {
     console.log("⏳ Starting Super User Timer...");
     pressTimer = setTimeout(async () => {
+        // --- ΝΕΑ ΑΣΠΙΔΑ ΑΣΦΑΛΕΙΑΣ ---
+        // 1. Έλεγχος αν υπάρχει συνδεδεμένος χρήστης
+        if (typeof currentUser === 'undefined' || !currentUser) {
+            console.log("God Mode: Access denied (Not logged in)");
+            return; 
+        }
+        
+        // 2. Έλεγχος αν το email είναι το δικό σου (ΒΑΛΕ ΕΔΩ ΤΟ ΠΡΑΓΜΑΤΙΚΟ ΣΟΥ EMAIL!)
+        if (currentUser.email !== 'chalkia.duck@gmail.com') {
+            console.log("God Mode: Access denied (Unauthorized email)");
+            return; 
+        }
+        // ------------------------------
+
         const pass = prompt("🔐 SUPER USER ACCESS\nEnter Password:");
         if (!pass) return; // Αν πατήσει ακύρωση, σταματάμε
 
@@ -172,7 +185,7 @@ function startPressTimer(e) {
             }
         } catch (err) {
             console.error("Auth Error:", err);
-            alert("Σφάλμα επαλήθευσης!");
+            alert("Σφάλμα επαλήθευσης! Έχει δημιουργηθεί το RPC 'verify_god_mode' στη Supabase;");
         }
     }, 5000); // 5 δευτερόλεπτα
 }

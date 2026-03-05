@@ -31,10 +31,12 @@ const TRANSLATIONS = {
         btn_import: "Import",
         btn_export_title: "Export JSON",
         
-        // --- Editor (Placeholders & Labels) ---
+        // --- Editor & Player ---
         btn_save_title: "Save Changes",
         btn_pdf_title: "Print PDF",
         btn_delete_song_title: "Delete Song",
+        lbl_key: "KEY",
+        lbl_capo: "CAPO",
         placeholder_title: "Song Title...",
         placeholder_artist: "Artist / Composer...",
         placeholder_key: "Key (e.g. Am)",
@@ -45,9 +47,16 @@ const TRANSLATIONS = {
         placeholder_notes_pub: "Public notes (for the band)...",
         placeholder_notes_priv: "Personal notes (only for you)...",
         sum_metadata: "Metadata & Notes",
+        inp_title: "Song Title",
+        inp_artist: "Artist",
         inp_key: "Key",
         inp_tags: "Tags",
         inp_video: "YouTube Link",
+        inp_intro: "Intro Chords (!Am !G...)",
+        inp_inter: "Interlude / Solo",
+        inp_notes_public: "Conductor Notes (Public)",
+        inp_notes_private: "My Private Notes",
+        inp_body: "Lyrics and Chords...\n(Use ! for chords e.g. !Am or [Am])",
 
         // --- Tools & Rhythm ---
         title_tools: "TOOLS & ASSETS",
@@ -79,6 +88,9 @@ const TRANSLATIONS = {
         title_save_rhythm: "Save Rhythm",
         ph_rhythm_name: "Rhythm Name",
         ph_rhythm_tags: "Tags...",
+        tab_sys: "System",
+        tab_cloud: "My Cloud",
+        tab_band: "Band",
 
         // --- Mobile & Auth ---
         mob_list: "List",
@@ -99,12 +111,26 @@ const TRANSLATIONS = {
         lbl_capo_simple: "Capo:",
         btn_smart_capo: "Smart Capo",
         btn_edit_song: "Edit Song",
+        
+        // --- Settings & Beta/Pricing ---
         title_settings: "Settings",
         lbl_theme: "Theme:",
         lbl_scroll_speed: "Scroll Speed:",
         lbl_max_capo: "Max Capo:",
+        lbl_chord_appearance: "Chord Appearance",
+        lbl_chord_size: "Size:",
+        lbl_chord_dist: "Distance (Height):",
+        lbl_chord_color: "Color:",
         lbl_hide_demo: "Hide Demo",
         lbl_keep_screen: "Keep Screen On",
+        lbl_disable_split: "Unified Screen (No fixed section)",
+        lbl_beta_title: "BETA VERSION",
+        lbl_beta_desc: "The application is currently in beta testing. Only free accounts are supported at this time.",
+        lbl_early_access: "Early Access:",
+        msg_early_access: "Premium tiers are unlocked exclusively via Gift Codes for now!",
+        btn_current_plan: "Current Plan",
+        btn_req_gift: "Requires Gift Code",
+        btn_gift_code: "Have a Gift Code?",
         
         title_import: "Import Song",
         btn_import_url: "From URL",
@@ -144,10 +170,12 @@ const TRANSLATIONS = {
         btn_import: "Εισαγωγή",
         btn_export_title: "Εξαγωγή JSON",
 
-        // --- Επεξεργαστής (Placeholders & Labels) ---
+        // --- Επεξεργαστής & Player ---
         btn_save_title: "Αποθήκευση Αλλαγών",
         btn_pdf_title: "Εκτύπωση PDF",
         btn_delete_song_title: "Διαγραφή Τραγουδιού",
+        lbl_key: "ΤΟΝΟΣ",
+        lbl_capo: "CAPO",
         placeholder_title: "Τίτλος Τραγουδιού...",
         placeholder_artist: "Καλλιτέχνης / Συνθέτης...",
         placeholder_key: "Τόνος (π.χ. Am)",
@@ -158,9 +186,16 @@ const TRANSLATIONS = {
         placeholder_notes_pub: "Σημειώσεις Μπάντας (Κοινές)...",
         placeholder_notes_priv: "Προσωπικές Σημειώσεις (Ιδιωτικές)...",
         sum_metadata: "Πληροφορίες & Σημειώσεις",
+        inp_title: "Τίτλος Τραγουδιού",
+        inp_artist: "Καλλιτέχνης",
         inp_key: "Τόνος",
         inp_tags: "Ετικέτες",
         inp_video: "YouTube Link",
+        inp_intro: "Εισαγωγή (!Am !G...)",
+        inp_inter: "Οργανικό / Σόλο",
+        inp_notes_public: "Οδηγίες Μαέστρου (Κοινές)",
+        inp_notes_private: "Προσωπικές Σημειώσεις (Ιδιωτικές)",
+        inp_body: "Στίχοι & Συγχορδίες...\n(Βάλε ! πριν τη συγχορδία)",
 
         // --- Εργαλεία & Ρυθμός ---
         title_tools: "ΕΡΓΑΛΕΙΑ & ΥΛΙΚΟ",
@@ -192,6 +227,9 @@ const TRANSLATIONS = {
         title_save_rhythm: "Αποθήκευση Ρυθμού",
         ph_rhythm_name: "Όνομα Ρυθμού",
         ph_rhythm_tags: "Ετικέτες...",
+        tab_sys: "Σύστημα",
+        tab_cloud: "Το Cloud μου",
+        tab_band: "Μπάντα",
 
         // --- Κινητό & Auth ---
         mob_list: "Λίστα",
@@ -212,12 +250,26 @@ const TRANSLATIONS = {
         lbl_capo_simple: "Capo:",
         btn_smart_capo: "Smart Capo",
         btn_edit_song: "Επεξεργασία",
+        
+        // --- Settings & Beta/Pricing ---
         title_settings: "Ρυθμίσεις",
         lbl_theme: "Θέμα:",
         lbl_scroll_speed: "Ταχύτητα Κύλισης:",
         lbl_max_capo: "Μέγιστο Capo:",
+        lbl_chord_appearance: "Εμφάνιση Συγχορδιών",
+        lbl_chord_size: "Μέγεθος:",
+        lbl_chord_dist: "Απόσταση (Ύψος):",
+        lbl_chord_color: "Χρώμα:",
         lbl_hide_demo: "Απόκρυψη Demo",
         lbl_keep_screen: "Οθόνη Πάντα Ανοιχτή",
+        lbl_disable_split: "Ενιαία Οθόνη (Χωρίς σταθερό τμήμα)",
+        lbl_beta_title: "ΔΟΚΙΜΑΣΤΙΚΗ ΕΚΔΟΣΗ",
+        lbl_beta_desc: "Η εφαρμογή βρίσκεται σε δοκιμαστική φάση. Προς το παρόν υποστηρίζονται μόνο δωρεάν εγγραφές.",
+        lbl_early_access: "Early Access:",
+        msg_early_access: "Τα Premium πακέτα ξεκλειδώνονται μόνο με Κωδικούς Δώρου (Gift Codes) προς το παρόν!",
+        btn_current_plan: "Ενεργό Πακέτο",
+        btn_req_gift: "Απαιτείται Κωδικός Δώρου",
+        btn_gift_code: "Έχετε Κωδικό Δώρου;",
 
         title_import: "Εισαγωγή Τραγουδιού",
         btn_import_url: "Από URL",

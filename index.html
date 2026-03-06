@@ -277,6 +277,16 @@
             </div>
         </details>
 
+        <hr class="sep" id="guitarChordsSep" style="display:none;">
+        <details class="tool-group" id="guitarChordsGroup" style="display:none;" open>
+            <summary><i class="fas fa-guitar"></i> <span>GUITAR CHORDS</span></summary>
+            <div class="group-content">
+                    <div id="chord-charts-container" style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; padding-top:10px;">
+                        <div class="empty-state">Δεν βρέθηκαν συγχορδίες...</div>
+                    </div>
+            </div>
+        </details>
+         
         <hr class="sep">
 
         <details class="tool-group" id="bandToolGroup">
@@ -374,6 +384,7 @@
         <hr style="border-color:#444; margin:10px 0;">
         <label><input type="checkbox" id="setHideDemo"> <span data-i18n="lbl_hide_demo">Hide Demo</span></label>
         <label><input type="checkbox" id="setWakeLock"> <span data-i18n="lbl_keep_screen">Keep Screen On</span></label>
+        <label><input type="checkbox" id="setShowChords" onchange="GuitarChordsUI.toggleVisibility(this.checked)"> <span data-i18n="lbl_show_chords">🎸 Εμφάνιση Συγχορδιών (Κιθάρα)</span></label>
 
         <label style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border-color); display: block;">
             <input type="checkbox" id="setDisableSplit"> 
@@ -535,111 +546,141 @@
     </div>
 
     <div id="pricingModal" class="modal" style="display:none;">
-        <div class="modal-content pricing-content">
-            <button onclick="document.getElementById('pricingModal').style.display='none'" class="close-pricing">&times;</button>
-            
-            <h2 style="text-align:center; margin-bottom:5px;">Choose your Stage 🎸</h2>
-            
-            <p style="text-align:center; color:#ffc107; margin-bottom:20px; font-size:0.9rem;">
-                <i class="fas fa-tools"></i> <b data-i18n="lbl_early_access">Early Access:</b> <span data-i18n="msg_early_access">Τα Premium πακέτα ξεκλειδώνονται μόνο με Κωδικούς Δώρου (Gift Codes) προς το παρόν!</span>
-            </p>
-            
-            <div class="pricing-grid">
-                <div class="pricing-card">
-                    <div class="p-header">
-                        <h3>Free</h3>
-                        <div class="price">€0<span>/mo</span></div>
-                    </div>
-                    <ul class="p-features">
-                        <li><i class="fas fa-check"></i> Personal Songs (Local)</li>
-                        <li><i class="fas fa-check"></i> Basic Setlists</li>
-                        <li><i class="fas fa-check"></i> 5 Song Imports</li>
-                        <li class="disabled"><i class="fas fa-times"></i> Cloud Sync</li>
-                        <li class="disabled"><i class="fas fa-times"></i> Band Features</li>
-                    </ul>
-                    <button class="p-btn current" disabled data-i18n="btn_current_plan">Current Plan</button>
+    <div class="modal-content pricing-content" style="max-width: 1200px !important;">
+        <button onclick="document.getElementById('pricingModal').style.display='none'" class="close-pricing">&times;</button>
+        
+        <h2 style="text-align:center; margin-bottom:5px;">Choose your Stage 🎸</h2>
+        
+        <p style="text-align:center; color:#ffc107; margin-bottom:20px; font-size:0.9rem;">
+            <i class="fas fa-tools"></i> <b data-i18n="lbl_early_access">Early Access:</b> Τα Premium πακέτα ξεκλειδώνονται μόνο με Κωδικούς Δώρου!
+        </p>
+        
+        <div class="pricing-grid">
+            <div class="pricing-card">
+                <div class="p-header">
+                    <h3>Free</h3>
+                    <div class="price">€0<span>/mo</span></div>
                 </div>
+                <ul class="p-features">
+                    <li><i class="fas fa-check"></i> Απεριόριστα Τραγούδια</li>
+                    <li><i class="fas fa-check"></i> Τοπική Αποθήκευση Μόνο</li>
+                    <li class="disabled"><i class="fas fa-times"></i> Ήχος & Επισυνάψεις</li>
+                    <li class="disabled"><i class="fas fa-times"></i> Συγχρονισμός Cloud</li>
+                    <li class="disabled"><i class="fas fa-times"></i> Λειτουργίες Μπάντας</li>
+                </ul>
+                <button class="p-btn current" disabled data-i18n="btn_current_plan">Current Plan</button>
+            </div>
 
-                <div class="pricing-card featured">
-                    <div class="badge-pop">MOST POPULAR</div>
-                    <div class="p-header">
-                        <h3>Solo Pro</h3>
-                        <div class="price">€4.99<span>/mo</span></div>
-                    </div>
-                    <ul class="p-features">
-                        <li><i class="fas fa-check"></i> <strong>Unlimited Cloud Sync</strong></li>
-                        <li><i class="fas fa-check"></i> Access on All Devices</li>
-                        <li><i class="fas fa-check"></i> <strong>1 Owned Band</strong></li>
-                        <li><i class="fas fa-check"></i> Unlimited Imports</li>
-                        <li><i class="fas fa-check"></i> Join Unlimited Bands</li>
-                    </ul>
-                    <button onclick="document.getElementById('pricingModal').style.display='none'; openSettings();" class="p-btn accent" data-i18n="btn_req_gift">Requires Gift Code</button>
+            <div class="pricing-card">
+                <div class="p-header">
+                    <h3>Solo</h3>
+                    <div class="price" style="font-size:1.5rem;">Εφάπαξ<span> Αγορά</span></div>
                 </div>
+                <ul class="p-features">
+                    <li><i class="fas fa-check"></i> <b>50MB Cloud Sync</b></li>
+                    <li><i class="fas fa-check"></i> Ήχος & Επισυνάψεις</li>
+                    <li><i class="fas fa-check"></i> Απλός Μετρονόμος</li>
+                    <li class="disabled"><i class="fas fa-times"></i> Drum Machine</li>
+                    <li class="disabled"><i class="fas fa-times"></i> Λειτουργίες Μπάντας</li>
+                </ul>
+                <button onclick="document.getElementById('pricingModal').style.display='none'; openSettings();" class="p-btn" data-i18n="btn_req_gift">Requires Gift Code</button>
+            </div>
 
-                <div class="pricing-card">
-                    <div class="p-header">
-                        <h3>Maestro</h3>
-                        <div class="price">€9.99<span>/mo</span></div>
-                    </div>
-                    <ul class="p-features">
-                        <li><i class="fas fa-check"></i> Everything in Solo</li>
-                        <li><i class="fas fa-check"></i> <strong>5 Owned Bands</strong></li>
-                        <li><i class="fas fa-check"></i> Advanced Band Stats</li>
-                        <li><i class="fas fa-check"></i> Priority Support</li>
-                        <li><i class="fas fa-check"></i> Setlist Management</li>
-                    </ul>
-                    <button onclick="document.getElementById('pricingModal').style.display='none'; openSettings();" class="p-btn" data-i18n="btn_req_gift">Requires Gift Code</button>
+            <div class="pricing-card featured">
+                <div class="badge-pop">POPULAR</div>
+                <div class="p-header">
+                    <h3>Solo Pro</h3>
+                    <div class="price">Τριμηνιαία</div>
                 </div>
+                <ul class="p-features">
+                    <li><i class="fas fa-check"></i> <b>500MB Cloud Sync</b></li>
+                    <li><i class="fas fa-check"></i> <b>Πλήρες Drum Machine</b></li>
+                    <li><i class="fas fa-check"></i> Δημιουργία 1 Μπάντας</li>
+                    <li><i class="fas fa-check"></i> Συμμετοχή σε Μπάντες</li>
+                </ul>
+                <button onclick="document.getElementById('pricingModal').style.display='none'; openSettings();" class="p-btn accent" data-i18n="btn_req_gift">Requires Gift Code</button>
+            </div>
+
+            <div class="pricing-card">
+                <div class="p-header">
+                    <h3>Band Owner</h3>
+                    <div class="price">Τριμηνιαία</div>
+                    <div style="font-size:0.75rem; color:#888; margin-top:5px;">+ Κόστος ανά Μέλος</div>
+                </div>
+                <ul class="p-features">
+                    <li><i class="fas fa-check"></i> <b>1.5GB Cloud Sync</b></li>
+                    <li><i class="fas fa-check"></i> Διαχείριση Μπάντας</li>
+                    <li><i class="fas fa-check"></i> Κοινόχρηστο Ρεπερτόριο</li>
+                    <li><i class="fas fa-check"></i> Πλήρη Εργαλεία Ήχου</li>
+                </ul>
+                <button onclick="document.getElementById('pricingModal').style.display='none'; openSettings();" class="p-btn" data-i18n="btn_req_gift">Requires Gift Code</button>
+            </div>
+
+            <div class="pricing-card">
+                <div class="p-header">
+                    <h3>Maestro</h3>
+                    <div class="price">Τριμηνιαία</div>
+                </div>
+                <ul class="p-features">
+                    <li><i class="fas fa-check"></i> <b>4.5GB Cloud Sync</b></li>
+                    <li><i class="fas fa-check"></i> <b>Έως 5 Μπάντες</b></li>
+                    <li><i class="fas fa-check"></i> Προχωρημένα Στατιστικά</li>
+                    <li><i class="fas fa-check"></i> Οργάνωση Setlists</li>
+                    <li><i class="fas fa-check"></i> Priority Support</li>
+                </ul>
+                <button onclick="document.getElementById('pricingModal').style.display='none'; openSettings();" class="p-btn" data-i18n="btn_req_gift">Requires Gift Code</button>
             </div>
         </div>
     </div>
-   <div id="debugPanel" class="debug-panel" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#1a1a1a; padding:25px; border-radius:12px; z-index:2147483647; color:#fff; box-shadow:0 15px 40px rgba(0,0,0,0.8); border:2px solid #28a745; width:90%; max-width:400px; max-height:90vh; overflow-y:auto; flex-direction:column; gap:10px;">
-        <h4 style="margin:0 0 10px 0; text-align:center; color:#28a745; font-size:1.2rem; border-bottom:1px solid #444; padding-bottom:10px;">🛠️ GOD MODE</h4>
-        
-        <div style="margin-bottom:10px;">
-            <label style="display:block; font-size:0.8rem; color:#aaa; margin-bottom:3px;">Subscription Tier:</label>
-            <select id="debugTier" style="width:100%; padding:8px; border-radius:6px; background:#000; color:#fff; border:1px solid #555;">
-                <option value="free">Free User</option>
-                <option value="solo">Solo</option>
-                <option value="band owner">Band Owner</option>
-                <option value="maestro">Maestro</option>
-            </select>
-        </div>
-
-        <div style="margin-bottom:15px;">
-            <label style="display:block; font-size:0.8rem; color:#aaa; margin-bottom:3px;">Current Role (Context):</label>
-            <select id="debugRole" style="width:100%; padding:8px; border-radius:6px; background:#000; color:#fff; border:1px solid #555;">
-                <option value="owner">Owner (Personal)</option>
-                <option value="admin">Band Admin/Leader</option>
-                <option value="member">Band Member</option>
-                <option value="viewer">Viewer (Read Only)</option>
-            </select>
-        </div>
-
-        <div style="background:rgba(255,255,255,0.05); padding:15px; border-radius:8px; margin-bottom:10px; border:1px dashed #666;">
-            <h5 style="margin:0 0 10px 0; color:#bb86fc; text-align:center; font-size:1rem;"><i class="fas fa-gift"></i> PROMO GENERATOR</h5>
-            
-            <input type="text" id="adminPromoCode" placeholder="Όνομα (άστο κενό)" style="margin-bottom:10px; width:100%; padding:8px; border-radius:6px; background:#111; color:#fff; border:1px solid #444; text-align:center;">
-            
-            <label style="display:block; font-size:0.75rem; color:#aaa; margin-bottom:3px;">Κατηγορία:</label>
-            <select id="adminPromoType" style="margin-bottom:10px; width:100%; padding:8px; border-radius:6px; background:#222; color:#fff; border:1px solid #444;" onchange="updatePromoPlaceholder()">
-                <option value="tier_upgrade">Αναβάθμιση Πακέτου</option>
-                <option value="extra_bands">Επιπλέον Μπάντες</option>
-                <option value="extra_storage">Επιπλέον Χώρος (MB)</option>
-                <option value="rhythm_credits">Μονάδες Ρυθμών</option>
-            </select>
-            
-            <label style="display:block; font-size:0.75rem; color:#aaa; margin-bottom:3px;">Αξία:</label>
-            <input type="text" id="adminPromoValue" placeholder="solo, band owner, maestro" style="margin-bottom:10px; width:100%; padding:8px; border-radius:6px; background:#000; color:#bb86fc; border:1px solid #bb86fc; text-align:center; font-weight:bold;">
-            
-            <button onclick="generatePromoCode()" style="width:100%; padding:10px; border-radius:6px; border:none; background:#bb86fc; color:#000; font-weight:bold; cursor:pointer;">ΔΗΜΙΟΥΡΓΙΑ</button>
-        </div>
-
-        <div style="display:flex; gap:10px;">
-            <button onclick="applySimulation()" style="flex:1; padding:10px; border-radius:6px; border:none; background:#007bff; color:#fff; font-weight:bold; cursor:pointer;">APPLY</button>
-            <button onclick="document.getElementById('debugPanel').style.display='none'" style="flex:1; padding:10px; border-radius:6px; border:none; background:#dc3545; color:#fff; font-weight:bold; cursor:pointer;">CLOSE</button>
-        </div>
+</div>
+  <div id="debugPanel" class="debug-panel" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#1a1a1a; padding:25px; border-radius:12px; z-index:2147483647; color:#fff; box-shadow:0 15px 40px rgba(0,0,0,0.8); border:2px solid #28a745; width:90%; max-width:400px; max-height:90vh; overflow-y:auto; flex-direction:column; gap:10px;">
+    <h4 style="margin:0 0 10px 0; text-align:center; color:#28a745; font-size:1.2rem; border-bottom:1px solid #444; padding-bottom:10px;">🛠️ GOD MODE</h4>
+    
+    <div style="margin-bottom:10px;">
+        <label style="display:block; font-size:0.8rem; color:#aaa; margin-bottom:3px;">Subscription Tier:</label>
+        <select id="debugTier" style="width:100%; padding:8px; border-radius:6px; background:#000; color:#fff; border:1px solid #555;">
+            <option value="free">Free Mode</option>
+            <option value="solo">Solo (Εφάπαξ)</option>
+            <option value="solo_pro">Solo Pro (Τριμηνιαία)</option>
+            <option value="band_owner">Band Owner (Τριμηνιαία)</option>
+            <option value="maestro">Maestro (Τριμηνιαία)</option>
+        </select>
     </div>
+
+    <div style="margin-bottom:15px;">
+        <label style="display:block; font-size:0.8rem; color:#aaa; margin-bottom:3px;">Current Role (Context):</label>
+        <select id="debugRole" style="width:100%; padding:8px; border-radius:6px; background:#000; color:#fff; border:1px solid #555;">
+            <option value="owner">Owner (Personal / Band)</option>
+            <option value="admin">Band Admin</option>
+            <option value="member">Band Member</option>
+            <option value="viewer">Viewer (Read Only)</option>
+        </select>
+    </div>
+
+    <div style="background:rgba(255,255,255,0.05); padding:15px; border-radius:8px; margin-bottom:10px; border:1px dashed #666;">
+        <h5 style="margin:0 0 10px 0; color:#bb86fc; text-align:center; font-size:1rem;"><i class="fas fa-gift"></i> PROMO GENERATOR</h5>
+        
+        <input type="text" id="adminPromoCode" placeholder="Όνομα (άστο κενό)" style="margin-bottom:10px; width:100%; padding:8px; border-radius:6px; background:#111; color:#fff; border:1px solid #444; text-align:center;">
+        
+        <label style="display:block; font-size:0.75rem; color:#aaa; margin-bottom:3px;">Κατηγορία:</label>
+        <select id="adminPromoType" style="margin-bottom:10px; width:100%; padding:8px; border-radius:6px; background:#222; color:#fff; border:1px solid #444;" onchange="updatePromoPlaceholder()">
+            <option value="tier_upgrade">Αναβάθμιση Πακέτου</option>
+            <option value="extra_bands">Επιπλέον Μπάντες</option>
+            <option value="extra_storage">Επιπλέον Χώρος (MB)</option>
+            <option value="rhythm_credits">Μονάδες Ρυθμών</option>
+        </select>
+        
+        <label style="display:block; font-size:0.75rem; color:#aaa; margin-bottom:3px;">Αξία:</label>
+        <input type="text" id="adminPromoValue" placeholder="solo, solo_pro, band_owner, maestro" style="margin-bottom:10px; width:100%; padding:8px; border-radius:6px; background:#000; color:#bb86fc; border:1px solid #bb86fc; text-align:center; font-weight:bold;">
+        
+        <button onclick="generatePromoCode()" style="width:100%; padding:10px; border-radius:6px; border:none; background:#bb86fc; color:#000; font-weight:bold; cursor:pointer;">ΔΗΜΙΟΥΡΓΙΑ</button>
+    </div>
+
+    <div style="display:flex; gap:10px;">
+        <button onclick="applySimulation()" style="flex:1; padding:10px; border-radius:6px; border:none; background:#007bff; color:#fff; font-weight:bold; cursor:pointer;">APPLY</button>
+        <button onclick="document.getElementById('debugPanel').style.display='none'" style="flex:1; padding:10px; border-radius:6px; border:none; background:#dc3545; color:#fff; font-weight:bold; cursor:pointer;">CLOSE</button>
+    </div>
+</div>
 
     <script src="js/sortable.min.js"></script>
     <script src="js/config.js?v=19.0"></script>
@@ -656,6 +697,7 @@
     <script src="js/app.js?v=19.0"></script>
 </body>
 </html>
+
 
 
 

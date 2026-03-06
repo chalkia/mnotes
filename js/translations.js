@@ -112,6 +112,10 @@ const TRANSLATIONS = {
         lbl_capo_simple: "Capo:",
         btn_smart_capo: "Smart Capo",
         btn_edit_song: "Edit Song",
+
+        // --- Chords ---
+        lbl_show_chords: "🎸 Show Guitar Chords",
+        msg_no_chords: "No chords found...",
         
         // --- Settings & Beta/Pricing ---
         title_settings: "Settings",
@@ -252,6 +256,10 @@ const TRANSLATIONS = {
         lbl_capo_simple: "Capo:",
         btn_smart_capo: "Smart Capo",
         btn_edit_song: "Επεξεργασία",
+
+        //--- Συγχορδίες ---
+        lbl_show_chords: "🎸 Εμφάνιση Συγχορδιών (Κιθάρα)",
+        msg_no_chords: "Δεν βρέθηκαν συγχορδίες...",
         
         // --- Settings & Beta/Pricing ---
         title_settings: "Ρυθμίσεις",

@@ -12,15 +12,24 @@ window.addEventListener('load', function() {
         if (typeof processSyncQueue === 'function') processSyncQueue();
     });
 
-    // ✨ ΑΥΤΟ ΕΛΕΙΠΕ! Ενεργοποιεί το Import και τα κλικ της οθόνης
+    // ✨ Ενεργοποιεί το Import και τα κλικ της οθόνης
     if (typeof setupEvents === 'function') setupEvents();
 
     setupDirtyListeners();
-    initResizers();
+    
+    // Ασφαλής εκκίνηση των Resizers (Προστασία από καθυστερήσεις της Cache/Login)
+    if (typeof initResizers === 'function') {
+        initResizers();
+    } else {
+        console.warn("⚠️ initResizers delayed: Function not loaded yet.");
+        // Σε περίπτωση που αργήσει, το δοκιμάζουμε ξανά με μικρή καθυστέρηση
+        setTimeout(() => {
+            if (typeof initResizers === 'function') initResizers();
+        }, 500);
+    }
 
     console.log("✅ App Ready");
 });
-
 /**
  * Παρακολουθεί τα inputs του editor για αλλαγές
  */

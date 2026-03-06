@@ -2295,7 +2295,8 @@ const GuitarChordsUI = {
         container.innerHTML = '';
 
         if (uniqueChords.size === 0) {
-            container.innerHTML = '<div class="empty-state">Δεν βρέθηκαν συγχορδίες...</div>';
+            const emptyMsg = typeof t === 'function' ? t('msg_no_chords') : "No chords found...";
+            container.innerHTML = `<div class="empty-state">${emptyMsg}</div>`;
             return;
         }
 

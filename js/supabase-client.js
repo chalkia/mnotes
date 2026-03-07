@@ -72,6 +72,7 @@ async function doSignUp() {
         msg.innerText = "Success! Check your email.";
     }
 }
+
 async function doLogout() {
     await supabaseClient.auth.signOut();
     currentUser = null;
@@ -148,14 +149,15 @@ async function uploadAudioToCloud(audioBlob, filename) {
     return urlData.publicUrl;
 }
 
-// --- GOOGLE AUTH ---
-async function loginWithGoogle() {
+// --- OAUTH LOGINS (Google, Apple, Facebook, Spotify) ---
+// Μία έξυπνη συνάρτηση για όλους τους παρόχους
+async function loginWith(providerName) {
     try {
         // Παίρνουμε το καθαρό URL της εφαρμογής (χωρίς το τεράστιο #hash)
         const cleanUrl = window.location.origin + window.location.pathname;
         
         const { data, error } = await supabaseClient.auth.signInWithOAuth({
-            provider: 'google',
+            provider: providerName,
             options: {
                 redirectTo: cleanUrl // Επιβάλλουμε την επιστροφή στο καθαρό URL
             }
@@ -164,10 +166,15 @@ async function loginWithGoogle() {
         if (error) throw error;
         
     } catch (err) {
-        console.error("Google Auth Error:", err);
+        console.error(`${providerName} Auth Error:`, err);
         const msgBox = document.getElementById('authMsg');
         if (msgBox) msgBox.innerText = "Σφάλμα: " + err.message;
     }
+}
+
+// Διατηρούμε την παλιά συνάρτηση για να μην "σπάσει" το παλιό κουμπί στο HTML (αν δεν το έχεις αλλάξει ακόμα)
+function loginWithGoogle() {
+    loginWith('google');
 }
 
 // --- GLOBAL AUTH STATE LISTENER ---
@@ -192,7 +199,9 @@ supabaseClient.auth.onAuthStateChange((event, session) => {
         // Επιστροφή στα τοπικά δεδομένα (Free mode)
         if (typeof loadContextData === 'function') loadContextData();
     }
-   // --- DTO & SANITIZATION ΓΙΑ TH SUPABASE ---
+});
+
+// --- DTO & SANITIZATION ΓΙΑ TH SUPABASE ---
 // Κρατάει ΜΟΝΟ τις στήλες που περιμένει η βάση, αποτρέποντας τα Error 400.
 window.sanitizeForDatabase = function(song, userId, groupId = null) {
     return {
@@ -216,5 +225,3 @@ window.sanitizeForDatabase = function(song, userId, groupId = null) {
         updated_at: new Date().toISOString()
     };
 };
-});
-

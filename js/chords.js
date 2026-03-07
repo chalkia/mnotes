@@ -17,7 +17,7 @@ const GuitarChordsUI = {
         if (isVisible) this.scanAndRender(); 
     },
 
-    scanAndRender: function() {
+scanAndRender: function() {
         console.log("[GuitarChordsUI] Σάρωση τραγουδιού για συγχορδίες...");
         const isEnabled = document.getElementById('setShowChords')?.checked;
         if (!isEnabled) {
@@ -28,7 +28,16 @@ const GuitarChordsUI = {
         const chordElements = document.querySelectorAll('#view-player .chord');
         let uniqueChords = new Set();
         chordElements.forEach(el => {
-            let c = el.innerText.trim();
+            let originalC = el.innerText.trim();
+            
+            // Καθαρισμός από κάθετες γραμμές (|) και αγκύλες ([ ])
+            let c = originalC.replace(/[|\[\]]/g, '');
+            
+            // Καταγραφή στο console αν έγινε καθαρισμός, για εύκολο debugging
+            if (c !== originalC && c.length > 0) {
+                console.log(`[GuitarChordsUI] Καθαρισμός: '${originalC}' -> '${c}'`);
+            }
+
             if (c) uniqueChords.add(c);
         });
 

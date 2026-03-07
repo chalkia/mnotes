@@ -1521,6 +1521,26 @@ body.band-mode .top-nav {
     border-width: 0 0 10px 10px;
     border-color: transparent transparent var(--accent) transparent;
 }
+/* Διάταξη ανά δυάδες για το Upgrade Modal */
+#pricingModal .modal-box {
+    max-width: 650px; /* Λίγο πιο φαρδύ για να χωράνε άνετα 2 στήλες */
+}
+
+.pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* 2 ίσες στήλες */
+    gap: 15px;
+    margin-top: 15px;
+    max-height: 60vh;
+    overflow-y: auto;
+    padding: 5px;
+}
+
+@media (max-width: 600px) {
+    .pricing-grid {
+        grid-template-columns: 1fr; /* 1 στήλη στα κινητά */
+    }
+}
 
 
 

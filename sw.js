@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mnotes-ver19.0'; // Αλλάζουμε έκδοση για να κάνει update
+const CACHE_NAME = 'mnotes-ver0.20.0'; // Αλλάζουμε έκδοση για να κάνει update
 const ASSETS_TO_CACHE = [
     './',
     'index.html',
@@ -19,6 +19,7 @@ const ASSETS_TO_CACHE = [
     'js/sortable.min.js',
     'js/sequencer.js',
     'js/translations.js',
+    'js/chords.js',
 
     // FontAwesome (Χωρίς την κάθετο μπροστά για να παίζει στο GitHub)
     'fa/css/all.min.css',
@@ -74,6 +75,7 @@ self.addEventListener('activate', (event) => {
         })
     );
 });
+
 
 
 

@@ -43,7 +43,7 @@ body { background: var(--bg-main); color: var(--text-main); font-family: var(--f
 
 .app-container { display: grid; grid-template-columns: var(--nav-width) 5px 1fr 5px var(--tools-width); grid-template-rows: 1fr; height: 100vh; width: 100%; }
 
-.resizer { background: var(--bg-sidebar); cursor: col-resize; width: 5px; height: 100%; z-index: 20; border-left: 1px solid var(--border-color); border-right: 1px solid var(--border-color); }
+.resizer { background: var(--bg-sidebar); cursor: col-resize; width: 5px; height: 100%; border-left: 1px solid var(--border-color); border-right: 1px solid var(--border-color); }
 .resizer:hover { background: var(--accent); }
 
 /* SIDEBAR (ΔΙΟΡΘΩΜΕΝΟ LAYOUT) */
@@ -52,7 +52,6 @@ body { background: var(--bg-main); color: var(--text-main); font-family: var(--f
     display: flex; 
     flex-direction: column; 
     overflow: hidden; 
-    z-index: 10;
     height: 100vh; /* Σημαντικό για να πιάνει όλο το ύψος */
 }
 .sidebar-header { padding: 15px; border-bottom: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; }
@@ -107,14 +106,14 @@ body { background: var(--bg-main); color: var(--text-main); font-family: var(--f
 }
 .line-row { display: flex; flex-wrap: wrap; align-items: flex-end; margin-bottom: 5px; line-height: 1.1; }
 .token { display: flex; flex-direction: column; margin-right: 1px; align-items: flex-start; }
-.chord {color: var(--chord-color); font-size: calc((var(--lyric-size) * 0.85) * var(--chord-scale, 1)); font-weight: bold; margin-bottom: calc(-2px + var(--chord-mb, 0px)); z-index: 10; line-height: 1; min-height: 1em;}
+.chord {color: var(--chord-color); font-size: calc((var(--lyric-size) * 0.85) * var(--chord-scale, 1)); font-weight: bold; margin-bottom: calc(-2px + var(--chord-mb, 0px)); line-height: 1; min-height: 1em;}
 .lyric { color: var(--text-main); font-size: var(--lyric-size); white-space: pre; line-height: 1; padding-top: 2px; }
 
 body.lyrics-mode .chord { display: none !important; }
 body.lyrics-mode .token { margin-right: 5px; }
 body.lyrics-mode .line-row { align-items: center; line-height: 1.8; }
 
-.player-footer { height: 70px; background: var(--bg-panel); border-top: 1px solid var(--border-color); display: flex; justify-content: space-around; align-items: center; z-index: 50; flex-shrink: 0; }
+.player-footer { height: 70px; background: var(--bg-panel); border-top: 1px solid var(--border-color); display: flex; justify-content: space-around; align-items: center; flex-shrink: 0; }
 .ctl-group { display: flex; flex-direction: column; align-items: center; }
 .ctl-label { font-size: 0.65rem; color: var(--text-muted); margin-bottom: 3px; text-transform: uppercase; font-weight:bold; }
 .stepper { display: flex; align-items: center; background: var(--input-bg); border-radius: 20px; padding: 2px; border: 1px solid var(--border-color); }
@@ -189,7 +188,6 @@ body.lyrics-mode .line-row { align-items: center; line-height: 1.8; }
     width: 100%;
     max-height: 150px;
     overflow-y: auto;
-    z-index: 1000;
     display: none; /* Κρυφό αρχικά */
 }
 
@@ -210,7 +208,7 @@ body.lyrics-mode .line-row { align-items: center; line-height: 1.8; }
    ========================================= */
 .modal, .modal-overlay { 
     position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-    background: rgba(0, 0, 0, 0.65); z-index: 10000; 
+    background: rgba(0, 0, 0, 0.65); 
     display: flex; justify-content: center; align-items: center; 
     backdrop-filter: blur(5px); 
 }
@@ -270,7 +268,7 @@ body.theme-light .modal-btn {
 .modal-btn.cancel { background: transparent; border: 1px solid #888; color: inherit; }
 
 /* TOAST & EXTRAS (Όπως ήταν) */
-#toast { visibility: hidden; min-width: 200px; background-color: rgba(30, 30, 30, 0.95); color: #fff; text-align: center; border-radius: 8px; padding: 15px; position: fixed; z-index: 3000; left: 50%; bottom: 100px; transform: translateX(-50%); font-size: 1rem; border: 1px solid var(--accent); opacity: 0; transition: opacity 0.3s; }
+#toast { visibility: hidden; min-width: 200px; background-color: rgba(30, 30, 30, 0.95); color: #fff; text-align: center; border-radius: 8px; padding: 15px; position: fixed; left: 50%; bottom: 100px; transform: translateX(-50%); font-size: 1rem; border: 1px solid var(--accent); opacity: 0; transition: opacity 0.3s; }
 #toast.show { visibility: visible; opacity: 1; }
 .side-rec-item { background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px; display: flex; flex-direction: column; gap: 5px; }
 .side-rec-meta { display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; color: var(--text-muted); }
@@ -289,7 +287,7 @@ body.theme-light .modal-btn {
     color: var(--text-main);
 
     transform: translateX(100%); transition: transform 0.3s ease-in-out;
-    z-index: 2001; display: flex; flex-direction: column; padding: 15px;
+    display: flex; flex-direction: column; padding: 15px;
     box-shadow: -5px 0 20px rgba(0,0,0,0.5);
 }
 .right-drawer.open { transform: translateX(0); }
@@ -301,7 +299,7 @@ body.theme-light .modal-btn {
     border: 1px solid var(--border-color); border-right: none;
     border-top-left-radius: 10px; border-bottom-left-radius: 10px;
     align-items: center; justify-content: center;
-    color: var(--accent); cursor: pointer; z-index: 2000;
+    color: var(--accent); cursor: pointer;
     box-shadow: -2px 0 5px rgba(0,0,0,0.2);
 }
 
@@ -336,7 +334,7 @@ body.theme-light .modal-btn {
     color: var(--text-main);
 }
 /* DESKTOP TOOLBAR BASE STYLE */
-.desktop-controls-area { display: flex; gap: 15px; padding: 10px; background: #222; border-top: 1px solid #444; justify-content: center; align-items: center; position: sticky; bottom: 0; z-index: 100; width: 100%; }
+.desktop-controls-area { display: flex; gap: 15px; padding: 10px; background: #222; border-top: 1px solid #444; justify-content: center; align-items: center; position: sticky; bottom: 0;  width: 100%; }
 .desktop-controls-area button { transition: color 0.2s; }
 .desktop-controls-area button:hover { color: var(--accent) !important; }
 
@@ -403,7 +401,6 @@ body.theme-light .modal-btn {
         height: 60px; 
         background: var(--bg-panel); 
         border-top: 1px solid var(--border-color); 
-        z-index: 1000; 
         justify-content: space-around; 
         align-items: center;
         padding-bottom: env(safe-area-inset-bottom); /* Fix για iPhone */
@@ -1095,10 +1092,6 @@ details[open] summary::after { transform: rotate(180deg); color: var(--accent); 
     justify-content: flex-end;
     gap: 10px;
 }
-
-/* Fix Z-Index για τα Modals */
-.modal-overlay { z-index: 99999 !important; }
-
 @media (max-width: 1024px) {
     /* 1. Οι στίχοι πιάνουν όλο το ύψος */
     #mainZone {
@@ -1236,7 +1229,7 @@ body.viewing-original .col-stage {
     border: 2px solid #ff0000; /* Κόκκινο για να ξεχωρίζει */
     border-radius: 8px;
     padding: 15px;
-    z-index: 1000000 !important;
+    z-index: 10000 !important;
     color: #fff !important;
     box-shadow: 0 0 20px rgba(255, 0, 0, 0.4)!important;
     display: none; /* Κρυφό αρχικά */
@@ -1434,7 +1427,6 @@ body.band-mode::before {
     border-radius: 20px;
     font-weight: bold;
     font-size: 0.85rem;
-    z-index: 99999;
     pointer-events: none;
     box-shadow: 0 4px 10px rgba(0,0,0,0.3);
     letter-spacing: 1px;
@@ -1460,7 +1452,6 @@ body.band-mode .top-nav {
     background: #1e1e1e;
     border: 2px solid var(--accent);
     border-radius: 8px;
-    z-index: 5000;
     display: flex;
     flex-direction: column;
     box-shadow: 0 10px 30px rgba(0,0,0,0.5);
@@ -1506,7 +1497,7 @@ body.band-mode .top-nav {
     right: 0;
     bottom: 0;
     cursor: nwse-resize;
-    z-index: 5001;
+    
 }
 
 /* Εικονίδιο γωνίας για το resize */
@@ -1541,6 +1532,42 @@ body.band-mode .top-nav {
         grid-template-columns: 1fr; /* 1 στήλη στα κινητά */
     }
 }
+/* =========================================
+   Z-INDEX ARCHITECTURE (Standard Logic)
+   ========================================= */
+/* ΕΠΙΠΕΔΟ 0: Βασικό UI */
+.col-nav, .col-tools { z-index: 10; }
+.resizer { z-index: 20; }
+.chord { z-index: 30; } /* Για να βγαίνουν οι συγχορδίες πάνω από τους στίχους */
+
+/* ΕΠΙΠΕΔΟ 1: Σταθερές Μπάρες (Desktop & Mobile) */
+.player-footer { z-index: 50; }
+.desktop-controls-area { z-index: 100; }
+.mobile-nav { z-index: 1000; }
+
+/* ΕΠΙΠΕΔΟ 2: Dropdowns & Drawers */
+.tag-suggestions { z-index: 1500; }
+#drawerHandle { z-index: 2000; }
+.right-drawer { z-index: 2001; }
+
+/* ΕΠΙΠΕΔΟ 3: Βασικά Modals (Login, Pricing, Settings) */
+.modal, .modal-overlay { z-index: 3000; }
+
+/* ΕΠΙΠΕΔΟ 4: Ογκώδη Εργαλεία / Editors (Sequencer) */
+.sequencer-box { z-index: 4000; }
+
+/* ΕΠΙΠΕΔΟ 5: Υπο-Παράθυρα Εργαλείων / PDF Viewer */
+#sound-lab-modal,
+#rhythmLoadModal, 
+#rhythmSaveModal { z-index: 5000; }
+.floating-window { z-index: 5000; }
+.fw-resizer { z-index: 5001; }
+
+/* ΕΠΙΠΕΔΟ 6: Ειδοποιήσεις & Υπέρτατα Στοιχεία (Band Badge, Toasts, Debug) */
+body.band-mode::before { z-index: 8000; } /* Το σηματάκι της Μπάντας */
+#toast { z-index: 9000; }
+.debug-overlay { z-index: 9999; }
+.debug-panel { z-index: 10000 !important; }
 
 
 

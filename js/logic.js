@@ -284,8 +284,8 @@ async function loadContextData() {
 // --- Ο ΠΟΡΤΙΕΡΗΣ (Ελεγκτής Δικαιωμάτων) v2.2 ---
 function canUserPerform(action) {
     // Διαβάζουμε το tier. Αν δεν υπάρχει, by default είναι 'free'
-    const tier = (userProfile && userProfile.tier) ? userProfile.tier : 'free';
-    const config = TIER_CONFIG[tier] || TIER_CONFIG.free;
+ const tier = (userProfile && userProfile.subscription_tier) ? userProfile.subscription_tier : 'free';
+ const config = TIER_CONFIG[tier] || TIER_CONFIG.free;
     
     switch(action) {
         case 'CLOUD_SYNC': 

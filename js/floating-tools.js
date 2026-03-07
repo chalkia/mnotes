@@ -13,7 +13,7 @@ const FloatingTools = {
         const viewer = document.createElement('div');
         viewer.id = 'floating-viewer';
         viewer.className = 'floating-window';
-        viewer.style.cssText = 'position:fixed; top:15%; left:10%; width:450px; height:550px; background:var(--bg-panel); border:1px solid var(--accent); border-radius:8px; z-index:99999; display:none; flex-direction:column; box-shadow:0 10px 30px rgba(0,0,0,0.5); overflow:hidden; resize:both; min-width:250px; min-height:200px;';
+        viewer.style.cssText = 'position:fixed; top:15%; left:10%; width:450px; height:550px; background:var(--bg-panel); border:1px solid var(--accent); border-radius:8px; z-index:5000; display:none; flex-direction:column; box-shadow:0 10px 30px rgba(0,0,0,0.5); overflow:hidden; resize:both; min-width:250px; min-height:200px;';
         
         viewer.innerHTML = `
             <div class="fw-header" id="fw-header" style="background:#111; padding:10px; cursor:move; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--accent);">

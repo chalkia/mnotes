@@ -572,6 +572,9 @@ function renderPlayer(s) {
     renderArea('fixed-container', split.fixed); 
     renderArea('scroll-container', split.scroll);  
     updateToggleButton(s); // Καλούμε για να δούμε αν θα εμφανιστεί
+   if (typeof GuitarChordsUI !== 'undefined') {
+        GuitarChordsUI.scanAndRender();
+    }
 }
 
 function renderArea(elemId, text) { 

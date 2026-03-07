@@ -149,22 +149,24 @@ async function uploadAudioToCloud(audioBlob, filename) {
 }
 
 // --- GOOGLE AUTH ---
-
 async function loginWithGoogle() {
-    if (!supabaseClient) {
-        alert("System Error: Database connection failed.");
-        return;
-    }
+    try {
+        // Παίρνουμε το καθαρό URL της εφαρμογής (χωρίς το τεράστιο #hash)
+        const cleanUrl = window.location.origin + window.location.pathname;
+        
+        const { data, error } = await supabaseClient.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: cleanUrl // Επιβάλλουμε την επιστροφή στο καθαρό URL
+            }
+        });
 
-    const { data, error } = await supabaseClient.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-            redirectTo: window.location.href 
-        }
-    });
-    
-    if (error) {
-        alert("Google Login Error: " + error.message);
+        if (error) throw error;
+        
+    } catch (err) {
+        console.error("Google Auth Error:", err);
+        const msgBox = document.getElementById('authMsg');
+        if (msgBox) msgBox.innerText = "Σφάλμα: " + err.message;
     }
 }
 

@@ -117,8 +117,13 @@ const AudioEngine = {
             this.useMidi = false;
         }
     },
+   togglePlay: function() {
+        // 🔒 1. ΠΟΡΤΙΕΡΗΣ ΓΙΑ FREE: Απαγόρευση αναπαραγωγής ήχου
+        if (typeof canUserPerform === 'function' && !canUserPerform('USE_AUDIO')) {
+            if (typeof promptUpgrade === 'function') promptUpgrade('Μετρονόμος / Ήχος');
+            return;
+        }
 
-    togglePlay: function() {
         this.init();
         this.isPlaying = !this.isPlaying;
         
@@ -145,10 +150,49 @@ const AudioEngine = {
     },
 
     setBpm: function(val) {
+        // 🔒 2. ΠΟΡΤΙΕΡΗΣ ΓΙΑ FREE: Απαγόρευση αλλαγής ταχύτητας
+        if (typeof canUserPerform === 'function' && !canUserPerform('USE_AUDIO')) {
+            if (typeof promptUpgrade === 'function') promptUpgrade('Αλλαγή Ταχύτητας Μετρονόμου');
+            // Επαναφέρουμε το slider στην προηγούμενη επιτρεπτή τιμή για να μην κουνιέται τσάμπα
+            if(document.getElementById('rngBpm')) document.getElementById('rngBpm').value = this.bpm;
+            return;
+        }
+
         this.bpm = parseInt(val);
         if(document.getElementById('dispBpm')) document.getElementById('dispBpm').innerText = this.bpm;
         if(document.getElementById('seq-bpm-val')) document.getElementById('seq-bpm-val').innerText = this.bpm;
         if(document.getElementById('rngBpm')) document.getElementById('rngBpm').value = this.bpm;
+    },
+
+    scheduleNote: function(stepNumber, time) {
+        const drawTime = (time - this.ctx.currentTime) * 1000;
+        setTimeout(() => {
+            document.querySelectorAll('.cell.highlight').forEach(c => c.classList.remove('highlight'));
+            document.querySelectorAll(`.cell[data-step="${stepNumber}"]`).forEach(c => c.classList.add('highlight'));
+        }, drawTime > 0 ? drawTime : 0);
+
+        // --- ΕΛΕΓΧΟΣ ΔΙΚΑΙΩΜΑΤΩΝ ΓΙΑ SOLO vs PRO ---
+        // Ελέγχουμε αν έχει το πλήρες Drum Machine (δηλαδή από Member και πάνω)
+        const isAdvanced = (typeof canUserPerform === 'function' && canUserPerform('USE_SEQUENCER'));
+
+        if (!isAdvanced) {
+            // 🔒 3. SOLO TIER: Λειτουργία Απλού Μετρονόμου (Μόνο 1 χτύπημα ανά τέταρτο)
+            // Το RIM ακούγεται πολύ πιο καθαρά σαν "κλικ" μετρονόμου σε σχέση με το KICK.
+            if (stepNumber % 4 === 0) {
+                let isFirstBeat = (stepNumber === 0);
+                // Το πρώτο χτύπημα του μέτρου είναι πιο δυνατό (τονισμένο)
+                this.playPercussion(time, 'RIM', isFirstBeat ? 1.0 : 0.4); 
+            }
+            return; // Σταματάμε εδώ, δεν διαβάζει το Grid
+        }
+
+        // 🌟 PRO/MAESTRO TIER: Λειτουργία Sequencer
+        // Διαβάζει κανονικά ό,τι έχει ζωγραφιστεί στο Grid
+        ['HAT', 'RIM', 'TOM', 'KICK'].forEach(type => {
+            if (this.gridData[type] && this.gridData[type][stepNumber]) {
+                this.playPercussion(time, type, 1.0);
+            }
+        });
     },
 
     setBeats: function(n) {
@@ -179,33 +223,6 @@ const AudioEngine = {
         this.nextNoteTime += 0.25 * secondsPerBeat; // 16th notes
         this.currentStep++;
         if (this.currentStep >= this.beats * 4) this.currentStep = 0;
-    },
-
-    scheduleNote: function(stepNumber, time) {
-        const drawTime = (time - this.ctx.currentTime) * 1000;
-        setTimeout(() => {
-            document.querySelectorAll('.cell.highlight').forEach(c => c.classList.remove('highlight'));
-            document.querySelectorAll(`.cell[data-step="${stepNumber}"]`).forEach(c => c.classList.add('highlight'));
-        }, drawTime > 0 ? drawTime : 0);
-
-        // --- ΕΛΕΓΧΟΣ ΔΙΚΑΙΩΜΑΤΩΝ ---
-        const isAdvanced = (typeof canUserPerform === 'function' && canUserPerform('ADVANCED_DRUMS'));
-
-        if (!isAdvanced) {
-            // SOLO TIER: Metronome mode (Μόνο 1 χτύπημα ανά τέταρτο)
-            if (stepNumber % 4 === 0) {
-                let isFirstBeat = (stepNumber === 0);
-                this.playPercussion(time, 'KICK', isFirstBeat ? 1.0 : 0.5); 
-            }
-            return; 
-        }
-
-        // BAND TIER: Sequencer mode
-        ['HAT', 'RIM', 'TOM', 'KICK'].forEach(type => {
-            if (this.gridData[type] && this.gridData[type][stepNumber]) {
-                this.playPercussion(time, type, 1.0);
-            }
-        });
     },
 
     toggleStepData: function(instId, stepIdx, isActive) {

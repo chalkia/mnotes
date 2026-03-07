@@ -172,22 +172,23 @@
                         <span data-i18n="btn_cancel">Cancel</span>
                     </button>
 
-                <div style="display:flex; gap:15px; align-items:center;">
-                    <button onclick="deleteCurrentSong()" class="icon-btn danger" title="Delete Song">
-                        <i class="fas fa-trash-alt"></i>
-                    </button>
-                    <button onclick="printSongPDF()" class="icon-btn" title="Print PDF">
-                         <i class="fas fa-file-pdf"></i>
-                    </button>
-                    <button id="btnCloneToPersonal" onclick="cloneToPersonal()" class="tool-btn highlight-btn" title="Save Copy to My Library" style="display:none;">
-                         <i class="fas fa-file-import"></i>
-                    </button>
-        
-                    <button onclick="saveEdit()" class="icon-btn accent" title="Save Changes">
-                        <i class="fas fa-save"></i>
-                    </button>
-    </div>
-</div>
+                    <div style="display:flex; gap:15px; align-items:center;">
+                        <button onclick="deleteCurrentSong()" class="icon-btn danger" title="Delete Song">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                        <button onclick="printSongPDF()" class="icon-btn" title="Print PDF">
+                             <i class="fas fa-file-pdf"></i>
+                        </button>
+                        <button id="btnCloneToPersonal" onclick="cloneToPersonal()" class="tool-btn highlight-btn" title="Save Copy to My Library" style="display:none;">
+                             <i class="fas fa-file-import"></i>
+                        </button>
+            
+                        <button onclick="saveEdit()" class="icon-btn accent" title="Save Changes">
+                            <i class="fas fa-save"></i>
+                        </button>
+                    </div>
+                </div>
+
                 <div class="editor-body">
                     <input id="inpTitle" class="inp title-inp" data-i18n="inp_title">
                     <details><summary data-i18n="sum_metadata">Metadata & Notes</summary>
@@ -216,6 +217,16 @@
                     <input id="inpInter" class="inp" data-i18n="inp_inter">
                     <textarea id="inpBody" class="inp txt-area" data-i18n="inp_body"></textarea>
                 </div>
+
+                <div class="editor-footer">
+                    <button onclick="exitEditor()" class="footer-btn">
+                        <i class="fas fa-times"></i> <span data-i18n="btn_cancel">Cancel</span>
+                    </button>
+                    <button onclick="saveEdit()" class="footer-btn accent">
+                        <i class="fas fa-save"></i> <span data-i18n="btn_save">Save</span>
+                    </button>
+                </div>
+                
             </div>
         </main>
 <div class="resizer" id="dragMeRight"></div>
@@ -277,12 +288,12 @@
             </div>
         </details>
 
-        <hr class="sep" id="guitarChordsSep" style="display:none;">
-        <details class="tool-group" id="guitarChordsGroup" style="display:none;" open>
-            <summary><i class="fas fa-guitar"></i> <span>GUITAR CHORDS</span></summary>
+        <hr class="sep" id="guitarChordsSep">
+        <details class="tool-group" id="guitarChordsGroup" open>
+            <summary><i class="fas fa-guitar"></i> <span data-i18n="lbl_show_chords">GUITAR CHORDS</span></summary>
             <div class="group-content">
                     <div id="chord-charts-container" style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; padding-top:10px;">
-                        <div class="empty-state">Δεν βρέθηκαν συγχορδίες...</div>
+                        <div class="empty-state" data-i18n="msg_no_chords">Δεν βρέθηκαν συγχορδίες...</div>
                     </div>
             </div>
         </details>
@@ -351,7 +362,7 @@
                 <option value="theme-custom">Custom</option>
             </select>
         </label>
-                                              
+                                                      
         <div id="customColorArea" style="display:none; border:1px solid #444; padding:10px; margin:10px 0;">
             <label>Bg: <input type="color" id="colBgMain" value="#000000"></label>
             <label>Text: <input type="color" id="colTextMain" value="#ffffff"></label>
@@ -384,7 +395,8 @@
         <hr style="border-color:#444; margin:10px 0;">
         <label><input type="checkbox" id="setHideDemo"> <span data-i18n="lbl_hide_demo">Hide Demo</span></label>
         <label><input type="checkbox" id="setWakeLock"> <span data-i18n="lbl_keep_screen">Keep Screen On</span></label>
-        <label><input type="checkbox" id="setShowChords" onchange="GuitarChordsUI.toggleVisibility(this.checked)"> <span data-i18n="lbl_show_chords">🎸 Εμφάνιση Συγχορδιών (Κιθάρα)</span></label>
+        
+        <label><input type="checkbox" id="setShowChords" checked onchange="GuitarChordsUI.toggleVisibility(this.checked)"> <span data-i18n="lbl_show_chords">🎸 Εμφάνιση Συγχορδιών (Κιθάρα)</span></label>
 
         <label style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border-color); display: block;">
             <input type="checkbox" id="setDisableSplit"> 
@@ -527,7 +539,6 @@
             </button>
         </div>
     </div>
-
 
     <div id="rhythmSaveModal" class="modal" style="display:none;">
         <div class="modal-content">
@@ -683,12 +694,12 @@
 </div>
 
     <script src="js/sortable.min.js"></script>
-    <script src="js/config.js?v=?v=21.0"></script>
+    <script src="js/config.js?v=21.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/data.js?v=?v=21.0"></script>
-    <script src="js/translations.js?v=?v=21.0"></script>
-    <script src="js/storage.js??v=21.0"></script>
-    <script src="js/supabase-client.js??v=21.0"></script> 
+    <script src="js/data.js?v=21.0"></script>
+    <script src="js/translations.js?v=21.0"></script>
+    <script src="js/storage.js?v=21.0"></script>
+    <script src="js/supabase-client.js?v=21.0"></script> 
     <script src="js/audio.js?v=21.0"></script>
     <script src="js/logic.js?v=21.0"></script>
     <script src="js/floating-tools.js?v=21.0"></script>
@@ -698,32 +709,3 @@
     <script src="js/app.js?v=21.0"></script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

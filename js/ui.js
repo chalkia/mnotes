@@ -2049,7 +2049,7 @@ function showToast(msg) {
     div.style.boxShadow = "0 10px 30px rgba(0,0,0,0.5)"; // Έντονη σκιά
     
     // ΤΟ ΠΙΟ ΣΗΜΑΝΤΙΚΟ: Z-INDEX
-    div.style.zIndex = "2147483647";    // Ο μέγιστος αριθμός που επιτρέπει ο browser!
+    div.style.zIndex = "9000";   // Το ανώτατο επίπεδο ειδοποιήσεων βάσει της νέας αρχιτεκτονικής 
     
     // Animation εμφάνισης
     div.style.opacity = "0";
@@ -2167,7 +2167,7 @@ function askVisibilityRole() {
     return new Promise((resolve) => {
         // Δημιουργία του μαύρου φόντου
         const overlay = document.createElement('div');
-        overlay.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); display:flex; align-items:center; justify-content:center; z-index:99999;';
+        overlay.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); display:flex; align-items:center; justify-content:center; z-index:5000;';
         
         // Δημιουργία του κουτιού
         const box = document.createElement('div');
@@ -2216,7 +2216,7 @@ function showTransferModal() {
 
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay';
-    overlay.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); display:flex; align-items:center; justify-content:center; z-index:99999;';
+    overlay.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); display:flex; align-items:center; justify-content:center; z-index:5000;';
     
     overlay.innerHTML = `
         <div style="background:var(--bg-panel); padding:25px; border-radius:12px; width:320px; text-align:center; border: 1px solid var(--border-color);">

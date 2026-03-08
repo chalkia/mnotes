@@ -287,13 +287,19 @@ async function loadContextData() {
 // --- Ο ΠΟΡΤΙΕΡΗΣ (Ελεγκτής Δικαιωμάτων) v2.2 ---
 function canUserPerform(action) {
     // Διαβάζουμε το tier. Αν δεν υπάρχει, by default είναι 'free'
- const tier = (userProfile && userProfile.subscription_tier) ? userProfile.subscription_tier : 'free';
- const config = TIER_CONFIG[tier] || TIER_CONFIG.free;
+    const tier = (userProfile && userProfile.subscription_tier) ? userProfile.subscription_tier : 'free';
+    const config = TIER_CONFIG[tier] || TIER_CONFIG.free;
     
     switch(action) {
         case 'CLOUD_SYNC': 
         case 'CLOUD_SAVE': 
             return config.canCloudSync;
+            
+        // ✨ ΠΡΟΣΘΗΚΗ: Τώρα ο πορτιέρης ξέρει τι σημαίνουν αυτά!
+        case 'USE_SUPABASE':
+            return config.useSupabase;
+        case 'USE_DRIVE':
+            return config.useDrive;
             
         case 'USE_AUDIO': 
             return config.canUseAudio; // Κόβει τους Free από το να παίζουν ήχους
@@ -322,8 +328,6 @@ function canUserPerform(action) {
                                 : 0;
             return (baseBands + extraBands) > 0;
             
-        // Αφαιρέθηκε το USE_DRIVE καθώς συμφωνήσαμε ότι η αποθήκευση γίνεται 100% σε LocalStorage & Supabase
-            
         default: 
             return false;
     }
@@ -332,6 +336,7 @@ function canUserPerform(action) {
 // ==========================================
 // IMPORT ΛΕΙΤΟΥΡΓΙΑ (SMART MERGE ΜΕ ΕΓΚΡΙΣΗ ΧΡΗΣΤΗ)
 // ==========================================
+
 window.processImportedData = async function(data) {
     console.log("📥 Import Started (Interactive Merge Mode)...");
     if (!data) return;
@@ -388,14 +393,12 @@ window.processImportedData = async function(data) {
                 window.library[existingIndex] = cleanSong;
                 updateCount++;
                 
-                // Cloud Sync
+                // Cloud Sync (Με await για να μην κοπεί στη μέση!)
                 if (typeof canUserPerform === 'function' && canUserPerform('USE_SUPABASE') && currentUser) {
                     if (typeof window.sanitizeForDatabase === 'function') {
                         const safePayload = window.sanitizeForDatabase(cleanSong, currentUser.id, existingSong.group_id);
                         if (typeof supabaseClient !== 'undefined') {
-                            supabaseClient.from('songs').upsert(safePayload).then(({ error }) => {
-                                if (error) console.error("❌ Sync Error:", error);
-                            });
+                            await supabaseClient.from('songs').upsert(safePayload);
                         }
                     }
                 }
@@ -414,13 +417,12 @@ window.processImportedData = async function(data) {
             window.library.push(cleanSong);
             importCount++;
             
+            // Cloud Sync (Με await)
             if (typeof canUserPerform === 'function' && canUserPerform('USE_SUPABASE') && currentUser) {
                 if (typeof window.sanitizeForDatabase === 'function') {
-                         const safePayload = window.sanitizeForDatabase(cleanSong, currentUser.id, null);
+                    const safePayload = window.sanitizeForDatabase(cleanSong, currentUser.id, null);
                     if (typeof supabaseClient !== 'undefined') {
-                        supabaseClient.from('songs').upsert(safePayload).then(({ error }) => {
-                            if (error) console.error("❌ Sync Error:", error);
-                        });
+                        await supabaseClient.from('songs').upsert(safePayload);
                     }
                 }
             }
@@ -428,7 +430,12 @@ window.processImportedData = async function(data) {
     }
 
     // --- ΤΕΛΙΚΗ ΕΝΗΜΕΡΩΣΗ UI ---
+    let finalTargetId = null; // ✨ Δηλώνεται ΕΞΩ από το if για να μην "χάνεται" στα logs
+
     if (importCount > 0 || updateCount > 0) {
+        // Ενημερώνουμε την τοπική αναφορά
+        library = window.library; 
+        
         if (typeof saveData === 'function') saveData(); 
         if (typeof renderSidebar === 'function') renderSidebar();
         
@@ -437,32 +444,28 @@ window.processImportedData = async function(data) {
         if (updateCount > 0) msg += `${updateCount} Ενημερώθηκαν 🔄`;
         if (typeof showToast === 'function') showToast(msg.trim());
         
-        // 🚀 Η ΔΙΟΡΘΩΣΗ ΓΙΑ ΤΟ IMPORT (Ζήτημα 1):
-        // Βρίσκουμε το ID του τραγουδιού που μόλις κάναμε import/update
-        // και το "κλειδώνουμε" ώστε να φορτώσει αυτό αντί για το πρώτο της λίστας.
-        let targetSongId = null;
+        // Βρίσκουμε το ID του τραγουδιού
         if (newSongs.length > 0) {
-             targetSongId = newSongs[newSongs.length - 1].id; // Το ID του τελευταίου τραγουδιού που ήρθε
+             finalTargetId = newSongs[newSongs.length - 1].id; 
+        } else if (window.library.length > 0) {
+             finalTargetId = window.library[window.library.length - 1].id;
         }
 
-        if (targetSongId && typeof loadSong === 'function') {
-            currentSongId = targetSongId;
-            loadSong(targetSongId);
+        if (finalTargetId && typeof loadSong === 'function') {
+            currentSongId = finalTargetId;
+            loadSong(finalTargetId);
             if (typeof switchView === 'function') switchView('view-details');
-        } else if (window.library.length > 0 && typeof loadSong === 'function') {
-            loadSong(window.library[window.library.length - 1].id);
         }
     } else {
         console.log("ℹ️ Η εισαγωγή ολοκληρώθηκε χωρίς αλλαγές.");
         if (typeof showToast === 'function') showToast("Δεν έγιναν νέες εισαγωγές ή αντικαταστάσεις.");
     }
 
-console.log("🔍 [DEBUG IMPORT] Ολοκληρώθηκε η εισαγωγή.");
-console.log("🔍 [DEBUG IMPORT] Τελευταίο ID που εισήχθη:", targetSongId);
-console.log("🔍 [DEBUG IMPORT] Τρέχον currentSongId:", currentSongId);
-console.log("🔍 [DEBUG IMPORT] Σύνολο τραγουδιών στο window.library:", window.library.length);
+    console.log("🔍 [DEBUG IMPORT] Ολοκληρώθηκε η εισαγωγή.");
+    console.log("🔍 [DEBUG IMPORT] Τελευταίο ID που εισήχθη/φορτώθηκε:", finalTargetId);
+    console.log("🔍 [DEBUG IMPORT] Τρέχον currentSongId:", currentSongId);
+    console.log("🔍 [DEBUG IMPORT] Σύνολο τραγουδιών:", window.library.length);
 };
-
 // --- AUDIO & ATTACHMENT RECORDING SAVING ---
 async function addRecordingToCurrentSong(newRec) {
     if (!currentSongId || typeof currentUser === 'undefined' || !currentUser) return;

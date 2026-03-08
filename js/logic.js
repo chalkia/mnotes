@@ -453,6 +453,11 @@ window.processImportedData = async function(data) {
         console.log("ℹ️ Η εισαγωγή ολοκληρώθηκε χωρίς αλλαγές.");
         if (typeof showToast === 'function') showToast("Δεν έγιναν νέες εισαγωγές ή αντικαταστάσεις.");
     }
+
+console.log("🔍 [DEBUG IMPORT] Ολοκληρώθηκε η εισαγωγή.");
+console.log("🔍 [DEBUG IMPORT] Τελευταίο ID που εισήχθη:", targetSongId);
+console.log("🔍 [DEBUG IMPORT] Τρέχον currentSongId:", currentSongId);
+console.log("🔍 [DEBUG IMPORT] Σύνολο τραγουδιών στο window.library:", window.library.length);
 };
 
 // --- AUDIO & ATTACHMENT RECORDING SAVING ---
@@ -598,6 +603,9 @@ async function fetchBandSongs(groupId) {
  * Διαχειρίζεται αυτόματα Local Storage, Personal Cloud και Band Cloud.
  */
 async function saveSong() {
+   console.log("🔍 [DEBUG SAVE 1] Πατήθηκε το Save.");
+    console.log("🔍 [DEBUG SAVE 1] currentSongId πριν τη συλλογή:", currentSongId);
+    console.log("🔍 [DEBUG SAVE 1] Context: Group =", currentGroupId, "| Role =", currentRole);
     const title = document.getElementById('inpTitle').value;
     const body = document.getElementById('inpBody').value; 
     
@@ -624,8 +632,14 @@ async function saveSong() {
     };
    
     const personalNotesVal = document.getElementById('inpPersonalNotes')?.value || "";
-
-    try {
+     console.log("🔍 [DEBUG SAVE 2] Διαδρομή που θα ακολουθήσει:");
+    if (currentGroupId === 'personal') {
+        console.log("🔍 [DEBUG SAVE 2] Επιλογή: Προσωπικό.", "Έχει Cloud;", canUserPerform('USE_SUPABASE'));
+    } else {
+        console.log("🔍 [DEBUG SAVE 2] Επιλογή: Μπάντα.");
+    }
+    
+   try {
         // --- ΣΕΝΑΡΙΟ Α: ΠΡΟΣΩΠΙΚΗ ΒΙΒΛΙΟΘΗΚΗ ---
         if (currentGroupId === 'personal') {
             

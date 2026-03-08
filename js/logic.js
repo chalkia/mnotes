@@ -215,6 +215,7 @@ function updateUIForRole() {
    DATA LOADING & SYNC
    ========================================= */
 async function loadContextData() {
+   console.log("🔍 [DEBUG SYNC] Ξεκινάει επαναφόρτωση. library length:", window.library ? window.library.length : 'undefined');
     //library = [];
     const listEl = document.getElementById('songList');
     if(listEl) listEl.innerHTML = '<div class="loading-msg">Loading Library...</div>';
@@ -278,6 +279,8 @@ async function loadContextData() {
         console.error("❌ Load Context Error:", err);
         if (typeof showToast === 'function') showToast("Error loading context", "error");
     }
+   console.log("🔍 [DEBUG SYNC] Τέλος επαναφόρτωσης. Νέο library length:", window.library ? window.library.length : 'undefined');
+    console.log("🔍 [DEBUG SYNC] Το currentSongId μετά το sync είναι:", currentSongId);
 }
 
 

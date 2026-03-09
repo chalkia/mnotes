@@ -1351,6 +1351,9 @@ function cycleIntroSize() {
 // ===========================================================
 // ΕΝΙΑΙΑ ΔΙΑΓΡΑΦΗ ΜΕΣΩΝ ΚΑΙ ΑΡΧΕΙΩΝ (CLOUD & LOCAL)
 // ===========================================================
+// ===========================================================
+// ΕΝΙΑΙΑ ΑΠΟΣΥΝΔΕΣΗ ΜΕΣΩΝ ΚΑΙ ΑΡΧΕΙΩΝ (DETACH)
+// ===========================================================
 window.deleteMediaItem = async function(songId, type, itemIndex) {
     const s = library.find(x => x.id === songId);
     if (!s || !s[type] || !s[type][itemIndex]) return;
@@ -1358,13 +1361,20 @@ window.deleteMediaItem = async function(songId, type, itemIndex) {
     const item = s[type][itemIndex];
     const isPrivate = (item.origin === 'private' || !item.origin);
 
-    if (!confirm(`Οριστική διαγραφή του "${item.name || 'αρχείου'}";`)) return;
+    // Δίγλωσσο μήνυμα αποσύνδεσης
+    if (!confirm(`Αποσύνδεση του "${item.name || 'αρχείου'}" από το τραγούδι; (Θα παραμείνει στη Βιβλιοθήκη σας) \n\nDetach file from song? (It will remain in your Library)`)) return;
 
     // Αφαίρεση από το UI αμέσως
     s[type].splice(itemIndex, 1);
-    if (typeof renderPlayer === 'function') renderPlayer(s); 
+    
+    // --- ANTI-ABORTERROR FIX ---
+    if (type === 'recordings' && typeof renderRecordingsList === 'function') {
+        renderRecordingsList(s.recordings, []);
+    } else if (type === 'attachments' && typeof renderAttachmentsList === 'function') {
+        renderAttachmentsList(s.attachments);
+    }
 
-    try {
+     try {
         if (currentGroupId === 'personal') {
             if (typeof canUserPerform === 'function' && canUserPerform('USE_SUPABASE')) {
                 await supabaseClient.from('songs').update({ [type]: s[type] }).eq('id', songId);

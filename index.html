@@ -231,93 +231,104 @@
             </div>
         </main>
 <div class="resizer" id="dragMeRight"></div>
-    <aside class="col-tools" id="rhythmTools">
+<aside class="col-tools" id="rhythmTools">
     <div class="sidebar-header-tools">
         <span data-i18n="title_tools" style="font-weight:bold; color:var(--text-muted); font-size:0.9rem;">TOOLS & ASSETS</span>
     </div>
 
     <div id="video-sidebar-container" style="display:none; padding: 10px; border-bottom: 1px solid var(--border-color); background: rgba(0,0,0,0.1);">
         <div id="video-embed-box" class="video-responsive" style="position:relative; padding-bottom:56.25%; height:0; overflow:hidden; border-radius:8px; background:#000;">
-            </div>
+        </div>
     </div>
 
     <div class="tool-panel">
-<div class="tool-section">
-    <div class="section-title"><i class="fas fa-microphone-alt"></i> <span data-i18n="title_audio_hub">AUDIO HUB</span></div>
-    
-    <div class="recorder-compact">
-        <span id="recTimer" class="rec-timer">00:00</span>
-        <button id="btnRecord" onclick="toggleRecording()" class="rec-btn" title="Record">
-            <i class="fas fa-circle"></i>
-        </button>
-        <button id="btnLinkRec" onclick="uploadAndLinkCurrent()" class="save-rec-btn" style="display:none;" title="Save to Song">
-            <i class="fas fa-cloud-upload-alt"></i>
-        </button>
-    </div>
-
-    <div class="upload-wrapper" style="text-align:center; margin-top:10px; margin-bottom:10px;">
-        <button onclick="openAssetManager('audio')" class="upload-btn-styled" style="width:100%; border:none; background:var(--bg-lighter); color:var(--text-main); cursor:pointer;">
-            <i class="fas fa-folder-open"></i> <span data-i18n="btn_manage_audio">Audio Library</span>
-        </button>
-        <div id="uploadProgressBox" style="display:none; margin-top:8px;">
-            <div class="prog-bg"><div id="uploadBar" class="prog-fill"></div></div>
-            <span id="uploadText" data-i18n="msg_uploading" style="font-size:0.7rem; color:#888;">Uploading...</span>
-        </div>
-    </div>
-
-    <audio id="masterAudio" controls class="master-player" style="margin-top:10px; width: 100%;"></audio>
-    
-    <div id="audio-tools-panel" style="display:none; margin-top:10px; padding: 10px; background: rgba(0,0,0,0.1); border-radius: 8px; border: 1px solid var(--border-color);">
-        <div style="font-size: 0.8rem; font-weight: bold; margin-bottom: 10px; color: var(--text-muted);">
-            <i class="fas fa-sliders-h"></i> <span data-i18n="lbl_audio_tools">AUDIO TOOLS</span>
-        </div>
-
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-            <span style="font-size: 0.85rem;" data-i18n="lbl_pitch">Pitch:</span>
-            <div style="display: flex; gap: 8px; align-items: center;">
-                <button id="btnAudioPitchDown" class="play-mini-btn" style="width: 28px; height: 28px; padding: 0;">-</button>
-                <span id="audioPitchDisplay" style="width: 24px; text-align: center; font-weight: bold; font-size: 0.9rem;">0</span>
-                <button id="btnAudioPitchUp" class="play-mini-btn" style="width: 28px; height: 28px; padding: 0;">+</button>
+        
+        <div class="tool-section">
+            <div class="section-title">
+                <i class="fas fa-microphone-alt" style="color:var(--accent);"></i> 
+                <span data-i18n="title_audio_hub">AUDIO HUB</span>
             </div>
-            <button id="btnAudioPitchReset" class="add-mini-btn" style="padding: 2px 8px; font-size: 0.75rem;" data-i18n="btn_reset">Reset</button>
-        </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                
+                <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 5px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all 0.2s;">
+                    <span id="recTimer" class="rec-timer" style="font-size: 0.85rem; margin-bottom: 8px; color: var(--text-muted); font-family: monospace;">00:00</span>
+                    <div style="display: flex; gap: 8px;">
+                        <button id="btnRecord" onclick="toggleRecording()" class="action-btn-circle" title="Record" style="background: var(--bg-main); color: #ff4757; border: 1px solid #ff4757; width: 38px; height: 38px; border-radius: 50%; cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+                            <i class="fas fa-circle"></i>
+                        </button>
+                        <button id="btnLinkRec" onclick="uploadAndLinkCurrent()" class="action-btn-circle" style="display:none; background: #4db6ac; color: #000; border: none; width: 38px; height: 38px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;" title="Save to Song">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                        </button>
+                    </div>
+                </div>
 
-        <button id="btnDetectKey" class="add-mini-btn" style="width: 100%; justify-content: center; background-color: rgba(40, 167, 69, 0.15); border-color: rgba(40, 167, 69, 0.4);">
-            <i class="fas fa-magic"></i> <span data-i18n="btn_detect_key">Detect Key</span>
-        </button>
-        <div id="keyDetectResult" style="display: none; text-align: center; font-weight: bold; margin-top: 8px; font-size: 1.1rem; color: #28a745;">
-        </div>
-    </div>
+                <div onclick="openAssetManager('audio')" style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 5px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='rgba(255,255,255,0.03)'">
+                    <i class="fas fa-folder-open" style="font-size: 1.6rem; color: var(--accent); margin-bottom: 8px;"></i>
+                    <span data-i18n="btn_manage_audio" style="font-size: 0.8rem; font-weight: bold; color: var(--text-main);">Audio Library</span>
+                </div>
 
-    <div class="audio-list-container" style="margin-top: 15px;">
-        <label class="list-label" data-i18n="lbl_tracks">TRACKS:</label>
-        <div id="sideRecList" class="compact-list">
-            <div class="empty-state" data-i18n="msg_no_recordings">No recordings yet</div> 
+            </div>
+
+            <div id="uploadProgressBox" style="display:none; margin-bottom: 15px;">
+                <div class="prog-bg"><div id="uploadBar" class="prog-fill"></div></div>
+                <span id="uploadText" data-i18n="msg_uploading" style="font-size:0.7rem; color:#888;">Uploading...</span>
+            </div>
+
+            <audio id="masterAudio" controls class="master-player" style="width: 100%; height: 40px; border-radius: 8px; color-scheme: dark; margin-bottom: 15px; outline: none; background: #111;"></audio>
+            
+            <div id="audio-tools-panel" style="display:none; margin-bottom:15px; padding: 10px; background: rgba(0,0,0,0.1); border-radius: 8px; border: 1px solid var(--border-color);">
+                <div style="font-size: 0.8rem; font-weight: bold; margin-bottom: 10px; color: var(--text-muted);">
+                    <i class="fas fa-sliders-h"></i> <span data-i18n="lbl_audio_tools">AUDIO TOOLS</span>
+                </div>
+
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                    <span style="font-size: 0.85rem;" data-i18n="lbl_pitch">Pitch:</span>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <button id="btnAudioPitchDown" class="play-mini-btn" style="width: 28px; height: 28px; padding: 0;">-</button>
+                        <span id="audioPitchDisplay" style="width: 24px; text-align: center; font-weight: bold; font-size: 0.9rem;">0</span>
+                        <button id="btnAudioPitchUp" class="play-mini-btn" style="width: 28px; height: 28px; padding: 0;">+</button>
+                    </div>
+                    <button id="btnAudioPitchReset" class="add-mini-btn" style="padding: 2px 8px; font-size: 0.75rem;" data-i18n="btn_reset">Reset</button>
+                </div>
+
+                <button id="btnDetectKey" class="add-mini-btn" style="width: 100%; justify-content: center; background-color: rgba(40, 167, 69, 0.15); border-color: rgba(40, 167, 69, 0.4);">
+                    <i class="fas fa-magic"></i> <span data-i18n="btn_detect_key">Detect Key</span>
+                </button>
+                <div id="keyDetectResult" style="display: none; text-align: center; font-weight: bold; margin-top: 8px; font-size: 1.1rem; color: #28a745;">
+                </div>
+            </div>
+
+            <div class="audio-list-container" style="background: rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 10px;">
+                <label class="list-label" data-i18n="lbl_tracks" style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 8px; display: block; letter-spacing: 1px;">TRACKS:</label>
+                <div id="sideRecList" class="compact-list">
+                    <div class="empty-state" data-i18n="msg_no_recordings" style="text-align: center; color: #666; font-size: 0.85rem; padding: 10px 0; font-style: italic;">No recordings yet</div> 
+                </div>
+            </div>
         </div>
-    </div>
-</div>
 
         <hr class="sep">
 
         <details class="tool-group" open>
-            <summary><i class="fas fa-folder-open"></i> <span data-i18n="sum_files">FILES & SHEETS</span></summary>
+            <summary><i class="fas fa-folder-open" style="color:var(--accent);"></i> <span data-i18n="sum_files">FILES & SHEETS</span></summary>
             <div class="group-content">
-                <div id="list-sheets" class="file-list compact">
+                <div id="list-sheets" class="file-list compact" style="margin-bottom: 10px;">
                     <div class="empty-state" data-i18n="msg_no_attachments">No attachments</div>
                 </div>
-                <button class="add-mini-btn" onclick="openAssetManager('document')">
+                <button class="add-mini-btn" onclick="openAssetManager('document')" style="width: 100%; justify-content: center; padding: 8px;">
                     <i class="fas fa-folder-open"></i> <span data-i18n="btn_manage_files">Files Library</span>
                 </button>
             </div>
         </details>
 
         <hr class="sep" id="guitarChordsSep">
+        
         <details class="tool-group" id="guitarChordsGroup" open>
             <summary><i class="fas fa-guitar"></i> <span data-i18n="lbl_show_chords">GUITAR CHORDS</span></summary>
             <div class="group-content">
-                    <div id="chord-charts-container" style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; padding-top:10px;">
-                        <div class="empty-state" data-i18n="msg_no_chords">Δεν βρέθηκαν συγχορδίες...</div>
-                    </div>
+                <div id="chord-charts-container" style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; padding-top:10px;">
+                    <div class="empty-state" data-i18n="msg_no_chords">Δεν βρέθηκαν συγχορδίες...</div>
+                </div>
             </div>
         </details>
          
@@ -350,7 +361,9 @@
             </div>
         </details>
 
-    </div> <div class="tools-footer">
+    </div> 
+    
+    <div class="tools-footer">
         <button class="footer-btn" onclick="openSettings()" title="Settings">
             <i class="fas fa-cog"></i>
         </button>
@@ -358,8 +371,8 @@
             <i class="fas fa-user"></i> <span data-i18n="btn_account">Account</span> 
         </button>
     </div>
-</aside> 
-    </div>
+</aside>
+ 
 
     <div id="importChoiceModal" class="modal" style="display:none;">
         <div class="modal-content">
@@ -757,6 +770,7 @@
     <script src="js/asset-manager.js"></script>
 </body>
 </html>
+
 
 
 

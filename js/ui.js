@@ -1205,7 +1205,7 @@ async function uploadAudioToCloud(inputElement) {
     // 🔒 Έλεγχος Δικαιώματος
     if (typeof canUserPerform === 'function' && !canUserPerform('SAVE_ATTACHMENTS')) {
         if (typeof promptUpgrade === 'function') promptUpgrade('Αποθήκευση Backing Tracks');
-        inputElement.value = ""; // Μηδενισμός της επιλογής
+        inputElement.value = ""; 
         return; 
     }
 
@@ -1213,6 +1213,23 @@ async function uploadAudioToCloud(inputElement) {
     if (!file) return;
     if (!currentSongId) { showToast("Επιλέξτε τραγούδι πρώτα!"); return; }
     if (!currentUser) { document.getElementById('authModal').style.display='flex'; return; }
+
+    // --- ΝΕΟ: Εύρεση προεπιλεγμένου ονόματος και ερώτηση στον χρήστη ---
+    // Αφαιρούμε την κατάληξη (π.χ. .mp3) για να του το προτείνουμε καθαρό
+    const defaultName = file.name.replace(/\.[^/.]+$/, ""); 
+    let customTrackName = window.prompt("Δώσε ένα όνομα για το Ηχητικό (π.χ. Backing Track, Solo):", defaultName);
+
+    // Αν ο χρήστης πατήσει "Ακύρωση" στο prompt, σταματάμε τα πάντα
+    if (customTrackName === null) {
+        inputElement.value = "";
+        return;
+    }
+
+    // Αν το αφήσει τελείως κενό, του δίνουμε ένα γενικό όνομα
+    if (customTrackName.trim() === "") {
+        customTrackName = "Άτιτλο Track";
+    }
+    // ------------------------------------------------------------------
 
     const s = library.find(x => x.id === currentSongId);
     if (!s.recordings) s.recordings = [];
@@ -1222,14 +1239,19 @@ async function uploadAudioToCloud(inputElement) {
     if(progBox) progBox.style.display = 'block';
     if(progBar) progBar.style.width = '50%'; 
 
-    const filename = `Upload_${currentSongId}_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`;
+    // Φτιάχνουμε ένα ασφαλές όνομα για το SUPABASE (χωρίς κενά ή ελληνικά για αποφυγή bugs)
+    const safeNameForStorage = customTrackName.replace(/[^a-zA-Z0-9]/g, '_');
+    // Κρατάμε το timestamp για να μην γίνει ποτέ overwrite αν ανεβάσει 2 αρχεία με το ίδιο όνομα
+    const filename = `Upload_${currentSongId}_${Date.now()}_${safeNameForStorage}`;
 
     try {
         const { data, error } = await supabaseClient.storage.from('audio_files').upload(`${currentUser.id}/${filename}`, file);
         if (error) throw error;
 
         const { data: { publicUrl } } = supabaseClient.storage.from('audio_files').getPublicUrl(`${currentUser.id}/${filename}`);
-        const newRec = { id: Date.now(), name: file.name, url: publicUrl, date: Date.now() };
+        
+        // ΕΔΩ: Στο αντικείμενο που σώζεται στο τραγούδι, περνάμε το ΩΡΑΙΟ όνομα που έδωσε ο χρήστης!
+        const newRec = { id: Date.now(), name: customTrackName, url: publicUrl, date: Date.now() };
 
         if(typeof addRecordingToCurrentSong === 'function') {
              await addRecordingToCurrentSong(newRec);

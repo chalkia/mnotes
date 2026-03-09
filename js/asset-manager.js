@@ -43,15 +43,20 @@ async function loadUserAssets(type) {
             return;
         }
 
-        // Σχεδιάζουμε τη λίστα
+     // Σχεδιάζουμε τη λίστα
         listContainer.innerHTML = data.map(asset => `
             <div style="display:flex; justify-content:space-between; align-items:center; padding:8px; border-bottom:1px solid var(--border-color);">
                 <span style="font-size:0.85rem; word-break:break-all;">
                     <i class="${type === 'audio' ? 'fas fa-music' : 'fas fa-file-pdf'}"></i> ${asset.custom_name}
                 </span>
-                <button onclick="attachExistingAsset('${asset.custom_name}', '${asset.file_url}')" class="add-mini-btn" title="Σύνδεση με το τραγούδι / Attach to song">
-                    <i class="fas fa-link"></i> Attach
-                </button>
+                <div style="display:flex; gap: 8px;">
+                    <button onclick="attachExistingAsset('${asset.custom_name}', '${asset.file_url}')" class="add-mini-btn" title="Σύνδεση με το τραγούδι / Attach to song">
+                        <i class="fas fa-link"></i>
+                    </button>
+                    <button onclick="deleteAssetFromLibrary('${asset.id}', '${asset.file_url}', '${asset.custom_name}')" class="play-mini-btn" style="color: #dc3545; border-color: #dc3545;" title="Οριστική Διαγραφή / Delete">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
             </div>
         `).join('');
 

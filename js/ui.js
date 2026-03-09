@@ -966,10 +966,7 @@ function switchToEditor() {
             document.getElementById('inpIntro').value = s.intro || ""; 
             document.getElementById('inpInter').value = s.interlude || ""; 
             document.getElementById('inpConductorNotes').value = s.conductorNotes || ""; 
-            
-            const map = JSON.parse(localStorage.getItem('mnotes_personal_notes') || '{}');
-            document.getElementById('inpPersonalNotes').value = map[s.id] || "";
-            
+                                   
             // Διόρθωση για να αναγνωρίζει και playlists και tags
             editorTags = s.tags ? [...s.tags] : (s.playlists ? [...s.playlists] : []); 
             if(typeof renderTagChips === 'function') renderTagChips(); 
@@ -983,13 +980,8 @@ function saveEdit() {
     let bodyArea = document.getElementById('inpBody'); 
     if (bodyArea) bodyArea.value = fixTrailingChords(bodyArea.value); 
     saveSong(); 
-    if (currentSongId) {
-        const pNote = document.getElementById('inpPersonalNotes').value;
-        const map = JSON.parse(localStorage.getItem('mnotes_personal_notes') || '{}');
-        if (pNote.trim()) { map[currentSongId] = pNote.trim(); } else { delete map[currentSongId]; }
-        localStorage.setItem('mnotes_personal_notes', JSON.stringify(map));
-    }
-    populateTags(); applyFilters(); 
+    populateTags(); 
+    applyFilters(); 
 }
 
 function fixTrailingChords(text) { let lines = text.split('\n'); return lines.map(line => { const trailingChordRegex = /![A-G][b#]?[m]?[maj7|sus4|7|add9|dim|0-9]*(\/[A-G][b#]?)?\s*$/; if (line.match(trailingChordRegex)) return line.trimEnd() + "    "; return line; }).join('\n'); }

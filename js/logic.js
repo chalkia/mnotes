@@ -609,100 +609,114 @@ async function fetchBandSongs(groupId) {
  * Διαχειρίζεται αυτόματα Local Storage, Personal Cloud και Band Cloud.
  */
 async function saveSong() {
-   console.log("🔍 [DEBUG SAVE 1] Πατήθηκε το Save.");
-    console.log("🔍 [DEBUG SAVE 1] currentSongId πριν τη συλλογή:", currentSongId);
-    console.log("🔍 [DEBUG SAVE 1] Context: Group =", currentGroupId, "| Role =", currentRole);
-    const title = document.getElementById('inpTitle').value;
-    const body = document.getElementById('inpBody').value; 
-    
-    if (!title || !body) { showToast(t('msg_title_body_req'), "error"); return; }
+    console.log(`📝 [SAVE] Ξεκινάει η αποθήκευση. SongID: ${currentSongId || 'NEW'}, Context: ${currentGroupId}`);
 
-    // ✨ Εξασφάλιση ID: Αν είναι νέο τραγούδι, φτιάχνουμε ένα προσωρινό ID τώρα.
-    // Αν αργότερα σωθεί στη Supabase, θα πάρει το μόνιμο εκεί.
+    // 1. Ασφαλής ανάγνωση και επικύρωση βασικών πεδίων
+    const titleInp = document.getElementById('inpTitle');
+    const bodyInp = document.getElementById('inpBody');
+    
+    const title = titleInp ? titleInp.value.trim() : "";
+    const body = bodyInp ? bodyInp.value.trim() : "";
+    
+    if (!title || !body) { 
+        showToast(typeof t === 'function' ? t('msg_title_body_req') : "Απαιτείται τίτλος και περιεχόμενο", "error"); 
+        return; 
+    }
+
+    // 2. Εξασφάλιση μόνιμου ID
     if (!currentSongId || currentSongId === 'null') {
         currentSongId = "s_" + Date.now() + Math.random().toString(16).slice(2);
+        console.log(`✨ [SAVE] Δημιουργήθηκε νέο ID: ${currentSongId}`);
     }
+
+    // 3. Συλλογή και καθαρισμός δεδομένων (Sanitization)
+    const publicBandNotes = document.getElementById('inpConductorNotes')?.value.trim() || "";
+    const tagsRaw = document.getElementById('inpTags')?.value || "";
+    const tagsArray = tagsRaw.split(',').map(tag => tag.trim()).filter(tag => tag !== "");
 
     const songData = {
         id: currentSongId,
         title: title,
-        artist: document.getElementById('inpArtist').value,
-        key: document.getElementById('inpKey').value,
+        artist: document.getElementById('inpArtist')?.value.trim() || "",
+        key: document.getElementById('inpKey')?.value.trim() || "",
         body: body,
-        intro: document.getElementById('inpIntro').value,
-        interlude: document.getElementById('inpInter').value,
-        notes: document.getElementById('inpConductorNotes')?.value || "",
-        video: document.getElementById('inpVideo')?.value || "",
-        tags: document.getElementById('inpTags')?.value.split(',').map(t => t.trim()).filter(t => t !== "") || [],
+        intro: document.getElementById('inpIntro')?.value.trim() || "",
+        interlude: document.getElementById('inpInter')?.value.trim() || "",
+        conductorNotes: publicBandNotes, // Για το UI Player
+        notes: publicBandNotes,          // Για το Supabase Database
+        video: document.getElementById('inpVideo')?.value.trim() || "",
+        tags: tagsArray,
         updated_at: new Date().toISOString()
     };
    
-    const personalNotesVal = document.getElementById('inpPersonalNotes')?.value || "";
-     console.log("🔍 [DEBUG SAVE 2] Διαδρομή που θα ακολουθήσει:");
-    if (currentGroupId === 'personal') {
-        console.log("🔍 [DEBUG SAVE 2] Επιλογή: Προσωπικό.", "Έχει Cloud;", canUserPerform('USE_SUPABASE'));
-    } else {
-        console.log("🔍 [DEBUG SAVE 2] Επιλογή: Μπάντα.");
-    }
-    
-   try {
-        // --- ΣΕΝΑΡΙΟ Α: ΠΡΟΣΩΠΙΚΗ ΒΙΒΛΙΟΘΗΚΗ ---
+    try {
+        // ==========================================
+        // ΣΕΝΑΡΙΟ Α: ΠΡΟΣΩΠΙΚΗ ΒΙΒΛΙΟΘΗΚΗ
+        // ==========================================
         if (currentGroupId === 'personal') {
+            console.log("🔒 [SAVE] Αποθήκευση στην Προσωπική Βιβλιοθήκη");
             
-            // 1. MAESTRO / SOLO (με Cloud Sync ενεργό) -> Supabase
-            if (canUserPerform('USE_SUPABASE')) {
-                songData.notes = personalNotesVal || songData.notes; 
+            if (typeof canUserPerform === 'function' && canUserPerform('USE_SUPABASE')) {
                 await saveToCloud(songData, null);
-                showToast("Saved to My Cloud! ☁️");
+                showToast("Αποθηκεύτηκε στο Cloud! ☁️");
             } 
-            // 2. SOLO (με Google Drive) -> Drive
-            else if (canUserPerform('USE_DRIVE')) {
-                saveToLocalStorage(songData); // Πρώτα τοπικά για ταχύτητα
+            else if (typeof canUserPerform === 'function' && canUserPerform('USE_DRIVE')) {
+                if (typeof saveToLocalStorage === 'function') saveToLocalStorage(songData); 
                 if (typeof saveToDrive === 'function') await saveToDrive(library);
-                showToast("Saved to Google Drive! 📂");
+                showToast("Αποθηκεύτηκε στο Google Drive! 📂");
             } 
-            // 3. FREE -> LocalStorage
             else {
-                saveToLocalStorage(songData);
-                showToast("Saved Locally! 💾");
+                if (typeof saveToLocalStorage === 'function') saveToLocalStorage(songData);
+                showToast("Αποθηκεύτηκε Τοπικά! 💾");
             }
+        } 
+        // ==========================================
+        // ΣΕΝΑΡΙΟ Β: ΜΠΑΝΤΑ (Band Context)
+        // ==========================================
+        else {
+            console.log("🎸 [SAVE] Αποθήκευση σε Περιβάλλον Μπάντας");
+            
+            // Χρήση της κεντρικής συνάρτησης δικαιωμάτων! (Βάλε το σωστό Action Key)
+            const canEditBand = (currentRole === 'admin' || currentRole === 'owner');
 
-        } else {
-            // --- ΣΕΝΑΡΙΟ Β: ΜΠΑΝΤΑ (Band Context) ---
-            if (currentRole === 'admin' || currentRole === 'owner') {
-                // Admin/Owner σώζει απευθείας στο κοινό Cloud
+            if (canEditBand) {
+                console.log("✅ [SAVE] Ο χρήστης έχει δικαίωμα επεξεργασίας ρεπερτορίου μπάντας.");
                 await saveToCloud(songData, currentGroupId);
-                showToast("Band Library Updated! 🎸");
+                showToast("Η βιβλιοθήκη της μπάντας ενημερώθηκε! 🎸");
             } else {
-                // Member σώζει μόνο Overrides (δικές του σημειώσεις)
-                await saveAsOverride({ ...songData, personal_notes: personalNotesVal });
-                showToast("Personal settings saved! 👤");
+                console.log("⚠️ [SAVE] Απλό μέλος - Αποθήκευση μόνο ως Override.");
+                if (typeof saveAsOverride === 'function') {
+                    await saveAsOverride({ ...songData });
+                }
+                showToast("Οι προσωπικές ρυθμίσεις αποθηκεύτηκαν! 👤");
             }
         }
-         // --- Η ΔΙΟΡΘΩΣΗ ΓΙΑ ΤΗΝ ΕΠΙΣΤΡΟΦΗ ---
-        
-        // 1. Κρατάμε το ID πριν το "χάσουμε" στην επαναφόρτωση
+         
+        // ==========================================
+        // UI & NAVIGATION (Επιστροφή στον Viewer)
+        // ==========================================
         const targetId = currentSongId;
+        
+        // Φρεσκάρισμα της λίστας με τα νέα δεδομένα
+        if (typeof loadContextData === 'function') await loadContextData(); 
 
-        // 2. Επαναφόρτωση δεδομένων (βιβλιοθήκη)
-        await loadContextData(); 
-
-        // 3. Επιστροφή στον Viewer
-        // Αντί για toViewer(true), καλούμε την εμφάνιση του συγκεκριμένου ID
+        // Εμφάνιση του τραγουδιού
         if (typeof displaySong === 'function') {
             displaySong(targetId); 
         } else if (typeof toViewer === 'function') {
             toViewer(true);
         }
 
-        // 4. Εξασφαλίζουμε ότι το View αλλάζει
+        // Οπτική μετάβαση
         if (typeof switchView === 'function') {
             switchView('view-details');
         }
 
+        console.log("🏁 [SAVE] Η διαδικασία αποθήκευσης ολοκληρώθηκε επιτυχώς.");
+
     } catch (err) {
-        console.error("❌ Save failed:", err);
-        showToast("Error during save", "error");
+        console.error("❌ [SAVE ERROR] Αποτυχία αποθήκευσης:", err);
+        showToast("Σφάλμα κατά την αποθήκευση", "error");
     }
 }
 

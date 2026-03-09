@@ -256,11 +256,10 @@
     </div>
 
     <div class="upload-wrapper" style="text-align:center; margin-top:10px; margin-bottom:10px;">
-        <input type="file" id="inpImportAudio" accept="audio/*, .mp3, .m4a, .wav, .aac" style="display:none;" onchange="uploadAudioToCloud(this)">
-        <label for="inpImportAudio" class="upload-btn-styled">
-            <i class="fas fa-cloud-upload-alt"></i> <span data-i18n="btn_upload_backing">Upload Backing Track</span>
-        </label>
-        <div id="uploadProgressBox" style="display:none;">
+        <button onclick="openAssetManager('audio')" class="upload-btn-styled" style="width:100%; border:none; background:var(--bg-lighter); color:var(--text-main); cursor:pointer;">
+            <i class="fas fa-folder-open"></i> <span data-i18n="btn_manage_audio">Audio Library</span>
+        </button>
+        <div id="uploadProgressBox" style="display:none; margin-top:8px;">
             <div class="prog-bg"><div id="uploadBar" class="prog-fill"></div></div>
             <span id="uploadText" data-i18n="msg_uploading" style="font-size:0.7rem; color:#888;">Uploading...</span>
         </div>
@@ -306,10 +305,9 @@
                 <div id="list-sheets" class="file-list compact">
                     <div class="empty-state" data-i18n="msg_no_attachments">No attachments</div>
                 </div>
-                <button class="add-mini-btn" onclick="document.getElementById('inpPdfUpload').click()">
-                    <i class="fas fa-plus"></i> <span data-i18n="btn_add_file">Add File</span>
+                <button class="add-mini-btn" onclick="openAssetManager('document')">
+                    <i class="fas fa-folder-open"></i> <span data-i18n="btn_manage_files">Files Library</span>
                 </button>
-                <input type="file" id="inpPdfUpload" accept="application/pdf, image/*" style="display:none" onchange="uploadAttachment(this)">
             </div>
         </details>
 
@@ -375,6 +373,30 @@
             <button onclick="document.getElementById('importChoiceModal').style.display='none'" class="modal-btn cancel" data-i18n="btn_cancel">Cancel</button>
         </div>
     </div>
+
+    <div id="assetManagerModal" class="modal" style="display:none;">
+        <div class="modal-content" style="max-width: 500px; width: 95%;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h3 style="margin:0;"><i class="fas fa-photo-video"></i> <span data-i18n="title_media_library">My Media Library</span></h3>
+                <button onclick="closeAssetManager()" class="text-btn"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <div style="margin-bottom: 15px; text-align: center;">
+                <input type="file" id="inpGlobalUpload" style="display:none;" onchange="handleGlobalUpload(this)">
+                <button onclick="document.getElementById('inpGlobalUpload').click()" class="highlight-btn" style="width:100%; padding:10px; font-size:1rem;">
+                    <i class="fas fa-cloud-upload-alt"></i> <span data-i18n="btn_upload_new">Upload New File</span>
+                </button>
+            </div>
+            
+            <label class="list-label" data-i18n="lbl_my_files">MY UPLOADED FILES:</label>
+            <div class="asset-list-container" style="max-height: 250px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; background: rgba(0,0,0,0.05);">
+                <div id="assetManagerList" class="compact-list">
+                    </div>
+            </div>
+            
+            <input type="hidden" id="assetManagerCurrentType" value="audio">
+        </div>
+    </div> 
     
   <div id="settingsModal" class="modal" style="display:none;">
     <div class="modal-content settings-content">
@@ -734,6 +756,7 @@
     <script src="js/app.js?v=21.0"></script>
 </body>
 </html>
+
 
 
 

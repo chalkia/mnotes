@@ -1156,7 +1156,11 @@ async function uploadAndLinkCurrent() {
     if (!currentSongId) { showToast("Select song!"); return; }
     if (typeof currentUser === 'undefined' || !currentUser) { document.getElementById('authModal').style.display='flex'; return; }
     
-    const s = library.find(x => x.id === currentSongId);
+    // --- 1. Η ΣΦΡΑΓΙΔΑ ---
+    const targetSongId = currentSongId;
+    const s = library.find(x => x.id === targetSongId);
+    if (!s) return;
+
     if (!confirm(`Save to "${s.title}" in Cloud?`)) return;
     
     const btnLink = document.getElementById('btnLinkRec');
@@ -1165,173 +1169,62 @@ async function uploadAndLinkCurrent() {
     
     if (!s.recordings) s.recordings = [];
     const takeNum = s.recordings.length + 1;
-    const filename = `Song_${currentSongId}_Take${takeNum}_${Date.now()}.webm`;
+    
+    // Δίνουμε ένα όνομα που θα έχει νόημα μέσα στο γενικό Media Library
+    const assetLibraryName = `Mic Take ${takeNum} - ${s.title}`;
+    const filename = `Mic_${targetSongId}_Take${takeNum}_${Date.now()}.webm`;
 
     try {
-        // Direct upload using Supabase Client
+        // Βήμα Α: Upload στο Storage
         const { data, error } = await supabaseClient.storage.from('audio_files').upload(`${currentUser.id}/${filename}`, currentRecordedBlob);
-        
-        // Αν υπάρχει error, το πετάμε αμέσως στην catch
         if (error) throw error; 
 
-        // Αν φτάσαμε εδώ, όλα πήγαν καλά
         const { data: { publicUrl } } = supabaseClient.storage.from('audio_files').getPublicUrl(`${currentUser.id}/${filename}`);
         
+        // --- 2. ΝΕΟ: Αποθήκευση στον πίνακα user_assets (Media Library) ---
+        const { error: dbErr } = await supabaseClient
+            .from('user_assets')
+            .insert([{
+                user_id: currentUser.id,
+                custom_name: assetLibraryName,
+                file_url: publicUrl,
+                file_type: 'audio'
+            }]);
+        if (dbErr) console.warn("Asset Library Warning:", dbErr); // Δεν διακόπτουμε το save αν απλά απέτυχε η βιβλιοθήκη
+
+        // Βήμα Β: Σύνδεση με το τραγούδι
         const newRec = { id: Date.now(), name: `Take ${takeNum}`, url: publicUrl, date: Date.now() };
         
         if (typeof addRecordingToCurrentSong === 'function') {
              await addRecordingToCurrentSong(newRec);
         } else {
-             saveData(); 
+             if (typeof saveData === 'function') saveData(); 
         }
         
-        // Το βάζουμε στη μνήμη ΠΑΝΤΑ για να μην το σβήσει η renderPlayer
         s.recordings.push(newRec);
 
         showToast(`Take ${takeNum} Saved! ☁️`);
         btnLink.style.display = 'none'; 
-        renderPlayer(s);
+        
+        // --- 3. Αποφυγή του AbortError ---
+        // Ανανεώνουμε ΜΟΝΟ τη λίστα ηχητικών και ΜΟΝΟ αν ο χρήστης βλέπει ακόμα αυτό το τραγούδι
+        if (currentSongId === targetSongId && typeof renderRecordingsList === 'function') {
+            renderRecordingsList(s.recordings, []);
+        }
 
     } catch(e) {
          console.error("Upload Error:", e);
          showToast("Upload Error: " + e.message, "error");
          btnLink.style.opacity = '1'; 
          btnLink.innerHTML = '<i class="fas fa-cloud-upload-alt"></i>';
-    }
-}
-
-// Συνάρτηση για ανέβασμα έτοιμων αρχείων ήχου (MP3/WAV)
-async function uploadAudioToCloud(inputElement) {
-    // 🔒 Έλεγχος Δικαιώματος
-    if (typeof canUserPerform === 'function' && !canUserPerform('SAVE_ATTACHMENTS')) {
-        if (typeof promptUpgrade === 'function') promptUpgrade('Αποθήκευση Backing Tracks');
-        inputElement.value = ""; 
-        return; 
-    }
-
-    const file = inputElement.files[0];
-    if (!file) return;
-    if (!currentSongId) { showToast("Επιλέξτε τραγούδι πρώτα!"); return; }
-    if (!currentUser) { document.getElementById('authModal').style.display='flex'; return; }
-
-    // --- ΝΕΟ: Εύρεση προεπιλεγμένου ονόματος και ερώτηση στον χρήστη ---
-    // Αφαιρούμε την κατάληξη (π.χ. .mp3) για να του το προτείνουμε καθαρό
-    const defaultName = file.name.replace(/\.[^/.]+$/, ""); 
-    let customTrackName = window.prompt("Δώσε ένα όνομα για το Ηχητικό (π.χ. Backing Track, Solo):", defaultName);
-
-    // Αν ο χρήστης πατήσει "Ακύρωση" στο prompt, σταματάμε τα πάντα
-    if (customTrackName === null) {
-        inputElement.value = "";
-        return;
-    }
-
-    // Αν το αφήσει τελείως κενό, του δίνουμε ένα γενικό όνομα
-    if (customTrackName.trim() === "") {
-        customTrackName = "Άτιτλο Track";
-    }
-    // ------------------------------------------------------------------
-
-    const s = library.find(x => x.id === currentSongId);
-    if (!s.recordings) s.recordings = [];
-    
-    const progBox = document.getElementById('uploadProgressBox');
-    const progBar = document.getElementById('uploadBar');
-    if(progBox) progBox.style.display = 'block';
-    if(progBar) progBar.style.width = '50%'; 
-
-    // Φτιάχνουμε ένα ασφαλές όνομα για το SUPABASE (χωρίς κενά ή ελληνικά για αποφυγή bugs)
-    const safeNameForStorage = customTrackName.replace(/[^a-zA-Z0-9]/g, '_');
-    // Κρατάμε το timestamp για να μην γίνει ποτέ overwrite αν ανεβάσει 2 αρχεία με το ίδιο όνομα
-    const filename = `Upload_${currentSongId}_${Date.now()}_${safeNameForStorage}`;
-
-    try {
-        const { data, error } = await supabaseClient.storage.from('audio_files').upload(`${currentUser.id}/${filename}`, file);
-        if (error) throw error;
-
-        const { data: { publicUrl } } = supabaseClient.storage.from('audio_files').getPublicUrl(`${currentUser.id}/${filename}`);
-        
-        // ΕΔΩ: Στο αντικείμενο που σώζεται στο τραγούδι, περνάμε το ΩΡΑΙΟ όνομα που έδωσε ο χρήστης!
-        const newRec = { id: Date.now(), name: customTrackName, url: publicUrl, date: Date.now() };
-
-        if(typeof addRecordingToCurrentSong === 'function') {
-             await addRecordingToCurrentSong(newRec);
-        }
-        s.recordings.push(newRec);
-        
-        showToast("Audio Track Uploaded! 🎵");
-        renderPlayer(s);
-    } catch (err) {
-        console.error("Upload Error:", err);
-        showToast("Αποτυχία Upload: " + err.message, "error");
     } finally {
-        if(progBox) progBox.style.display = 'none';
-        inputElement.value = ""; 
+        // Καθαρίζουμε το μνήμη από το Blob για να είναι έτοιμο για επόμενη εγγραφή
+        currentRecordedBlob = null;
+        btnLink.innerHTML = '<i class="fas fa-cloud-upload-alt"></i>';
+        btnLink.style.opacity = '1';
     }
 }
-// Συνάρτηση για ανέβασμα εγγράφων/παρτιτούρων (PDF/Images)
 
-async function uploadAttachment(inputElement) {
-    // 🔒 Έλεγχος Δικαιώματος
-    if (typeof canUserPerform === 'function' && !canUserPerform('SAVE_ATTACHMENTS')) {
-        if (typeof promptUpgrade === 'function') promptUpgrade('Αποθήκευση Παρτιτούρας / Εικόνων');
-        inputElement.value = ""; 
-        return; 
-    }
-
-    const file = inputElement.files[0];
-    if (!file) return;
-
-    // 🛡️ ΑΣΠΙΔΑ 1: Έλεγχος αν υπάρχει επιλεγμένο τραγούδι
-    if (!currentSongId || currentSongId === 'null') { 
-        showToast("Επιλέξτε ή αποθηκεύστε το τραγούδι πρώτα!", "error"); 
-        inputElement.value = "";
-        return; 
-    }
-    
-    // 🛡️ ΑΣΠΙΔΑ 2: Βεβαιωνόμαστε ότι το τραγούδι υπάρχει στη μνήμη (library)
-    // Χρησιμοποιούμε την "Απόλυτη Ασπίδα" για να μην σκαλώσει σε ασυμφωνίες ID
-    const activeLibrary = window.library || library || [];
-    const s = activeLibrary.find(x => String(x.id) === String(currentSongId));
-    
-    if (!s) {
-        showToast("Πρέπει να κάνετε 'Save' το νέο τραγούδι πριν ανεβάσετε αρχεία.", "error");
-        inputElement.value = ""; 
-        return;
-    }
-
-    const btn = inputElement.previousElementSibling;
-    const originalHtml = btn ? btn.innerHTML : '';
-    if (btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
-
-    try {
-        // 🛡️ ΑΣΠΙΔΑ 3: Δημιουργία πίνακα attachments αν δεν υπάρχει
-        if (!s.attachments) s.attachments = [];
-        
-        const filename = `Doc_${currentSongId}_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`;
-
-        const { data, error } = await supabaseClient.storage.from('attachments').upload(`${currentUser.id}/${filename}`, file);
-        if (error) throw error;
-
-        const { data: { publicUrl } } = supabaseClient.storage.from('attachments').getPublicUrl(`${currentUser.id}/${filename}`);
-        const newDoc = { id: Date.now(), name: file.name, url: publicUrl, type: file.type };
-
-        if (typeof addAttachmentToCurrentSong === 'function') {
-             await addAttachmentToCurrentSong(newDoc);
-        }
-        
-        // 🚀 ΕΝΗΜΕΡΩΣΗ UI: Ζωγραφίζουμε ξανά τον Player για να εμφανιστεί το αρχείο στη λίστα ΑΜΕΣΩΣ
-        renderPlayer(s);
-        
-        showToast("Το αρχείο ανέβηκε επιτυχώς! 📄");
-        
-    } catch (err) {
-        console.error("Upload Error:", err);
-        showToast("Αποτυχία Upload: " + err.message, "error");
-    } finally {
-        inputElement.value = ""; 
-        if (btn) btn.innerHTML = originalHtml; 
-    }
-}
 // ===========================================================
 // 8. SETLIST MANAGER
 // ===========================================================

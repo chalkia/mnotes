@@ -1364,23 +1364,19 @@ window.deleteMediaItem = async function(songId, type, itemIndex) {
     // Δίγλωσσο μήνυμα αποσύνδεσης
     if (!confirm(`Αποσύνδεση του "${item.name || 'αρχείου'}" από το τραγούδι; (Θα παραμείνει στη Βιβλιοθήκη σας) \n\nDetach file from song? (It will remain in your Library)`)) return;
 
-    // Αφαίρεση από το UI αμέσως
+    // 1. Αφαίρεση από το UI (χωρίς να σκοτώνουμε τον player)
     s[type].splice(itemIndex, 1);
     
-    // --- ANTI-ABORTERROR FIX ---
     if (type === 'recordings' && typeof renderRecordingsList === 'function') {
         renderRecordingsList(s.recordings, []);
     } else if (type === 'attachments' && typeof renderAttachmentsList === 'function') {
         renderAttachmentsList(s.attachments);
     }
 
-     try {
+    // 2. Αποκλειστικός Συγχρονισμός με το Cloud (Supabase)
+    try {
         if (currentGroupId === 'personal') {
-            if (typeof canUserPerform === 'function' && canUserPerform('USE_SUPABASE')) {
-                await supabaseClient.from('songs').update({ [type]: s[type] }).eq('id', songId);
-            } else {
-                if (typeof saveData === 'function') saveData();
-            }
+            await supabaseClient.from('songs').update({ [type]: s[type] }).eq('id', songId);
         } else {
             // BAND CONTEXT
             if (isPrivate) {
@@ -1401,10 +1397,10 @@ window.deleteMediaItem = async function(songId, type, itemIndex) {
                 }
             }
         }
-        showToast("Διαγράφηκε οριστικά.");
+        showToast("Αποσυνδέθηκε επιτυχώς. / Successfully detached.");
     } catch(e) {
-        console.error("Delete Error:", e);
-        showToast("Σφάλμα συγχρονισμού διαγραφής", "error");
+        console.error("Detach Error:", e);
+        showToast("Σφάλμα συγχρονισμού / Sync error", "error");
     }
 };
 

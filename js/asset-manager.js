@@ -182,3 +182,35 @@ async function processAssetAttachment(targetSongId, type, name, url) {
         }
     }
 }
+// 6. Οριστική Διαγραφή (Hard Delete)
+async function deleteAssetFromLibrary(assetId, fileUrl, assetName) {
+    if (!confirm(`Οριστική διαγραφή του "${assetName}" από το Cloud; Η ενέργεια δεν αναιρείται! \n\nPermanently delete from Cloud? This cannot be undone!`)) return;
+
+    console.log(`[AssetManager] Ξεκινάει οριστική διαγραφή για: ${assetName}`);
+    
+    try {
+        // Βήμα Α: Εξαγωγή του σωστού path από το public URL
+        const urlParts = fileUrl.split('/audio_files/');
+        if (urlParts.length === 2) {
+            const filePath = urlParts[1];
+            console.log("[AssetManager] Αίτημα διαγραφής από Storage:", filePath);
+            const { error: storageErr } = await supabaseClient.storage.from('audio_files').remove([filePath]);
+            if (storageErr) console.warn("[AssetManager] Σφάλμα Storage (μπορεί να έχει ήδη διαγραφεί):", storageErr);
+        }
+
+        // Βήμα Β: Διαγραφή από τον πίνακα user_assets
+        const { error: dbErr } = await supabaseClient.from('user_assets').delete().eq('id', assetId);
+        if (dbErr) throw dbErr;
+
+        console.log("[AssetManager] Η διαγραφή ολοκληρώθηκε επιτυχώς.");
+        showToast("Το αρχείο διαγράφηκε οριστικά. / File permanently deleted.");
+        
+        // Ανανέωση της λίστας στο Modal
+        const assetType = document.getElementById('assetManagerCurrentType').value;
+        loadUserAssets(assetType);
+
+    } catch (err) {
+        console.error("[AssetManager] Σφάλμα οριστικής διαγραφής:", err);
+        showToast("Αποτυχία διαγραφής. / Delete failed.", "error");
+    }
+}

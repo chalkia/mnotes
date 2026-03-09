@@ -241,37 +241,61 @@
     </div>
 
     <div class="tool-panel">
-        <div class="tool-section">
-            <div class="section-title"><i class="fas fa-microphone-alt"></i> <span data-i18n="title_audio_hub">AUDIO HUB</span></div>
-            <div class="recorder-compact">
-                <span id="recTimer" class="rec-timer">00:00</span>
-                <button id="btnRecord" onclick="toggleRecording()" class="rec-btn" title="Record">
-                    <i class="fas fa-circle"></i>
-                </button>
-                <button id="btnLinkRec" onclick="uploadAndLinkCurrent()" class="save-rec-btn" style="display:none;" title="Save to Song">
-                    <i class="fas fa-cloud-upload-alt"></i>
-                </button>
-            </div>
+<div class="tool-section">
+    <div class="section-title"><i class="fas fa-microphone-alt"></i> <span data-i18n="title_audio_hub">AUDIO HUB</span></div>
+    
+    <div class="recorder-compact">
+        <span id="recTimer" class="rec-timer">00:00</span>
+        <button id="btnRecord" onclick="toggleRecording()" class="rec-btn" title="Record">
+            <i class="fas fa-circle"></i>
+        </button>
+        <button id="btnLinkRec" onclick="uploadAndLinkCurrent()" class="save-rec-btn" style="display:none;" title="Save to Song">
+            <i class="fas fa-cloud-upload-alt"></i>
+        </button>
+    </div>
 
-            <div class="upload-wrapper" style="text-align:center; margin-top:10px; margin-bottom:10px;">
-                <input type="file" id="inpImportAudio" accept="audio/*, .mp3, .m4a, .wav" style="display:none;" onchange="uploadAudioToCloud(this)">
-                <label for="inpImportAudio" class="upload-btn-styled">
-                    <i class="fas fa-cloud-upload-alt"></i> <span data-i18n="btn_upload_backing">Upload Backing Track</span>
-                </label>
-                <div id="uploadProgressBox" style="display:none;">
-                    <div class="prog-bg"><div id="uploadBar" class="prog-fill"></div></div>
-                    <span id="uploadText" data-i18n="msg_uploading" style="font-size:0.7rem; color:#888;">Uploading...</span>
-                </div>
-            </div>
-
-            <audio id="masterAudio" controls class="master-player" style="margin-top:10px;"></audio>
-            <div class="audio-list-container">
-                <label class="list-label" data-i18n="lbl_tracks">TRACKS:</label>
-                <div id="sideRecList" class="compact-list">
-                    <div class="empty-state" data-i18n="msg_no_recordings">No recordings yet</div> 
-                </div>
-            </div>
+    <div class="upload-wrapper" style="text-align:center; margin-top:10px; margin-bottom:10px;">
+        <input type="file" id="inpImportAudio" accept="audio/*, .mp3, .m4a, .wav" style="display:none;" onchange="uploadAudioToCloud(this)">
+        <label for="inpImportAudio" class="upload-btn-styled">
+            <i class="fas fa-cloud-upload-alt"></i> <span data-i18n="btn_upload_backing">Upload Backing Track</span>
+        </label>
+        <div id="uploadProgressBox" style="display:none;">
+            <div class="prog-bg"><div id="uploadBar" class="prog-fill"></div></div>
+            <span id="uploadText" data-i18n="msg_uploading" style="font-size:0.7rem; color:#888;">Uploading...</span>
         </div>
+    </div>
+
+    <audio id="masterAudio" controls class="master-player" style="margin-top:10px; width: 100%;"></audio>
+    
+    <div id="audio-tools-panel" style="display:none; margin-top:10px; padding: 10px; background: rgba(0,0,0,0.1); border-radius: 8px; border: 1px solid var(--border-color);">
+        <div style="font-size: 0.8rem; font-weight: bold; margin-bottom: 10px; color: var(--text-muted);">
+            <i class="fas fa-sliders-h"></i> <span data-i18n="lbl_audio_tools">AUDIO TOOLS</span>
+        </div>
+
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+            <span style="font-size: 0.85rem;" data-i18n="lbl_pitch">Pitch:</span>
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <button id="btnAudioPitchDown" class="play-mini-btn" style="width: 28px; height: 28px; padding: 0;">-</button>
+                <span id="audioPitchDisplay" style="width: 24px; text-align: center; font-weight: bold; font-size: 0.9rem;">0</span>
+                <button id="btnAudioPitchUp" class="play-mini-btn" style="width: 28px; height: 28px; padding: 0;">+</button>
+            </div>
+            <button id="btnAudioPitchReset" class="add-mini-btn" style="padding: 2px 8px; font-size: 0.75rem;" data-i18n="btn_reset">Reset</button>
+        </div>
+
+        <button id="btnDetectKey" class="add-mini-btn" style="width: 100%; justify-content: center; background-color: rgba(40, 167, 69, 0.15); border-color: rgba(40, 167, 69, 0.4);">
+            <i class="fas fa-magic"></i> <span data-i18n="btn_detect_key">Detect Key</span>
+        </button>
+        <div id="keyDetectResult" style="display: none; text-align: center; font-weight: bold; margin-top: 8px; font-size: 1.1rem; color: #28a745;">
+        </div>
+    </div>
+
+    <div class="audio-list-container" style="margin-top: 15px;">
+        <label class="list-label" data-i18n="lbl_tracks">TRACKS:</label>
+        <div id="sideRecList" class="compact-list">
+            <div class="empty-state" data-i18n="msg_no_recordings">No recordings yet</div> 
+        </div>
+    </div>
+</div>
 
         <hr class="sep">
 
@@ -709,4 +733,5 @@
     <script src="js/app.js?v=21.0"></script>
 </body>
 </html>
+
 

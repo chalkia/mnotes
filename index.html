@@ -411,7 +411,7 @@
             </div>
             
             <div style="margin-bottom: 15px; text-align: center;">
-                <input type="file" id="inpGlobalUpload" style="display:none;" onchange="handleGlobalUpload(this)">
+                <input type="file" id="inpGlobalUpload" style="display:none;" accept=".mp3, .wav, .m4a, .webm, audio/mpeg, audio/wav, audio/mp4, audio/webm, .pdf, application/pdf, .png, .jpg, .jpeg, image/png, image/jpeg" onchange="handleGlobalUpload(this)">
                 <button onclick="document.getElementById('inpGlobalUpload').click()" class="highlight-btn" style="width:100%; padding:10px; font-size:1rem;">
                     <i class="fas fa-cloud-upload-alt"></i> <span data-i18n="btn_upload_new">Upload New File</span>
                 </button>
@@ -786,6 +786,7 @@
     <script src="js/asset-manager.js"></script>
 </body>
 </html>
+
 
 
 

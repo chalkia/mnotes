@@ -440,6 +440,13 @@ async function importFromURL() {
 function loadSong(id) {
     // 1. Σταμάτημα Auto Scroll αν τρέχει
     if(typeof scrollTimer !== 'undefined' && scrollTimer) toggleAutoScroll();
+   
+   // Κλείσιμο του συρταριού σημειώσεων στο Live View - Άνοιγμα των συγχορδιών
+    let notesGroup = document.getElementById('perfNotesGroup');
+    if (notesGroup) notesGroup.open = false;
+    let chordsGroup = document.getElementById('guitarChordsGroup');
+    if (chordsGroup) chordsGroup.open = true; 
+   
     
     // 2. Εύρεση Τραγουδιού
     currentSongId = id; 
@@ -506,7 +513,7 @@ function renderPlayer(s) {
 
     const btnHtml = `<button id="btnIntroToggle" onclick="cycleIntroSize()" class="size-toggle-btn" title="Change Text Size"><i class="fas fa-text-height"></i></button>`;
 
-    // --- ΛΟΓΙΚΗ INTRO / INTERLUDE ---
+  // --- ΛΟΓΙΚΗ INTRO / INTERLUDE ---
     const introText = s.intro;
     const interText = s.inter || s.interlude; 
 
@@ -526,24 +533,23 @@ function renderPlayer(s) {
         metaHtml += `</div>`;
     }
     
-    // Το κουμπί εμφανίζεται ΜΟΝΟ αν υπάρχουν σημειώσεις (έστω και ένα από τα δύο)
+    // --- ΤΟ ΝΕΟ ΚΟΥΜΠΙ "ΠΙΝΕΖΑ" (Αντικαθιστά το παλιό μεγάλο κουμπί) ---
+    let noteBtnHtml = '';
     if (hasNotes) {
-        metaHtml += `<div style="margin-top:8px;">
-                        <button onclick="toggleStickyNotes()" style="background:none; border:none; cursor:pointer; padding:0; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                            <span class="meta-note-badge" style="background: var(--accent); color: #000; font-size: 0.85rem; padding: 4px 12px; border-radius: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
-                                <i class="fas fa-thumbtack"></i> Σημειώσεις (Notes)
-                            </span>
-                        </button>
-                     </div>`;
+        noteBtnHtml = `
+            <button onclick="toggleStickyNotes()" title="Εμφάνιση Σημειώσεων" style="background: #fbc02d; color: #000; border: none; border-radius: 50%; width: 26px; height: 26px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.4); margin-left: 12px; transform: translateY(-2px); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px) scale(1.1)'" onmouseout="this.style.transform='translateY(-2px) scale(1)'">
+                <i class="fas fa-thumbtack" style="font-size:0.85rem;"></i>
+            </button>`;
     }
     
-    // --- PLAYER HEADER (ΕΔΩ ΕΠΙΣΤΡΕΦΕΙ Ο ΤΙΤΛΟΣ) ---
+    // --- PLAYER HEADER ---
     const headerContainer = document.querySelector('.player-header-container');
     if (headerContainer) {
         headerContainer.innerHTML = `
         <div class="player-header">
-            <h2 id="mainAppTitle" style="margin:0 0 5px 0; font-size:1.2rem; color:var(--text-main);">
-                ${s.title} ${s.artist ? `<span style="font-size:0.9rem; opacity:0.6;">- ${s.artist}</span>` : ''}
+            <h2 id="mainAppTitle" style="margin:0 0 5px 0; font-size:1.2rem; color:var(--text-main); display:flex; align-items:center; flex-wrap:wrap;">
+                <span>${s.title} ${s.artist ? `<span style="font-size:0.9rem; opacity:0.6;">- ${s.artist}</span>` : ''}</span>
+                ${noteBtnHtml}
             </h2>
             <div style="display:flex; justify-content:space-between; align-items:center;">
                 <div style="display:flex; align-items:center; gap: 10px;">
@@ -959,6 +965,13 @@ function switchToEditor() {
     }
     document.getElementById('view-player').classList.remove('active-view'); 
     document.getElementById('view-editor').classList.add('active-view');
+   
+   // Άνοιγμα του συρταριού σημειώσεων - κλείσιμο συγχορδιών
+    let notesGroup = document.getElementById('perfNotesGroup');
+    if (notesGroup) notesGroup.open = true;
+   let chordsGroup = document.getElementById('guitarChordsGroup');
+    if (chordsGroup) chordsGroup.open = false; 
+    
     
     // Ενεργοποίηση διγλωσσίας στα placeholders
     if (typeof applyEditorPlaceholders === 'function') applyEditorPlaceholders();
@@ -994,7 +1007,26 @@ function saveEdit() {
 
 function fixTrailingChords(text) { let lines = text.split('\n'); return lines.map(line => { const trailingChordRegex = /![A-G][b#]?[m]?[maj7|sus4|7|add9|dim|0-9]*(\/[A-G][b#]?)?\s*$/; if (line.match(trailingChordRegex)) return line.trimEnd() + "    "; return line; }).join('\n'); }
 function createNewSong() { currentSongId = null; document.querySelectorAll('.inp').forEach(e => e.value = ""); editorTags = []; if(typeof renderTagChips === 'function') renderTagChips(); document.getElementById('view-player').classList.remove('active-view'); document.getElementById('view-editor').classList.add('active-view'); if (typeof applyEditorPlaceholders === 'function') {applyEditorPlaceholders();}}
-function exitEditor() { if (currentSongId) loadSong(currentSongId); else if (library.length > 0) loadSong(library[0].id); else { document.getElementById('view-editor').classList.remove('active-view'); document.getElementById('view-player').classList.add('active-view'); } }
+function exitEditor() { 
+    // 1. Κλείνουμε το συρτάρι των Σημειώσεων (δεν το χρειαζόμαστε ανοιχτό στο Stage)
+    let notesGroup = document.getElementById('perfNotesGroup');
+    if (notesGroup) notesGroup.open = false;
+
+    // 2. Ανοίγουμε το συρτάρι των Συγχορδιών (το χρειαζόμαστε ανοιχτό στο Stage)
+    let chordsGroup = document.getElementById('guitarChordsGroup');
+    if (chordsGroup) chordsGroup.open = true;
+
+    // 3. Η κλασική λογική επιστροφής στον Viewer
+    if (currentSongId) {
+        loadSong(currentSongId); 
+    } else if (library.length > 0) {
+        loadSong(library[0].id); 
+    } else { 
+        // Αν η βιβλιοθήκη είναι εντελώς άδεια
+        document.getElementById('view-editor').classList.remove('active-view'); 
+        document.getElementById('view-player').classList.add('active-view'); 
+    } 
+}
 
 // ===========================================================
 // TAG SYSTEM & AUTOCOMPLETE (EDITOR)
@@ -1520,19 +1552,22 @@ function renderStickyNotes(s) {
     const personalNotesMap = JSON.parse(localStorage.getItem('mnotes_personal_notes') || '{}'); 
     const myNote = personalNotesMap[s.id] || "";
     
-    // Στυλιζάρουμε το Area για να μοιάζει με Modal στο Live
-    stickyArea.style.cssText = "display:none; position:absolute; top:80px; left:15px; right:15px; background:var(--bg-panel); border:2px solid var(--accent); padding:15px; border-radius:8px; z-index:100; box-shadow:0 10px 30px rgba(0,0,0,0.5);";
+    // Στυλ πραγματικού Post-it + Cursor Pointer + Onclick για κλείσιμο
+    stickyArea.style.cssText = "display:none; position:absolute; top:70px; left:15px; right:15px; background:#fff9c4; color:#000; border:1px solid #fbc02d; padding:15px; border-radius:4px; z-index:100; box-shadow:0 10px 25px rgba(0,0,0,0.5); cursor:pointer;";
+    stickyArea.title = "Πατήστε πάνω στη σημείωση για να κλείσει";
+    stickyArea.onclick = toggleStickyNotes; // Κλείνει με κλικ!
     
     if (s.conductorNotes) { 
         condText.style.display = 'block'; 
-        condText.innerHTML = `<b style="color:var(--accent);"><i class="fas fa-bullhorn"></i> Band Notes:</b><br><span style="color:var(--text-main); white-space:pre-wrap;">${s.conductorNotes}</span>`; 
+        condText.innerHTML = `<b style="color:#c62828;"><i class="fas fa-bullhorn"></i> Band Notes:</b><br><span style="color:#111; white-space:pre-wrap; font-size:0.95rem;">${s.conductorNotes}</span>`; 
     } else { 
         condText.style.display = 'none'; 
     }
     
     if (myNote) { 
         persText.style.display = 'block'; 
-        persText.innerHTML = `<b style="color:var(--accent);"><i class="fas fa-user-edit"></i> My Notes:</b><br><span style="color:var(--text-main); white-space:pre-wrap;">${myNote}</span>`; 
+        persText.style.marginTop = s.conductorNotes ? "12px" : "0"; // Απόσταση αν υπάρχουν και τα δύο
+        persText.innerHTML = `<b style="color:#1565c0;"><i class="fas fa-user-edit"></i> My Notes:</b><br><span style="color:#111; white-space:pre-wrap; font-size:0.95rem;">${myNote}</span>`; 
     } else { 
         persText.style.display = 'none'; 
     }

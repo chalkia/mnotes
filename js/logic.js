@@ -547,16 +547,16 @@ async function addAttachmentToCurrentSong(newDoc) {
 
 async function saveAsOverride(songData) {
     if (!currentSongId || !currentUser) return;
-
     console.log("💾 Saving personal override layer...");
 
     const payload = {
         user_id: currentUser.id,
         song_id: currentSongId,
-        group_id: currentGroupId, // ΠΡΟΣΟΧΗ: Εδώ προστέθηκε
+        group_id: currentGroupId,
         local_transpose: state.t || 0,
         local_capo: state.c || 0,
-        personal_notes: document.getElementById('inpPersonalNotes')?.value || ""
+        // ΔΙΟΡΘΩΣΗ: Διαβάζει πλέον από το νέο πεδίο της δεξιάς μπάρας!
+        personal_notes: document.getElementById('sidePersonalNotes')?.value || "" 
     };
 
     const { error } = await supabaseClient

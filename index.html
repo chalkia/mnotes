@@ -323,7 +323,23 @@
                 </button>
             </div>
         </details>
-
+        
+        <hr class="sep">
+<details class="tool-group" open>
+    <summary><i class="fas fa-thumbtack" style="color:var(--accent);"></i> <span data-i18n="sum_notes">PERFORMANCE NOTES</span></summary>
+    <div class="group-content">
+        <label style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 3px; display: block;">Band/Director Notes:</label>
+        <textarea id="sideBandNotes" class="inp" placeholder="Οδηγίες για το live (από τον Maestro)..." style="width: 100%; height: 60px; margin-bottom: 10px; resize: vertical;"></textarea>
+        
+        <label style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 3px; display: block;">My Personal Notes:</label>
+        <textarea id="sidePersonalNotes" class="inp" placeholder="Το δικό μου σκονάκι..." style="width: 100%; height: 60px; margin-bottom: 10px; resize: vertical; border-color: var(--accent);"></textarea>
+        
+        <button onclick="savePerformanceNotes()" class="add-mini-btn" style="width: 100%; justify-content: center;">
+            <i class="fas fa-save"></i> Save Notes
+        </button>
+    </div>
+</details>
+        
         <hr class="sep" id="guitarChordsSep">
         
         <details class="tool-group" id="guitarChordsGroup" open>
@@ -773,6 +789,7 @@
     <script src="js/asset-manager.js"></script>
 </body>
 </html>
+
 
 
 

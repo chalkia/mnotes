@@ -1061,7 +1061,6 @@ function applyEditorPlaceholders() {
         { id: 'inpIntro', key: 'placeholder_intro' },
         { id: 'inpInter', key: 'placeholder_inter' },
         { id: 'inpBody', key: 'placeholder_body' },
-        { id: 'inpConductorNotes', key: 'placeholder_notes_pub' },
         { id: 'inpPersonalNotes', key: 'placeholder_notes_priv' }
     ];
 

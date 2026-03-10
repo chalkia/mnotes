@@ -189,21 +189,18 @@
                     </div>
                 </div>
 
-                <div class="editor-body">
+               <div class="editor-body">
                     <input id="inpTitle" class="inp title-inp" data-i18n="inp_title">
                     <details><summary data-i18n="sum_metadata">Metadata & Notes</summary>
-                        <div class="details-content">
-                            <input id="inpArtist" class="inp" data-i18n="inp_artist">
-                                <div style="display:flex; gap:10px; margin-top:10px; align-items:flex-start;">
-                                    <div style="flex:1;">
-                                       <input id="inpVideo" class="inp" data-i18n="inp_video" placeholder="YouTube Link" style="width:100%; margin:0;">
-                                     </div>
-                                     <div style="flex:1;">
-                                        <textarea id="inpConductorNotes" class="inp" data-i18n="inp_metadata" placeholder="Song Metadata / Info..." style="width:100%; height:42px; margin:0; resize:vertical;"></textarea>
-                                     </div>
-                                 </div>
-                         </div>
-                    </details>
+                            <div class="details-content">
+                                <input id="inpArtist" class="inp" data-i18n="inp_artist" placeholder="Artist">
+        
+                            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                                <input id="inpVideo" class="inp" data-i18n="inp_video" placeholder="YouTube Link" style="flex: 1; margin: 0;">
+                                <input id="inpConductorNotes" class="inp" placeholder="Extra Info / Tags" style="flex: 1; margin: 0;">
+                            </div>
+                    </div>
+                </details>
                     
                     <div style="display:flex; gap:10px;">
                         <input id="inpKey" class="inp" data-i18n="inp_key" style="width:80px;">
@@ -312,7 +309,7 @@
 
         <hr class="sep">
 
-        <details class="tool-group" open>
+        <details id="perfNotesGroup" class="tool-group">
             <summary><i class="fas fa-folder-open" style="color:var(--accent);"></i> <span data-i18n="sum_files">FILES & SHEETS</span></summary>
             <div class="group-content">
                 <div id="list-sheets" class="file-list compact" style="margin-bottom: 10px;">
@@ -789,6 +786,7 @@
     <script src="js/asset-manager.js"></script>
 </body>
 </html>
+
 
 
 

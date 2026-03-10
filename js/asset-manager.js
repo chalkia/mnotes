@@ -77,6 +77,30 @@ async function handleGlobalUpload(inputElement) {
 
     const file = inputElement.files[0];
     if (!file) return;
+    const file = input.files[0];
+    if (!file) return;
+
+    // --- Ο ΝΕΟΣ ΜΑΣ ΠΟΡΤΙΕΡΗΣ ΓΙΑ ΤΑ ΑΡΧΕΙΑ ---
+    const fileExt = file.name.split('.').pop().toLowerCase();
+    
+    // Ξεχωρίζουμε τι πάει να ανεβάσει βάσει της καρτέλας που είναι ανοιχτή
+    const currentType = document.getElementById('assetManagerCurrentType')?.value || 'audio';
+    
+    if (currentType === 'audio') {
+        const allowedAudio = ['mp3', 'wav', 'm4a', 'webm'];
+        if (!allowedAudio.includes(fileExt)) {
+            showToast("⚠️ Μη υποστηριζόμενη μορφή. Παρακαλώ επιλέξτε MP3, WAV ή M4A.", "error");
+            input.value = ''; // Καθαρισμός
+            return; // STOP! Διακόπτουμε το ανέβασμα
+        }
+    } else {
+        const allowedDocs = ['pdf', 'png', 'jpg', 'jpeg'];
+        if (!allowedDocs.includes(fileExt)) {
+            showToast("⚠️ Μη υποστηριζόμενη μορφή. Παρακαλώ επιλέξτε PDF ή εικόνα.", "error");
+            input.value = ''; // Καθαρισμός
+            return; // STOP! Διακόπτουμε το ανέβασμα
+        }
+    }
 
     // --- Η ΣΦΡΑΓΙΔΑ ---
     // Κρατάμε το ID του τραγουδιού που κοιτούσε ο χρήστης ΤΗ ΣΤΙΓΜΗ που πάτησε το κουμπί

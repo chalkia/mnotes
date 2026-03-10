@@ -487,28 +487,36 @@ function loadSong(id) {
 function renderPlayer(s) {
     if (!s) return;
     
-   // 1. Δικλείδα Ασφαλείας για τον αριθμό μεγέθους
     window.introSizeLevel = parseInt(localStorage.getItem('mnotes_intro_size')) || 0;
     const sizeClass = `intro-size-${window.introSizeLevel}`; 
     
     let metaHtml = ""; 
+    
+    // --- ΛΟΓΙΚΗ ΣΗΜΕΙΩΣΕΩΝ (Διαβάζει τα δεδομένα) ---
     const personalNotesMap = JSON.parse(localStorage.getItem('mnotes_personal_notes') || '{}');
-    const hasNotes = (s.conductorNotes && s.conductorNotes.trim().length > 0) || (personalNotesMap[s.id] && personalNotesMap[s.id].trim().length > 0);
+    const pNote = personalNotesMap[s.id] || "";
+    const bNote = s.conductorNotes || "";
+    const hasNotes = (bNote.trim().length > 0) || (pNote.trim().length > 0);
+
+    // Γεμίζουμε τα νέα πεδία της πλαϊνής μπάρας (αν υπάρχουν στο DOM)
+    const sideB = document.getElementById('sideBandNotes');
+    const sideP = document.getElementById('sidePersonalNotes');
+    if (sideB) sideB.value = bNote;
+    if (sideP) sideP.value = pNote;
+
     const btnHtml = `<button id="btnIntroToggle" onclick="cycleIntroSize()" class="size-toggle-btn" title="Change Text Size"><i class="fas fa-text-height"></i></button>`;
 
-    // 2. Λογική Intro/Inter (Διορθωμένο το s.inter)
+    // --- ΛΟΓΙΚΗ INTRO / INTERLUDE ---
     const introText = s.intro;
-    const interText = s.inter || s.interlude; // Πιάνει και τα δύο για σιγουριά
+    const interText = s.inter || s.interlude; 
 
     if (introText || interText) {
         metaHtml += `<div class="meta-info-box">`;
-        
         if (introText) {
             metaHtml += `<div class="meta-row ${sizeClass}">
                             ${btnHtml} <span><strong>Intro:</strong> ${parseMetaLine(introText)}</span>
                          </div>`;
         }
-        
         if (interText) {
             const showBtnHere = (!introText) ? btnHtml : '<span class="spacer-btn"></span>'; 
             metaHtml += `<div class="meta-row ${sizeClass}">
@@ -518,35 +526,35 @@ function renderPlayer(s) {
         metaHtml += `</div>`;
     }
     
+    // Το κουμπί εμφανίζεται ΜΟΝΟ αν υπάρχουν σημειώσεις (έστω και ένα από τα δύο)
     if (hasNotes) {
         metaHtml += `<div style="margin-top:8px;">
                         <button onclick="toggleStickyNotes()" style="background:none; border:none; cursor:pointer; padding:0; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
                             <span class="meta-note-badge" style="background: var(--accent); color: #000; font-size: 0.85rem; padding: 4px 12px; border-radius: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
-                                <i class="fas fa-sticky-note"></i> Εμφάνιση Σημειώσεων
+                                <i class="fas fa-thumbtack"></i> Σημειώσεις (Notes)
                             </span>
                         </button>
                      </div>`;
     }
     
-       // --- PLAYER HEADER ---
+    // --- PLAYER HEADER (ΕΔΩ ΕΠΙΣΤΡΕΦΕΙ Ο ΤΙΤΛΟΣ) ---
     const headerContainer = document.querySelector('.player-header-container');
     if (headerContainer) {
         headerContainer.innerHTML = `
         <div class="player-header">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
-                <span class="meta-label">${s.artist || ""}</span>
-                
-                <div style="display:flex; align-items:center;">
+            <h2 id="mainAppTitle" style="margin:0 0 5px 0; font-size:1.2rem; color:var(--text-main);">
+                ${s.title} ${s.artist ? `<span style="font-size:0.9rem; opacity:0.6;">- ${s.artist}</span>` : ''}
+            </h2>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="display:flex; align-items:center; gap: 10px;">
                     <span class="key-badge">${typeof getNote === 'function' ? getNote(s.key || "-", state.t) : s.key}</span>
                     <button id="btnToggleView" onclick="toggleViewMode()"></button>
                 </div>
             </div>
-            
             ${metaHtml}
         </div>`;
     }
-
-   // --- EXTRAS (Video, Audio, Lyrics) ---
+    // --- EXTRAS (Video, Audio, Lyrics) ---
     const vidBox = document.getElementById('video-sidebar-container');
     const embedBox = document.getElementById('video-embed-box');
     if (vidBox && embedBox) {
@@ -571,8 +579,8 @@ function renderPlayer(s) {
     var split = (typeof splitSongBody === 'function') ? splitSongBody(s.body || "") : { fixed: "", scroll: s.body || "" }; 
     renderArea('fixed-container', split.fixed); 
     renderArea('scroll-container', split.scroll);  
-    updateToggleButton(s); // Καλούμε για να δούμε αν θα εμφανιστεί
-   if (typeof GuitarChordsUI !== 'undefined') {
+    updateToggleButton(s); 
+    if (typeof GuitarChordsUI !== 'undefined') {
         GuitarChordsUI.scanAndRender();
     }
 }
@@ -1506,14 +1514,80 @@ function renderAttachmentsList(docs = []) {
 function playAudio(url) { const audio = document.getElementById('masterAudio'); if(audio) { audio.src = url; audio.play(); } }
 
 function renderStickyNotes(s) {
-    const stickyArea = document.getElementById('stickyNotesArea'); const condText = document.getElementById('conductorNoteText'); const persText = document.getElementById('personalNoteText');
-    const personalNotesMap = JSON.parse(localStorage.getItem('mnotes_personal_notes') || '{}'); const myNote = personalNotesMap[s.id] || "";
-    stickyArea.style.display = 'none'; 
-    if (s.conductorNotes) { condText.style.display = 'block'; condText.innerHTML = `<b><i class="fas fa-bullhorn"></i> Info:</b> ${s.conductorNotes}`; } else { condText.style.display = 'none'; }
-    if (myNote) { persText.style.display = 'block'; persText.innerHTML = `<b><i class="fas fa-user-secret"></i> My Notes:</b> ${myNote}`; } else { persText.style.display = 'none'; }
+    const stickyArea = document.getElementById('stickyNotesArea'); 
+    const condText = document.getElementById('conductorNoteText'); 
+    const persText = document.getElementById('personalNoteText');
+    const personalNotesMap = JSON.parse(localStorage.getItem('mnotes_personal_notes') || '{}'); 
+    const myNote = personalNotesMap[s.id] || "";
+    
+    // Στυλιζάρουμε το Area για να μοιάζει με Modal στο Live
+    stickyArea.style.cssText = "display:none; position:absolute; top:80px; left:15px; right:15px; background:var(--bg-panel); border:2px solid var(--accent); padding:15px; border-radius:8px; z-index:100; box-shadow:0 10px 30px rgba(0,0,0,0.5);";
+    
+    if (s.conductorNotes) { 
+        condText.style.display = 'block'; 
+        condText.innerHTML = `<b style="color:var(--accent);"><i class="fas fa-bullhorn"></i> Band Notes:</b><br><span style="color:var(--text-main); white-space:pre-wrap;">${s.conductorNotes}</span>`; 
+    } else { 
+        condText.style.display = 'none'; 
+    }
+    
+    if (myNote) { 
+        persText.style.display = 'block'; 
+        persText.innerHTML = `<b style="color:var(--accent);"><i class="fas fa-user-edit"></i> My Notes:</b><br><span style="color:var(--text-main); white-space:pre-wrap;">${myNote}</span>`; 
+    } else { 
+        persText.style.display = 'none'; 
+    }
 }
-function toggleStickyNotes() { const area = document.getElementById('stickyNotesArea'); if (area) { area.style.display = (area.style.display === 'none' || area.style.display === '') ? 'block' : 'none'; } }
 
+function toggleStickyNotes() { 
+    const area = document.getElementById('stickyNotesArea'); 
+    if (area) { 
+        area.style.display = (area.style.display === 'none' || area.style.display === '') ? 'block' : 'none'; 
+    } 
+}
+async function savePerformanceNotes() {
+    if (!currentSongId) {
+        showToast("Επιλέξτε τραγούδι πρώτα!", "error");
+        return;
+    }
+    
+    const bNotesVal = document.getElementById('sideBandNotes')?.value.trim() || "";
+    const pNotesVal = document.getElementById('sidePersonalNotes')?.value.trim() || "";
+    
+    // 1. Σώζουμε τα Personal Notes Τοπικά (Για offline/γρήγορη πρόσβαση)
+    const map = JSON.parse(localStorage.getItem('mnotes_personal_notes') || '{}');
+    if (pNotesVal) map[currentSongId] = pNotesVal;
+    else delete map[currentSongId];
+    localStorage.setItem('mnotes_personal_notes', JSON.stringify(map));
+    
+    // 2. Ενημέρωση μνήμης
+    const s = library.find(x => x.id === currentSongId);
+    if (s) {
+        s.conductorNotes = bNotesVal;
+        s.personal_notes = pNotesVal;
+    }
+
+    // 3. Συγχρονισμός Cloud
+    if (currentGroupId !== 'personal') {
+        const canEditBand = (currentRole === 'admin' || currentRole === 'owner');
+        
+        // Αν είναι Admin/Owner, σώζει τα Band Notes στον πίνακα 'songs'
+        if (canEditBand && typeof canUserPerform === 'function' && canUserPerform('USE_SUPABASE')) {
+            try {
+                await supabaseClient.from('songs').update({ notes: bNotesVal }).eq('id', currentSongId);
+            } catch(e) { console.error("Notes Sync Error:", e); }
+        }
+        
+        // Όλοι (και οι Members) σώζουν τα δικά τους Personal Notes στα Overrides!
+        if (typeof saveAsOverride === 'function') {
+            await saveAsOverride(s);
+        }
+    }
+
+    showToast("Οι σημειώσεις αποθηκεύτηκαν! 📌");
+    
+    // Refresh τον Player για να εμφανιστεί/κρυφτεί το κουμπί
+    if (s) renderPlayer(s); 
+}
 // ===========================================================
 // 11. MOBILE NAVIGATION & DRAWER
 // ===========================================================

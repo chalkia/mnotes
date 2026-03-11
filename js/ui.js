@@ -619,7 +619,6 @@ function renderArea(elemId, text) {
 
 function createToken(c, l) { var d = document.createElement('div'); d.className = 'token'; d.innerHTML = `<span class="chord">${c || ""}</span><span class="lyric">${l || ""}</span>`; return d; }
 
-//LYRICS MODE LOGIC (FIXED)
 function toggleLyricsMode() {
     // 1. Αλλαγή της κατάστασης (True/False)
     isLyricsMode = !isLyricsMode;
@@ -636,12 +635,16 @@ function toggleLyricsMode() {
     // 3. Οπτική Ενημέρωση του Κουμπιού (Highlight)
     var btn = document.getElementById('btnLyrics');
     if (btn) {
-        // Αν είναι active, του δίνουμε διαφορετικό χρώμα
         if (isLyricsMode) btn.classList.add('active-btn'); 
         else btn.classList.remove('active-btn');
     }
-}
 
+    // 4. Αναγκαστικό Render για να ενοποιηθούν οι στίχοι!
+    if (currentSongId && typeof library !== 'undefined') {
+        const s = library.find(x => x.id === currentSongId);
+        if (s) renderPlayer(s);
+    }
+}
 // ===========================================================
 // SMART CAPO (COMPLETE & AUTONOMOUS)
 

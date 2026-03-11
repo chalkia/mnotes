@@ -447,6 +447,12 @@ body.theme-light .modal-btn {
     .right-drawer { width: 280px; }
 }
 
+/* ===========================================================
+   LYRICS MODE OVERRIDES
+   =========================================================== */
+body.lyrics-only .meta-info-box {
+    display: none !important;
+}
 
 /* =========================================
    STICKY NOTES & EXTRAS
@@ -1583,6 +1589,7 @@ body.band-mode::before { z-index: 8000; } /* Το σηματάκι της Μπά
 #toast { z-index: 9000; }
 .debug-overlay { z-index: 9999; }
 .debug-panel { z-index: 10000 !important; }
+
 
 
 

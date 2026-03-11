@@ -12,6 +12,7 @@ const ASSETS_TO_CACHE = [
     'js/storage.js',
     'js/logic.js',
     'js/ui.js',
+    'js/bandManager.js', 
     'js/audio.js',            // <-- ΝΕΟ (Audio Player)
     'js/supabase-client.js',  // <-- ΝΕΟ (Login/Upload)
     'js/app.js',
@@ -75,6 +76,7 @@ self.addEventListener('activate', (event) => {
         })
     );
 });
+
 
 
 

@@ -374,34 +374,52 @@ function initResizers() {
         d.removeEventListener('mouseup', onMouseUpRight); 
     }
 }
-
+//GESTURES
 function setupGestures() { 
-    var area = document.getElementById('mainZone'); 
+    var area = document.getElementById('mainZone'); // Βεβαιώσου ότι το ID στον Player σου είναι όντως 'mainZone'
     var startDist = 0; 
     var startSize = 1.3; 
+    
     if(area) { 
         area.addEventListener('touchstart', function(e) { 
             if(e.touches.length === 2) { 
                 startDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); 
                 var val = getComputedStyle(document.documentElement).getPropertyValue('--lyric-size').trim(); 
                 startSize = parseFloat(val) || 1.3; 
+                console.log(`[GESTURES] Start pinch. Init size: ${startSize}rem`);
             }
         }, {passive: true}); 
         
         area.addEventListener('touchmove', function(e) { 
             if(e.touches.length === 2) { 
+                e.preventDefault(); // ΚΡΙΣΙΜΟ: Παίρνουμε τον απόλυτο έλεγχο από τον browser
+                
                 var dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); 
                 if(startDist > 0) { 
                     var scale = dist / startDist; 
                     var newSize = startSize * scale; 
+                    
                     if(newSize < 0.8) newSize = 0.8; 
                     if(newSize > 3.0) newSize = 3.0; 
+                    
                     document.documentElement.style.setProperty('--lyric-size', newSize + "rem"); 
+                    // Log για εύκολη διόρθωση στο κινητό/inspect
+                    console.log(`[GESTURES] Zooming: ${newSize.toFixed(2)}rem`);
                 }
             }
-        }, {passive: true}); 
-    } 
+        }, {passive: false}); // ΚΡΙΣΙΜΟ: Πρέπει να είναι false για να δουλέψει το preventDefault!
+
+        // Προσθήκη καθαρισμού όταν σηκώνεις τα δάχτυλα
+        area.addEventListener('touchend', function(e) {
+            if(e.touches.length < 2) {
+                startDist = 0;
+            }
+        });
+    } else {
+        console.warn("[GESTURES] Το element 'mainZone' δεν βρέθηκε.");
+    }
 }
+
 
 // ===========================================================
 // 4. IMPORT / EXPORT (CLEANED - NO QR)

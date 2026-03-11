@@ -611,37 +611,44 @@ function renderArea(elemId, text) {
     container.innerHTML = ""; 
     if (!text) return;
 
-    // Το νέο, απόλυτο Regex που περιλαμβάνει την ιδέα σου
     const chordRx = "([A-G][b#]?[a-zA-Z0-9#\\/+-]*|[a-g][b#]?)(?![a-z])";
-
-    // 1. Μετατροπή [Am] ή [a]
     text = text.replace(new RegExp(`\\[${chordRx}\\]`, 'g'), "!$1 ");
-    
-    // 2. Μετατροπή !Am! ή !a!
     text = text.replace(new RegExp(`!${chordRx}!`, 'g'), "!$1 ");
 
     var lines = text.split('\n'); 
     
     lines.forEach((line, index) => { 
         var row = document.createElement('div'); 
-        row.className = 'line-row'; 
         
         if (line.trim() === '') {
+            row.className = 'line-row'; 
             row.innerHTML = `<span class="lyric">&nbsp;</span>`;
             container.appendChild(row);
             return;
         }
 
+        // --- Η ΜΑΓΕΙΑ ΞΕΚΙΝΑΕΙ ΕΔΩ ---
+        // Αφαιρούμε τα ακόρντα για να δούμε τι μένει ως "στίχος"
+        let rawLyrics = line.replace(new RegExp(`!${chordRx}!?`, 'g'), '');
+        
+        // Ελέγχουμε αν έχουν μείνει καθόλου Γράμματα (\p{L}) ή Αριθμοί (\p{N})
+        let hasText = /[\p{L}]/u.test(rawLyrics); 
+        let isChordsOnly = !hasText; // Αν είναι true, η γραμμή έχει μόνο σύμβολα ( | - { } κενά)
+        
+        row.className = isChordsOnly ? 'line-row chords-only-row' : 'line-row';
+
         if (line.indexOf('!') === -1 || (typeof isLyricsMode !== 'undefined' && isLyricsMode)) { 
             let pureText = line;
             if (typeof isLyricsMode !== 'undefined' && isLyricsMode) {
-                // Καθαρίζει όλα τα έγκυρα ακόρντα/νότες στο Lyrics Mode
-                pureText = line.replace(new RegExp(`!${chordRx}!?`, 'g'), '').replace(/\s{2,}/g, ' ').trim(); 
+                pureText = rawLyrics.replace(/\s{2,}/g, ' ').trim(); 
             }
-            row.innerHTML = `<span class="lyric">${(pureText && pureText.length > 0) ? pureText : "&nbsp;"}</span>`; 
+            
+            // Προστασία όλων των κενών με &nbsp; για να μην καταρρέουν
+            let safeText = pureText.replace(/ /g, '&nbsp;');
+            row.innerHTML = `<span class="lyric">${(safeText && safeText.length > 0) ? safeText : "&nbsp;"}</span>`; 
         } else { 
             var parts = line.split('!'); 
-            if (parts[0]) row.appendChild(createToken("", parts[0])); 
+            if (parts[0]) row.appendChild(createToken("", parts[0], isChordsOnly)); 
             
             for (var i = 1; i < parts.length; i++) { 
                 var m = parts[i].match(new RegExp(`^${chordRx}\\s?(.*)`)); 
@@ -659,9 +666,9 @@ function renderArea(elemId, text) {
                         console.error(`[RENDER] Σφάλμα στο transpose (Γραμμή ${index+1})`);
                     }
                     
-                    row.appendChild(createToken(noteDisp, lyricsRaw)); 
+                    row.appendChild(createToken(noteDisp, lyricsRaw, isChordsOnly)); 
                 } else {
-                    row.appendChild(createToken("", parts[i] || "")); 
+                    row.appendChild(createToken("", parts[i] || "", isChordsOnly)); 
                 }
             } 
         } 
@@ -669,16 +676,27 @@ function renderArea(elemId, text) {
     }); 
 }
 
-function createToken(c, l) { 
+// Προσθέσαμε την παράμετρο isChordsOnly 
+function createToken(c, l, isChordsOnly) { 
     var d = document.createElement('div'); 
     d.className = 'token'; 
     
-    // Αόρατα κενά (&nbsp;) για να μην καταρρέουν τα "άδεια" κουτιά
-    let chordHtml = (c && c.trim() !== "") ? `<span class="chord">${c}</span>` : `<span class="chord empty">&nbsp;</span>`;
-    let safeLyric = (l && l.trim() !== "") ? l : "&nbsp;";
-    let lyricHtml = `<span class="lyric">${safeLyric}</span>`;
+    // Μετατρέπουμε τα κενά του χρήστη σε &nbsp; για να διατηρηθούν ακριβώς όπως τα πληκτρολόγησε
+    let safeLyric = l ? l.replace(/ /g, '&nbsp;') : "";
     
-    d.innerHTML = chordHtml + lyricHtml; 
+    if (isChordsOnly) {
+        // Η ΠΡΟΣΓΕΙΩΣΗ: Δεν φτιάχνουμε καν span για lyrics! 
+        // Βάζουμε το σύμβολο (π.χ. " | ") μέσα στο ίδιο κουτί με τη συγχορδία.
+        // Έτσι παίρνει το ίδιο χρώμα και κάθεται στο ίδιο ύψος!
+        d.innerHTML = `<span class="chord inline-chord">${c || ""}${safeLyric}</span>`;
+    } else {
+        // Κανονικό, διώροφο layout (Ακόρντο πάνω, στίχος κάτω)
+        let chordHtml = (c && c.trim() !== "") ? `<span class="chord">${c}</span>` : `<span class="chord empty">&nbsp;</span>`;
+        let lyricHtml = `<span class="lyric">${safeLyric !== "" ? safeLyric : "&nbsp;"}</span>`;
+        
+        d.innerHTML = chordHtml + lyricHtml; 
+    }
+    
     return d; 
 }
 function toggleLyricsMode() {
@@ -823,72 +841,112 @@ function showToast(msg) {
     }, 2500);
 }
 
-// PDF / PRINT FUNCTION (FINAL PRO STYLE + LOGO + TOKEN SYSTEM)
-
+// PDF / PRINT FUNCTION (FINAL PRO STYLE + LOGO + TOKEN SYSTEM + CAPO)
 function printSongPDF() {
-// 🔒 Έλεγχος Δικαιώματος
+    // 🔒 Έλεγχος Δικαιώματος
     if (typeof canUserPerform === 'function' && !canUserPerform('PRINT')) {
         if (typeof promptUpgrade === 'function') promptUpgrade('Εκτύπωση σε PDF');
         return; 
     }
 
-    var title = document.getElementById('inpTitle').value || "Untitled";
-    var artist = document.getElementById('inpArtist').value || "";
-    var bodyRaw = document.getElementById('inpBody').value || "";
-    var key = document.getElementById('inpKey').value || "-";
+    // 1. Τραβάμε τα δεδομένα από το ΦΟΡΤΩΜΕΝΟ τραγούδι
+    var s = null;
+    if (typeof currentSongId !== 'undefined' && currentSongId && typeof library !== 'undefined') {
+        s = library.find(x => x.id === currentSongId);
+    }
+
+    var title = (s ? s.title : document.getElementById('inpTitle').value) || "Untitled";
+    var artist = (s ? s.artist : document.getElementById('inpArtist').value) || "";
+    var bodyRaw = (s ? s.body : document.getElementById('inpBody').value) || "";
     
-    var title = title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
-    bodyRaw = bodyRaw.replace(/\[(.*?)\]/g, "!$1 ");
+    // 2. Σωστή τονικότητα με υπολογισμό Transpose ΚΑΙ Capo!
+    var key = s ? s.key : (document.getElementById('inpKey').value || "-");
+    var capoHtml = ""; 
+    
+    if (typeof getNote === 'function' && typeof state !== 'undefined' && key !== "-") {
+        let soundingKey = getNote(key, state.t); 
+        key = soundingKey; 
+        
+        if (state.c > 0) {
+            let playingKey = getNote(s.key, state.t - state.c); 
+            capoHtml = `<div class="meta capo-meta">Capo: ${state.c} (Play as ${playingKey})</div>`;
+        }
+    }
+    
+    title = title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+
+    // 3. Προετοιμασία κειμένου (ChordPro & Κλειστά θαυμαστικά)
+    const chordRx = "([A-G][b#]?[a-zA-Z0-9#\\/+-]*|[a-g][b#]?)(?![a-z])";
+    bodyRaw = bodyRaw.replace(new RegExp(`\\[${chordRx}\\]`, 'g'), "!$1 ");
+    bodyRaw = bodyRaw.replace(new RegExp(`!${chordRx}!`, 'g'), "!$1 ");
 
     var lines = bodyRaw.split('\n');
     var htmlBody = "";
 
+    // 4. Χτίσιμο των γραμμών
     lines.forEach(function(line) {
-        // Περίπτωση κενής γραμμής
-        if (!line.trim()) { 
-            htmlBody += '<div class="print-row empty-row">&nbsp;</div>'; 
-            return; 
-        }
-        
-        // Περίπτωση γραμμής χωρίς συγχορδίες (σκέτοι στίχοι)
-        if (line.indexOf('!') === -1) { 
-            htmlBody += `<div class="print-row"><span class="lyric-only">${line}</span></div>`; 
-            return; 
+        if (line.trim() === '') {
+            htmlBody += '<div class="print-row empty-row">&nbsp;</div>';
+            return;
         }
 
-        // Περίπτωση γραμμής με συγχορδίες: Την αναλύουμε
-        var rowHtml = '<div class="print-row">';
-        var parts = line.split('!');
+        let rawLyrics = line.replace(new RegExp(`!${chordRx}!?`, 'g'), '');
+        let hasText = /[\p{L}]/u.test(rawLyrics); // Ψάχνει μόνο γράμματα
+        let isChordsOnly = !hasText;
         
-        // Κομμάτι πριν την πρώτη συγχορδία
-        if (parts[0]) {
-            rowHtml += `<div class="token"><div class="chord">&nbsp;</div><div class="lyric">${parts[0]}</div></div>`;
-        }
+        let rowClass = isChordsOnly ? 'print-row chords-only-row' : 'print-row';
+        var rowHtml = `<div class="${rowClass}">`;
 
-        // Επεξεργασία κάθε συγχορδίας και του κειμένου της
-        for (var i = 1; i < parts.length; i++) {
-            // Regex για να ξεχωρίσουμε τη συγχορδία (π.χ. Am) από το κείμενο (π.χ. -γαπάω)
-            var m = parts[i].match(/^([A-G][b#]?[m]?[maj7|sus4|7|add9|dim|0-9|\/]*)(.*)/);
-            if (m) {
-                var chord = m[1];
-                var text = m[2];
-                // Αν δεν υπάρχει κείμενο, βάζουμε &nbsp; για να κρατήσει το ύψος
-                if(text === "") text = "&nbsp;"; 
-                
-                rowHtml += `<div class="token">
-                                <div class="chord">${chord}</div>
-                                <div class="lyric">${text}</div>
-                            </div>`;
-            } else {
-                // Ασφάλεια σε περίπτωση που κάτι δεν ταιριάζει
-                rowHtml += `<div class="token"><div class="chord">!</div><div class="lyric">${parts[i]}</div></div>`;
+        // Γραμμή χωρίς συγχορδίες Ή Lyrics Mode
+        if (line.indexOf('!') === -1 || (typeof isLyricsMode !== 'undefined' && isLyricsMode)) { 
+            let pureText = line;
+            if (typeof isLyricsMode !== 'undefined' && isLyricsMode) {
+                pureText = rawLyrics.replace(/\s{2,}/g, ' ').trim(); 
             }
+            let safeText = pureText.replace(/ /g, '&nbsp;'); 
+            rowHtml += `<div class="token"><div class="lyric-only">${(safeText && safeText.length > 0) ? safeText : "&nbsp;"}</div></div>`; 
+        } else { 
+            // Γραμμή με συγχορδίες
+            var parts = line.split('!'); 
+            if (parts[0]) {
+                let safeLyric = parts[0].replace(/ /g, '&nbsp;');
+                rowHtml += `<div class="token"><div class="chord empty">&nbsp;</div><div class="lyric">${safeLyric}</div></div>`;
+            }
+            
+            for (var i = 1; i < parts.length; i++) { 
+                var m = parts[i].match(new RegExp(`^${chordRx}\\s?(.*)`)); 
+                if (m) {
+                    let chordRaw = m[1];
+                    let lyricsRaw = m[2] || ""; 
+                    let noteDisp = chordRaw;
+                    
+                    try {
+                        if (typeof getNote === 'function' && typeof state !== 'undefined') {
+                            noteDisp = getNote(chordRaw, state.t - state.c);
+                        }
+                    } catch (err) {}
+                    
+                    let safeLyric = lyricsRaw ? lyricsRaw.replace(/ /g, '&nbsp;') : "";
+                    
+                    if (isChordsOnly) {
+                        rowHtml += `<div class="token"><div class="chord inline-chord">${noteDisp}${safeLyric}</div></div>`;
+                    } else {
+                        rowHtml += `<div class="token">
+                                        <div class="chord">${noteDisp}</div>
+                                        <div class="lyric">${safeLyric !== "" ? safeLyric : "&nbsp;"}</div>
+                                    </div>`;
+                    }
+                } else {
+                    let safePart = parts[i] ? parts[i].replace(/ /g, '&nbsp;') : "&nbsp;";
+                    rowHtml += `<div class="token"><div class="chord empty">&nbsp;</div><div class="lyric">${safePart}</div></div>`;
+                }
+            } 
         }
         rowHtml += '</div>';
         htmlBody += rowHtml;
     });
 
-    // 3. Στήσιμο του παραθύρου εκτύπωσης (CSS & Logo)
+    // 5. Στήσιμο του παραθύρου εκτύπωσης (CSS & Logo)
     var win = window.open('', '', 'width=900,height=1000');
     
     var css = `
@@ -896,88 +954,27 @@ function printSongPDF() {
             font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; 
             padding: 40px; 
             color: #111;
-            position: relative; /* Για να δουλέψει το absolute του λογότυπου */
+            position: relative; 
         }
+        .logo { position: absolute; top: 20px; right: 30px; width: 50px; height: auto; opacity: 0.9; z-index: 10; }
+        h1 { font-size: 26px; margin: 0 0 5px 0; border-bottom: 2px solid #000; padding-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; margin-right: 60px; }
+        h2 { font-size: 16px; color: #444; margin: 0 0 20px 0; font-weight: normal; font-style: italic; }
         
-        /* ΤΟ ΛΟΓΟΤΥΠΟ (Πάνω Δεξιά) */
-        .logo {
-            position: absolute;
-            top: 20px;
-            right: 30px;
-            width: 50px;
-            height: auto;
-            opacity: 0.9;
-            z-index: 10;
-        }
+        .meta-container { margin-bottom: 25px; display: flex; gap: 10px; flex-wrap: wrap; }
+        .meta { font-size: 13px; color: #333; font-weight: bold; border: 1px solid #ddd; display: inline-block; padding: 4px 8px; border-radius: 4px; }
+        .capo-meta { background: #e0f7fa; border-color: #00bcd4; color: #006064; }
 
-        h1 { 
-            font-size: 26px; 
-            margin: 0 0 5px 0; 
-            border-bottom: 2px solid #000; 
-            padding-bottom: 5px; 
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-right: 60px; 
-        }
-        h2 { 
-            font-size: 16px; 
-            color: #444; 
-            margin: 0 0 20px 0; 
-            font-weight: normal; 
-            font-style: italic;
-        }
-        .meta { 
-            font-size: 13px; 
-            margin-bottom: 25px; 
-            color: #333; 
-            font-weight: bold; 
-            border: 1px solid #ddd;
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 4px;
-        }
-
-        /* Flexbox Grid για τέλεια στοίχιση */
-        .print-row {
-            display: flex;
-            flex-wrap: wrap; 
-            align-items: flex-end; 
-            margin-bottom: 6px; 
-            page-break-inside: avoid; /* Δεν κόβει τη γραμμή στη μέση */
-        }
-        
+        .print-row { display: flex; flex-wrap: wrap; align-items: flex-end; margin-bottom: 6px; page-break-inside: avoid; }
         .empty-row { height: 15px; }
+        .chords-only-row { align-items: center; } 
         
-        .token {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            margin-right: 0;
-        }
-
-        .chord {
-            font-weight: 800;
-            font-size: 13px;
-            color: #000;
-            height: 16px;
-            line-height: 16px;
-            margin-bottom: 1px;
-            font-family: 'Arial', sans-serif;
-        }
-
-        .lyric {
-            font-size: 15px;
-            line-height: 1.2;
-            color: #222;
-            white-space: pre; /* Κρατάει τα κενά του χρήστη */
-            font-family: 'Arial', sans-serif;
-        }
+        .token { display: flex; flex-direction: column; align-items: flex-start; margin-right: 0; }
         
-        .lyric-only {
-            font-size: 15px;
-            line-height: 1.5;
-            white-space: pre-wrap;
-        }
+        .chord { font-weight: 800; font-size: 13px; color: #000; height: 16px; line-height: 16px; margin-bottom: 1px; font-family: 'Arial', sans-serif; }
+        .inline-chord { display: inline-block; height: auto; margin-bottom: 0; }
+        
+        .lyric { font-size: 15px; line-height: 1.2; color: #222; font-family: 'Arial', sans-serif; }
+        .lyric-only { font-size: 15px; line-height: 1.5; white-space: pre-wrap; }
 
         @media print {
             @page { margin: 1.5cm; }
@@ -985,30 +982,32 @@ function printSongPDF() {
         }
     `;
 
-    // 4. Εισαγωγή περιεχομένου
     var htmlContent = `
         <html>
         <head>
-            <title>${title}</title>
+            <title>${title} - Print</title>
             <style>${css}</style>
         </head>
         <body>
             <img src="icon-192.png" class="logo" alt="Logo">
-            
             <h1>${title}</h1>
             <h2>${artist}</h2>
-            <div class="meta">Key: ${key}</div>
+            
+            <div class="meta-container">
+                <div class="meta">Key: ${key}</div>
+                ${capoHtml}
+            </div>
+            
             <div class="content">${htmlBody}</div>
             
             <script>
-                // Καθυστέρηση για φόρτωση εικόνας
                 window.onload = function() { 
                     setTimeout(function(){ 
                         window.print(); 
                         window.close(); 
                     }, 800); 
                 }
-            <\/script>
+            </script>
         </body>
         </html>
     `;
@@ -1016,6 +1015,7 @@ function printSongPDF() {
     win.document.write(htmlContent);
     win.document.close();
 }
+
 // ===========================================================
 // 6. EDITOR LOGIC
 // ===========================================================

@@ -36,40 +36,83 @@ if (typeof window.supabase !== 'undefined') {
 
 // --- AUTH FUNCTIONS ---
 
+// Σύνδεση με υπάρχον λογαριασμό (Sign In)
 async function doLogin() {
-    const email = document.getElementById('authEmail').value;
+    const email = document.getElementById('authEmail').value.trim();
     const password = document.getElementById('authPass').value;
-    const msg = document.getElementById('authMsg');
-    
-    msg.innerText = "Connecting...";
-    
-    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-    
-    if (error) {
-        msg.innerText = "Error: " + error.message;
-    } else {
-        currentUser = data.user;
+    const msgBox = document.getElementById('authMsg');
+
+    if (!email || !password) {
+        msgBox.innerText = (typeof t === 'function') ? t('msg_title_body_req') : "Παρακαλώ συμπληρώστε Email και Κωδικό.";
+        return;
+    }
+
+    console.log(`[AUTH] Προσπάθεια εισόδου για το email: ${email}`);
+    msgBox.innerText = "Φόρτωση... / Loading..."; 
+
+    try {
+        const { data, error } = await supabaseClient.auth.signInWithPassword({
+            email: email,
+            password: password,
+        });
+
+        if (error) throw error;
+
+        console.log("[AUTH] Επιτυχής Είσοδος:", data.user.email);
         document.getElementById('authModal').style.display = 'none';
-        showToast("Welcome! 👋");
-        updateAuthUI(true);
-        // Κλήση αρχικοποίησης
-        if (typeof initUserData === 'function') initUserData(); 
+        msgBox.innerText = ""; 
+        showToast("Επιτυχής σύνδεση! 🎉");
+        
+    } catch (err) {
+        console.error("[AUTH ERROR] Σφάλμα Εισόδου:", err.message);
+        msgBox.innerText = "Λάθος στοιχεία ή το προφίλ δεν υπάρχει.";
+        showToast("Αποτυχία σύνδεσης", "error");
     }
 }
 
+// Εγγραφή νέου χρήστη (Sign Up)
 async function doSignUp() {
-    const email = document.getElementById('authEmail').value;
+    const email = document.getElementById('authEmail').value.trim();
     const password = document.getElementById('authPass').value;
-    const msg = document.getElementById('authMsg');
+    const msgBox = document.getElementById('authMsg');
 
-    msg.innerText = "Creating account...";
-    
-    const { data, error } = await supabaseClient.auth.signUp({ email, password });
-    
-    if (error) {
-        msg.innerText = "Error: " + error.message;
-    } else {
-        msg.innerText = "Success! Check your email.";
+    if (!email || !password) {
+        msgBox.innerText = "Παρακαλώ συμπληρώστε Email και Κωδικό.";
+        return;
+    }
+
+    if (password.length < 6) {
+        msgBox.innerText = "Ο κωδικός πρέπει να έχει τουλάχιστον 6 χαρακτήρες.";
+        return;
+    }
+
+    console.log(`[AUTH] Προσπάθεια εγγραφής νέου χρήστη: ${email}`);
+    msgBox.innerText = "Δημιουργία λογαριασμού... / Creating account...";
+
+    try {
+        const { data, error } = await supabaseClient.auth.signUp({
+            email: email,
+            password: password,
+        });
+
+        if (error) throw error;
+
+        console.log("[AUTH] Επιτυχής Εγγραφή:", data);
+        document.getElementById('authModal').style.display = 'none';
+        msgBox.innerText = ""; 
+        
+        // Έλεγχος αν απαιτείται επιβεβαίωση email
+        if (data.user && data.user.identities && data.user.identities.length === 0) {
+            showToast("Αυτό το email χρησιμοποιείται ήδη.", "error");
+            msgBox.innerText = "Το email χρησιμοποιείται ήδη.";
+        } else if (data.session) {
+            showToast("Η εγγραφή ολοκληρώθηκε! Καλώς ήρθατε! 🎉");
+        } else {
+            showToast("Επιτυχία! Ελέγξτε το email σας για επιβεβαίωση 📩", "info");
+        }
+    } catch (err) {
+        console.error("[AUTH ERROR] Σφάλμα Εγγραφής:", err.message);
+        msgBox.innerText = "Σφάλμα: " + err.message;
     }
 }
 
@@ -172,7 +215,7 @@ async function loginWith(providerName) {
     }
 }
 
-// Διατηρούμε την παλιά συνάρτηση για να μην "σπάσει" το παλιό κουμπί στο HTML (αν δεν το έχεις αλλάξει ακόμα)
+// Διατηρούμε την παλιά συνάρτηση για να μην "σπάσει" το παλιό κουμπί στο HTML
 function loginWithGoogle() {
     loginWith('google');
 }
@@ -183,45 +226,3 @@ supabaseClient.auth.onAuthStateChange((event, session) => {
     
     if (session) {
         currentUser = session.user;
-        updateAuthUI(true);
-        // Τρέχει μόνο αν δεν έχει ήδη τρέξει από το doLogin
-        if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
-            if (typeof initUserData === 'function') initUserData();
-        }
-    } else {
-        // Καθαρισμός ταυτότητας
-        currentUser = null;
-        userProfile = null;
-        myGroups = [];
-        currentGroupId = 'personal';
-        updateAuthUI(false);
-        
-        // Επιστροφή στα τοπικά δεδομένα (Free mode)
-        if (typeof loadContextData === 'function') loadContextData();
-    }
-});
-
-// --- DTO & SANITIZATION ΓΙΑ TH SUPABASE ---
-// Κρατάει ΜΟΝΟ τις στήλες που περιμένει η βάση, αποτρέποντας τα Error 400.
-window.sanitizeForDatabase = function(song, userId, groupId = null) {
-    return {
-        id: song.id,
-        title: song.title || "Untitled",
-        artist: song.artist || "",
-        key: song.key || "",
-        body: song.body || "",
-        intro: song.intro || "",
-        // Πιάνει και το "inter" και το "interlude"
-        interlude: song.interlude || song.inter || "", 
-        // Πιάνει και το "conductorNotes"
-        notes: song.notes || song.conductorNotes || "", 
-        video: song.video || "",
-        // Εξασφαλίζει ότι τα tags είναι Array (και σώζει τα παλιά playlists)
-        tags: Array.isArray(song.tags) ? song.tags : (Array.isArray(song.playlists) ? song.playlists : []),
-        recordings: Array.isArray(song.recordings) ? song.recordings : [],
-        attachments: Array.isArray(song.attachments) ? song.attachments : [],
-        user_id: userId,
-        group_id: groupId,
-        updated_at: new Date().toISOString()
-    };
-};

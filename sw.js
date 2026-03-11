@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mnotes-ver0.20.0'; // Αλλάζουμε έκδοση για να κάνει update
+const CACHE_NAME = 'mnotes-ver0.25.0'; // Αλλάζουμε έκδοση για να κάνει update
 const ASSETS_TO_CACHE = [
     './',
     'index.html',
@@ -76,6 +76,7 @@ self.addEventListener('activate', (event) => {
         })
     );
 });
+
 
 
 

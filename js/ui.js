@@ -582,9 +582,22 @@ function renderPlayer(s) {
     const mValT = document.getElementById('drawer-val-t'); const mValC = document.getElementById('drawer-val-c');
     if(mValT) mValT.innerText = (state.t > 0 ? "+" : "") + state.t; if(mValC) mValC.innerText = state.c;
 
-    var split = (typeof splitSongBody === 'function') ? splitSongBody(s.body || "") : { fixed: "", scroll: s.body || "" }; 
+    // --- ΕΞΥΠΝΟ SPLIT (Ακυρώνεται στο Lyrics Mode) ---
+    var split = { fixed: "", scroll: s.body || "" }; 
+    
+    // Αν ΔΕΝ είμαστε σε lyrics mode, κάνε κανονικά το κόψιμο
+    if (!isLyricsMode && typeof splitSongBody === 'function') {
+        split = splitSongBody(s.body || "");
+    }
+    
     renderArea('fixed-container', split.fixed); 
     renderArea('scroll-container', split.scroll);  
+    
+    // Κρύβουμε εντελώς το fixed-container για να μην πιάνει άδειο χώρο
+    const fixedEl = document.getElementById('fixed-container');
+    if (fixedEl) {
+        fixedEl.style.display = split.fixed ? 'block' : 'none';
+    }
     updateToggleButton(s); 
     if (typeof GuitarChordsUI !== 'undefined') {
         GuitarChordsUI.scanAndRender();
@@ -1963,6 +1976,10 @@ function saveSettings() {
     // Ανανέωση λίστας με τις νέες ρυθμίσεις
     if (typeof sortLibrary === 'function') sortLibrary(userSettings.sortMethod);
     
+   if (typeof currentSongId !== 'undefined' && currentSongId) {
+        const s = library.find(x => x.id === currentSongId);
+        if (s && typeof renderPlayer === 'function') renderPlayer(s);
+    }
     showToast(userSettings.lang === 'el' ? "Οι ρυθμίσεις αποθηκεύτηκαν" : "Settings saved");
 }
 

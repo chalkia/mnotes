@@ -605,22 +605,61 @@ function renderPlayer(s) {
 }
 
 function renderArea(elemId, text) { 
-    var container = document.getElementById(elemId); if (!container) return; 
+    var container = document.getElementById(elemId); 
+    if (!container) return; 
+    
     container.innerHTML = ""; 
-    text = text.replace(/\[([a-zA-G][b#]?[m]?[maj7|sus4|7|add9|dim|0-9|\/]*)\]/g, "!$1 ");
+    if (!text) return;
+
+    // Το νέο, απόλυτο Regex που περιλαμβάνει την ιδέα σου
+    const chordRx = "([A-G][b#]?[a-zA-Z0-9#\\/+-]*|[a-g][b#]?)(?![a-z])";
+
+    // 1. Μετατροπή [Am] ή [a]
+    text = text.replace(new RegExp(`\\[${chordRx}\\]`, 'g'), "!$1 ");
+    
+    // 2. Μετατροπή !Am! ή !a!
+    text = text.replace(new RegExp(`!${chordRx}!`, 'g'), "!$1 ");
+
     var lines = text.split('\n'); 
-    lines.forEach(line => { 
-        var row = document.createElement('div'); row.className = 'line-row'; 
-        if (line.indexOf('!') === -1) { 
-            row.innerHTML = `<span class="lyric">${line || "&nbsp;"}</span>`; 
+    
+    lines.forEach((line, index) => { 
+        var row = document.createElement('div'); 
+        row.className = 'line-row'; 
+        
+        if (line.trim() === '') {
+            row.innerHTML = `<span class="lyric">&nbsp;</span>`;
+            container.appendChild(row);
+            return;
+        }
+
+        if (line.indexOf('!') === -1 || (typeof isLyricsMode !== 'undefined' && isLyricsMode)) { 
+            let pureText = line;
+            if (typeof isLyricsMode !== 'undefined' && isLyricsMode) {
+                // Καθαρίζει όλα τα έγκυρα ακόρντα/νότες στο Lyrics Mode
+                pureText = line.replace(new RegExp(`!${chordRx}!?`, 'g'), '').replace(/\s{2,}/g, ' ').trim(); 
+            }
+            row.innerHTML = `<span class="lyric">${(pureText && pureText.length > 0) ? pureText : "&nbsp;"}</span>`; 
         } else { 
             var parts = line.split('!'); 
             if (parts[0]) row.appendChild(createToken("", parts[0])); 
+            
             for (var i = 1; i < parts.length; i++) { 
-                var m = parts[i].match(/^([A-G][b#]?[m]?[maj7|sus4|7|add9|dim|0-9]*(\/[A-G][b#]?)?)\s?(.*)/); 
+                var m = parts[i].match(new RegExp(`^${chordRx}\\s?(.*)`)); 
+                
                 if (m) {
-                    let noteDisp = (typeof getNote === 'function') ? getNote(m[1], state.t - state.c) : m[1];
-                    row.appendChild(createToken(noteDisp, m[3] || "")); 
+                    let chordRaw = m[1];
+                    let lyricsRaw = m[2] || ""; 
+                    let noteDisp = chordRaw;
+                    
+                    try {
+                        if (typeof getNote === 'function' && typeof state !== 'undefined') {
+                            noteDisp = getNote(chordRaw, state.t - state.c);
+                        }
+                    } catch (err) {
+                        console.error(`[RENDER] Σφάλμα στο transpose (Γραμμή ${index+1})`);
+                    }
+                    
+                    row.appendChild(createToken(noteDisp, lyricsRaw)); 
                 } else {
                     row.appendChild(createToken("", parts[i] || "")); 
                 }
@@ -630,8 +669,18 @@ function renderArea(elemId, text) {
     }); 
 }
 
-function createToken(c, l) { var d = document.createElement('div'); d.className = 'token'; d.innerHTML = `<span class="chord">${c || ""}</span><span class="lyric">${l || ""}</span>`; return d; }
-
+function createToken(c, l) { 
+    var d = document.createElement('div'); 
+    d.className = 'token'; 
+    
+    // Αόρατα κενά (&nbsp;) για να μην καταρρέουν τα "άδεια" κουτιά
+    let chordHtml = (c && c.trim() !== "") ? `<span class="chord">${c}</span>` : `<span class="chord empty">&nbsp;</span>`;
+    let safeLyric = (l && l.trim() !== "") ? l : "&nbsp;";
+    let lyricHtml = `<span class="lyric">${safeLyric}</span>`;
+    
+    d.innerHTML = chordHtml + lyricHtml; 
+    return d; 
+}
 function toggleLyricsMode() {
     // 1. Αλλαγή της κατάστασης (True/False)
     isLyricsMode = !isLyricsMode;
@@ -1771,61 +1820,32 @@ function saveData() {
 }
 function filterByKey(e, key) { e.stopPropagation(); var inp = document.getElementById('searchInp'); if(inp) { inp.value = key; applyFilters(); showToast("Filter: " + key); } }
 
-/* ΔΙΟΡΘΩΣΗ: Χρήση των μεταβλητών όπως ορίζονται στο data.js 
-   NOTES = Διέσεις
-   NOTES_FLAT = Υφέσεις
-*/
-function getNote(note, semitones) {
-    if (!note || note === "-" || note === "") return note;
-    let root = note.match(/^[A-G][#b]?/)[0];
-    let suffix = note.substring(root.length);
-    
-    // Ασφαλής ανάκτηση από το data.js (NOTES αντί για NOTES_SHARP)
-    const SHARP = (typeof NOTES !== 'undefined') ? NOTES : ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-    const FLAT  = (typeof NOTES_FLAT !== 'undefined') ? NOTES_FLAT : ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
-    
-    let scale = (root.includes("b") || note.includes("F")) ? FLAT : SHARP;
-    let index = -1;
-    
-    if (SHARP.includes(root)) index = SHARP.indexOf(root);
-    else if (FLAT.includes(root)) index = FLAT.indexOf(root);
-    
-    if (index === -1) return note;
-    
-    let newIndex = (index + semitones) % 12;
-    if (newIndex < 0) newIndex += 12;
-    
-    let outScale = (semitones < 0) ? FLAT : SHARP;
-    return outScale[newIndex] + suffix;
-}
+
 /* --- ΔΙΟΡΘΩΜΕΝΟ SPLIT (Smart Split βάσει συγχορδιών) --- */
 function splitSongBody(body) {
     if (!body) return { fixed: "", scroll: "" };
-    if (typeof userSettings !== 'undefined' && userSettings.disableSplit) {
-        return { fixed: "", scroll: body }; // Τα στέλνει όλα στο scroll!
-    }
-     // 1. Χωρίζουμε το τραγούδι σε στροφές (όπου υπάρχει κενή γραμμή)
-    const stanzas = body.split(/\n\s*\n/);
     
+    // 1. Έλεγχος για Ενιαία Οθόνη (από τα Settings)
+    if (typeof userSettings !== 'undefined' && userSettings.disableSplit) {
+        return { fixed: "", scroll: body }; 
+    }
+    
+    // 2. Χωρισμός σε στροφές
+    const stanzas = body.split(/\n\s*\n/);
     let splitIndex = -1;
 
-    // 2. Ψάχνουμε την ΤΕΛΕΥΤΑΙΑ στροφή που περιέχει συγχορδία (!)
+    // 3. Εντοπισμός της τελευταίας στροφής με συγχορδίες (ψάχνει [ ή !)
     for (let i = 0; i < stanzas.length; i++) {
-        // Αν η στροφή περιέχει "!", θεωρούμε ότι έχει συγχορδίες
-        if (stanzas[i].includes('!')) {
+        if (stanzas[i].includes('[') || stanzas[i].includes('!')) {
             splitIndex = i;
         }
     }
 
-    // 3. Διαχωρισμός
+    // 4. Διαχωρισμός
     if (splitIndex === -1) {
-        // Αν δεν βρέθηκε ΚΑΜΙΑ συγχορδία, όλα πάνε στο Scroll
         return { fixed: "", scroll: body };
     } else {
-        // Το Fixed περιλαμβάνει από την αρχή μέχρι ΚΑΙ την τελευταία στροφή με συγχορδίες
         const fixedPart = stanzas.slice(0, splitIndex + 1).join('\n\n');
-        
-        // Το Scroll περιλαμβάνει όλα τα υπόλοιπα (καθαροί στίχοι)
         const scrollPart = stanzas.slice(splitIndex + 1).join('\n\n');
 
         return { 
@@ -1834,7 +1854,60 @@ function splitSongBody(body) {
         };
     }
 }
-function parseSongLogic(s) { /* Logic to prepare chords */ }
+
+/* ΔΙΟΡΘΩΣΗ: Χρήση των μεταβλητών όπως ορίζονται στο data.js 
+   NOTES = Διέσεις
+   NOTES_FLAT = Υφέσεις
+*/
+function getNote(note, semitones) {
+    if (!note || note === "-" || note === "") return note;
+    if (semitones === 0) return note;
+
+    const transposePart = (part) => {
+        // Τώρα η μηχανή επιτρέπει και μικρά a-g στην αρχή
+        let match = part.match(/^[A-Ga-g][#b]?/);
+        if (!match) return part; 
+        
+        let root = match[0];
+        let suffix = part.substring(root.length);
+        
+        // 1. Κρατάμε "σημείωση" αν ο χρήστης έγραψε μικρό γράμμα
+        let isLower = (root === root.toLowerCase());
+        
+        // 2. Το κάνουμε προσωρινά κεφαλαίο μόνο για την αναζήτηση στους πίνακες
+        let searchRoot = root.toUpperCase();
+        
+        const SHARP = (typeof NOTES !== 'undefined') ? NOTES : ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+        const FLAT  = (typeof NOTES_FLAT !== 'undefined') ? NOTES_FLAT : ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
+        
+        let index = SHARP.indexOf(searchRoot);
+        if (index === -1) index = FLAT.indexOf(searchRoot);
+        
+        if (index === -1) {
+            console.warn(`[TRANSPOSE] Άγνωστη ρίζα: ${root}`);
+            return part; 
+        }
+        
+        let newIndex = (index + semitones) % 12;
+        if (newIndex < 0) newIndex += 12;
+        
+        let outScale = (semitones < 0) ? FLAT : SHARP;
+        let transposedNote = outScale[newIndex];
+        
+        // 3. Αν η αρχική νότα ήταν μικρή, επιστρέφουμε μικρή νότα!
+        if (isLower) transposedNote = transposedNote.toLowerCase();
+        
+        return transposedNote + suffix;
+    };
+
+    if (note.includes('/')) {
+        let parts = note.split('/');
+        return `${transposePart(parts[0])}/${transposePart(parts[1])}`;
+    }
+
+    return transposePart(note);
+}
+//function parseSongLogic(s) { /* Logic to prepare chords */ }
 
 function calculateOptimalCapo(originalKey, body) {
     const difficultChords = ["F", "Bm", "Bb", "Cm", "C#", "F#", "G#", "D#m", "G#m", "A#m"];

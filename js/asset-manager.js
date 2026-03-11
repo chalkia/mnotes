@@ -77,8 +77,6 @@ async function handleGlobalUpload(inputElement) {
 
     const file = inputElement.files[0];
     if (!file) return;
-    const file = input.files[0];
-    if (!file) return;
 
     // --- Ο ΝΕΟΣ ΜΑΣ ΠΟΡΤΙΕΡΗΣ ΓΙΑ ΤΑ ΑΡΧΕΙΑ ---
     const fileExt = file.name.split('.').pop().toLowerCase();
@@ -90,14 +88,14 @@ async function handleGlobalUpload(inputElement) {
         const allowedAudio = ['mp3', 'wav', 'm4a', 'webm'];
         if (!allowedAudio.includes(fileExt)) {
             showToast("⚠️ Μη υποστηριζόμενη μορφή. Παρακαλώ επιλέξτε MP3, WAV ή M4A.", "error");
-            input.value = ''; // Καθαρισμός
+            inputElement.value = ''; // ΔΙΟΡΘΩΘΗΚΕ: Ήταν input.value
             return; // STOP! Διακόπτουμε το ανέβασμα
         }
     } else {
         const allowedDocs = ['pdf', 'png', 'jpg', 'jpeg'];
         if (!allowedDocs.includes(fileExt)) {
             showToast("⚠️ Μη υποστηριζόμενη μορφή. Παρακαλώ επιλέξτε PDF ή εικόνα.", "error");
-            input.value = ''; // Καθαρισμός
+            inputElement.value = ''; // ΔΙΟΡΘΩΘΗΚΕ: Ήταν input.value
             return; // STOP! Διακόπτουμε το ανέβασμα
         }
     }

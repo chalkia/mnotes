@@ -1519,13 +1519,14 @@ body.band-mode .top-nav {
     border-color: transparent transparent var(--accent) transparent;
 }
 /* Διάταξη ανά δυάδες για το Upgrade Modal */
-#pricingModal .modal-box {
+   #pricingModal .modal-box {
     max-width: 650px; 
-    max-height: 90vh; /* 🛡️ ΚΡΙΣΙΜΟ: Το κουτί να μην ξεπερνά ΠΟΤΕ το 90% του ύψους της οθόνης */
-    display: flex; /* 🛡️ ΚΡΙΣΙΜΟ: Μετατροπή σε Flex για σωστή κατανομή ύψους */
+    max-height: 85vh; /* Λίγο μικρότερο για να μην ακουμπάει στα άκρα του κινητού */
+    display: flex; 
     flex-direction: column;
     position: relative;
-    overflow: hidden; /* Απαγορεύει στο κουτί να "ξεχειλώσει" */
+    overflow-y: auto; /* <--- ΤΟ ΚΛΕΙΔΙ: Auto αντί για hidden! */
+    padding-bottom: 20px;
 }
 
 /* Βεβαιωνόμαστε ότι το κουμπί κλεισίματος (το Χ) μένει καρφωμένο πάνω δεξιά */
@@ -1536,16 +1537,13 @@ body.band-mode .top-nav {
     right: 15px;
     z-index: 10;
 }
-
-.pricing-grid {
+    .pricing-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr); 
     gap: 15px;
     margin-top: 20px;
-    /* 🛡️ ΚΡΙΣΙΜΟ: Το grid καταλαμβάνει τον διαθέσιμο χώρο και κάνει scroll ΕΣΩΤΕΡΙΚΑ */
     flex-grow: 1; 
-    overflow-y: auto; 
-    padding: 5px 15px 15px 5px; /* Λίγο padding για να μην κόβονται οι σκιές */
+    /* ΑΦΑΙΡΕΣΑΜΕ ΤΟ overflow-y από εδώ για να σκρολάρει όλο το παράθυρο μαζί με το κουμπί! */
 }
 
 @media (max-width: 600px) {
@@ -1589,6 +1587,7 @@ body.band-mode::before { z-index: 8000; } /* Το σηματάκι της Μπά
 #toast { z-index: 9000; }
 .debug-overlay { z-index: 9999; }
 .debug-panel { z-index: 10000 !important; }
+
 
 
 

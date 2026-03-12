@@ -12,21 +12,23 @@ async function loadBandDashboard() {
     const container = document.getElementById('bandManagerContent');
     if (!container) return;
 
-    // --- ΣΕΝΑΡΙΟ 1: PERSONAL CONTEXT (Δημιουργία) ---
+   // --- ΣΕΝΑΡΙΟ 1: PERSONAL CONTEXT (Δημιουργία & Ένταξη) ---
     if (currentGroupId === 'personal') {
         container.innerHTML = `
             <div style="text-align:center; padding:20px 10px;">
                 <p style="font-size:0.9rem; color:var(--text-muted); margin-bottom:15px;">
-                    Διαχειριστείτε τις μπάντες σας ή δημιουργήστε καινούργια.
+                    Διαχειριστείτε τις μπάντες σας ή συνδεθείτε σε μια υπάρχουσα.
                 </p>
-                <button onclick="createNewBandUI()" class="footer-btn" style="width:100%; justify-content:center; background:var(--accent); color:#000; font-weight:bold;">
+                <button onclick="createNewBandUI()" class="footer-btn" style="width:100%; justify-content:center; background:var(--accent); color:#000; font-weight:bold; margin-bottom:10px;">
                     <i class="fas fa-plus-circle"></i> Create New Band
+                </button>
+                <button onclick="joinBandWithCode()" class="footer-btn" style="width:100%; justify-content:center; background:transparent; border: 1px solid var(--accent); color:var(--accent);">
+                    <i class="fas fa-sign-in-alt"></i> Join with Code
                 </button>
             </div>
         `;
         return;
     }
-
     // --- ΣΕΝΑΡΙΟ 2: BAND CONTEXT (Διαχείριση) ---
     container.innerHTML = '<p class="loading-text" style="text-align:center;"><i class="fas fa-spinner fa-spin"></i> Φόρτωση δεδομένων...</p>';
 
@@ -208,7 +210,73 @@ async function createNewBandUI() {
 }
 
 /**
- * 5. Ανάκτηση & Αντιγραφή Κωδικού (Invite Code)
+ * 5. Ένταξη σε υπάρχουσα Μπάντα (με Invite Code)
+ */
+async function joinBandWithCode() {
+    // Έλεγχος δικαιώματος: Μόνο οι Pro/Premium μπαίνουν σε μπάντες
+    const tier = userProfile?.subscription_tier || 'free';
+    if (tier === 'free') {
+        if (typeof promptUpgrade === 'function') promptUpgrade('Συμμετοχή σε Μπάντα');
+        return;
+    }
+
+    const code = prompt("Εισάγετε τον κωδικό πρόσκλησης (Invite Code):");
+    if (!code) return;
+
+    // Καθαρισμός κενών και μετατροπή σε κεφαλαία για αποφυγή λαθών
+    const cleanCode = code.trim().toUpperCase();
+
+    try {
+        // 1. Ψάχνουμε τη μπάντα με αυτόν τον κωδικό
+        const { data: groupData, error: groupErr } = await supabaseClient
+            .from('groups')
+            .select('id, name')
+            .eq('invite_code', cleanCode)
+            .single();
+
+        if (groupErr || !groupData) {
+            showToast("Ο κωδικός δεν είναι έγκυρος ή η μπάντα δεν υπάρχει.", "error");
+            return;
+        }
+
+        const groupId = groupData.id;
+
+        // 2. Ελέγχουμε αν είναι ήδη μέλος
+        const { data: existingMember } = await supabaseClient
+            .from('group_members')
+            .select('id')
+            .eq('group_id', groupId)
+            .eq('user_id', currentUser.id)
+            .maybeSingle();
+
+        if (existingMember) {
+            showToast("Είστε ήδη μέλος σε αυτή την μπάντα!", "info");
+            return;
+        }
+
+        // 3. Εγγραφή του χρήστη ως 'member'
+        const { error: joinErr } = await supabaseClient
+            .from('group_members')
+            .insert([{
+                group_id: groupId,
+                user_id: currentUser.id,
+                role: 'member' // Ο νέος παίρνει πάντα τον βασικό ρόλο
+            }]);
+
+        if (joinErr) throw joinErr;
+
+        showToast(`Καλώς ήρθατε στην μπάντα "${groupData.name}"! 🎉`);
+        
+        // Κάνουμε ένα reload για να "τραβήξει" τη νέα μπάντα στο dropdown μενού
+        setTimeout(() => window.location.reload(), 1500);
+
+    } catch (err) {
+        console.error("[JOIN BAND] Σφάλμα:", err.message);
+        showToast("Σφάλμα κατά την ένταξη στη μπάντα.", "error");
+    }
+}
+/**
+ * 6. Ανάκτηση & Αντιγραφή Κωδικού (Invite Code)
  */
 async function fetchInviteCode() {
     const { data, error } = await supabaseClient.from('groups').select('invite_code').eq('id', currentGroupId).single();
@@ -233,7 +301,7 @@ function copyInviteCode() {
 }
 
 /**
- * 6. Οριστική Διάλυση Μπάντας
+ * 7. Οριστική Διάλυση Μπάντας
  */
 async function deleteBand() {
     const conf = prompt("ΠΡΟΣΟΧΗ: Θα διαγραφούν ΟΛΑ τα δεδομένα της μπάντας.\nΓράψτε 'DELETE' για επιβεβαίωση:");

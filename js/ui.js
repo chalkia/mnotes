@@ -376,25 +376,32 @@ function initResizers() {
 }
 //GESTURES
 function setupGestures() { 
-    // Διευρύνουμε το 'δίχτυ' για να πιάσουμε σίγουρα την περιοχή των στίχων, 
-    // αν για κάποιο λόγο το 'mainZone' έχει μικρότερο ύψος από αυτό που νομίζουμε.
-    var area = document.getElementById('mainZone') || document.querySelector('.col-stage'); 
+    // Αντί για το mainZone/scroll-container που σβήνεται, στοχεύουμε τη ΜΟΝΙΜΗ μεσαία στήλη!
+    var stageArea = document.querySelector('.col-stage'); 
     var startDist = 0; 
     var startSize = 1.3; 
     
-    if(area) { 
-        area.addEventListener('touchstart', function(e) { 
-            if(e.touches.length === 2) { 
-                startDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); 
-                var val = getComputedStyle(document.documentElement).getPropertyValue('--lyric-size').trim(); 
-                startSize = parseFloat(val) || 1.3; 
-                console.log(`[GESTURES] Start pinch. Init size: ${startSize}rem`);
-            }
-        }, {passive: false}); // ΔΙΟΡΘΩΣΗ: false για να επιτρέψει στο touchmove να κάνει preventDefault!
-        
-        area.addEventListener('touchmove', function(e) { 
-            if(e.touches.length === 2) { 
-                e.preventDefault(); // ΚΡΙΣΙΜΟ: Μπλοκάρουμε το default zoom του browser
+    if(!stageArea) {
+        console.warn("❌ [GESTURES] Δεν βρέθηκε το .col-stage!");
+        return;
+    }
+
+    stageArea.addEventListener('touchstart', function(e) { 
+        // Αν ο χρήστης ακουμπήσει 2 δάχτυλα
+        if(e.touches.length === 2) { 
+            startDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); 
+            var val = getComputedStyle(document.documentElement).getPropertyValue('--lyric-size').trim(); 
+            startSize = parseFloat(val) || 1.3; 
+            console.log(`[GESTURES] Start pinch. Init size: ${startSize}rem`);
+        }
+    }, {passive: false}); // passive false για να μας ακούσει ο browser!
+    
+    stageArea.addEventListener('touchmove', function(e) { 
+        // Αν κουνάει 2 δάχτυλα
+        if(e.touches.length === 2) { 
+            // Ελέγχουμε αν όντως υπάρχει ανοιχτό τραγούδι (scroll-container) εκείνη τη στιγμή
+            if (document.getElementById('scroll-container')) {
+                e.preventDefault(); // ΜΠΛΟΚΑΡΟΥΜΕ το χαζό zoom του κινητού!
                 
                 var dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); 
                 if(startDist > 0) { 
@@ -404,25 +411,20 @@ function setupGestures() {
                     if(newSize < 0.8) newSize = 0.8; 
                     if(newSize > 3.0) newSize = 3.0; 
                     
+                    // Αλλάζουμε τη μεταβλητή CSS που μεγαλώνει τα γράμματα
                     document.documentElement.style.setProperty('--lyric-size', newSize + "rem"); 
-                    // Log για εύκολη διόρθωση στο κινητό/inspect
-                    console.log(`[GESTURES] Zooming: ${newSize.toFixed(2)}rem`);
                 }
             }
-        }, {passive: false}); // ΚΡΙΣΙΜΟ: Πρέπει να είναι false
+        }
+    }, {passive: false});
 
-        // Προσθήκη καθαρισμού όταν σηκώνεις τα δάχτυλα
-        area.addEventListener('touchend', function(e) {
-            if(e.touches.length < 2) {
-                startDist = 0;
-                console.log("[GESTURES] Pinch ended.");
-            }
-        });
-        
-        console.log("✅ [GESTURES] Ενεργοποιήθηκαν επιτυχώς στο:", area.id || area.className);
-    } else {
-        console.warn("❌ [GESTURES] Το element 'mainZone' (ή '.col-stage') δεν βρέθηκε.");
-    }
+    stageArea.addEventListener('touchend', function(e) {
+        if(e.touches.length < 2) {
+            startDist = 0;
+        }
+    });
+
+    console.log("✅ [GESTURES] Τα Gestures καρφώθηκαν μόνιμα στο .col-stage!");
 }
 
 // ===========================================================

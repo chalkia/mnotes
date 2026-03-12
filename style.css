@@ -1354,9 +1354,12 @@ body.viewing-original .col-stage {
 
 .pricing-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    /* Η ΜΑΓΕΙΑ: Φτιάχνει στήλες. Αν η οθόνη είναι μεγάλη τα βάζει δίπλα-δίπλα, αν μικρύνει τα βάζει από κάτω! */
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
     gap: 20px;
     margin-top: 20px;
+    flex-grow: 1; 
+    padding: 5px; /* Μικρό padding για να μην κόβονται οι σκιές */
 }
 
 .pricing-card {
@@ -1523,12 +1526,13 @@ body.band-mode .top-nav {
 }
 /* Διάταξη ανά δυάδες για το Upgrade Modal */
    #pricingModal .modal-box {
-    max-width: 650px; 
-    max-height: 85vh; /* Λίγο μικρότερο για να μην ακουμπάει στα άκρα του κινητού */
-    display: flex; 
+    max-width: 950px; /* <--- ΤΟ ΑΝΟΙΓΟΥΜΕ: Από 650px το πάμε 950px για να αναπνέει στο Desktop! */
+    width: 95%;       /* Στα κινητά θα πιάνει το 95% της οθόνης, οπότε παραμένει τέλειο */
+    max-height: 85vh; 
+    display: flex;
     flex-direction: column;
     position: relative;
-    overflow-y: auto; /* <--- ΤΟ ΚΛΕΙΔΙ: Auto αντί για hidden! */
+    overflow-y: auto; 
     padding-bottom: 20px;
 }
 
@@ -1549,11 +1553,7 @@ body.band-mode .top-nav {
     /* ΑΦΑΙΡΕΣΑΜΕ ΤΟ overflow-y από εδώ για να σκρολάρει όλο το παράθυρο μαζί με το κουμπί! */
 }
 
-@media (max-width: 600px) {
-    .pricing-grid {
-        grid-template-columns: 1fr; /* 1 στήλη στα κινητά */
-    }
-}
+
 /* =========================================
    Z-INDEX ARCHITECTURE (Standard Logic)
    ========================================= */
@@ -1590,6 +1590,7 @@ body.band-mode::before { z-index: 8000; } /* Το σηματάκι της Μπά
 #toast { z-index: 9000; }
 .debug-overlay { z-index: 9999; }
 .debug-panel { z-index: 10000 !important; }
+
 
 
 

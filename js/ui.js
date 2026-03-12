@@ -376,7 +376,9 @@ function initResizers() {
 }
 //GESTURES
 function setupGestures() { 
-    var area = document.getElementById('mainZone'); // Βεβαιώσου ότι το ID στον Player σου είναι όντως 'mainZone'
+    // Διευρύνουμε το 'δίχτυ' για να πιάσουμε σίγουρα την περιοχή των στίχων, 
+    // αν για κάποιο λόγο το 'mainZone' έχει μικρότερο ύψος από αυτό που νομίζουμε.
+    var area = document.getElementById('mainZone') || document.querySelector('.col-stage'); 
     var startDist = 0; 
     var startSize = 1.3; 
     
@@ -388,11 +390,11 @@ function setupGestures() {
                 startSize = parseFloat(val) || 1.3; 
                 console.log(`[GESTURES] Start pinch. Init size: ${startSize}rem`);
             }
-        }, {passive: true}); 
+        }, {passive: false}); // ΔΙΟΡΘΩΣΗ: false για να επιτρέψει στο touchmove να κάνει preventDefault!
         
         area.addEventListener('touchmove', function(e) { 
             if(e.touches.length === 2) { 
-                e.preventDefault(); // ΚΡΙΣΙΜΟ: Παίρνουμε τον απόλυτο έλεγχο από τον browser
+                e.preventDefault(); // ΚΡΙΣΙΜΟ: Μπλοκάρουμε το default zoom του browser
                 
                 var dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); 
                 if(startDist > 0) { 
@@ -407,19 +409,21 @@ function setupGestures() {
                     console.log(`[GESTURES] Zooming: ${newSize.toFixed(2)}rem`);
                 }
             }
-        }, {passive: false}); // ΚΡΙΣΙΜΟ: Πρέπει να είναι false για να δουλέψει το preventDefault!
+        }, {passive: false}); // ΚΡΙΣΙΜΟ: Πρέπει να είναι false
 
         // Προσθήκη καθαρισμού όταν σηκώνεις τα δάχτυλα
         area.addEventListener('touchend', function(e) {
             if(e.touches.length < 2) {
                 startDist = 0;
+                console.log("[GESTURES] Pinch ended.");
             }
         });
+        
+        console.log("✅ [GESTURES] Ενεργοποιήθηκαν επιτυχώς στο:", area.id || area.className);
     } else {
-        console.warn("[GESTURES] Το element 'mainZone' δεν βρέθηκε.");
+        console.warn("❌ [GESTURES] Το element 'mainZone' (ή '.col-stage') δεν βρέθηκε.");
     }
 }
-
 
 // ===========================================================
 // 4. IMPORT / EXPORT (CLEANED - NO QR)
@@ -507,7 +511,18 @@ function loadSong(id) {
         switchMobileTab('stage');
     }
 }
-
+function navVisiblePlaylist(dir) {
+    if (!visiblePlaylist || visiblePlaylist.length === 0) return;
+    
+    let currentIndex = visiblePlaylist.findIndex(s => s.id === currentSongId);
+    let newIndex = currentIndex + dir;
+    
+    if (newIndex >= 0 && newIndex < visiblePlaylist.length) {
+        loadSong(visiblePlaylist[newIndex].id);
+    } else {
+        showToast(dir > 0 ? "Τέλος Λίστας" : "Αρχή Λίστας");
+    }
+}
 /* --- ΑΝΤΙΚΑΤΑΣΤΑΣΗ ΤΗΣ ΣΥΝΑΡΤΗΣΗΣ renderPlayer --- */
 function renderPlayer(s) {
     if (!s) return;
@@ -565,10 +580,15 @@ function renderPlayer(s) {
     if (headerContainer) {
         headerContainer.innerHTML = `
         <div class="player-header">
-            <h2 id="mainAppTitle" style="margin:0 0 5px 0; font-size:1.2rem; color:var(--text-main); display:flex; align-items:center; flex-wrap:wrap;">
-                <span>${s.title} ${s.artist ? `<span style="font-size:0.9rem; opacity:0.6;">- ${s.artist}</span>` : ''}</span>
-                ${noteBtnHtml}
-            </h2>
+             <h2 id="mainAppTitle" style="margin:0 0 5px 0; font-size:1.2rem; color:var(--text-main); display:flex; align-items:center; flex-wrap:wrap; position:relative; padding-right:85px;">
+                   <span>${s.title} ${s.artist ? `<span style="font-size:0.9rem; opacity:0.6;">- ${s.artist}</span>` : ''}</span>
+                    ${noteBtnHtml}
+    
+                   <div class="mobile-nav-buttons" style="position:absolute; right:0; top:50%; transform:translateY(-50%); display:flex; gap:6px;">
+                       <button onclick="navVisiblePlaylist(-1)" style="background:var(--bg-panel); border:1px solid var(--border-color); color:var(--text-main); border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 4px rgba(0,0,0,0.3); cursor:pointer;"><i class="fas fa-chevron-left"></i></button>
+                       <button onclick="navVisiblePlaylist(1)" style="background:var(--bg-panel); border:1px solid var(--border-color); color:var(--text-main); border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 4px rgba(0,0,0,0.3); cursor:pointer;"><i class="fas fa-chevron-right"></i></button>
+                   </div>
+               </h2>
             <div style="display:flex; justify-content:space-between; align-items:center;">
                 <div style="display:flex; align-items:center; gap: 10px;">
                     <span class="key-badge">${typeof getNote === 'function' ? getNote(s.key || "-", state.t) : s.key}</span>

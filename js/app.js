@@ -16,6 +16,8 @@ window.addEventListener('load', function() {
     if (typeof setupEvents === 'function') setupEvents();
 
     setupDirtyListeners();
+
+   if (typeof setupGestures === 'function') setupGestures();
     
     // Ασφαλής εκκίνηση των Resizers (Προστασία από καθυστερήσεις της Cache/Login)
     if (typeof initResizers === 'function') {

@@ -169,12 +169,15 @@ body.lyrics-mode .line-row { align-items: center; line-height: 1.8; }
     height: 0; 
     overflow: hidden; 
     max-width: 100%; 
-    background: transparent; /* ΤΕΛΟΣ ΤΟ ΜΑΥΡΟ! */
+    background: transparent !important; /* ΤΕΛΟΣ ΤΟ ΜΑΥΡΟ! */
     border-radius: 8px; 
     border: 1px solid var(--border-color); /* Να δένει με το θέμα μας */
     margin-bottom: 20px; 
     margin-top: 20px;
     /* Μαγικό τρικ για να πιάνει τέλεια τις γωνίες στα κινητά: */
+    -webkit-mask-image: -webkit-radial-gradient(white, black);
+    -webkit-backface-visibility: hidden;
+    -moz-backface-visibility: hidden;
     transform: translateZ(0); 
 }
 
@@ -185,7 +188,8 @@ body.lyrics-mode .line-row { align-items: center; line-height: 1.8; }
     width: 100%;
     height: 100%;
     border: none;
-    border-radius: 8px; /* Κάνει στρογγυλό ΚΑΙ το ίδιο το βίντεο */
+    border-radius: 8px; 
+    background: transparent;
 }
 
 /* --- PLAYER HEADER (Τίτλος & Καλλιτέχνης) --- */
@@ -1639,7 +1643,27 @@ body.band-mode::before { z-index: 8000; } /* Το σηματάκι της Μπά
 .debug-overlay { z-index: 9999; }
 .debug-panel { z-index: 10000 !important; }
 
+/* =========================================
+   ΕΝΟΠΟΙΗΣΗ ΤΙΤΛΩΝ ΣΤΗΝ ΠΛΑΪΝΗ ΜΠΑΡΑ
+   ========================================= */
+.tool-section .section-title,
+.tool-group summary {
+    color: var(--text-main) !important; 
+    font-weight: bold !important;
+    display: flex;
+    align-items: center;
+}
 
+/* Χρώμα μόνο για τα εικονίδια των τίτλων */
+.tool-section .section-title i,
+.tool-group summary i {
+    color: var(--accent) !important;
+    margin-right: 8px !important; /* Σταθερή απόσταση του εικονιδίου από το κείμενο */
+}
+/* Εξαίρεση ΜΟΝΟ για το εικονίδιο της Εγγραφής (Audio Hub) */
+.tool-section .section-title i.fa-microphone-alt {
+    color: #ff4757 !important; /* Το χαρακτηριστικό κόκκινο της εγγραφής */
+}
 
 
 

@@ -1660,10 +1660,7 @@ body.band-mode::before { z-index: 8000; } /* Το σηματάκι της Μπά
     color: var(--accent) !important;
     margin-right: 8px !important; /* Σταθερή απόσταση του εικονιδίου από το κείμενο */
 }
-/* Εξαίρεση ΜΟΝΟ για το εικονίδιο της Εγγραφής (Audio Hub) */
-.tool-section .section-title i.fa-microphone-alt {
-    color: #ff4757 !important; /* Το χαρακτηριστικό κόκκινο της εγγραφής */
-}
+
 
 
 

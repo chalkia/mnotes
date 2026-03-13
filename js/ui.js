@@ -607,7 +607,7 @@ function renderPlayer(s) {
         if (s.video) {
             const ytId = getYoutubeId(s.video);
             if (ytId) {
-                embedBox.innerHTML = `<iframe src="https://www.youtube.com/embed/${ytId}" frameborder="0" allowfullscreen style="width:100%; height:100%; position:absolute; top:0; left:0;"></iframe>`;
+                embedBox.innerHTML = `<iframe src="https://www.youtube.com/embed/${ytId}" frameborder="0" allowfullscreen style="width:100%; height:100%; position:absolute; top:0; left:0; border-radius: 8px;"></iframe>`;
                 vidBox.style.display = 'block';
             } else { vidBox.style.display = 'none'; }
         } else { vidBox.style.display = 'none'; }

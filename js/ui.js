@@ -376,55 +376,47 @@ function initResizers() {
 }
 //GESTURES
 function setupGestures() { 
-    // Αντί για το mainZone/scroll-container που σβήνεται, στοχεύουμε τη ΜΟΝΙΜΗ μεσαία στήλη!
-    var stageArea = document.querySelector('.col-stage'); 
     var startDist = 0; 
     var startSize = 1.3; 
     
-    if(!stageArea) {
-        console.warn("❌ [GESTURES] Δεν βρέθηκε το .col-stage!");
-        return;
-    }
-
-    stageArea.addEventListener('touchstart', function(e) { 
-        // Αν ο χρήστης ακουμπήσει 2 δάχτυλα
-        if(e.touches.length === 2) { 
+    // Καρφώνουμε τον Listener στο document
+    document.addEventListener('touchstart', function(e) { 
+        // Ελέγχουμε αν είναι 2 δάχτυλα ΚΑΙ αν η αφή έγινε κάπου μέσα στη σκηνή
+        if(e.touches.length === 2 && e.target.closest('.col-stage')) { 
             startDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); 
             var val = getComputedStyle(document.documentElement).getPropertyValue('--lyric-size').trim(); 
             startSize = parseFloat(val) || 1.3; 
             console.log(`[GESTURES] Start pinch. Init size: ${startSize}rem`);
         }
-    }, {passive: false}); // passive false για να μας ακούσει ο browser!
+    }, {passive: false}); // Το passive: false είναι υποχρεωτικό εδώ
     
-    stageArea.addEventListener('touchmove', function(e) { 
-        // Αν κουνάει 2 δάχτυλα
-        if(e.touches.length === 2) { 
-            // Ελέγχουμε αν όντως υπάρχει ανοιχτό τραγούδι (scroll-container) εκείνη τη στιγμή
-            if (document.getElementById('scroll-container')) {
-                e.preventDefault(); // ΜΠΛΟΚΑΡΟΥΜΕ το χαζό zoom του κινητού!
+    document.addEventListener('touchmove', function(e) { 
+        if(e.touches.length === 2 && e.target.closest('.col-stage')) { 
+            // ΕΔΩ ΜΠΛΟΚΑΡΟΥΜΕ ΤΟ ΖΟΟΜ ΤΟΥ ΚΙΝΗΤΟΥ 100%
+            e.preventDefault(); 
+            
+            var dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); 
+            if(startDist > 0) { 
+                var scale = dist / startDist; 
+                var newSize = startSize * scale; 
                 
-                var dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); 
-                if(startDist > 0) { 
-                    var scale = dist / startDist; 
-                    var newSize = startSize * scale; 
-                    
-                    if(newSize < 0.8) newSize = 0.8; 
-                    if(newSize > 3.0) newSize = 3.0; 
-                    
-                    // Αλλάζουμε τη μεταβλητή CSS που μεγαλώνει τα γράμματα
-                    document.documentElement.style.setProperty('--lyric-size', newSize + "rem"); 
-                }
+                // Κρατάμε τα όρια
+                if(newSize < 0.8) newSize = 0.8; 
+                if(newSize > 3.0) newSize = 3.0; 
+                
+                document.documentElement.style.setProperty('--lyric-size', newSize + "rem"); 
+                console.log(`[GESTURES] Zooming: ${newSize.toFixed(2)}rem`);
             }
         }
     }, {passive: false});
 
-    stageArea.addEventListener('touchend', function(e) {
+    document.addEventListener('touchend', function(e) {
         if(e.touches.length < 2) {
             startDist = 0;
         }
     });
 
-    console.log("✅ [GESTURES] Τα Gestures καρφώθηκαν μόνιμα στο .col-stage!");
+    console.log("✅ [GESTURES] Ενεργοποιήθηκαν με Global Delegation!");
 }
 
 // ===========================================================

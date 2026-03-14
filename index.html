@@ -123,11 +123,10 @@
 
                 <div id="fixed-container" class="fixed-lyrics"></div>
                 <div id="scroll-container" class="scroll-lyrics"></div>
-                    <button id="floatingScrollBtn" class="floating-scroll-btn" onclick="toggleAutoScroll(event)">
-                        <i class="fas fa-play" id="scrollBtnIcon"></i> 
-                        <span id="scrollBtnText">Auto Scroll</span>
+                   <button id="floatingScrollBtn" class="floating-scroll-btn" onclick="toggleAutoScroll(event)">
+                        <i class="fas fa-play" id="scrollBtnIcon"></i> <span id="scrollBtnText" data-i18n="btn_auto_scroll">Auto Scroll</span>
                     </button>
-
+                    
                 <div class="desktop-controls-area">
                     <button id="btnPrevSong" onclick="navSetlist(-1)" class="round-btn">
                         <i class="fas fa-step-backward"></i>
@@ -440,8 +439,18 @@
             <label>Chord: <input type="color" id="colChord" value="#ffff00"></label>
         </div>
 
-        <label><span data-i18n="lbl_scroll_speed">Scroll Speed:</span> <input type="range" id="setScroll" min="10" max="200"></label>
-        <label><span data-i18n="lbl_max_capo">Max Capo:</span> <input type="number" id="setMaxCapo" value="12"></label>
+       <div style="margin-bottom: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                <span data-i18n="lbl_scroll_speed" style="font-weight: bold; color: var(--text-main);">Scroll Speed:</span>
+                <label style="font-size: 0.8rem; color: var(--text-muted); display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                    <input type="checkbox" id="setShowScrollBtn" checked onchange="applyScrollBtnVisibility()">
+                    <i class="fas fa-hand-pointer" style="color:var(--accent);"></i> <span data-i18n="lbl_btn_scroll">Κουμπί</span>
+                </label>
+            </div>
+            <input type="range" id="setScrollSpeed" min="10" max="200" style="width: 100%;">
+        </div>
+
+        <label><span data-i18n="lbl_max_capo">Max Capo:</span> <input type="number" id="setMaxCapo" value="12" class="inp" style="width: 60px; padding: 4px;"></label>
 
         <hr style="border-color:#444; margin:10px 0;">
         <div style="margin-bottom: 5px; font-weight: bold; color: var(--accent);" data-i18n="lbl_chord_appearance">Εμφάνιση Συγχορδιών</div>

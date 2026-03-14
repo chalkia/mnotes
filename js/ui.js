@@ -410,15 +410,18 @@ function setupGestures() {
         }
     }, {passive: false});
 
-    document.addEventListener('touchend', function(e) {
+document.addEventListener('touchend', function(e) {
         if(e.touches.length < 2) {
             startDist = 0;
+            // ✨ Προσθήκη: Ελέγχουμε αν μετά το ζουμάρισμα χρειάζεται πλέον scroll
+            if (typeof applyScrollBtnVisibility === 'function') {
+                applyScrollBtnVisibility();
+            }
         }
     });
 
     console.log("✅ [GESTURES] Ενεργοποιήθηκαν με Global Delegation!");
 }
-
 // ===========================================================
 // 4. IMPORT / EXPORT (CLEANED - NO QR)
 // ===========================================================
@@ -457,13 +460,12 @@ function loadSong(id) {
     // 1. Σταμάτημα Auto Scroll αν τρέχει
     if(typeof scrollTimer !== 'undefined' && scrollTimer) toggleAutoScroll();
    
-   // Κλείσιμο του συρταριού σημειώσεων στο Live View - Άνοιγμα των συγχορδιών
+    // Κλείσιμο του συρταριού σημειώσεων στο Live View - Άνοιγμα των συγχορδιών
     let notesGroup = document.getElementById('perfNotesGroup');
     if (notesGroup) notesGroup.open = false;
     let chordsGroup = document.getElementById('guitarChordsGroup');
     if (chordsGroup) chordsGroup.open = true; 
    
-    
     // 2. Εύρεση Τραγουδιού
     currentSongId = id; 
     var s = library.find(x => x.id === id); 
@@ -473,18 +475,16 @@ function loadSong(id) {
     state.t = 0; 
     state.c = 0; 
     
-    // Προετοιμασία συγχορδιών (αν υπάρχει η συνάρτηση)
+    // Προετοιμασία συγχορδιών
     if(typeof parseSongLogic === 'function') parseSongLogic(s);
     
     // 4. Εμφάνιση Στίχων & Header
     renderPlayer(s);
     
-    // 5. ΣΥΓΧΡΟΝΙΣΜΟΣ RHYTHM / SEQUENCER (Η αλλαγή!)
-    // Καλούμε τη συνάρτηση γέφυρα που φτιάξαμε στο sequencer.js
+    // 5. ΣΥΓΧΡΟΝΙΣΜΟΣ RHYTHM / SEQUENCER
     if (typeof syncSequencerToSong === 'function') {
         syncSequencerToSong(s);
     } else if (s.rhythm && s.rhythm.bpm && typeof AudioEngine !== 'undefined') {
-        // Fallback αν δεν έχει φορτώσει το sequencer.js ακόμα
         AudioEngine.setBpm(s.rhythm.bpm);
     }
 
@@ -504,7 +504,14 @@ function loadSong(id) {
     if (window.innerWidth <= 1024 && typeof switchMobileTab === 'function') {
         switchMobileTab('stage');
     }
+
+    // ✨ 10. ΕΛΕΓΧΟΣ ΓΙΑ ΕΜΦΑΝΙΣΗ ΚΟΥΜΠΙΟΥ AUTO-SCROLL
+    // Περιμένουμε 150ms για να προλάβει το renderPlayer να γεμίσει το container
+    if (typeof applyScrollBtnVisibility === 'function') {
+        setTimeout(applyScrollBtnVisibility, 150);
+    }
 }
+
 function navVisiblePlaylist(dir) {
     if (!visiblePlaylist || visiblePlaylist.length === 0) return;
     
@@ -2170,15 +2177,14 @@ function capoDown() {
 
 // Βοηθητική συνάρτηση που κάνει Refresh τον Player και τα Νούμερα
 function refreshPlayerUI() {
-    // 1. Ξαναζωγραφίζουμε το τραγούδι (θα διαβάσει τα νέα t και c)
     if (currentSongId && typeof library !== 'undefined') {
         const s = library.find(x => x.id === currentSongId);
         if (s && typeof renderPlayer === 'function') {
             renderPlayer(s);
+            // ✨ Προσθήκη: Έλεγχος αν το ύψος άλλαξε μετά το transpose
+            applyScrollBtnVisibility();
         }
     }
-
-    // 2. Ενημερώνουμε τα νούμερα στα κουμπιά (αν υπάρχουν στο HTML)
     updateTransDisplay();
 }
 
@@ -2466,8 +2472,7 @@ function toggleAutoScroll(e) {
             // ✨ ΔΙΓΛΩΣΣΙΑ ΕΔΩ:
             if (btnText) btnText.innerText = (typeof t === 'function') ? t('btn_auto_scroll') : "Auto Scroll";
         }
-        if (typeof showToast === 'function') showToast("Auto-Scroll: OFF");
-        return;
+            return;
     }
 
     // 2. ΕΚΚΙΝΗΣΗ (PLAY)
@@ -2481,9 +2486,7 @@ function toggleAutoScroll(e) {
         if (btnText) btnText.innerText = (typeof t === 'function') ? t('btn_pause') : "Pause";
         btn.classList.add('hidden'); // Το κρύβουμε για να μη μας κόβει στίχους
     }
-    if (typeof showToast === 'function') showToast("Auto-Scroll: ON");
-
-    scrollTimer = setInterval(function() {
+       scrollTimer = setInterval(function() {
         container.scrollTop += 1; 
         
         if (container.scrollTop + container.clientHeight >= container.scrollHeight - 2) {
@@ -2567,3 +2570,8 @@ function applyScrollBtnVisibility() {
 
     }, 150); // 150ms είναι υπεραρκετά για να κάνει render το DOM
 }
+// ✨ Αυτόματος έλεγχος κουμπιού scroll όταν αλλάζει το μέγεθος της οθόνης (π.χ. Rotation σε Tablet)
+window.addEventListener('resize', function() {
+    // Μικρή καθυστέρηση για να προλάβει ο browser να υπολογίσει τα νέα clientHeight
+    setTimeout(applyScrollBtnVisibility, 250);
+});

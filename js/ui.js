@@ -1986,7 +1986,7 @@ return `<span class="chord" style="display:inline; position:static; font-size:in
 
 function openSettings() {
     const modal = document.getElementById('settingsModal');
-   const chkSplit = document.getElementById('setDisableSplit');
+    const chkSplit = document.getElementById('setDisableSplit');
     if (chkSplit) chkSplit.checked = userSettings.disableSplit || false;
     if (!modal) return;
 
@@ -2000,13 +2000,21 @@ function openSettings() {
     const sizeInp = document.getElementById('setChordSize');
     const distInp = document.getElementById('setChordDist');
     const colInp = document.getElementById('setChordColor');
-    const chkDef = document.getElementById('chkDefaultColor'); // ΝΕΟ
+    const chkDef = document.getElementById('chkDefaultColor'); 
+    
+    // --- ΠΕΔΙΑ AUTO SCROLL ---
+    const speedInp = document.getElementById('setScrollSpeed');
+    const btnChk = document.getElementById('setShowScrollBtn');
 
     if(themeSel) themeSel.value = userSettings.theme || 'theme-dark';
     if(langSel) langSel.value = userSettings.lang || 'el';
     if(sortSel) sortSel.value = userSettings.sortMethod || 'alpha';
     if(sizeInp) sizeInp.value = userSettings.chordSize || 1;
     if(distInp) distInp.value = userSettings.chordDist || 0;
+    
+    // Φόρτωση ρυθμίσεων Scroll
+    if(speedInp) speedInp.value = userSettings.scrollSpeed || 50;
+    if(btnChk) btnChk.checked = (typeof userSettings.showScrollBtn !== 'undefined') ? userSettings.showScrollBtn : true;
 
     // Λογική για το Χρώμα
     if(colInp && chkDef) {
@@ -2014,7 +2022,7 @@ function openSettings() {
             chkDef.checked = true;
             colInp.disabled = true;
             colInp.style.opacity = '0.3';
-            colInp.value = '#ffb74d'; // Ένα τυχαίο χρώμα για να μην φαίνεται άσπρο
+            colInp.value = '#ffb74d'; 
         } else {
             chkDef.checked = false;
             colInp.disabled = false;
@@ -2039,7 +2047,15 @@ function saveSettings() {
     const distInp = document.getElementById('setChordDist');
     const colInp = document.getElementById('setChordColor');
     const chkDef = document.getElementById('chkDefaultColor');
-   
+    
+    // --- ΠΕΔΙΑ ΓΙΑ ΤΟ AUTO SCROLL ---
+    const speedInp = document.getElementById('setScrollSpeed');
+    const btnChk = document.getElementById('setShowScrollBtn');
+    
+    if (speedInp) userSettings.scrollSpeed = speedInp.value;
+    if (btnChk) userSettings.showScrollBtn = btnChk.checked;
+    // --------------------------------
+
     // 1. Εφαρμογή Θέματος
     if (themeSel) {
         userSettings.theme = themeSel.value;
@@ -2050,41 +2066,46 @@ function saveSettings() {
     if (langSel) {
         userSettings.lang = langSel.value;
         if(typeof toggleLanguage === 'function') {
-             // Αν η γλώσσα άλλαξε, καλούμε την toggleLanguage
              const currentLangStored = localStorage.getItem('mnotes_lang');
              if(currentLangStored !== userSettings.lang) {
                  toggleLanguage(); 
              }
         }
     }
+    
     if (sizeInp) userSettings.chordSize = parseFloat(sizeInp.value);
     if (distInp) userSettings.chordDist = parseInt(distInp.value);
+    
     if (chkDef && chkDef.checked) {
         userSettings.chordColor = 'default';
     } else if (colInp) {
         userSettings.chordColor = colInp.value;
     }
-   // 3. Προεπιλογή Ταξινόμησης
-    if (sortSel) {userSettings.sortMethod = sortSel.value;}
+    
+    // 3. Προεπιλογή Ταξινόμησης
+    if (sortSel) { userSettings.sortMethod = sortSel.value; }
      
-   const chkSplit = document.getElementById('setDisableSplit');
-   if (chkSplit) userSettings.disableSplit = chkSplit.checked;
+    const chkSplit = document.getElementById('setDisableSplit');
+    if (chkSplit) userSettings.disableSplit = chkSplit.checked;
+    
     // 4. Αποθήκευση στη μνήμη
     localStorage.setItem('mnotes_settings', JSON.stringify(userSettings));
     
-   // ΕΦΑΡΜΟΓΗ ΟΠΤΙΚΩΝ ΑΛΛΑΓΩΝ ΑΜΕΣΑ!
-     if (typeof applyTheme === 'function') applyTheme();
-   
-   // Κλείσιμο παραθύρου & Ενημέρωση
+    // ΕΦΑΡΜΟΓΗ ΟΠΤΙΚΩΝ ΑΛΛΑΓΩΝ ΑΜΕΣΑ!
+    if (typeof applyTheme === 'function') applyTheme();
+    if (typeof applyScrollBtnVisibility === 'function') applyScrollBtnVisibility();
+
+    // Κλείσιμο παραθύρου & Ενημέρωση
     closeSettings();
     
     // Ανανέωση λίστας με τις νέες ρυθμίσεις
     if (typeof sortLibrary === 'function') sortLibrary(userSettings.sortMethod);
     
-   if (typeof currentSongId !== 'undefined' && currentSongId) {
+    if (typeof currentSongId !== 'undefined' && currentSongId) {
         const s = library.find(x => x.id === currentSongId);
         if (s && typeof renderPlayer === 'function') renderPlayer(s);
     }
+    
     showToast(userSettings.lang === 'el' ? "Οι ρυθμίσεις αποθηκεύτηκαν" : "Settings saved");
 }
 
@@ -2409,3 +2430,100 @@ window.processFileDirectly = async function(input) {
     // Καθαρίζουμε το input για να μπορούμε να ξαναδιαλέξουμε το ίδιο αρχείο
     input.value = ''; 
 };
+// ===========================================================
+// 16. AUTO-SCROLL & BLUETOOTH PAGE TURNER
+// ===========================================================
+var scrollTimer = null;
+var scrollBtnTimeout = null;
+
+function toggleAutoScroll(e) {
+    if (e) e.stopPropagation(); 
+
+    var container = document.getElementById('scroll-container');
+    if (!container || container.scrollHeight <= container.clientHeight) {
+        container = document.getElementById('mainZone');
+    }
+    if (!container) return;
+
+    var btn = document.getElementById('floatingScrollBtn');
+    var btnIcon = document.getElementById('scrollBtnIcon');
+    var btnText = document.getElementById('scrollBtnText');
+
+    // 1. ΣΤΑΜΑΤΗΜΑ (PAUSE)
+    if (scrollTimer) {
+        clearInterval(scrollTimer);
+        scrollTimer = null;
+        
+        if (btn) {
+            btn.classList.remove('hidden');
+            if (btnIcon) btnIcon.className = "fas fa-play";
+            if (btnText) btnText.innerText = "Auto Scroll";
+        }
+        if (typeof showToast === 'function') showToast("Auto-Scroll: OFF");
+        return;
+    }
+
+    // 2. ΕΚΚΙΝΗΣΗ (PLAY)
+    var speedSetting = (typeof userSettings !== 'undefined' && userSettings.scrollSpeed) ? parseInt(userSettings.scrollSpeed) : 50;
+    var intervalTime = 120 - (speedSetting / 2); 
+    if (intervalTime < 10) intervalTime = 10; 
+
+    if (btn) {
+        if (btnIcon) btnIcon.className = "fas fa-pause";
+        if (btnText) btnText.innerText = "Pause";
+        btn.classList.add('hidden'); // Το κρύβουμε για να μη μας κόβει στίχους
+    }
+    if (typeof showToast === 'function') showToast("Auto-Scroll: ON");
+
+    scrollTimer = setInterval(function() {
+        container.scrollTop += 1; 
+        
+        if (container.scrollTop + container.clientHeight >= container.scrollHeight - 2) {
+            clearInterval(scrollTimer);
+            scrollTimer = null;
+            if (btn) {
+                btn.classList.remove('hidden');
+                if (btnIcon) btnIcon.className = "fas fa-play";
+                if (btnText) btnText.innerText = "Auto Scroll";
+            }
+        }
+    }, intervalTime);
+}
+
+// Εμφάνιση με κλικ στην οθόνη (όταν τρέχει)
+document.addEventListener('click', function(e) {
+    var btn = document.getElementById('floatingScrollBtn');
+    if (scrollTimer && btn && !btn.contains(e.target)) {
+        btn.classList.remove('hidden');
+        clearTimeout(scrollBtnTimeout);
+        scrollBtnTimeout = setTimeout(() => {
+            if (scrollTimer) btn.classList.add('hidden');
+        }, 3500); 
+    }
+});
+
+// Bluetooth Page Turner Logic
+function setupBluetoothPedals() {
+    document.addEventListener('keydown', function(e) {
+        // Όχι στον editor
+        var editorView = document.getElementById('view-editor');
+        if(editorView && editorView.classList.contains('active-view')) return;
+
+        if (e.key === 'PageDown' || e.key === 'ArrowDown' || e.key === ' ') {
+            e.preventDefault();
+            toggleAutoScroll();
+            console.log(`[BLUETOOTH] Triggered Scroll via ${e.key}`);
+        }
+        if (e.key === 'ArrowRight' && typeof navVisiblePlaylist === 'function') navVisiblePlaylist(1);
+        if (e.key === 'ArrowLeft' && typeof navVisiblePlaylist === 'function') navVisiblePlaylist(-1);
+    });
+}
+
+// Βοηθητική συνάρτηση για την εμφάνιση/απόκρυψη από τα Settings
+function applyScrollBtnVisibility() {
+    var btn = document.getElementById('floatingScrollBtn');
+    if (btn) {
+        var showBtn = (typeof userSettings !== 'undefined' && typeof userSettings.showScrollBtn !== 'undefined') ? userSettings.showScrollBtn : true;
+        btn.style.display = showBtn ? 'flex' : 'none';
+    }
+}

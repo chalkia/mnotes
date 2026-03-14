@@ -1842,7 +1842,13 @@ function switchDrawerTab(tabName) {
 // 12. UTILS & MUSIC THEORY (FINAL CORRECTED VERSION)
 // ===========================================================
 
-function getYoutubeId(url) { if (!url) return null; var regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/; var match = url.match(regExp); return (match && match[2].length === 11) ? match[2] : null; }
+function getYoutubeId(url) { 
+    if (!url) return null; 
+    // Προσθέσαμε υποστήριξη και για τα Shorts!
+    var regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|shorts\/)([^#\&\?]*).*/; 
+    var match = url.match(regExp); 
+    return (match && match[2].length === 11) ? match[2] : null; 
+}
 function showToast(msg) { var x = document.getElementById("toast"); if(x) { x.innerText = msg; x.className = "show"; setTimeout(function(){ x.className = x.className.replace("show", ""); }, 3000); } }
 function saveData() {
     if (Array.isArray(window.library)) {

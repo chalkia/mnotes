@@ -1661,6 +1661,36 @@ body.band-mode::before { z-index: 8000; } /* Το σηματάκι της Μπά
     margin-right: 8px !important; /* Σταθερή απόσταση του εικονιδίου από το κείμενο */
 }
 
+/* =========================================
+   FLOATING AUTO-SCROLL BUTTON
+   ========================================= */
+.floating-scroll-btn {
+    position: absolute;
+    bottom: 90px; /* Κάθεται ακριβώς πάνω από την μπάρα ελέγχου */
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 193, 7, 0.9); /* Έντονο κιτρινάκι για να φαίνεται */
+    color: #000;
+    border: none;
+    border-radius: 30px;
+    padding: 12px 30px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    z-index: 1000;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+/* Όταν η JS του βάζει την κλάση hidden, εξαφανίζεται γλυκά */
+.floating-scroll-btn.hidden {
+    opacity: 0;
+    pointer-events: none; /* Να μην το πατήσεις κατά λάθος όταν δεν φαίνεται */
+    transform: translateX(-50%) translateY(20px);
+}
 
 
 

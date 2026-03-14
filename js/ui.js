@@ -2457,7 +2457,8 @@ function toggleAutoScroll(e) {
         if (btn) {
             btn.classList.remove('hidden');
             if (btnIcon) btnIcon.className = "fas fa-play";
-            if (btnText) btnText.innerText = "Auto Scroll";
+            // ✨ ΔΙΓΛΩΣΣΙΑ ΕΔΩ:
+            if (btnText) btnText.innerText = (typeof t === 'function') ? t('btn_auto_scroll') : "Auto Scroll";
         }
         if (typeof showToast === 'function') showToast("Auto-Scroll: OFF");
         return;
@@ -2465,12 +2466,13 @@ function toggleAutoScroll(e) {
 
     // 2. ΕΚΚΙΝΗΣΗ (PLAY)
     var speedSetting = (typeof userSettings !== 'undefined' && userSettings.scrollSpeed) ? parseInt(userSettings.scrollSpeed) : 50;
-    var intervalTime = 120 - (speedSetting / 2); 
-    if (intervalTime < 10) intervalTime = 10; 
+    var intervalTime = 220 - speedSetting; 
+    if (intervalTime < 10) intervalTime = 10;
 
     if (btn) {
         if (btnIcon) btnIcon.className = "fas fa-pause";
-        if (btnText) btnText.innerText = "Pause";
+        // ✨ ΔΙΓΛΩΣΣΙΑ ΕΔΩ:
+        if (btnText) btnText.innerText = (typeof t === 'function') ? t('btn_pause') : "Pause";
         btn.classList.add('hidden'); // Το κρύβουμε για να μη μας κόβει στίχους
     }
     if (typeof showToast === 'function') showToast("Auto-Scroll: ON");
@@ -2484,7 +2486,8 @@ function toggleAutoScroll(e) {
             if (btn) {
                 btn.classList.remove('hidden');
                 if (btnIcon) btnIcon.className = "fas fa-play";
-                if (btnText) btnText.innerText = "Auto Scroll";
+                // ✨ ΚΑΙ ΕΔΩ (όταν τερματίζει το τραγούδι):
+                if (btnText) btnText.innerText = (typeof t === 'function') ? t('btn_auto_scroll') : "Auto Scroll";
             }
         }
     }, intervalTime);
@@ -2519,11 +2522,42 @@ function setupBluetoothPedals() {
     });
 }
 
-// Βοηθητική συνάρτηση για την εμφάνιση/απόκρυψη από τα Settings
+// Βοηθητική συνάρτηση για την εμφάνιση/απόκρυψη από τα Settings & Βάσει Ύψους
 function applyScrollBtnVisibility() {
-    var btn = document.getElementById('floatingScrollBtn');
-    if (btn) {
-        var showBtn = (typeof userSettings !== 'undefined' && typeof userSettings.showScrollBtn !== 'undefined') ? userSettings.showScrollBtn : true;
-        btn.style.display = showBtn ? 'flex' : 'none';
-    }
+    // Καθυστέρηση για να προλάβει ο browser να "ζωγραφίσει" τους στίχους
+    setTimeout(function() {
+        var btn = document.getElementById('floatingScrollBtn');
+        if (!btn) return;
+
+        // 1. Έλεγχος από τα Settings
+        var wantsBtn = (typeof userSettings !== 'undefined' && typeof userSettings.showScrollBtn !== 'undefined') ? userSettings.showScrollBtn : true;
+        
+        if (!wantsBtn) {
+            btn.style.display = 'none';
+            console.log("[AutoScroll] Κουμπί κρυμμένο: Απενεργοποιημένο από τα Settings.");
+            return;
+        }
+
+        // 2. Έλεγχος Ύψους (Χρειάζεται scroll;)
+        var container = document.getElementById('scroll-container');
+        if (!container || container.scrollHeight <= container.clientHeight + 5) {
+            container = document.getElementById('mainZone');
+        }
+        
+        var needsScroll = false;
+        if (container) {
+            console.log(`[AutoScroll] Ύψος κειμένου: ${container.scrollHeight}px | Ύψος οθόνης: ${container.clientHeight}px`);
+            // Βάζουμε 10px αέρα για να μην εμφανίζεται οριακά
+            if (container.scrollHeight > container.clientHeight + 10) {
+                needsScroll = true;
+            }
+        }
+
+        // 3. Τελική Εμφάνιση/Απόκρυψη
+        btn.style.display = needsScroll ? 'flex' : 'none';
+        if (!needsScroll) {
+            console.log("[AutoScroll] Κουμπί κρυμμένο: Το τραγούδι χωράει ολόκληρο στην οθόνη.");
+        }
+
+    }, 150); // 150ms είναι υπεραρκετά για να κάνει render το DOM
 }

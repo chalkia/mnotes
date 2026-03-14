@@ -645,10 +645,10 @@
             <i class="fas fa-tools"></i> <b data-i18n="lbl_early_access">Early Access:</b> Τα Premium πακέτα ξεκλειδώνονται μόνο με Κωδικούς Δώρου!
         </p>
         
-        <div class="pricing-grid">
+       <div class="pricing-grid">
             <div class="pricing-card">
                 <div class="p-header">
-                    <h3>Free</h3>
+                    <h3>Solo Free</h3>
                     <div class="price">€0<span>/mo</span></div>
                 </div>
                 <ul class="p-features">
@@ -661,21 +661,6 @@
                 <button class="p-btn current" disabled data-i18n="btn_current_plan">Current Plan</button>
             </div>
 
-            <div class="pricing-card">
-                <div class="p-header">
-                    <h3>Solo</h3>
-                    <div class="price" style="font-size:1.5rem;">Εφάπαξ<span> Αγορά</span></div>
-                </div>
-                <ul class="p-features">
-                    <li><i class="fas fa-check"></i> <b>50MB Cloud Sync</b></li>
-                    <li><i class="fas fa-check"></i> Ήχος & Επισυνάψεις</li>
-                    <li><i class="fas fa-check"></i> Απλός Μετρονόμος</li>
-                    <li class="disabled"><i class="fas fa-times"></i> Drum Machine</li>
-                    <li class="disabled"><i class="fas fa-times"></i> Λειτουργίες Μπάντας</li>
-                </ul>
-                <button onclick="document.getElementById('pricingModal').style.display='none'; openSettings();" class="p-btn" data-i18n="btn_req_gift">Requires Gift Code</button>
-            </div>
-
             <div class="pricing-card featured">
                 <div class="badge-pop">POPULAR</div>
                 <div class="p-header">
@@ -685,7 +670,7 @@
                 <ul class="p-features">
                     <li><i class="fas fa-check"></i> <b>500MB Cloud Sync</b></li>
                     <li><i class="fas fa-check"></i> <b>Πλήρες Drum Machine</b></li>
-                    <li><i class="fas fa-check"></i> Δημιουργία 1 Μπάντας</li>
+                    <li><i class="fas fa-check"></i> Ήχος & Επισυνάψεις</li>
                     <li><i class="fas fa-check"></i> Συμμετοχή σε Μπάντες</li>
                 </ul>
                 <button onclick="document.getElementById('pricingModal').style.display='none'; openSettings();" class="p-btn accent" data-i18n="btn_req_gift">Requires Gift Code</button>
@@ -693,13 +678,13 @@
 
             <div class="pricing-card">
                 <div class="p-header">
-                    <h3>Band Owner</h3>
+                    <h3>BandLeader</h3>
                     <div class="price">Τριμηνιαία</div>
-                    <div style="font-size:0.75rem; color:#888; margin-top:5px;">+ Κόστος ανά Μέλος</div>
+                    <div style="font-size:0.75rem; color:#888; margin-top:5px;">+ Κόστος ανά BandMate</div>
                 </div>
                 <ul class="p-features">
                     <li><i class="fas fa-check"></i> <b>1.5GB Cloud Sync</b></li>
-                    <li><i class="fas fa-check"></i> Διαχείριση Μπάντας</li>
+                    <li><i class="fas fa-check"></i> <b>Έως 10 Μέλη</b></li>
                     <li><i class="fas fa-check"></i> Κοινόχρηστο Ρεπερτόριο</li>
                     <li><i class="fas fa-check"></i> Πλήρη Εργαλεία Ήχου</li>
                 </ul>
@@ -708,7 +693,7 @@
 
             <div class="pricing-card">
                 <div class="p-header">
-                    <h3>Maestro</h3>
+                    <h3>BandMaestro</h3>
                     <div class="price">Τριμηνιαία</div>
                 </div>
                 <ul class="p-features">
@@ -716,9 +701,24 @@
                     <li><i class="fas fa-check"></i> <b>Έως 5 Μπάντες</b></li>
                     <li><i class="fas fa-check"></i> Προχωρημένα Στατιστικά</li>
                     <li><i class="fas fa-check"></i> Οργάνωση Setlists</li>
-                    <li><i class="fas fa-check"></i> Priority Support</li>
                 </ul>
                 <button onclick="document.getElementById('pricingModal').style.display='none'; openSettings();" class="p-btn" data-i18n="btn_req_gift">Requires Gift Code</button>
+            </div>
+
+            <div class="pricing-card" style="border: 2px solid #9c27b0;">
+                <div class="badge-pop" style="background:#9c27b0; color:#fff;">ENTERPRISE</div>
+                <div class="p-header">
+                    <h3>Ensemble</h3>
+                    <div class="price">Ετήσια</div>
+                    <div style="font-size:0.75rem; color:#888; margin-top:5px;">Σταθερή Τιμή Οργανισμού</div>
+                </div>
+                <ul class="p-features">
+                    <li><i class="fas fa-check"></i> <b>4.5GB Cloud Sync</b></li>
+                    <li><i class="fas fa-check"></i> <b>10 Ενεργά Μέλη (Admins)</b></li>
+                    <li><i class="fas fa-check"></i> <b style="color:#9c27b0;">50 Δωρεάν Viewers</b></li>
+                    <li><i class="fas fa-check"></i> Ιδανικό για Χορωδίες</li>
+                </ul>
+                <button onclick="document.getElementById('pricingModal').style.display='none'; openSettings();" class="p-btn" style="background:rgba(156, 39, 176, 0.2); border-color:#9c27b0; color:#fff;" data-i18n="btn_req_gift">Contact for Setup</button>
             </div>
         </div>
     </div>

@@ -12,9 +12,7 @@ let lastImportedIds = new Set(); // Κρατάει τα IDs μόνο της τε
 let showingOriginal = false; // False = My View (Default), True = Band View
 let originalSongSnapshot = null; // Για σύγκριση αλλαγών κατά το Save
 
-// --- TIER CONFIGURATION (UPDATED) ---
-const TIER_CONFIG = {
- // --- TIER CONFIGURATION (FINAL STRICT & ENTERPRISE MODEL) ---
+// --- TIER CONFIGURATION (FINAL STRICT & ENTERPRISE MODEL) ---
 const TIER_CONFIG = {
     solo_free: { 
         label: "Solo Free",

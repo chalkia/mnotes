@@ -1666,17 +1666,26 @@ body.band-mode::before { z-index: 8000; } /* Το σηματάκι της Μπά
    ========================================= */
 .floating-scroll-btn {
     position: absolute;
-    bottom: 90px; /* Κάθεται ακριβώς πάνω από την μπάρα ελέγχου */
+    bottom: 90px;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(255, 193, 7, 0.9); /* Έντονο κιτρινάκι για να φαίνεται */
-    color: #000;
-    border: none;
+    
+    /* 1. Ημιδιάφανο σκούρο φόντο */
+    background: rgba(20, 20, 20, 0.65); 
+    
+    /* 2. Εφέ θολώματος (Glass effect) για να μη μπερδεύονται οι στίχοι με το κουμπί */
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px); /* Απαραίτητο για τα iPhone/iPad */
+    
+    /* 3. Χρώμα γραμμάτων και λεπτό περίγραμμα (παίρνει το χρώμα του θέματος!) */
+    color: var(--accent); 
+    border: 1px solid var(--accent);
+    
     border-radius: 30px;
     padding: 12px 30px;
     font-size: 1.1rem;
     font-weight: bold;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
     z-index: 1000;
     cursor: pointer;
     display: flex;
@@ -1685,10 +1694,10 @@ body.band-mode::before { z-index: 8000; } /* Το σηματάκι της Μπά
     transition: opacity 0.4s ease, transform 0.4s ease;
 }
 
-/* Όταν η JS του βάζει την κλάση hidden, εξαφανίζεται γλυκά */
+/* Η κλάση απόκρυψης παραμένει η ίδια, δεν την πειράζεις! */
 .floating-scroll-btn.hidden {
     opacity: 0;
-    pointer-events: none; /* Να μην το πατήσεις κατά λάθος όταν δεν φαίνεται */
+    pointer-events: none;
     transform: translateX(-50%) translateY(20px);
 }
 

@@ -1701,6 +1701,61 @@ body.band-mode::before { z-index: 8000; } /* Το σηματάκι της Μπά
     transform: translateX(-50%) translateY(20px);
 }
 
+/* ===========================================================
+   TABLET OPTIMIZATIONS (Οθόνες από 768px έως 1024px)
+   =========================================================== */
+@media screen and (min-width: 768px) and (max-width: 1024px) {
+    
+    /* 1. Μεγαλώνουμε τον κεντρικό Τίτλο του τραγουδιού */
+    #mainAppTitle {
+        font-size: 1.8rem !important; 
+    }
+    
+    /* Καλλιτέχνης (δίπλα από τον τίτλο) */
+    #mainAppTitle > span > span {
+        font-size: 1.2rem !important;
+    }
+
+    /* 2. Κουμπιά Πλοήγησης (Next/Prev) μέσα στο Header */
+    .mobile-nav-buttons button {
+        width: 48px !important;
+        height: 48px !important;
+        font-size: 1.4rem !important;
+    }
+
+    /* 3. Κουμπί "Πινέζα" (Σημειώσεις) - Να πατιέται εύκολα με το δάχτυλο */
+    #mainAppTitle button[onclick="toggleStickyNotes()"],
+    #mainAppTitle button[title="Εμφάνιση Σημειώσεων"] {
+        width: 42px !important;
+        height: 42px !important;
+    }
+    #mainAppTitle button[onclick="toggleStickyNotes()"] i,
+    #mainAppTitle button[title="Εμφάνιση Σημειώσεων"] i {
+        font-size: 1.3rem !important;
+    }
+
+    /* 4. Κουτί Intro / Interlude & Κείμενα */
+    .meta-info-box {
+        padding: 15px !important;
+    }
+    
+    .intro-size-0 { font-size: 1.1rem !important; }
+    .intro-size-1 { font-size: 1.4rem !important; }
+    .intro-size-2 { font-size: 1.7rem !important; }
+    
+    /* Το κουμπάκι (AA) που αλλάζει το μέγεθος στο Intro */
+    .meta-row .size-toggle-btn {
+        width: 44px !important;
+        height: 44px !important;
+        font-size: 1.4rem !important;
+    }
+    
+    .meta-row .spacer-btn {
+        width: 44px !important;
+        height: 44px !important;
+    }
+}
+
 
 
 

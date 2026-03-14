@@ -213,17 +213,18 @@ function createDebugPanel() {
     div.className = "debug-panel";
     div.style.display = "none"; // ΠΡΟΣΘΗΚΗ: Κρύψιμο κατευθείαν από τη JS
     
-    // Το υπόλοιπο HTML παραμένει ΟΠΩΣ ΑΚΡΙΒΩΣ ΤΟ ΕΙΧΕΣ!
+    // Το υπόλοιπο HTML ανανεωμένο με τα νέα Tiers & Roles!
     div.innerHTML = `
         <h4>🛠️ GOD MODE</h4>
         
         <div class="debug-row">
             <label>Subscription Tier:</label>
             <select id="debugTier" class="debug-select">
-                <option value="free">Free User</option>
-                <option value="solo">Solo</option>
-                <option value="band owner">Band Owner</option>
-                <option value="maestro">Maestro</option>
+                <option value="solo_free">Solo Free</option>
+                <option value="solo_pro">Solo Pro</option>
+                <option value="band_leader">BandLeader</option>
+                <option value="band_maestro">BandMaestro</option>
+                <option value="ensemble">Ensemble</option>
             </select>
         </div>
 
@@ -232,7 +233,7 @@ function createDebugPanel() {
             <select id="debugRole" class="debug-select">
                 <option value="owner">Owner (Personal)</option>
                 <option value="admin">Band Admin/Leader</option>
-                <option value="member">Band Member</option>
+                <option value="member">BandMate</option>
                 <option value="viewer">Viewer (Read Only)</option>
             </select>
         </div>
@@ -258,7 +259,7 @@ function createDebugPanel() {
             </select>
             
             <label style="display:block; font-size:0.75rem; color:#aaa; margin-bottom:5px; text-transform:uppercase;">Αξια Δωρου:</label>
-            <input type="text" id="adminPromoValue" placeholder="solo, band owner ή maestro" class="debug-select" style="margin-bottom:5px; width:100%; box-sizing:border-box; text-align:center; font-weight:bold; color:var(--accent);">
+            <input type="text" id="adminPromoValue" placeholder="solo_pro, band_leader ή ensemble" class="debug-select" style="margin-bottom:5px; width:100%; box-sizing:border-box; text-align:center; font-weight:bold; color:var(--accent);">
         </div>
         
         <button onclick="generatePromoCode()" class="debug-btn" style="background:#28a745; margin-bottom:15px; font-weight:bold;">ΔΗΜΙΟΥΡΓΙΑ ΚΩΔΙΚΟΥ</button>
@@ -268,7 +269,6 @@ function createDebugPanel() {
     `;
     document.body.appendChild(div);
 }
-
 function activateGodMode() {
     let panel = document.getElementById('debugPanel');
     // Αν δεν υπάρχει, κάλεσε τη δημιουργία (Bypass)

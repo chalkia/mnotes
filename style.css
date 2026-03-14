@@ -163,22 +163,17 @@ body.lyrics-mode .line-row { align-items: center; line-height: 1.8; }
 .icon-btn { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-main); padding: 5px; }
 .icon-btn.danger { color: var(--danger); }
 .icon-btn.accent { color: var(--accent); font-size: 1.5rem; }
+/* Καθαρό και αλάνθαστο YouTube Container */
 .video-responsive { 
     position: relative; 
-    padding-bottom: 56.25%; 
+    padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
     height: 0; 
     overflow: hidden; 
-    max-width: 100%; 
-    background: transparent !important; /* ΤΕΛΟΣ ΤΟ ΜΑΥΡΟ! */
+    width: 100%; 
     border-radius: 8px; 
-    border: 1px solid var(--border-color); /* Να δένει με το θέμα μας */
-    margin-bottom: 20px; 
-    margin-top: 20px;
-    /* Μαγικό τρικ για να πιάνει τέλεια τις γωνίες στα κινητά: */
-    -webkit-mask-image: -webkit-radial-gradient(white, black);
-    -webkit-backface-visibility: hidden;
-    -moz-backface-visibility: hidden;
-    transform: translateZ(0); 
+    border: 1px solid var(--border-color); 
+    margin-bottom: 15px; 
+    background: #000; /* Πρέπει να είναι μαύρο πίσω για να μην "φεγγίζει" στις άκρες */
 }
 
 .video-responsive iframe {
@@ -189,7 +184,6 @@ body.lyrics-mode .line-row { align-items: center; line-height: 1.8; }
     height: 100%;
     border: none;
     border-radius: 8px; 
-    background: transparent;
 }
 
 /* --- PLAYER HEADER (Τίτλος & Καλλιτέχνης) --- */

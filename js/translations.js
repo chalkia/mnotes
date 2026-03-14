@@ -143,7 +143,18 @@ const TRANSLATIONS = {
         title_import: "Import Song",
         btn_import_url: "From URL",
         btn_import_file: "From File",
-        ph_url_import: "Paste URL here..."
+        ph_url_import: "Paste URL here...",
+        msg_list_end: "End of List",
+        msg_list_start: "Start of List",
+        msg_confirm_clear: "Delete all data?",
+        msg_library_cleared: "Library cleared, Demos restored.",
+        msg_select_song_first: "Select song first!",
+        msg_standard_tuning_best: "Standard tuning is already best.",
+        msg_smart_capo_applied: "Smart Capo: {capo} (Easy Chords)",
+        msg_no_recordings: "No recordings yet",
+        msg_no_attachments: "No attachments yet",
+        msg_editor_admin_only: "Only admins can edit band songs.",
+        msg_notes_saved_success: "Notes saved successfully! 📌"
     },
 
     el: {
@@ -290,7 +301,18 @@ const TRANSLATIONS = {
         title_import: "Εισαγωγή Τραγουδιού",
         btn_import_url: "Από URL",
         btn_import_file: "Από Αρχείο",
-        ph_url_import: "Επικόλληση URL εδώ..."
+        ph_url_import: "Επικόλληση URL εδώ...",
+        msg_list_end: "Τέλος Λίστας",
+        msg_list_start: "Αρχή Λίστας",
+        msg_confirm_clear: "Διαγραφή όλων των δεδομένων;",
+        msg_library_cleared: "Η βιβλιοθήκη καθαρίστηκε και επανήλθαν τα Demos.",
+        msg_select_song_first: "Επιλέξτε τραγούδι πρώτα!",
+        msg_standard_tuning_best: "Η τρέχουσα τονικότητα είναι ήδη η βέλτιστη.",
+        msg_smart_capo_applied: "Smart Capo: {capo} (Εύκολες συγχορδίες)",
+        msg_no_recordings: "Δεν υπάρχουν ηχογραφήσεις",
+        msg_no_attachments: "Δεν υπάρχουν αρχεία",
+        msg_editor_admin_only: "Μόνο οι διαχειριστές μπορούν να επεξεργαστούν τα τραγούδια της μπάντας.",
+        msg_notes_saved_success: "Οι σημειώσεις αποθηκεύτηκαν! 📌"
     }
 };
 

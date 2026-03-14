@@ -122,7 +122,11 @@
                 </div>
 
                 <div id="fixed-container" class="fixed-lyrics"></div>
-                <div id="scroll-container" class="scroll-lyrics" ondblclick="toggleAutoScroll()"></div>
+                <div id="scroll-container" class="scroll-lyrics"></div>
+                    <button id="floatingScrollBtn" class="floating-scroll-btn" onclick="toggleAutoScroll(event)">
+                        <i class="fas fa-play" id="scrollBtnIcon"></i> 
+                        <span id="scrollBtnText">Auto Scroll</span>
+                    </button>
 
                 <div class="desktop-controls-area">
                     <button id="btnPrevSong" onclick="navSetlist(-1)" class="round-btn">
@@ -777,6 +781,7 @@
     <script src="js/asset-manager.js"></script>
 </body>
 </html>
+
 
 
 

@@ -301,55 +301,54 @@ async function loadContextData() {
 }
 
 
-// --- Ο ΠΟΡΤΙΕΡΗΣ (Ελεγκτής Δικαιωμάτων) v2.2 ---
+// --- Ο ΠΟΡΤΙΕΡΗΣ (Ελεγκτής Δικαιωμάτων) v2.2 --- ΧΡΕΙΑΖΕΤΑΙ ΠΡΟΣΘΗΚΗ ΤΟΥ ΕΝSEMBLE
 function canUserPerform(action) {
-    // Διαβάζουμε το tier. Αν δεν υπάρχει, by default είναι 'free'
-    const tier = (userProfile && userProfile.subscription_tier) ? userProfile.subscription_tier : 'free';
-    const config = TIER_CONFIG[tier] || TIER_CONFIG.free;
-    
+    // 1. Βρίσκουμε το τρέχον Tier (Αν δεν υπάρχει πουθενά, υποθέτουμε solo_free)
+    let tierKey = (typeof currentTier !== 'undefined' && currentTier) ? currentTier : 'solo_free';
+
+    // 2. ΜΗΧΑΝΙΣΜΟΣ ΜΕΤΑΦΡΑΣΗΣ (Backward Compatibility)
+    // Μετατρέπει τα παλιά ονόματα που ξέμειναν στη μνήμη, στα νέα ονόματα του TIER_CONFIG
+    const tierMapping = {
+        'free': 'solo_free',
+        'solo': 'solo_pro',
+        'member': 'band_mate',
+        'owner': 'band_leader',
+        'maestro': 'band_maestro'
+    };
+
+    // Αν το tierKey υπάρχει στον "χάρτη", άλλαξέ το στο νέο όνομα
+    if (tierMapping[tierKey]) {
+        tierKey = tierMapping[tierKey];
+    }
+
+    // 3. ΑΣΦΑΛΕΙΑ: Αν παρόλα αυτά το tierKey ΔΕΝ υπάρχει στο TIER_CONFIG, γύρνα το σε solo_free
+    if (!TIER_CONFIG || !TIER_CONFIG[tierKey]) {
+        console.warn(`⚠️ Προσοχή: Άγνωστο Tier '${tierKey}'. Γίνεται Fallback στο solo_free.`);
+        tierKey = 'solo_free';
+    }
+
+    const tierData = TIER_CONFIG[tierKey];
+
+    // 4. Επιστροφή δικαιωμάτων βάσει του action
     switch(action) {
-        case 'CLOUD_SYNC': 
-        case 'CLOUD_SAVE': 
-            return config.canCloudSync;
-            
-        // ✨ ΠΡΟΣΘΗΚΗ: Τώρα ο πορτιέρης ξέρει τι σημαίνουν αυτά!
         case 'USE_SUPABASE':
-            return config.useSupabase;
-        case 'USE_DRIVE':
-            return config.useDrive;
-            
-        case 'USE_AUDIO': 
-            return config.canUseAudio; // Κόβει τους Free από το να παίζουν ήχους
-            
-        case 'SAVE_ATTACHMENTS': 
-        case 'ATTACHMENTS':
-            return config.canSaveAttachments;
-            
-        case 'USE_SEQUENCER': 
-        case 'ADVANCED_DRUMS': 
-            return config.hasAdvancedDrums;
-            
-        case 'PRINT': 
-            return config.canPrint; 
-            
-        case 'JOIN_BANDS': 
-        case 'JOIN_BAND':
-            return config.canJoinBands;
-            
-        case 'CREATE_BAND': 
-        case 'OWN_BAND':
-            // Συνδυάζει το όριο του Tier με τα έξτρα δώρα (slots) από το God Mode!
-            const baseBands = config.maxBandsOwned || 0;
-            const extraBands = (userProfile && userProfile.special_unlocks && userProfile.special_unlocks.extra_bands) 
-                                ? userProfile.special_unlocks.extra_bands 
-                                : 0;
-            return (baseBands + extraBands) > 0;
-            
-        default: 
+        case 'CLOUD_SYNC':
+            return tierData.canCloudSync;
+        case 'JOIN_BANDS':
+            return tierData.canJoinBands;
+        case 'SAVE_ATTACHMENTS':
+            return tierData.canSaveAttachments;
+        case 'ADVANCED_DRUMS':
+            return tierData.hasAdvancedDrums;
+        case 'PRINT':
+            return tierData.canPrint;
+        case 'DELEGATE_ADMIN':
+            return tierData.allowsDelegatedAdmin || false;
+        // Προσθέτεις κι άλλα αν χρειαστείς στο μέλλον...
+        default:
             return false;
     }
 }
-
 // ==========================================
 // IMPORT ΛΕΙΤΟΥΡΓΙΑ (SMART MERGE ΜΕ ΕΓΚΡΙΣΗ ΧΡΗΣΤΗ)
 // ==========================================

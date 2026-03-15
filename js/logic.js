@@ -859,7 +859,13 @@ function ensureSongStructure(song) {
         video: song.video || "",
         tags: Array.isArray(song.playlists) ? song.playlists : (song.tags || []),
         notes: song.notes || "",
-        updatedAt: song.updatedAt || Date.now()
+        updatedAt: song.updatedAt || Date.now(),
+        // ✨ Τα νέα πεδία για συμβατότητα με Μπάντες και Κλώνους
+        group_id: song.group_id || null,
+        parent_id: song.parent_id || null,
+        is_clone: song.is_clone || false,
+        recordings: song.recordings || [],
+        attachments: song.attachments || []
     };
     return cleaned;
 }

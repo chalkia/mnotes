@@ -273,13 +273,14 @@ function renderSidebar() {
         } else if (liveSetlist.includes(s.id)) {
             actionIcon = "fas fa-check-circle in-setlist"; // Πράσινο τικ αν υπάρχει ήδη
         }
-
-      // G. Extra Badges (SMART CLONE BADGES)
+         // G. Extra Badges (SMART CLONE BADGES - FIXED)
         const isCloneObj = s.is_clone || !!s.parent_id;
         const isBandMaster = !!s.group_id && !isCloneObj;
         const isPersonal = !s.group_id && !isCloneObj;
 
         let extraIcon = '';
+        let overrideBadge = ''; // ✨ ΑΥΤΟ ΕΛΕΙΠΕ ΚΑΙ ΚΡΑΣΑΡΕ Η ΕΦΑΡΜΟΓΗ!
+
         if (isCloneObj) {
             // Badge: Κλώνος (Πράσινο Copy/Clone icon)
             extraIcon = `<i class="fas fa-clone" style="font-size:0.8rem; color:#4caf50; margin-left:5px;" title="${typeof t === 'function' ? t('ttl_personal_clone') : 'Clone'}"></i>`;
@@ -288,7 +289,8 @@ function renderSidebar() {
             // Badge: Overrides (Πορτοκαλί Ανθρωπάκι)
             const hasOverrides = s.has_override || s.personal_notes || (s.personal_transpose && s.personal_transpose !== 0);
             if (hasOverrides) {
-                extraIcon = `<i class="fas fa-user-edit" style="font-size:0.7rem; color:var(--accent); margin-left:5px; opacity:0.8;" title="${typeof t === 'function' ? t('ttl_personal_settings') : 'Overrides'}"></i>`;
+                // Το βάζουμε στη σωστή μεταβλητή για να το βρει το HTML
+                overrideBadge = `<i class="fas fa-user-edit" style="font-size:0.7rem; color:var(--accent); margin-left:5px; opacity:0.8;" title="${typeof t === 'function' ? t('ttl_personal_settings') : 'Overrides'}"></i>`;
             }
         } 
         else if (isPersonal) {
@@ -298,7 +300,7 @@ function renderSidebar() {
                  extraIcon = `<i class="fas fa-cloud badge-cloud" title="${typeof t === 'function' ? t('ttl_personal_cloud') : 'Cloud'}"></i>`;
             }
         }
-
+         
         // H. HTML Injection
         li.innerHTML = `
             <i class="${actionIcon} song-action" onclick="toggleSetlistSong(event, '${s.id}')"></i>

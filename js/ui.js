@@ -192,36 +192,33 @@ function renderSidebar() {
 
     // --- 1. FILTERING LOGIC ---
     if (viewMode === 'setlist') {
-        // Λειτουργία Setlist: Δείχνουμε μόνο τα επιλεγμένα με τη σειρά
         liveSetlist.forEach(id => {
             var s = library.find(x => x.id === id);
             if (s) visiblePlaylist.push(s);
         });
     } else {
-        // Λειτουργία Library: Φίλτρα Αναζήτησης & Tags
         var txt = document.getElementById('searchInp') ? document.getElementById('searchInp').value.toLowerCase() : "";
         var tag = document.getElementById('tagFilter') ? document.getElementById('tagFilter').value : "";
         
         visiblePlaylist = library.filter(s => {
-            // Απόκρυψη Demo αν είναι επιλεγμένο
-            if (userSettings.hideDemo && s.id.includes("demo") && library.length > 1) return false;
+            // ✨ ΔΙΟΡΘΩΜΕΝΟ ΦΙΛΤΡΟ ΓΙΑ ΝΑ ΜΗΝ ΧΑΝΟΝΤΑΙ ΤΑ ΤΡΑΓΟΥΔΙΑ ΣΟΥ
+            if (currentGroupId === 'personal') {
+                // Στα Προσωπικά δείχνουμε: Τα δικά σου (group_id null) Ή τους Κλώνους σου (is_clone)
+                if (s.group_id && !s.is_clone && !s.parent_id) return false;
+            } else {
+                // Στη Μπάντα δείχνουμε: Τα Master τραγούδια της (group_id ίσο με το επιλεγμένο)
+                if (s.group_id !== currentGroupId || s.is_clone || s.parent_id) return false;
+            }
+
+            if (userSettings.hideDemo && String(s.id).includes("demo") && library.length > 1) return false;
             
-            // Φίλτρο Κειμένου (Τίτλος, Καλλιτέχνης, Τόνος)
-            var matchTxt = s.title.toLowerCase().includes(txt) || 
-                           (s.artist && s.artist.toLowerCase().includes(txt)) || 
-                           (s.key && s.key.toLowerCase() === txt);
-            
-            // Φίλτρο Tag (Playlist)
-            // Ελέγχουμε και το παλιό s.playlists και το νέο s.tags για συμβατότητα
+            var matchTxt = s.title.toLowerCase().includes(txt) || (s.artist && s.artist.toLowerCase().includes(txt)) || (s.key && s.key.toLowerCase() === txt);
             var sTags = (s.tags && s.tags.length > 0) ? s.tags : (s.playlists || []);
-            
-            var matchTag = (tag === "__no_demo") ? !s.id.includes("demo") : 
-                           (tag === "" || sTags.includes(tag));
+            var matchTag = (tag === "__no_demo") ? !String(s.id).includes("demo") : (tag === "" || sTags.includes(tag));
             
             return matchTxt && matchTag;
         });
     }
-
     // Update Song Count
     const countEl = document.getElementById('songCount');
     if(countEl) countEl.innerText = visiblePlaylist.length;
@@ -269,7 +266,7 @@ function renderSidebar() {
         var displayTitle = s.title;
         var displayKey = s.key || "-";
         
-        // F. Setlist Action Icon
+       // F. Setlist Action Icon
         var actionIcon = "far fa-circle";
         if (viewMode === 'setlist') {
             actionIcon = "fas fa-minus-circle"; // Κόκκινο μείον για αφαίρεση
@@ -277,18 +274,29 @@ function renderSidebar() {
             actionIcon = "fas fa-check-circle in-setlist"; // Πράσινο τικ αν υπάρχει ήδη
         }
 
-        // G. Extra Badges
-        // Badge: Cloud (Μόνο για Personal, τα Band έχουν το δικό τους icon μέσω CSS)
-        const isCloud = s.id && !String(s.id).startsWith('s_');
-        let extraIcon = '';
-        if (isCloud && !s.group_id) {
-             extraIcon = '<i class="fas fa-cloud badge-cloud" title="Personal Cloud"></i>';
-        }
+      // G. Extra Badges (SMART CLONE BADGES)
+        const isCloneObj = s.is_clone || !!s.parent_id;
+        const isBandMaster = !!s.group_id && !isCloneObj;
+        const isPersonal = !s.group_id && !isCloneObj;
 
-        // Badge: Override (Αν ο χρήστης έχει πειράξει τοπικά τραγούδι της μπάντας)
-        let overrideBadge = '';
-        if (s.has_override || s.personal_key || s.personal_notes || (s.personal_transpose && s.personal_transpose !== 0)) {
-            overrideBadge = '<i class="fas fa-user-edit" style="font-size:0.7rem; color:var(--accent); margin-left:5px; opacity:0.8;" title="Personal Settings Applied"></i>';
+        let extraIcon = '';
+        if (isCloneObj) {
+            // Badge: Κλώνος (Πράσινο Copy/Clone icon)
+            extraIcon = `<i class="fas fa-clone" style="font-size:0.8rem; color:#4caf50; margin-left:5px;" title="${typeof t === 'function' ? t('ttl_personal_clone') : 'Clone'}"></i>`;
+        } 
+        else if (isBandMaster) {
+            // Badge: Overrides (Πορτοκαλί Ανθρωπάκι)
+            const hasOverrides = s.has_override || s.personal_notes || (s.personal_transpose && s.personal_transpose !== 0);
+            if (hasOverrides) {
+                extraIcon = `<i class="fas fa-user-edit" style="font-size:0.7rem; color:var(--accent); margin-left:5px; opacity:0.8;" title="${typeof t === 'function' ? t('ttl_personal_settings') : 'Overrides'}"></i>`;
+            }
+        } 
+        else if (isPersonal) {
+            // Badge: Cloud (Μπλε Συννεφάκι)
+            const hasCloudRight = typeof canUserPerform === 'function' ? canUserPerform('CLOUD_SYNC') : false;
+            if (hasCloudRight && !String(s.id).includes('demo') && !String(s.id).startsWith('s_') && !s.is_dirty) {
+                 extraIcon = `<i class="fas fa-cloud badge-cloud" title="${typeof t === 'function' ? t('ttl_personal_cloud') : 'Cloud'}"></i>`;
+            }
         }
 
         // H. HTML Injection

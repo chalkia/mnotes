@@ -228,18 +228,16 @@ function updateUIForRole() {
 }
 
 
-
 /* =========================================
-   DATA LOADING & SYNC
+   DATA LOADING & SYNC (OFFLINE-FIRST)
    ========================================= */
 async function loadContextData() {
-   console.log("🔍 [DEBUG SYNC] Ξεκινάει επαναφόρτωση. library length:", window.library ? window.library.length : 'undefined');
-    //library = [];
+    console.log("🔍 [DEBUG SYNC] Ξεκινάει επαναφόρτωση...");
     const listEl = document.getElementById('songList');
     if(listEl) listEl.innerHTML = '<div class="loading-msg">Loading Library...</div>';
 
-    try {
-          if (currentGroupId === 'personal') {
+    try { // <-- ΕΔΩ ΑΝΟΙΓΕΙ ΤΟ TRY
+        if (currentGroupId === 'personal') {
             // 1. ΑΜΕΣΗ ΦΟΡΤΩΣΗ ΑΠΟ ΤΗΝ ΤΟΠΙΚΗ ΜΝΗΜΗ (Zero Latency - Offline Ready)
             const localData = localStorage.getItem('mnotes_data');
             if (localData) {
@@ -249,16 +247,12 @@ async function loadContextData() {
                 library = [];
             }
 
-            // 2. SILENT CLOUD SYNC (Μόνο αν υπάρχει σύνδεση, δεν μπλοκάρει το UI)
+            // 2. SILENT CLOUD SYNC
             if (navigator.onLine && typeof canUserPerform === 'function' && canUserPerform('USE_SUPABASE')) {
-                // Εδώ στο μέλλον μπορούμε να καλούμε μια συνάρτηση backgroundSync() 
-                // η οποία θα ελέγχει τα updated_at και θα κατεβάζει μόνο αν υπάρχει κάτι νεότερο στο Cloud.
-                // Προς το παρόν, βασιζόμαστε 100% στο LocalStorage για την απεικόνιση.
                 console.log("☁️ Offline-First: Το UI φορτώθηκε τοπικά. Το Cloud είναι σε αναμονή.");
             }
-        }
         } else {
-            // Context Μπάντας
+            // Context Μπάντας (Εδώ κατεβάζουμε από το Cloud υποχρεωτικά)
             library = await fetchBandSongs(currentGroupId);
             
             // Φόρτωση προσωπικών overrides (σημειώσεις, transpose)
@@ -281,27 +275,23 @@ async function loadContextData() {
 
         if (typeof renderSidebar === 'function') renderSidebar();
               
-        // 🚀 ΔΙΟΡΘΩΣΗ: Αυτόματη επιλογή τραγουδιού ΜΕ διατήρηση μνήμης
+        // Αυτόματη επιλογή τραγουδιού ΜΕ διατήρηση μνήμης
         if (library.length > 0) {
-            // Ψάχνουμε αν το τραγούδι που βλέπαμε ήδη, υπάρχει ακόμα στη νέα λίστα
             const songStillExists = currentSongId ? library.find(s => s.id === currentSongId) : null;
-            
             if (!songStillExists) {
-                // Μόνο αν ΔΕΝ υπάρχει (π.χ. μόλις το διαγράψαμε), πάμε στο 1ο της λίστας
                 currentSongId = library[0].id;
             }
-            // Αν υπάρχει, το currentSongId μένει ως έχει!
-            
             if (typeof toViewer === 'function') toViewer(true);
         } else {
             if (typeof toEditor === 'function') toEditor();
         }
-    } catch (err) {
+        
+    } catch (err) { // ✨ ΑΥΤΟ ΕΙΧΕ ΣΒΗΣΤΕΙ! ΕΔΩ ΚΛΕΙΝΕΙ ΤΟ TRY.
         console.error("❌ Load Context Error:", err);
         if (typeof showToast === 'function') showToast("Error loading context", "error");
     }
-   console.log("🔍 [DEBUG SYNC] Τέλος επαναφόρτωσης. Νέο library length:", window.library ? window.library.length : 'undefined');
-    console.log("🔍 [DEBUG SYNC] Το currentSongId μετά το sync είναι:", currentSongId);
+    
+    console.log("🔍 [DEBUG SYNC] Τέλος επαναφόρτωσης. Νέο library length:", library.length);
 }
 
 

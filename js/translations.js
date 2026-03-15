@@ -160,7 +160,8 @@ const TRANSLATIONS = {
         btn_view_clone: "View Your Version",
         btn_revert_clone: "Revert to Band Version",
         msg_clone_created: "Personal version created (Clone) 🧬",
-        msg_clone_reverted: "Clone deleted. Reverted to band song."
+        msg_clone_reverted: "Clone deleted. Reverted to band song.",
+        msg_personal_settings_saved: "Personal settings saved! 👤"
 
     },
 
@@ -325,7 +326,8 @@ const TRANSLATIONS = {
         btn_view_clone: "Προβολή Δικής σας Έκδοσης",
         btn_revert_clone: "Ακύρωση Κλώνου (Επιστροφή)",
         msg_clone_created: "Δημιουργήθηκε δική σας έκδοση (Κλώνος) 🧬",
-        msg_clone_reverted: "Ο κλώνος ακυρώθηκε. Επιστροφή στο κοινό τραγούδι."
+        msg_clone_reverted: "Ο κλώνος ακυρώθηκε. Επιστροφή στο κοινό τραγούδι.",
+        msg_personal_settings_saved: "Οι προσωπικές ρυθμίσεις αποθηκεύτηκαν! 👤",
     }
 };
 

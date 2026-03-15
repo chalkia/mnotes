@@ -686,25 +686,33 @@ async function saveSong() {
                 showToast("Αποθηκεύτηκε Τοπικά! 💾");
             }
         } 
-        // ==========================================
+// ==========================================
         // ΣΕΝΑΡΙΟ Β: ΜΠΑΝΤΑ (Band Context)
         // ==========================================
         else {
             console.log("🎸 [SAVE] Αποθήκευση σε Περιβάλλον Μπάντας");
             
-            // Χρήση της κεντρικής συνάρτησης δικαιωμάτων! (Βάλε το σωστό Action Key)
-            const canEditBand = (currentRole === 'admin' || currentRole === 'owner');
+            const isGod = (currentRole === 'admin' || currentRole === 'owner' || currentRole === 'maestro');
+            const originalSong = library.find(s => s.id === currentSongId);
+            const hasBaseChanges = checkBaseChanges(songData, originalSong);
 
-            if (canEditBand) {
-                console.log("✅ [SAVE] Ο χρήστης έχει δικαίωμα επεξεργασίας ρεπερτορίου μπάντας.");
-                await saveToCloud(songData, currentGroupId);
-                showToast("Η βιβλιοθήκη της μπάντας ενημερώθηκε! 🎸");
+            if (hasBaseChanges) {
+                console.log("🧬 Εντοπίστηκαν αλλαγές στον κορμό.");
+                
+                // Αν είναι Leader, τον ρωτάμε αν θέλει να πειράξει το Master ή να φτιάξει κλώνο
+                if (isGod && confirm("Έχετε αλλάξει τον κορμό του τραγουδιού.\n\n[ΟΚ] Ενημέρωση ΚΟΙΝΟΥ τραγουδιού μπάντας.\n[ΑΚΥΡΩΣΗ] Αποθήκευση ως Προσωπικού Κλώνου.")) {
+                    await saveToCloud(songData, currentGroupId);
+                    showToast("Η βιβλιοθήκη της μπάντας ενημερώθηκε! 🎸");
+                } else {
+                    // Αυτόματος Κλώνος για απλά μέλη (ή αν ο Leader πάτησε Ακύρωση)
+                    await createOrUpdateClone(songData, originalSong);
+                }
             } else {
-                console.log("⚠️ [SAVE] Απλό μέλος - Αποθήκευση μόνο ως Override.");
+                // Δεν πείραξε στίχους, μόνο Transpose/Notes. Άρα πάει στα Overrides.
                 if (typeof saveAsOverride === 'function') {
                     await saveAsOverride({ ...songData });
                 }
-                showToast("Οι προσωπικές ρυθμίσεις αποθηκεύτηκαν! 👤");
+                showToast(t('msg_personal_settings_saved'));
             }
         }
          
@@ -1325,3 +1333,38 @@ window.addEventListener('visibilitychange', () => {
         }
     }
 });
+// Ελέγχει αν έχουν γίνει αλλαγές στον "κορμό" του τραγουδιού
+function checkBaseChanges(newData, oldData) {
+    if (!oldData) return true;
+    return newData.body !== oldData.body || 
+           newData.title !== oldData.title || 
+           newData.key !== oldData.key;
+}
+
+// Δημιουργεί ή ενημερώνει τον Προσωπικό Κλώνο
+async function createOrUpdateClone(songData, originalSong) {
+    // Αν το τραγούδι ήταν ήδη κλώνος, κρατάμε το ίδιο ID. Αλλιώς φτιάχνουμε νέο.
+    const isAlreadyClone = originalSong.is_clone || !!originalSong.parent_id;
+    let cloneId = isAlreadyClone ? originalSong.id : "s_" + Date.now() + Math.random().toString(16).slice(2);
+    let parentId = isAlreadyClone ? originalSong.parent_id : originalSong.id;
+
+    const clonedSong = {
+        ...songData,
+        id: cloneId,
+        group_id: null, // Ο κλώνος ανήκει αποκλειστικά σε εσένα
+        parent_id: parentId,
+        is_clone: true
+    };
+
+    // Αποθήκευση στο Cloud (ή τοπικά αν είναι Free)
+    if (typeof canUserPerform === 'function' && canUserPerform('USE_SUPABASE') && currentUser) {
+        const safePayload = window.sanitizeForDatabase(clonedSong, currentUser.id, null);
+        const { error } = await supabaseClient.from('songs').upsert(safePayload);
+        if (error) throw error;
+    } else {
+        saveToLocalStorage(clonedSong);
+    }
+
+    currentSongId = cloneId; // Η οθόνη θα δείχνει πλέον τον κλώνο
+    showToast(t('msg_clone_created') || "Δημιουργήθηκε δική σας έκδοση (Κλώνος)! 🧬");
+}

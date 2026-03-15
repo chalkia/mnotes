@@ -623,23 +623,33 @@ async function saveAsOverride(songData) {
 }
 
 /**
- * Ανάκτηση προσωπικών τραγουδιών από το Cloud (Solo/Maestro/Admin)
+ * Ανάκτηση προσωπικών τραγουδιών από το Cloud (ΕΥΕΛΙΚΤΟ FETCH)
  */
 async function fetchPrivateSongs() {
+    console.log("📥 [FETCH] Ζητάω ΟΛΑ τα τραγούδια του χρήστη από τη Supabase...");
+    
+    // Τραβάμε ΟΛΑ τα τραγούδια του χρήστη, ανεξαρτήτως group_id
     const { data, error } = await supabaseClient
         .from('songs')
         .select('*')
-        .is('group_id', null) // Μόνο προσωπικά
         .eq('user_id', currentUser.id)
         .order('title', { ascending: true });
 
     if (error) {
-        console.error("❌ Error fetching private songs:", error);
+        console.error("❌ [FETCH ERROR]:", error);
         return [];
     }
-    return data.map(s => ensureSongStructure(s));
-}
 
+    console.log(`📥 [FETCH] Η Supabase βρήκε συνολικά ${data.length} τραγούδια (Μπάντας + Προσωπικά).`);
+
+    // Φιλτράρουμε τοπικά με ελαστικότητα! 
+    // Πιάνουμε τα undefined, τα null (ως object), τα "null" (ως string) και τα κενά ("").
+    const privateSongs = data.filter(s => !s.group_id || s.group_id === "" || s.group_id === "null");
+    
+    console.log(`📥 [FETCH] Από αυτά, τα ${privateSongs.length} αναγνωρίστηκαν ως Προσωπικά.`);
+    
+    return privateSongs.map(s => ensureSongStructure(s));
+}
 /**
  * Ανάκτηση κοινών τραγουδιών μιας μπάντας
  * @param {string} groupId - Το UUID της μπάντας

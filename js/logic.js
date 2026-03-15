@@ -214,13 +214,14 @@ function updateUIForRole() {
     }
 
     // 2. Έλεγχος για δικαιώματα διαχείρισης (Viewer vs Admin)
-    if (currentGroupId !== 'personal' && currentRole === 'viewer') {
+      if (currentGroupId !== 'personal' && (currentRole !== 'admin' && currentRole !== 'owner')) {
+        console.log("🔒 [UI] Περιορισμός Δικαιωμάτων: Απόκρυψη κουμπιών Add/Delete για το απλό μέλος.");
         if(btnDel) btnDel.style.display = 'none';
         if(btnAdd) btnAdd.style.display = 'none';
-    } else {
+       } else {
         if(btnDel) btnDel.style.display = 'inline-block';
-        if(btnAdd) btnAdd.style.display = 'flex';
-    }
+        if(btnAdd) btnAdd.style.display = 'flex'; // ή inline-block ανάλογα με το αρχικό σου CSS
+       }
     
     // 3. Ενημέρωση του Header (Τίτλος Μπάντας vs My Songs)
     if (typeof refreshHeaderUI === 'function') refreshHeaderUI();

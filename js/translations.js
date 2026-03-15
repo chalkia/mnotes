@@ -154,7 +154,14 @@ const TRANSLATIONS = {
         msg_no_recordings: "No recordings yet",
         msg_no_attachments: "No attachments yet",
         msg_editor_admin_only: "Only admins can edit band songs.",
-        msg_notes_saved_success: "Notes saved successfully! 📌"
+        msg_notes_saved_success: "Notes saved successfully! 📌",
+        ttl_personal_clone: "Your edited version (Clone)",
+        btn_view_master: "View Band Version",
+        btn_view_clone: "View Your Version",
+        btn_revert_clone: "Revert to Band Version",
+        msg_clone_created: "Personal version created (Clone) 🧬",
+        msg_clone_reverted: "Clone deleted. Reverted to band song."
+
     },
 
     el: {
@@ -312,7 +319,13 @@ const TRANSLATIONS = {
         msg_no_recordings: "Δεν υπάρχουν ηχογραφήσεις",
         msg_no_attachments: "Δεν υπάρχουν αρχεία",
         msg_editor_admin_only: "Μόνο οι διαχειριστές μπορούν να επεξεργαστούν τα τραγούδια της μπάντας.",
-        msg_notes_saved_success: "Οι σημειώσεις αποθηκεύτηκαν! 📌"
+        msg_notes_saved_success: "Οι σημειώσεις αποθηκεύτηκαν! 📌",
+        ttl_personal_clone: "Δική σας επεξεργασμένη έκδοση (Κλώνος)",
+        btn_view_master: "Προβολή Έκδοσης Μπάντας",
+        btn_view_clone: "Προβολή Δικής σας Έκδοσης",
+        btn_revert_clone: "Ακύρωση Κλώνου (Επιστροφή)",
+        msg_clone_created: "Δημιουργήθηκε δική σας έκδοση (Κλώνος) 🧬",
+        msg_clone_reverted: "Ο κλώνος ακυρώθηκε. Επιστροφή στο κοινό τραγούδι."
     }
 };
 

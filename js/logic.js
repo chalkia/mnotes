@@ -238,21 +238,24 @@ async function loadContextData() {
     if(listEl) listEl.innerHTML = '<div class="loading-msg">Loading Library...</div>';
 
     try {
-        if (currentGroupId === 'personal') {
-            // 1. Προσπάθεια για Cloud αν είναι Maestro/Solo
-            if (canUserPerform('CLOUD_SAVE')) {
-                const cloudSongs = await fetchPrivateSongs();
-                if (cloudSongs && cloudSongs.length > 0) library = cloudSongs;
+          if (currentGroupId === 'personal') {
+            // 1. ΑΜΕΣΗ ΦΟΡΤΩΣΗ ΑΠΟ ΤΗΝ ΤΟΠΙΚΗ ΜΝΗΜΗ (Zero Latency - Offline Ready)
+            const localData = localStorage.getItem('mnotes_data');
+            if (localData) {
+                const parsed = JSON.parse(localData);
+                library = Array.isArray(parsed) ? parsed.map(ensureSongStructure) : [];
+            } else {
+                library = [];
             }
-            
-            // 2. Fallback στο LocalStorage αν το Cloud είναι άδειο (ή αν είναι Free)
-            if (library.length === 0) {
-                const localData = localStorage.getItem('mnotes_data');
-                if (localData) {
-                    const parsed = JSON.parse(localData);
-                    library = Array.isArray(parsed) ? parsed.map(ensureSongStructure) : [];
-                }
+
+            // 2. SILENT CLOUD SYNC (Μόνο αν υπάρχει σύνδεση, δεν μπλοκάρει το UI)
+            if (navigator.onLine && typeof canUserPerform === 'function' && canUserPerform('USE_SUPABASE')) {
+                // Εδώ στο μέλλον μπορούμε να καλούμε μια συνάρτηση backgroundSync() 
+                // η οποία θα ελέγχει τα updated_at και θα κατεβάζει μόνο αν υπάρχει κάτι νεότερο στο Cloud.
+                // Προς το παρόν, βασιζόμαστε 100% στο LocalStorage για την απεικόνιση.
+                console.log("☁️ Offline-First: Το UI φορτώθηκε τοπικά. Το Cloud είναι σε αναμονή.");
             }
+        }
         } else {
             // Context Μπάντας
             library = await fetchBandSongs(currentGroupId);
@@ -686,7 +689,7 @@ async function saveSong() {
                 showToast("Αποθηκεύτηκε Τοπικά! 💾");
             }
         } 
-// ==========================================
+        // ==========================================
         // ΣΕΝΑΡΙΟ Β: ΜΠΑΝΤΑ (Band Context)
         // ==========================================
         else {
@@ -1349,7 +1352,6 @@ function checkBaseChanges(newData, oldData) {
 
 // Δημιουργεί ή ενημερώνει τον Προσωπικό Κλώνο
 async function createOrUpdateClone(songData, originalSong) {
-    // Αν το τραγούδι ήταν ήδη κλώνος, κρατάμε το ίδιο ID. Αλλιώς φτιάχνουμε νέο.
     const isAlreadyClone = originalSong.is_clone || !!originalSong.parent_id;
     let cloneId = isAlreadyClone ? originalSong.id : "s_" + Date.now() + Math.random().toString(16).slice(2);
     let parentId = isAlreadyClone ? originalSong.parent_id : originalSong.id;
@@ -1357,20 +1359,40 @@ async function createOrUpdateClone(songData, originalSong) {
     const clonedSong = {
         ...songData,
         id: cloneId,
-        group_id: null, // Ο κλώνος ανήκει αποκλειστικά σε εσένα
+        group_id: null,
         parent_id: parentId,
-        is_clone: true
+        is_clone: true,
+        updated_at: new Date().toISOString() // Κρίσιμο για τον μελλοντικό συγχρονισμό
     };
 
-    // Αποθήκευση στο Cloud (ή τοπικά αν είναι Free)
+    // 1. OFFLINE FIRST: ΠΑΝΤΑ αποθήκευση στο LocalStorage ακαριαία!
+    let localData = JSON.parse(localStorage.getItem('mnotes_data') || "[]");
+    let existingIdx = localData.findIndex(s => s.id === cloneId);
+    if (existingIdx > -1) localData[existingIdx] = clonedSong;
+    else localData.push(clonedSong);
+    
+    localStorage.setItem('mnotes_data', JSON.stringify(localData));
+    
+    // Ενημερώνουμε άμεσα τη μνήμη της εφαρμογής για να το δει το UI χωρίς reload
+    window.library = localData; 
+
+    // 2. BACKGROUND SYNC: Προσπάθεια αποστολής στο Cloud
     if (typeof canUserPerform === 'function' && canUserPerform('USE_SUPABASE') && currentUser) {
         const safePayload = window.sanitizeForDatabase(clonedSong, currentUser.id, null);
-        const { error } = await supabaseClient.from('songs').upsert(safePayload);
-        if (error) throw error;
-    } else {
-        saveToLocalStorage(clonedSong);
+        safePayload.parent_id = parentId;
+        safePayload.is_clone = true;
+        safePayload.group_id = null;
+
+        if (navigator.onLine) {
+            // Δεν βάζουμε await για να μην μπλοκάρει το UI αν αργεί το ίντερνετ
+            supabaseClient.from('songs').upsert(safePayload).then(({error}) => {
+                if (error) console.error("Cloud Sync Failed:", error);
+            });
+        } else {
+            addToSyncQueue('SAVE_SONG', safePayload);
+        }
     }
 
-    currentSongId = cloneId; // Η οθόνη θα δείχνει πλέον τον κλώνο
-    showToast(t('msg_clone_created') || "Δημιουργήθηκε δική σας έκδοση (Κλώνος)! 🧬");
+    currentSongId = cloneId;
+    showToast(typeof t === 'function' ? t('msg_clone_created') : "Δημιουργήθηκε δική σας έκδοση (Κλώνος)! 🧬");
 }

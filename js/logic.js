@@ -757,35 +757,7 @@ async function saveSong() {
         showToast("Σφάλμα κατά την αποθήκευση", "error");
     }
 }
-         
-        // ==========================================
-        // UI & NAVIGATION (Επιστροφή στον Viewer)
-        // ==========================================
-        const targetId = currentSongId;
-        
-        // Φρεσκάρισμα της λίστας με τα νέα δεδομένα
-        if (typeof loadContextData === 'function') await loadContextData(); 
-
-        // Εμφάνιση του τραγουδιού
-        if (typeof displaySong === 'function') {
-            displaySong(targetId); 
-        } else if (typeof toViewer === 'function') {
-            toViewer(true);
-        }
-
-        // Οπτική μετάβαση
-        if (typeof switchView === 'function') {
-            switchView('view-details');
-        }
-
-        console.log("🏁 [SAVE] Η διαδικασία αποθήκευσης ολοκληρώθηκε επιτυχώς.");
-
-    } catch (err) {
-        console.error("❌ [SAVE ERROR] Αποτυχία αποθήκευσης:", err);
-        showToast("Σφάλμα κατά την αποθήκευση", "error");
-    }
-}
-
+      
 /**
  * Υποστηρικτική: Αποθήκευση στη Supabase (Πίνακας 'songs')
  */

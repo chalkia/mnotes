@@ -1370,27 +1370,76 @@ async function uploadAndLinkCurrent() {
         btnLink.style.opacity = '1';
     }
 }
-
 // ===========================================================
-// 8. SETLIST MANAGER
+// 8. SETLIST MANAGER (CONTEXT AWARE & CLOUD SYNC)
 // ===========================================================
 
-function initSetlists() {
-    allSetlists = JSON.parse(localStorage.getItem('mnotes_all_setlists')) || {};
-    if (Object.keys(allSetlists).length === 0) { allSetlists["Default Setlist"] = { type: 'local', songs: [] }; }
-    Object.keys(allSetlists).forEach(key => { if (Array.isArray(allSetlists[key])) allSetlists[key] = { type: 'local', songs: allSetlists[key] }; });
-    var currentSetlistName = localStorage.getItem('mnotes_active_setlist_name') || Object.keys(allSetlists)[0];
+function getSetlistStorageKey() {
+    return currentGroupId === 'personal' ? 'mnotes_personal_setlists' : `mnotes_band_setlists_${currentGroupId}`;
+}
+
+function getActiveSetlistNameKey() {
+    return currentGroupId === 'personal' ? 'mnotes_active_personal_setlist' : `mnotes_active_band_setlist_${currentGroupId}`;
+}
+
+async function initSetlists() {
+    console.log(`[SETLISTS] Αρχικοποίηση λιστών για context: ${currentGroupId}`);
+    const storageKey = getSetlistStorageKey();
+    
+    // 1. OFFLINE FIRST: Άμεση φόρτωση από την τοπική μνήμη
+    allSetlists = JSON.parse(localStorage.getItem(storageKey)) || {};
+    
+    // 2. CLOUD SYNC: Ανάκτηση από τη βάση αν υπάρχει σύνδεση
+    if (typeof currentUser !== 'undefined' && currentUser && navigator.onLine) {
+        try {
+            if (currentGroupId === 'personal') {
+                const { data } = await supabaseClient.from('profiles').select('setlists').eq('id', currentUser.id).maybeSingle();
+                if (data && data.setlists && Object.keys(data.setlists).length > 0) {
+                    allSetlists = data.setlists;
+                    localStorage.setItem(storageKey, JSON.stringify(allSetlists));
+                    console.log("[SETLISTS] Οι προσωπικές λίστες συγχρονίστηκαν από το Cloud.");
+                }
+            } else {
+                const { data } = await supabaseClient.from('groups').select('setlists').eq('id', currentGroupId).maybeSingle();
+                if (data && data.setlists && Object.keys(data.setlists).length > 0) {
+                    allSetlists = data.setlists;
+                    localStorage.setItem(storageKey, JSON.stringify(allSetlists));
+                    console.log(`[SETLISTS] Οι λίστες της μπάντας (${currentGroupId}) συγχρονίστηκαν από το Cloud.`);
+                }
+            }
+        } catch (err) { 
+            console.error("[SETLISTS] Σφάλμα κατά το συγχρονισμό:", err); 
+        }
+    }
+
+    // 3. Δημιουργία προεπιλεγμένης λίστας αν όλα είναι άδεια
+    if (Object.keys(allSetlists).length === 0) { 
+        allSetlists["Default Setlist"] = { type: 'local', songs: [] }; 
+    }
+    
+    Object.keys(allSetlists).forEach(key => { 
+        if (Array.isArray(allSetlists[key])) allSetlists[key] = { type: 'local', songs: allSetlists[key] }; 
+    });
+    
+    const activeNameKey = getActiveSetlistNameKey();
+    var currentSetlistName = localStorage.getItem(activeNameKey) || Object.keys(allSetlists)[0];
     if (!allSetlists[currentSetlistName]) currentSetlistName = Object.keys(allSetlists)[0];
+    
     liveSetlist = allSetlists[currentSetlistName].songs || [];
+    
+    if (typeof updateSetlistDropdown === 'function') updateSetlistDropdown();
 }
 
 function updateSetlistDropdown() {
-    const sel = document.getElementById('selSetlistName'); if(!sel) return; sel.innerHTML = "";
-    var currentSetlistName = localStorage.getItem('mnotes_active_setlist_name');
+    const sel = document.getElementById('selSetlistName'); 
+    if(!sel) return; 
+    sel.innerHTML = "";
+    
+    var currentSetlistName = localStorage.getItem(getActiveSetlistNameKey());
     Object.keys(allSetlists).forEach(name => {
         const listObj = allSetlists[name];
         const opt = document.createElement('option'); opt.value = name;
-        const icon = listObj.type === 'shared' ? '☁️' : '📝';
+        const icon = (currentGroupId !== 'personal') ? '👥' : '📝';
         opt.innerText = `${icon} ${name} (${listObj.songs.length})`;
         if(name === currentSetlistName) opt.selected = true;
         sel.appendChild(opt);
@@ -1399,56 +1448,108 @@ function updateSetlistDropdown() {
 }
 
 function updateSetlistButtons() {
-    var currentSetlistName = localStorage.getItem('mnotes_active_setlist_name');
-    const isShared = (allSetlists[currentSetlistName] && allSetlists[currentSetlistName].type === 'shared');
-    const btnDel = document.getElementById('btnDelSetlist'); const btnRen = document.getElementById('btnRenSetlist');
-    if(btnDel) { btnDel.disabled = isShared; btnDel.style.opacity = isShared?'0.3':'1'; }
-    if(btnRen) { btnRen.disabled = isShared; btnRen.style.opacity = isShared?'0.3':'1'; }
+    const isBandViewer = (currentGroupId !== 'personal' && currentRole !== 'admin' && currentRole !== 'owner');
+    const btnDel = document.getElementById('btnDelSetlist'); 
+    const btnRen = document.getElementById('btnRenSetlist');
+    
+    if(btnDel) { btnDel.disabled = isBandViewer; btnDel.style.opacity = isBandViewer ? '0.3' : '1'; }
+    if(btnRen) { btnRen.disabled = isBandViewer; btnRen.style.opacity = isBandViewer ? '0.3' : '1'; }
 }
 
 function switchSetlist(name) {
     if(!allSetlists[name]) return;
     liveSetlist = allSetlists[name].songs || [];
-    localStorage.setItem('mnotes_active_setlist_name', name);
-    localStorage.setItem('mnotes_setlist', JSON.stringify(liveSetlist)); 
-    renderSidebar(); updateSetlistButtons();
+    localStorage.setItem(getActiveSetlistNameKey(), name);
+    renderSidebar(); 
+    updateSetlistButtons();
 }
 
 function createSetlist() {
-    const name = prompt(t('msg_new_setlist') || "New Setlist Name:");
+    const isBandViewer = (currentGroupId !== 'personal' && currentRole !== 'admin' && currentRole !== 'owner');
+    if (isBandViewer) {
+        showToast("Μόνο οι διαχειριστές μπορούν να φτιάξουν λίστες για τη μπάντα.", "error");
+        return;
+    }
+
+    const name = prompt(typeof t === 'function' ? t('msg_new_setlist') : "Όνομα νέας λίστας:");
     if (name && !allSetlists[name]) {
-        allSetlists[name] = { type: 'local', songs: [] }; saveSetlists(name); switchSetlist(name); updateSetlistDropdown();
-    } else if (allSetlists[name]) alert("Setlist exists!");
+        allSetlists[name] = { type: 'local', songs: [] }; 
+        saveSetlists(name); 
+        switchSetlist(name); 
+        updateSetlistDropdown();
+    } else if (allSetlists[name]) {
+        alert("Υπάρχει ήδη λίστα με αυτό το όνομα!");
+    }
 }
 
 function renameSetlist() {
-    var currentSetlistName = localStorage.getItem('mnotes_active_setlist_name');
-    if (allSetlists[currentSetlistName].type === 'shared') return;
-    const newName = prompt(t('msg_rename_setlist') || "Rename to:", currentSetlistName);
+    var currentSetlistName = localStorage.getItem(getActiveSetlistNameKey());
+    const newName = prompt(typeof t === 'function' ? t('msg_rename_setlist') : "Μετονομασία σε:", currentSetlistName);
     if (newName && newName !== currentSetlistName && !allSetlists[newName]) {
-        allSetlists[newName] = allSetlists[currentSetlistName]; delete allSetlists[currentSetlistName];
-        localStorage.setItem('mnotes_active_setlist_name', newName); saveSetlists(newName); updateSetlistDropdown();
+        allSetlists[newName] = allSetlists[currentSetlistName]; 
+        delete allSetlists[currentSetlistName];
+        localStorage.setItem(getActiveSetlistNameKey(), newName); 
+        saveSetlists(newName); 
+        updateSetlistDropdown();
     }
 }
 
 function deleteSetlist() {
-    var currentSetlistName = localStorage.getItem('mnotes_active_setlist_name');
-    if (allSetlists[currentSetlistName].type === 'shared' || Object.keys(allSetlists).length <= 1) { showToast("Cannot delete"); return; }
-    if (confirm(`Delete "${currentSetlistName}"?`)) {
-        delete allSetlists[currentSetlistName]; switchSetlist(Object.keys(allSetlists)[0]); saveSetlists(Object.keys(allSetlists)[0]); updateSetlistDropdown();
+    var currentSetlistName = localStorage.getItem(getActiveSetlistNameKey());
+    if (Object.keys(allSetlists).length <= 1) { 
+        showToast("Δεν μπορείτε να διαγράψετε την τελευταία λίστα."); 
+        return; 
+    }
+    if (confirm(`Διαγραφή της λίστας "${currentSetlistName}";`)) {
+        delete allSetlists[currentSetlistName]; 
+        const fallbackName = Object.keys(allSetlists)[0];
+        switchSetlist(fallbackName); 
+        saveSetlists(fallbackName); 
+        updateSetlistDropdown();
     }
 }
 
-function saveSetlists(activeName) {
-    var name = activeName || localStorage.getItem('mnotes_active_setlist_name');
+async function saveSetlists(activeName) {
+    const activeNameKey = getActiveSetlistNameKey();
+    var name = activeName || localStorage.getItem(activeNameKey);
     if(allSetlists[name]) allSetlists[name].songs = liveSetlist;
-    localStorage.setItem('mnotes_all_setlists', JSON.stringify(allSetlists));
+    
+    // 1. Τοπική αποθήκευση (ακαριαία)
+    localStorage.setItem(getSetlistStorageKey(), JSON.stringify(allSetlists));
+    if (activeName) localStorage.setItem(activeNameKey, activeName);
+    
+    // 2. Συγχρονισμός με Supabase (στο παρασκήνιο)
+    if (typeof currentUser !== 'undefined' && currentUser && navigator.onLine) {
+        if (currentGroupId === 'personal') {
+            supabaseClient.from('profiles').update({ setlists: allSetlists }).eq('id', currentUser.id).then(({error}) => {
+                if (error) console.error("[SETLISTS] Cloud Setlist Update Error:", error);
+                else console.log("[SETLISTS] Προσωπικές λίστες αποθηκεύτηκαν στο Cloud.");
+            });
+        } else {
+            const isGod = (currentRole === 'admin' || currentRole === 'owner' || currentRole === 'maestro');
+            if (isGod) {
+                supabaseClient.from('groups').update({ setlists: allSetlists }).eq('id', currentGroupId).then(({error}) => {
+                    if (error) console.error("[SETLISTS] Band Setlist Update Error:", error);
+                    else console.log(`[SETLISTS] Λίστες μπάντας αποθηκεύτηκαν στο Cloud.`);
+                });
+            }
+        }
+    }
 }
 
 function toggleSetlistSong(e, id) { 
-    e.stopPropagation(); var i = liveSetlist.indexOf(id); 
+    e.stopPropagation(); 
+    
+    const isBandViewer = (currentGroupId !== 'personal' && currentRole !== 'admin' && currentRole !== 'owner');
+    if (isBandViewer) {
+        showToast("Μόνο οι διαχειριστές μπορούν να επεξεργαστούν τη λίστα της μπάντας.", "error");
+        return;
+    }
+
+    var i = liveSetlist.indexOf(id); 
     if(i > -1) liveSetlist.splice(i,1); else liveSetlist.push(id); 
-    saveSetlists(); renderSidebar(); 
+    saveSetlists(); 
+    renderSidebar(); 
     if(viewMode === 'setlist') updateSetlistDropdown(); 
 }
 
@@ -1471,7 +1572,7 @@ function navSetlist(dir) {
     let currentIndex = -1; if (currentSongId) currentIndex = liveSetlist.indexOf(currentSongId);
     let newIndex = currentIndex + dir;
     if (newIndex >= 0 && newIndex < liveSetlist.length) { loadSong(liveSetlist[newIndex]); } 
-    else { showToast(dir > 0 ? "End of Setlist" : "Start of Setlist"); }
+    else { showToast(dir > 0 ? "Τέλος Λίστας" : "Αρχή Λίστας"); }
 }
 
 // ===========================================================

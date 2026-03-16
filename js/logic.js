@@ -174,7 +174,6 @@ async function initUserData() {
         showToast("Database connection issue. Working locally.", "error");
     }
 }
-
 /**
  * Εναλλαγή περιβάλλοντος εργασίας (Personal vs Band)
  */
@@ -191,6 +190,9 @@ async function switchContext(targetId) {
         document.body.classList.remove('personal-mode');
         document.body.classList.add('band-mode');
     }
+
+    // ✨ ΠΡΟΣΘΗΚΗ: Φόρτωση λιστών πριν τα δεδομένα, ώστε να εμφανίζεται η σωστή!
+    if (typeof initSetlists === 'function') await initSetlists();
 
     await loadContextData();
     updateUIForRole();

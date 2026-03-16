@@ -726,21 +726,23 @@ async function saveSong() {
     try {
         if (currentGroupId === 'personal') {
             console.log("🔒 [SAVE] Αποθήκευση στην Προσωπική Βιβλιοθήκη");
-            
+
+            // 1. OFFLINE FIRST: ΟΛΟΙ αποθηκεύουν τοπικά ακαριαία!
+            if (typeof saveToLocalStorage === 'function') saveToLocalStorage(songData);
+
+            // 2. CLOUD SYNC: Αναβάθμιση για τους Premium
             if (typeof canUserPerform === 'function' && canUserPerform('USE_SUPABASE')) {
                 await saveToCloud(songData, null);
                 showToast("Αποθηκεύτηκε στο Cloud! ☁️");
             } 
             else if (typeof canUserPerform === 'function' && canUserPerform('USE_DRIVE')) {
-                if (typeof saveToLocalStorage === 'function') saveToLocalStorage(songData); 
                 if (typeof saveToDrive === 'function') await saveToDrive(library);
                 showToast("Αποθηκεύτηκε στο Google Drive! 📂");
             } 
             else {
-                if (typeof saveToLocalStorage === 'function') saveToLocalStorage(songData);
                 showToast("Αποθηκεύτηκε Τοπικά! 💾");
             }
-        } 
+        }
         else {
             console.log("🎸 [SAVE] Αποθήκευση σε Περιβάλλον Μπάντας");
             
@@ -827,7 +829,7 @@ async function saveToCloud(songData, groupId) {
 }
 
 /**
- * Υποστηρικτική: Αποθήκευση στο κλασικό LocalStorage (για Free χρήστες)
+ * Υποστηρικτική: Αποθήκευση στο κλασικό LocalStorage (Οffline - First)
  */
 function saveToLocalStorage(songData) {
     if (!currentSongId || !currentSongId.startsWith('s_')) {
@@ -842,15 +844,16 @@ function saveToLocalStorage(songData) {
     }
     localStorage.setItem('mnotes_data', JSON.stringify(library));
 }
+
 /**
- * Αντιγράφει ένα τραγούδι από τη βιβλιοθήκη της Μπάντας 
- * στην Προσωπική Βιβλιοθήκη του χρήστη.
+ * Αντιγράφει ένα τραγούδι στην Προσωπική Βιβλιοθήκη (Πολιτική Ιδιοκτησίας).
+ * Τα mp3, pdf και οι σημειώσεις του leader ΔΕΝ μεταφέρονται.
  */
 async function cloneToPersonal() {
-    // 1. Βρίσκουμε το τραγούδι που βλέπει ο χρήστης αυτή τη στιγμή
-    const sourceSong = library.find(s => s.id === currentSongId);
+    let sourceSong = library.find(s => s.id === currentSongId);
+    
     if (!sourceSong) {
-        showToast("Δεν βρέθηκε το τραγούδι", "error");
+        showToast(typeof t === 'function' ? t('msg_song_not_found') : "Δεν βρέθηκε το τραγούδι", "error");
         return;
     }
 
@@ -859,52 +862,90 @@ async function cloneToPersonal() {
         return;
     }
 
-    // 2. Προετοιμασία του Κλώνου
-    // Φτιάχνουμε νέο ID για να είναι ανεξάρτητο
+    let songToClone = { ...sourceSong };
+    let isMasterChosen = false;
+
+    // 1. Έλεγχος αν ο χρήστης έχει κάνει δικές του παρεμβάσεις
+    const isClone = sourceSong.is_clone || !!sourceSong.parent_id;
+    const hasOverrides = sourceSong.has_override || 
+                         (sourceSong.personal_transpose && sourceSong.personal_transpose !== 0) || 
+                         (sourceSong.personal_notes && sourceSong.personal_notes.trim() !== "");
+
+    // 2. Ερώτηση στον χρήστη
+    if (isClone || hasOverrides) {
+        const wantsPersonal = confirm("Βρέθηκαν προσωπικές ρυθμίσεις/στίχοι για αυτό το τραγούδι.\n\n[ΟΚ] = Αντιγραφή της ΔΙΚΗΣ ΣΟΥ εκδοχής\n[ΑΚΥΡΩΣΗ] = Αντιγραφή του ΚΟΙΝΟΥ Master της μπάντας");
+        
+        if (!wantsPersonal) {
+            isMasterChosen = true;
+            console.log("📥 [CLONE TO PERSONAL] Ο χρήστης επέλεξε το Master της μπάντας.");
+            
+            if (isClone && sourceSong.parent_id) {
+                let master = window.library.find(x => x.id === sourceSong.parent_id);
+                if (!master && navigator.onLine && typeof supabaseClient !== 'undefined') {
+                    try {
+                        const { data } = await supabaseClient.from('songs').select('*').eq('id', sourceSong.parent_id).single();
+                        if (data) master = typeof ensureSongStructure === 'function' ? ensureSongStructure(data) : data;
+                    } catch (e) { console.error("❌ Σφάλμα ανάκτησης Master:", e); }
+                }
+                if (master) songToClone = { ...master };
+            }
+        } else {
+            console.log("📥 [CLONE TO PERSONAL] Ο χρήστης επέλεξε τη Δική του εκδοχή.");
+        }
+    } else {
+        isMasterChosen = true; // Αν δεν έχει κάνει αλλαγές, παίρνει by default τον κορμό της μπάντας
+    }
+
+    // 3. Προετοιμασία του Προσωπικού Τραγουδιού (Εφαρμογή Πολιτικής)
     const newId = "s_" + Date.now() + Math.random().toString(16).slice(2);
+    
+    // ✨ ΕΔΩ ΕΙΝΑΙ Η ΠΟΛΙΤΙΚΗ ΜΑΣ: 
+    // Οι σημειώσεις του Leader ΔΙΑΓΡΑΦΟΝΤΑΙ. Ο BandMate κρατάει ΜΟΝΟ τις δικές του (αν επέλεξε το My Version).
+    const finalNotes = isMasterChosen ? "" : (sourceSong.personal_notes || "");
+    const titleSuffix = isMasterChosen ? " (Band Master)" : " (My Version)";
 
     const clonedSong = {
         id: newId,
-        title: sourceSong.title + " (Copy)", // Προσθήκη για να το ξεχωρίζει
-        artist: sourceSong.artist,
-        body: sourceSong.body,
-        key: sourceSong.key,
-        intro: sourceSong.intro,
-        interlude: sourceSong.interlude,
-        video: sourceSong.video || "",
-        tags: sourceSong.tags || [],
+        title: songToClone.title + titleSuffix, 
+        artist: songToClone.artist,
+        body: songToClone.body,
+        key: songToClone.key,
+        intro: songToClone.intro,
+        interlude: songToClone.interlude,
+        video: songToClone.video || "", // ✅ Το YouTube link ανήκει στον "κορμό" και επιτρέπεται
+        tags: songToClone.tags || [],
         user_id: currentUser.id,
-        group_id: null, // <--- ΕΔΩ ΕΙΝΑΙ ΤΟ ΚΛΕΙΔΙ: Γίνεται προσωπικό
-        notes: sourceSong.personal_notes || sourceSong.notes || "", // Παίρνει τις προσωπικές του σημειώσεις αν υπάρχουν
-        recordings: [], // Συνήθως δεν αντιγράφουμε τα αρχεία για λόγους χώρου, αλλά αν θες προσθέτεις sourceSong.recordings
-        attachments: []
+        group_id: null,       
+        notes: finalNotes,    // ✅ Καθαρό από σημειώσεις του Leader
+        recordings: [],       // 🚫 Απαγόρευση μεταφοράς κοινών mp3
+        attachments: [],      // 🚫 Απαγόρευση μεταφοράς κοινών pdf
+        is_clone: false,      
+        parent_id: null
     };
 
+    // 4. Αποθήκευση
     try {
-        // 3. Αποθήκευση (Cloud αν είναι Solo/Maestro, αλλιώς Local)
-        if (canUserPerform('CLOUD_SAVE')) {
-            const { error } = await supabaseClient.from('songs').insert([clonedSong]);
+        if (typeof canUserPerform === 'function' && canUserPerform('USE_SUPABASE')) {
+            const safePayload = typeof window.sanitizeForDatabase === 'function' ? window.sanitizeForDatabase(clonedSong, currentUser.id, null) : clonedSong;
+            const { error } = await supabaseClient.from('songs').insert([safePayload]);
             if (error) throw error;
         } else {
-            // Για Free χρήστες που είναι σε μπάντα αλλά θέλουν το τραγούδι τοπικά
             let localData = JSON.parse(localStorage.getItem('mnotes_data') || "[]");
             localData.push(clonedSong);
             localStorage.setItem('mnotes_data', JSON.stringify(localData));
         }
 
-        showToast("Αντιγράφηκε στην Προσωπική Βιβλιοθήκη! 🏠");
+        showToast("Το τραγούδι προστέθηκε στα Προσωπικά σας! 🏠");
         
-        // 4. Προαιρετικά: Ρωτάμε αν θέλει να μεταβεί εκεί για να το δει
-        if (confirm("Το τραγούδι αντιγράφηκε! Θέλετε να μεταβείτε στην Προσωπική σας Βιβλιοθήκη;")) {
-            await switchContext('personal');
+        if (confirm("Το τραγούδι αντιγράφηκε επιτυχώς! Θέλετε να μεταβείτε στην Προσωπική σας Βιβλιοθήκη τώρα;")) {
+            if (typeof switchContext === 'function') await switchContext('personal');
         }
 
     } catch (err) {
-        console.error("Clone Error:", err);
+        console.error("❌ [CLONE ERROR]:", err);
         showToast("Αποτυχία αντιγραφής", "error");
     }
 }
-
 /* =========================================
    HELPER FUNCTIONS & PARSING
    ========================================= */

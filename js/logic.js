@@ -578,30 +578,54 @@ async function addAttachmentToCurrentSong(newDoc) {
  * Αποθήκευση προσωπικών ρυθμίσεων πάνω σε κοινό τραγούδι μπάντας (Layer)
  */
 
+/**
+ * Αποθήκευση προσωπικών ρυθμίσεων πάνω σε κοινό τραγούδι μπάντας (Layer)
+ */
 async function saveAsOverride(songData) {
     if (!currentSongId || !currentUser) return;
     console.log("💾 Saving personal override layer...");
 
+    const pNotes = document.getElementById('sidePersonalNotes')?.value || "";
+    const pTrans = state.t || 0;
+    const pCapo = state.c || 0;
+
+    // ✨ 1. OFFLINE FIRST: Ενημέρωση της τρέχουσας βιβλιοθήκης και αποθήκευση τοπικά!
+    let s = window.library.find(x => x.id === currentSongId);
+    if (s) {
+        s.personal_transpose = pTrans;
+        s.personal_capo = pCapo;
+        s.personal_notes = pNotes;
+        s.has_override = true;
+        
+        let bandLocalKey = 'mnotes_band_' + currentGroupId;
+        localStorage.setItem(bandLocalKey, JSON.stringify(window.library));
+    }
+
+    // 2. CLOUD SYNC: Αποστολή στο Supabase
     const payload = {
         user_id: currentUser.id,
         song_id: currentSongId,
         group_id: currentGroupId,
-        local_transpose: state.t || 0,
-        local_capo: state.c || 0,
-        // ΔΙΟΡΘΩΣΗ: Διαβάζει πλέον από το νέο πεδίο της δεξιάς μπάρας!
-        personal_notes: document.getElementById('sidePersonalNotes')?.value || "" 
+        local_transpose: pTrans,
+        local_capo: pCapo,
+        personal_notes: pNotes 
     };
 
-    const { error } = await supabaseClient
-        .from('personal_overrides')
-        .upsert(payload, { onConflict: 'user_id, song_id, group_id' });
+    if (navigator.onLine) {
+        const { error } = await supabaseClient
+            .from('personal_overrides')
+            .upsert(payload, { onConflict: 'user_id, song_id, group_id' });
 
-    if (error) {
-        console.error("Override Save Error:", error);
-        throw error;
+        if (error) {
+            console.error("Override Save Error:", error);
+            throw error;
+        }
+    } else {
+        // Αν είμαστε offline, το βάζουμε στην ουρά για όταν έρθει το ίντερνετ
+        addToSyncQueue('SAVE_OVERRIDE', payload);
+        console.log("✈️ Είστε Offline. Οι ρυθμίσεις αποθηκεύτηκαν τοπικά.");
     }
 }
-
 /**
  * Ανάκτηση προσωπικών τραγουδιών από το Cloud (ΕΥΕΛΙΚΤΟ FETCH)
  */
@@ -631,10 +655,10 @@ async function fetchPrivateSongs() {
     return privateSongs.map(s => ensureSongStructure(s));
 }
 /**
- * Ανάκτηση κοινών τραγουδιών μιας μπάντας
- * @param {string} groupId - Το UUID της μπάντας
+ * Ανάκτηση κοινών τραγουδιών (Master) ΚΑΙ των δικών σου Κλώνων για τη Μπάντα
  */
 async function fetchBandSongs(groupId) {
+    console.log(`📥 [FETCH] Ανάκτηση τραγουδιών μπάντας: ${groupId}`);
     const { data, error } = await supabaseClient
         .from('songs')
         .select('*')
@@ -645,7 +669,16 @@ async function fetchBandSongs(groupId) {
         console.error("❌ Error fetching band songs:", error);
         return [];
     }
-    return data.map(s => ensureSongStructure(s));
+
+    // ✨ ΦΙΛΤΡΑΡΙΣΜΑ ΑΣΦΑΛΕΙΑΣ: Κρατάμε τα Master ΚΑΙ μόνο τους δικούς ΜΑΣ κλώνους
+    const filteredData = data.filter(s => {
+        if (!s.is_clone) return true; // Είναι Master, το κρατάμε
+        if (s.is_clone && s.user_id === currentUser.id) return true; // Είναι δικός μου κλώνος, το κρατάμε
+        return false; // Είναι κλώνος αλλουνού, το κόβουμε!
+    });
+
+    console.log(`📥 [FETCH] Βρέθηκαν ${filteredData.length} τραγούδια για τη μπάντα (Master + Οι κλώνοι μου)`);
+    return filteredData.map(s => ensureSongStructure(s));
 }
 
 /**
@@ -714,11 +747,25 @@ async function saveSong() {
             const isGod = (currentRole === 'admin' || currentRole === 'owner' || currentRole === 'maestro');
             const originalSong = library.find(s => s.id === currentSongId);
             const hasBaseChanges = checkBaseChanges(songData, originalSong);
-
+         
             if (hasBaseChanges) {
                 console.log("🧬 Εντοπίστηκαν αλλαγές στον κορμό.");
                 
                 if (isGod && confirm("Έχετε αλλάξει τον κορμό του τραγουδιού.\n\n[ΟΚ] Ενημέρωση ΚΟΙΝΟΥ τραγουδιού μπάντας.\n[ΑΚΥΡΩΣΗ] Αποθήκευση ως Προσωπικού Κλώνου.")) {
+                    
+                    // ✨ OFFLINE FIRST: Αποθήκευση του Master στην ΤΟΠΙΚΗ μνήμη της μπάντας
+                    let bandLocalKey = 'mnotes_band_' + currentGroupId;
+                    let localBandData = JSON.parse(localStorage.getItem(bandLocalKey) || "[]");
+                    let idx = localBandData.findIndex(s => s.id === currentSongId);
+                    if (idx > -1) localBandData[idx] = songData;
+                    else localBandData.push(songData);
+                    localStorage.setItem(bandLocalKey, JSON.stringify(localBandData));
+                    
+                    // Ενημέρωση και της RAM (library)
+                    window.library = localBandData;
+                    library = window.library;
+
+                    // Αποστολή στο Cloud
                     await saveToCloud(songData, currentGroupId);
                     showToast("Η βιβλιοθήκη της μπάντας ενημερώθηκε! 🎸");
                 } else {
@@ -730,6 +777,7 @@ async function saveSong() {
                 }
                 showToast(typeof t === 'function' ? t('msg_personal_settings_saved') : "Προσωπικές ρυθμίσεις αποθηκεύτηκαν.");
             }
+          
         }
          
         // ==========================================
@@ -1363,8 +1411,9 @@ function checkBaseChanges(newData, oldData) {
            newData.key !== oldData.key;
 }
 
-// Δημιουργεί ή ενημερώνει τον Προσωπικό Κλώνο
+// Δημιουργεί ή ενημερώνει τον Προσωπικό Κλώνο ΜΕΣΑ στη Μπάντα
 async function createOrUpdateClone(songData, originalSong) {
+    console.log(`[CLONE] Δημιουργία προσωπικής έκδοσης για τη μπάντα: ${currentGroupId}`);
     const isAlreadyClone = originalSong.is_clone || !!originalSong.parent_id;
     let cloneId = isAlreadyClone ? originalSong.id : "s_" + Date.now() + Math.random().toString(16).slice(2);
     let parentId = isAlreadyClone ? originalSong.parent_id : originalSong.id;
@@ -1372,34 +1421,33 @@ async function createOrUpdateClone(songData, originalSong) {
     const clonedSong = {
         ...songData,
         id: cloneId,
-        group_id: null,
+        group_id: currentGroupId, // ✨ ΜΕΝΕΙ ΣΤΗ ΜΠΑΝΤΑ!
         parent_id: parentId,
         is_clone: true,
-        updated_at: new Date().toISOString() // Κρίσιμο για τον μελλοντικό συγχρονισμό
+        user_id: currentUser.id,  // ✨ Σφραγίδα ότι είναι δικός σου
+        updated_at: new Date().toISOString() 
     };
 
-    // 1. OFFLINE FIRST: ΠΑΝΤΑ αποθήκευση στο LocalStorage ακαριαία!
+    // 1. Τοπική Αποθήκευση
     let localData = JSON.parse(localStorage.getItem('mnotes_data') || "[]");
     let existingIdx = localData.findIndex(s => s.id === cloneId);
     if (existingIdx > -1) localData[existingIdx] = clonedSong;
     else localData.push(clonedSong);
     
     localStorage.setItem('mnotes_data', JSON.stringify(localData));
-    
-    // Ενημερώνουμε άμεσα τη μνήμη της εφαρμογής για να το δει το UI χωρίς reload
     window.library = localData; 
+    library = window.library;
 
-    // 2. BACKGROUND SYNC: Προσπάθεια αποστολής στο Cloud
+    // 2. Αποθήκευση στο Cloud
     if (typeof canUserPerform === 'function' && canUserPerform('USE_SUPABASE') && currentUser) {
-        const safePayload = window.sanitizeForDatabase(clonedSong, currentUser.id, null);
+        const safePayload = window.sanitizeForDatabase(clonedSong, currentUser.id, currentGroupId);
         safePayload.parent_id = parentId;
         safePayload.is_clone = true;
-        safePayload.group_id = null;
 
         if (navigator.onLine) {
-            // Δεν βάζουμε await για να μην μπλοκάρει το UI αν αργεί το ίντερνετ
             supabaseClient.from('songs').upsert(safePayload).then(({error}) => {
-                if (error) console.error("Cloud Sync Failed:", error);
+                if (error) console.error("[CLONE] Cloud Sync Failed:", error);
+                else console.log("[CLONE] Αποθηκεύτηκε επιτυχώς στο Cloud της μπάντας.");
             });
         } else {
             addToSyncQueue('SAVE_SONG', safePayload);
@@ -1407,7 +1455,7 @@ async function createOrUpdateClone(songData, originalSong) {
     }
 
     currentSongId = cloneId;
-    showToast(typeof t === 'function' ? t('msg_clone_created') : "Δημιουργήθηκε δική σας έκδοση (Κλώνος)! 🧬");
+    showToast(typeof t === 'function' ? t('msg_clone_created') : "Η προσωπική σας εκδοχή αποθηκεύτηκε! 🧬");
 }
 /**
  * Διαγράφει τον προσωπικό κλώνο και επιστρέφει στο αρχικό τραγούδι της μπάντας

@@ -1738,7 +1738,24 @@ body.band-mode::before { z-index: 8000; } /* Το σηματάκι της Μπά
         height: 44px !important;
     }
 }
+/* Προεπιλεγμένο στυλ για το κουμπί (για μεγαλύτερες οθόνες) */
+#btnToggleView {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 16px; /* Κανονικό padding */
+    font-size: 1rem; /* Κανονικό μέγεθος γραμματοσειράς */
+    border-radius: 4px;
+    cursor: pointer;
+    /* ... άλλα στυλ ... */
+}
 
+/* Στυλ για κινητά (οθόνες με πλάτος έως 600px) */
+@media screen and (max-width: 600px) {
+    #btnToggleView {
+        padding: 4px 8px; /* Μικρότερο padding */
+        font-size: 0.8rem; /* Μικρότερη γραμματοσειρά */
+    }
+}
 
 
 

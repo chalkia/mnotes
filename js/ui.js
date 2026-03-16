@@ -2435,22 +2435,112 @@ function updateToggleButton(s) {
     const btn = document.getElementById('btnToggleView');
     if (!btn) return;
 
-    // Εμφάνιση ΜΟΝΟ αν υπάρχουν overrides (key/notes/transpose)
-    // και είναι τραγούδι μπάντας
-    const hasOverrides = s.has_override || s.personal_notes || (s.personal_transpose && s.personal_transpose !== 0);
+    // Κρύβουμε το κουμπί από προεπιλογή. Θα το εμφανίσουμε ΜΟΝΟ αν βρούμε διαφορές.
+    btn.style.display = 'none'; 
 
-    if (!hasOverrides || !s.group_id) {
-        btn.style.display = 'none';
+    const isCloneObj = s.is_clone || !!s.parent_id;
+    const isBandMaster = !!s.group_id && !isCloneObj;
+
+    // Βοηθητική συνάρτηση για να σχεδιάσει/εμφανίσει το κουμπί
+    const showButton = () => {
+        btn.style.display = 'inline-flex';
+        
+        if (isCloneObj) {
+            if (showingOriginal) {
+                btn.innerHTML = `<i class="fas fa-user"></i> My Version`;
+                btn.classList.add('active-mode');
+                btn.style.background = "var(--accent)";
+                btn.style.color = "#000";
+            } else {
+                btn.innerHTML = `<i class="fas fa-users"></i> Band Version`;
+                btn.classList.remove('active-mode');
+                btn.style.background = "transparent";
+                btn.style.color = "var(--text-main)";
+            }
+            
+            // Κουμπί Ακύρωσης Κλώνου (Κόκκινο σκουπιδάκι)
+            let revertBtn = document.getElementById('btnRevertClone');
+            if (!revertBtn && !showingOriginal) {
+                revertBtn = document.createElement('button');
+                revertBtn.id = 'btnRevertClone';
+                revertBtn.innerHTML = `<i class="fas fa-trash-restore"></i>`;
+                revertBtn.title = "Ακύρωση Κλώνου & Επιστροφή στο Κοινό";
+                revertBtn.style.cssText = "margin-left:5px; background:var(--danger); color:#fff; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:0.9rem;";
+                revertBtn.onclick = () => { if(typeof revertClone === 'function') revertClone(s); };
+                btn.parentNode.appendChild(revertBtn);
+            } else if (revertBtn && showingOriginal) {
+                revertBtn.style.display = 'none';
+            } else if (revertBtn) {
+                revertBtn.style.display = 'inline-block';
+            }
+        } else {
+            // Για απλά overrides της μπάντας (Transpose/Notes)
+            const revertBtn = document.getElementById('btnRevertClone');
+            if (revertBtn) revertBtn.style.display = 'none';
+
+            if (showingOriginal) {
+                btn.innerHTML = '<i class="fas fa-user"></i> My Settings';
+                btn.classList.add('active-mode');
+                btn.style.background = "var(--accent)";
+                btn.style.color = "#000";
+            } else {
+                btn.innerHTML = '<i class="fas fa-users"></i> Band Version';
+                btn.classList.remove('active-mode');
+                btn.style.background = "transparent";
+                btn.style.color = "var(--text-main)";
+            }
+        }
+    };
+
+    // --- ΠΕΡΙΠΤΩΣΗ Α: Τραγούδι Μπάντας με Transpose/Notes ---
+    if (isBandMaster) {
+        // Αν έχει βάλει Transpose ή Σημειώσεις, ΥΠΑΡΧΕΙ διαφορά, άρα το δείχνουμε.
+        const hasOverrides = s.has_override || (s.personal_notes && s.personal_notes.trim() !== "") || (s.personal_transpose && s.personal_transpose !== 0);
+        if (hasOverrides || showingOriginal) {
+            showButton();
+        }
         return;
     }
 
-    btn.style.display = 'inline-flex';
-    if (showingOriginal) {
-        btn.innerHTML = '<i class="fas fa-user"></i> Show My Version';
-        btn.classList.add('active-mode');
-    } else {
-        btn.innerHTML = '<i class="fas fa-users"></i> Show Band Version';
-        btn.classList.remove('active-mode');
+    // --- ΠΕΡΙΠΤΩΣΗ Β: Προσωπικός Κλώνος ---
+    if (isCloneObj && s.parent_id) {
+        // Αν το έχει ήδη πατήσει, ΠΡΕΠΕΙ να το βλέπει για να μπορεί να γυρίσει πίσω!
+        if (showingOriginal) {
+            showButton(); 
+            return;
+        }
+
+        // Συνάρτηση σύγκρισης
+        const compareWithMaster = (master) => {
+            const isDifferent = (master.body !== s.body) || 
+                                (master.title !== s.title) || 
+                                (master.key !== s.key) || 
+                                (master.notes !== s.notes);
+            
+            // Αν βρήκαμε έστω και μία διαφορά, εμφανίζουμε το κουμπί!
+            if (isDifferent) showButton();
+        };
+
+        // 1. Ψάχνουμε το Master τραγούδι τοπικά (αν υπάρχει ήδη στη μνήμη)
+        let master = window.library.find(x => x.id === s.parent_id);
+        
+        if (master) {
+            compareWithMaster(master);
+        } 
+        // 2. Αν δεν υπάρχει τοπικά, το ρωτάμε αθόρυβα από το Cloud (Supabase)
+        else if (navigator.onLine && typeof supabaseClient !== 'undefined') {
+            supabaseClient.from('songs')
+                .select('body, title, key, notes')
+                .eq('id', s.parent_id)
+                .maybeSingle()
+                .then(({data}) => {
+                    // Έλεγχος: Βεβαιωνόμαστε ότι ο χρήστης βλέπει ΑΚΟΜΑ αυτό το τραγούδι (δεν άλλαξε εν τω μεταξύ)
+                    if (data && currentSongId === s.id) { 
+                        compareWithMaster(data);
+                    }
+                })
+                .catch(e => console.log("Αποτυχία σύγκρισης κλώνου:", e));
+        }
     }
 }
 // --- CUSTOM MODAL ΓΙΑ ΔΙΑΧΩΡΙΣΜΟ PUBLIC/PRIVATE ---

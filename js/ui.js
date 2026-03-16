@@ -183,12 +183,17 @@ function clearLibrary() {
 /* ===========================================================
    RENDER SIDEBAR (FINAL THEME-DRIVEN VERSION)
    =========================================================== */
-function renderSidebar() {
+   function renderSidebar() {
     var list = document.getElementById('songList');
     if(!list) return;
     
     list.innerHTML = "";
     visiblePlaylist = [];
+
+    // ✨ ΒΡΙΣΚΟΥΜΕ ΤΑ ID ΤΩΝ MASTER ΠΟΥ ΕΧΟΥΝ ΚΛΩΝΟ, ΓΙΑ ΝΑ ΤΑ ΚΡΥΨΟΥΜΕ ΑΠΟ ΤΗ ΛΙΣΤΑ!
+    const myCloneParentIds = library
+        .filter(s => s.group_id === currentGroupId && s.is_clone && s.user_id === currentUser?.id)
+        .map(s => s.parent_id);
 
     // --- 1. FILTERING LOGIC ---
     if (viewMode === 'setlist') {
@@ -201,24 +206,33 @@ function renderSidebar() {
         var tag = document.getElementById('tagFilter') ? document.getElementById('tagFilter').value : "";
         
         visiblePlaylist = library.filter(s => {
-            // ✨ ΔΙΟΡΘΩΜΕΝΟ ΦΙΛΤΡΟ ΓΙΑ ΝΑ ΜΗΝ ΧΑΝΟΝΤΑΙ ΤΑ ΤΡΑΓΟΥΔΙΑ ΣΟΥ
+            // ΦΙΛΤΡΟ CONTEXT
             if (currentGroupId === 'personal') {
-                // Στα Προσωπικά δείχνουμε: Τα δικά σου (group_id null) Ή τους Κλώνους σου (is_clone)
-                if (s.group_id && !s.is_clone && !s.parent_id) return false;
+                if (s.group_id) return false; // Στα προσωπικά ΜΟΝΟ τα δικά μου
             } else {
-                // Στη Μπάντα δείχνουμε: Τα Master τραγούδια της (group_id ίσο με το επιλεγμένο)
-                if (s.group_id !== currentGroupId || s.is_clone || s.parent_id) return false;
+                if (s.group_id !== currentGroupId) return false; // Στη μπάντα ΜΟΝΟ της μπάντας
+                if (s.is_clone && s.user_id !== currentUser?.id) return false; 
+                
+                // ✨ ΜΑΓΕΙΑ: Κρύβουμε το Master αν έχουμε φτιάξει δικό μας Κλώνο γι' αυτό!
+                if (!s.is_clone && myCloneParentIds.includes(s.id)) {
+                    return false; 
+                }
             }
 
+            // Απόκρυψη Demo
             if (userSettings.hideDemo && String(s.id).includes("demo") && library.length > 1) return false;
             
-            var matchTxt = s.title.toLowerCase().includes(txt) || (s.artist && s.artist.toLowerCase().includes(txt)) || (s.key && s.key.toLowerCase() === txt);
+            var matchTxt = s.title.toLowerCase().includes(txt) || 
+                           (s.artist && s.artist.toLowerCase().includes(txt)) || 
+                           (s.key && s.key.toLowerCase() === txt);
+            
             var sTags = (s.tags && s.tags.length > 0) ? s.tags : (s.playlists || []);
             var matchTag = (tag === "__no_demo") ? !String(s.id).includes("demo") : (tag === "" || sTags.includes(tag));
             
             return matchTxt && matchTag;
         });
     }
+
     // Update Song Count
     const countEl = document.getElementById('songCount');
     if(countEl) countEl.innerText = visiblePlaylist.length;
@@ -476,16 +490,26 @@ function loadSong(id) {
     let chordsGroup = document.getElementById('guitarChordsGroup');
     if (chordsGroup) chordsGroup.open = true; 
    
-    // 2. Εύρεση Τραγουδιού
+    // 2.1 Εύρεση Τραγουδιού
     currentSongId = id; 
     var s = library.find(x => x.id === id); 
     if(!s) return;
+   
+   // 2.2✨ ΑΝΟΙΓΕΙΣ ΤΟ MASTER ΜΕΣΑ ΑΠΟ SETLIST ΑΛΛΑ ΕΧΕΙΣ ΚΛΩΝΟ; ΦΟΡΤΩΣΕ ΤΟΝ ΚΛΩΝΟ ΣΟΥ!
+    if (!s.is_clone && currentGroupId !== 'personal') {
+        const myClone = library.find(c => c.parent_id === s.id && c.is_clone && c.user_id === currentUser?.id);
+        if (myClone) {
+            console.log(`[ROUTER] Το Master ζητήθηκε, αλλά βρέθηκε Κλώνος. Φόρτωση Κλώνου: ${myClone.title}`);
+            s = myClone;
+            currentSongId = myClone.id;
+        }
+    }
 
-    // 3. Reset Transpose/Capo
+    // 3.1 Reset Transpose/Capo
     state.t = 0; 
     state.c = 0; 
     
-    // Προετοιμασία συγχορδιών
+    //3.2 Προετοιμασία συγχορδιών
     if(typeof parseSongLogic === 'function') parseSongLogic(s);
     
     // 4. Εμφάνιση Στίχων & Header

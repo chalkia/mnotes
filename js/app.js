@@ -134,6 +134,21 @@ function prevSong() {
         if (typeof renderSidebar === 'function') renderSidebar(); 
     } 
 }
+
+//  APP VERSION FETCH
+// ==========================================
+window.getAppVersion = async function() {
+    try {
+        const response = await fetch('./sw.js?_=' + Date.now());
+        const text = await response.text();
+        const match = text.match(/v(\d+\.\d+)/i);
+        return match ? `v${match[1]}` : 'Unknown';
+    } catch (err) {
+        console.error("❌ Σφάλμα ανάγνωσης sw.js:", err);
+        return 'N/A';
+    }
+};
+
 /* ===========================================================
    SUPER USER / GOD MODE LOGIC
    =========================================================== */

@@ -1453,23 +1453,34 @@ function checkBaseChanges(newData, oldData) {
 }
 
 // Δημιουργεί ή ενημερώνει τον Προσωπικό Κλώνο ΜΕΣΑ στη Μπάντα
+// Δημιουργεί ή ενημερώνει τον μοναδικό Προσωπικό Κλώνο ΜΕΣΑ στη Μπάντα
 async function createOrUpdateClone(songData, originalSong) {
-    console.log(`[CLONE] Δημιουργία προσωπικής έκδοσης για τη μπάντα: ${currentGroupId}`);
-    const isAlreadyClone = originalSong.is_clone || !!originalSong.parent_id;
-    let cloneId = isAlreadyClone ? originalSong.id : "s_" + Date.now() + Math.random().toString(16).slice(2);
-    let parentId = isAlreadyClone ? originalSong.parent_id : originalSong.id;
+    console.log(`[CLONE] Δημιουργία ή ενημέρωση κλώνου για τη μπάντα: ${currentGroupId}`);
+    
+    // 1. ✨ ΕΞΥΠΝΟΣ ΕΛΕΓΧΟΣ: Βρίσκουμε αν υπάρχει ΗΔΗ κλώνος για αυτό το Master
+    let existingClone = null;
+    if (originalSong.is_clone) {
+        existingClone = originalSong; // Είμαστε ήδη πάνω στον κλώνο, κάνουμε Update
+    } else {
+        // Είμαστε στο Master. Ψάχνουμε στη βιβλιοθήκη αν έχουμε ΦΤΙΑΞΕΙ ήδη κλώνο στο παρελθόν!
+        existingClone = library.find(s => s.is_clone && s.parent_id === originalSong.id && s.user_id === currentUser?.id);
+    }
+
+    // Αν υπάρχει κλώνος κρατάμε το ID του (για Update), αλλιώς φτιάχνουμε ΕΝΑ νέο.
+    let cloneId = existingClone ? existingClone.id : "s_" + Date.now() + Math.random().toString(16).slice(2);
+    let parentId = existingClone ? existingClone.parent_id : originalSong.id;
 
     const clonedSong = {
         ...songData,
         id: cloneId,
-        group_id: currentGroupId, // ✨ ΜΕΝΕΙ ΣΤΗ ΜΠΑΝΤΑ!
+        group_id: currentGroupId, 
         parent_id: parentId,
         is_clone: true,
-        user_id: currentUser.id,  // ✨ Σφραγίδα ότι είναι δικός σου
+        user_id: currentUser.id,  
         updated_at: new Date().toISOString() 
     };
 
-    // 1. Τοπική Αποθήκευση (ΔΙΟΡΘΩΜΕΝΟ: Επιλέγει το σωστό "συρτάρι")
+    // 2. Τοπική Αποθήκευση
     let storageKey = currentGroupId === 'personal' ? 'mnotes_data' : 'mnotes_band_' + currentGroupId;
     let localData = JSON.parse(localStorage.getItem(storageKey) || "[]");
     
@@ -1481,17 +1492,17 @@ async function createOrUpdateClone(songData, originalSong) {
     window.library = localData; 
     library = window.library;
 
-    // 2. Αποθήκευση στο Cloud
+    // 3. ✨ AWAIT CLOUD SYNC: Περιμένουμε ΥΠΟΧΡΕΩΤΙΚΑ να σωθεί, για να μην το διαγράψει το Auto-Sync
     if (typeof canUserPerform === 'function' && canUserPerform('USE_SUPABASE') && currentUser) {
         const safePayload = window.sanitizeForDatabase(clonedSong, currentUser.id, currentGroupId);
         safePayload.parent_id = parentId;
         safePayload.is_clone = true;
 
         if (navigator.onLine) {
-            supabaseClient.from('songs').upsert(safePayload).then(({error}) => {
-                if (error) console.error("[CLONE] Cloud Sync Failed:", error);
-                else console.log("[CLONE] Αποθηκεύτηκε επιτυχώς στο Cloud της μπάντας.");
-            });
+            // Προστέθηκε το 'await' !
+            const { error } = await supabaseClient.from('songs').upsert(safePayload);
+            if (error) console.error("❌ [CLONE] Cloud Sync Failed:", error);
+            else console.log("☁️ [CLONE] Αποθηκεύτηκε επιτυχώς στο Cloud της μπάντας.");
         } else {
             addToSyncQueue('SAVE_SONG', safePayload);
         }
@@ -1499,10 +1510,10 @@ async function createOrUpdateClone(songData, originalSong) {
 
     currentSongId = cloneId;
 
-    // ✨ ΠΡΟΣΘΗΚΗ: Ανανέωση της οθόνης για να δεις τον κλώνο και το κουμπί αμέσως!
+    // 4. Ανανέωση UI
     if (typeof renderSidebar === 'function') renderSidebar();
     if (typeof loadSong === 'function') loadSong(cloneId);
-
+    
     showToast(typeof t === 'function' ? t('msg_clone_created') : "Η προσωπική σας εκδοχή αποθηκεύτηκε! 🧬");
 }
 /**

@@ -254,17 +254,22 @@ window.sanitizeForDatabase = function(song, userId, groupId = null) {
         key: song.key || "",
         body: song.body || "",
         intro: song.intro || "",
-        // Πιάνει και το "inter" και το "interlude"
         interlude: song.interlude || song.inter || "", 
-        // Πιάνει και το "conductorNotes"
         notes: song.notes || song.conductorNotes || "", 
         video: song.video || "",
-        // Εξασφαλίζει ότι τα tags είναι Array (και σώζει τα παλιά playlists)
         tags: Array.isArray(song.tags) ? song.tags : (Array.isArray(song.playlists) ? song.playlists : []),
         recordings: Array.isArray(song.recordings) ? song.recordings : [],
         attachments: Array.isArray(song.attachments) ? song.attachments : [],
         user_id: userId,
         group_id: groupId,
+        
+        // ✨ Η VIP ΛΙΣΤΑ: Προσθέτουμε τα νέα μας πεδία για να μην διαγράφονται!
+        is_clone: !!song.is_clone,
+        parent_id: song.parent_id || null,
+        has_override: !!song.has_override,
+        personal_transpose: song.personal_transpose || 0,
+        personal_notes: song.personal_notes || "",
+        
         updated_at: new Date().toISOString()
     };
 };

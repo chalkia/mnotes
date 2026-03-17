@@ -3,7 +3,8 @@
    ========================================= */
 
 // --- Global State ---
-let userProfile = null;      
+let userProfile = null;
+let lastSaveTimestamp= 0;
 let myGroups = [];           
 let currentGroupId = 'personal'; 
 let currentRole = 'owner';   

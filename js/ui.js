@@ -324,6 +324,7 @@ function clearLibrary() {
             ${viewMode === 'setlist' ? `<i class="fas fa-grip-vertical song-handle"></i>` : ``}
         `;
         list.appendChild(li);
+    });
       
     // --- 3. SORTABLE JS RE-INIT ---
     if (sortableInstance) sortableInstance.destroy();

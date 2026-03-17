@@ -779,7 +779,7 @@ async function saveSong() {
                 }
                 showToast(typeof t === 'function' ? t('msg_personal_settings_saved') : "Προσωπικές ρυθμίσεις αποθηκεύτηκαν.");
             }
-          
+          lastSaveTimestamp = Date.now();
         }
          
         // ==========================================
@@ -965,12 +965,14 @@ function ensureSongStructure(song) {
         tags: Array.isArray(song.playlists) ? song.playlists : (song.tags || []),
         notes: song.notes || "",
         updatedAt: song.updatedAt || Date.now(),
-        // ✨ Τα νέα πεδία για συμβατότητα με Μπάντες και Κλώνους
+       // ✨ Τα απαραίτητα πεδία για Μπάντες και Κλώνους
         group_id: song.group_id || null,
         parent_id: song.parent_id || null,
-        is_clone: song.is_clone || false,
-        recordings: song.recordings || [],
-        attachments: song.attachments || []
+        is_clone: !!song.is_clone,
+        
+        // ✨ Τα προσαρτήματα παραμένουν ως Arrays
+        recordings: Array.isArray(song.recordings) ? song.recordings : [],
+        attachments: Array.isArray(song.attachments) ? song.attachments : []    
     };
     return cleaned;
 }

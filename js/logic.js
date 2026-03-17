@@ -1469,13 +1469,15 @@ async function createOrUpdateClone(songData, originalSong) {
         updated_at: new Date().toISOString() 
     };
 
-    // 1. Τοπική Αποθήκευση
-    let localData = JSON.parse(localStorage.getItem('mnotes_data') || "[]");
+    // 1. Τοπική Αποθήκευση (ΔΙΟΡΘΩΜΕΝΟ: Επιλέγει το σωστό "συρτάρι")
+    let storageKey = currentGroupId === 'personal' ? 'mnotes_data' : 'mnotes_band_' + currentGroupId;
+    let localData = JSON.parse(localStorage.getItem(storageKey) || "[]");
+    
     let existingIdx = localData.findIndex(s => s.id === cloneId);
     if (existingIdx > -1) localData[existingIdx] = clonedSong;
     else localData.push(clonedSong);
     
-    localStorage.setItem('mnotes_data', JSON.stringify(localData));
+    localStorage.setItem(storageKey, JSON.stringify(localData));
     window.library = localData; 
     library = window.library;
 
@@ -1496,6 +1498,11 @@ async function createOrUpdateClone(songData, originalSong) {
     }
 
     currentSongId = cloneId;
+
+    // ✨ ΠΡΟΣΘΗΚΗ: Ανανέωση της οθόνης για να δεις τον κλώνο και το κουμπί αμέσως!
+    if (typeof renderSidebar === 'function') renderSidebar();
+    if (typeof loadSong === 'function') loadSong(cloneId);
+
     showToast(typeof t === 'function' ? t('msg_clone_created') : "Η προσωπική σας εκδοχή αποθηκεύτηκε! 🧬");
 }
 /**

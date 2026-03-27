@@ -251,19 +251,40 @@ async function loadContextData() {
             }
 
             // 2. Αναπλήρωση από Cloud
+        // 2. Αναπλήρωση από Cloud (Προσωπικά)
             if (navigator.onLine && typeof canUserPerform === 'function' && canUserPerform('USE_SUPABASE')) {
                 const cloudSongs = await fetchPrivateSongs();
                 if (cloudSongs && cloudSongs.length > 0) {
                     const mergedMap = new Map();
                     cloudSongs.forEach(s => mergedMap.set(s.id, s));
+                    
+                    let missingPushed = 0; // Μετρητής για τα χαμένα
+
                     currentLibrary.forEach(s => {
-                        if (!mergedMap.has(s.id)) mergedMap.set(s.id, s);
+                        if (!mergedMap.has(s.id)) {
+                            // Το τραγούδι υπάρχει ΜΟΝΟ στο PC! 
+                            mergedMap.set(s.id, s);
+                            
+                            // ✨ AUTO-HEAL: Το στέλνουμε ΤΩΡΑ στη Supabase για να το πάρει το Tablet!
+                            supabaseClient.from('songs')
+                                .upsert(window.sanitizeForDatabase(s, currentUser.id, null))
+                                .then(({error}) => {
+                                    if (!error) console.log(`🚀 [SYNC] Αυτόματη μεταφόρτωση τοπικού τραγουδιού: ${s.title}`);
+                                });
+                            missingPushed++;
+                        }
                     });
+
                     currentLibrary = Array.from(mergedMap.values());
                     localStorage.setItem('mnotes_data', JSON.stringify(currentLibrary));
-                    console.log("☁️ Cloud Sync: Το LocalStorage ενημερώθηκε από το Cloud.");
+                    
+                    if (missingPushed > 0) {
+                        console.log(`☁️ Cloud Sync: Τοπικό ενημερώθηκε ΚΑΙ ανέβηκαν ${missingPushed} αγνοούμενα τραγούδια στο Cloud!`);
+                    } else {
+                        console.log("☁️ Cloud Sync: Το LocalStorage ενημερώθηκε από το Cloud (Όλα συγχρονισμένα).");
+                    }
                 }
-            }
+            } 
         } else {
             // Context Μπάντας
             const bandLocalKey = 'mnotes_band_' + currentGroupId;

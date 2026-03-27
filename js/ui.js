@@ -325,7 +325,6 @@ function clearLibrary() {
         `;
         list.appendChild(li);
     });
-      
     // --- 3. SORTABLE JS RE-INIT ---
     if (sortableInstance) sortableInstance.destroy();
     if(typeof Sortable !== 'undefined') {
@@ -335,17 +334,25 @@ function clearLibrary() {
             disabled: (viewMode !== 'setlist'), 
             onEnd: function (evt) {
                 if (viewMode === 'setlist') {
-                    // ✨ Η ΛΥΣΗ: Διαβάζουμε τη νέα σειρά κατευθείαν από το DOM!
-                    const newOrder = Array.from(list.children).map(li => li.getAttribute('data-id'));
+                    // 1. Πιάνουμε ΜΟΝΟ τα πραγματικά τραγούδια (αγνοούμε τα ghost elements του Sortable)
+                    const items = list.querySelectorAll('.song-item');
+                    const newOrder = Array.from(items).map(item => item.getAttribute('data-id'));
                     
-                    liveSetlist = newOrder; // Αναθέτουμε τον νέο πίνακα
+                    // 2. ✨ ΤΟ ΚΛΕΙΔΙ: Αλλάζουμε τα περιεχόμενα του πίνακα ΧΩΡΙΣ να τον σπάσουμε
+                    liveSetlist.splice(0, liveSetlist.length, ...newOrder);
                     
+                    // 3. Αποθηκεύουμε μόνιμα στη βάση και το LocalStorage
                     if (typeof saveSetlists === 'function') saveSetlists();
+                    
+                    // 4. Εξαναγκάζουμε τη λίστα να "κλειδώσει" οπτικά με βάση τη μνήμη
+                    setTimeout(() => {
+                        renderSidebar();
+                    }, 50);
                 }
             }
         });
-    }
-}
+    }  
+    
 
 // ===========================================================
 // 3. UI HELPERS & GESTURES

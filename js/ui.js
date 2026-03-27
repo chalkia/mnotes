@@ -287,11 +287,11 @@ function clearLibrary() {
         } else if (liveSetlist.includes(s.id)) {
             actionIcon = "fas fa-check-circle in-setlist"; // Πράσινο τικ αν υπάρχει ήδη
         }
+        
       // G. SMART CLONE BADGES (STAGE-READY)
         let badgesHTML = '';
 
-        // 1. ☁️ Συννεφάκι (Cloud): Δείχνει ότι το τραγούδι είναι συγχρονισμένο (δεν είναι local/demo)
-        // Ελέγχουμε αν ΔΕΝ είναι demo ΚΑΙ (είναι σε μπάντα Ή στα προσωπικά με δικαίωμα cloud)
+        // 1. ☁️ Συννεφάκι (Cloud): Δείχνει ότι το τραγούδι είναι συγχρονισμένο
         if (!String(s.id).includes('demo')) {
              if (s.group_id || (typeof canUserPerform === 'function' && canUserPerform('CLOUD_SYNC'))) {
                   badgesHTML += `<i class="fas fa-cloud badge-cloud" title="Στο Cloud" style="margin-left:8px; font-size:0.75rem; opacity:0.4;"></i>`;
@@ -331,13 +331,15 @@ function clearLibrary() {
     if(typeof Sortable !== 'undefined') {
         sortableInstance = new Sortable(list, {
             animation: 150,
-            handle: '.song-handle', // Drag μόνο από το χερούλι (μόνο σε setlist mode)
-            disabled: (viewMode !== 'setlist'), // Απενεργοποίηση στο Library View
+            handle: '.song-handle', 
+            disabled: (viewMode !== 'setlist'), 
             onEnd: function (evt) {
                 if (viewMode === 'setlist') {
-                    // Ενημέρωση του Array βάσει της νέας σειράς
-                    var movedId = liveSetlist.splice(evt.oldIndex, 1)[0];
-                    liveSetlist.splice(evt.newIndex, 0, movedId);
+                    // ✨ Η ΛΥΣΗ: Διαβάζουμε τη νέα σειρά κατευθείαν από το DOM!
+                    const newOrder = Array.from(list.children).map(li => li.getAttribute('data-id'));
+                    
+                    liveSetlist = newOrder; // Αναθέτουμε τον νέο πίνακα
+                    
                     if (typeof saveSetlists === 'function') saveSetlists();
                 }
             }

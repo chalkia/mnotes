@@ -994,7 +994,12 @@ function printSongPDF() {
 
     // 5. Στήσιμο του παραθύρου εκτύπωσης (CSS & Logo)
     var win = window.open('', '', 'width=900,height=1000');
-    
+    var currentSettings = JSON.parse(localStorage.getItem('mnotes_settings')) || {};
+    var lyricsOnlyCSS = currentSettings.printLyricsOnly ? `
+        .chord { display: none !important; }
+        .chords-only-row { display: none !important; }
+        .meta-container { display: none !important; } /* Κρύβει το Key/Capo αφού δεν υπάρχουν συγχορδίες */
+    ` : "";
     var css = `
         body { 
             font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; 
@@ -1032,7 +1037,9 @@ function printSongPDF() {
         <html>
         <head>
             <title>${title} - Print</title>
-            <style>${css}</style>
+            <style>${css}
+                   ${lyricsOnlyCSS}
+            </style>
         </head>
         <body>
             <img src="icon-192.png" class="logo" alt="Logo">
@@ -1194,7 +1201,12 @@ function printSetlistPDF() {
 
     // 6. Στήσιμο του τελικού παραθύρου εκτύπωσης
     var win = window.open('', '', 'width=900,height=1000');
-    
+     var currentSettings = JSON.parse(localStorage.getItem('mnotes_settings')) || {};
+     var lyricsOnlyCSS = currentSettings.printLyricsOnly ? `
+        .chord { display: none !important; }
+        .chords-only-row { display: none !important; }
+        .meta-container { display: none !important; } /* Κρύβει το Key/Capo αφού δεν υπάρχουν συγχορδίες */
+    ` : "";
     var css = `
         body { 
             font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; 
@@ -1239,7 +1251,9 @@ function printSetlistPDF() {
         <html>
         <head>
             <title>Setlist Print</title>
-            <style>${css}</style>
+            <style>${css}
+                   ${lyricsOnlyCSS}
+            </style>
         </head>
         <body>
             ${fullHtmlBody}

@@ -883,194 +883,6 @@ function calculateOptimalCapo_Safe(bodyText) {
 }
 
 // PDF / PRINT FUNCTION (FINAL PRO STYLE + LOGO + TOKEN SYSTEM + CAPO)
-function printSongPDF() {
-    // 🔒 Έλεγχος Δικαιώματος
-    if (typeof canUserPerform === 'function' && !canUserPerform('PRINT')) {
-        if (typeof promptUpgrade === 'function') promptUpgrade('Εκτύπωση σε PDF');
-        return; 
-    }
-
-    // 1. Τραβάμε τα δεδομένα από το ΦΟΡΤΩΜΕΝΟ τραγούδι
-    var s = null;
-    if (typeof currentSongId !== 'undefined' && currentSongId && typeof library !== 'undefined') {
-        s = library.find(x => x.id === currentSongId);
-    }
-
-    var title = (s ? s.title : document.getElementById('inpTitle').value) || "Untitled";
-    var artist = (s ? s.artist : document.getElementById('inpArtist').value) || "";
-    var bodyRaw = (s ? s.body : document.getElementById('inpBody').value) || "";
-    var introRaw = (s ? s.intro : (document.getElementById('inpIntro') ? document.getElementById('inpIntro').value : "")) || "";
-    var interRaw = (s ? s.interlude : (document.getElementById('inpInter') ? document.getElementById('inpInter').value : "")) || "";
-    
-    var extras = "";
-    if (introRaw.trim() !== "") extras += "Intro: " + introRaw + "\n";
-    if (interRaw.trim() !== "") extras += "Interlude: " + interRaw + "\n";
-    if (extras !== "") bodyRaw = extras + "\n" + bodyRaw;
-    
-    // 2. Σωστή τονικότητα με υπολογισμό Transpose ΚΑΙ Capo!
-    var key = s ? s.key : (document.getElementById('inpKey').value || "-");
-    var capoHtml = ""; 
-    
-    if (typeof getNote === 'function' && typeof state !== 'undefined' && key !== "-") {
-        let soundingKey = getNote(key, state.t); 
-        key = soundingKey; 
-        
-        if (state.c > 0) {
-            let playingKey = getNote(s.key, state.t - state.c); 
-            capoHtml = `<div class="meta capo-meta">Capo: ${state.c} (Play as ${playingKey})</div>`;
-        }
-    }
-    
-    title = title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
-
-    // 3. Προετοιμασία κειμένου (ChordPro & Κλειστά θαυμαστικά)
-    const chordRx = "([A-G][b#]?[a-zA-Z0-9#\\/+-]*|[a-g][b#]?)(?![a-z])";
-    bodyRaw = bodyRaw.replace(new RegExp(`\\[${chordRx}\\]`, 'g'), "!$1 ");
-    bodyRaw = bodyRaw.replace(new RegExp(`!${chordRx}!`, 'g'), "!$1 ");
-
-    var lines = bodyRaw.split('\n');
-    var htmlBody = "";
-
-    // 4. Χτίσιμο των γραμμών
-    lines.forEach(function(line) {
-        if (line.trim() === '') {
-            htmlBody += '<div class="print-row empty-row">&nbsp;</div>';
-            return;
-        }
-
-        let rawLyrics = line.replace(new RegExp(`!${chordRx}!?`, 'g'), '');
-        let hasText = /[\p{L}]/u.test(rawLyrics); // Ψάχνει μόνο γράμματα
-        let isChordsOnly = !hasText;
-        
-        let rowClass = isChordsOnly ? 'print-row chords-only-row' : 'print-row';
-        var rowHtml = `<div class="${rowClass}">`;
-
-        // Γραμμή χωρίς συγχορδίες Ή Lyrics Mode
-        if (line.indexOf('!') === -1 || (typeof isLyricsMode !== 'undefined' && isLyricsMode)) { 
-            let pureText = line;
-            if (typeof isLyricsMode !== 'undefined' && isLyricsMode) {
-                pureText = rawLyrics.replace(/\s{2,}/g, ' ').trim(); 
-            }
-            let safeText = pureText.replace(/ /g, '&nbsp;'); 
-            rowHtml += `<div class="token"><div class="lyric-only">${(safeText && safeText.length > 0) ? safeText : "&nbsp;"}</div></div>`; 
-        } else { 
-            // Γραμμή με συγχορδίες
-            var parts = line.split('!'); 
-            if (parts[0]) {
-                let safeLyric = parts[0].replace(/ /g, '&nbsp;');
-                rowHtml += `<div class="token"><div class="chord empty">&nbsp;</div><div class="lyric">${safeLyric}</div></div>`;
-            }
-            
-            for (var i = 1; i < parts.length; i++) { 
-                var m = parts[i].match(new RegExp(`^${chordRx}\\s?(.*)`)); 
-                if (m) {
-                    let chordRaw = m[1];
-                    let lyricsRaw = m[2] || ""; 
-                    let noteDisp = chordRaw;
-                    
-                    try {
-                        if (typeof getNote === 'function' && typeof state !== 'undefined') {
-                            noteDisp = getNote(chordRaw, state.t - state.c);
-                        }
-                    } catch (err) {}
-                    
-                    let safeLyric = lyricsRaw ? lyricsRaw.replace(/ /g, '&nbsp;') : "";
-                    
-                    if (isChordsOnly) {
-                        rowHtml += `<div class="token"><div class="chord inline-chord">${noteDisp}${safeLyric}</div></div>`;
-                    } else {
-                        rowHtml += `<div class="token">
-                                        <div class="chord">${noteDisp}</div>
-                                        <div class="lyric">${safeLyric !== "" ? safeLyric : "&nbsp;"}</div>
-                                    </div>`;
-                    }
-                } else {
-                    let safePart = parts[i] ? parts[i].replace(/ /g, '&nbsp;') : "&nbsp;";
-                    rowHtml += `<div class="token"><div class="chord empty">&nbsp;</div><div class="lyric">${safePart}</div></div>`;
-                }
-            } 
-        }
-        rowHtml += '</div>';
-        htmlBody += rowHtml;
-    });
-
-    // 5. Στήσιμο του παραθύρου εκτύπωσης (CSS & Logo)
-    var win = window.open('', '', 'width=900,height=1000');
-     var currentSettings = JSON.parse(localStorage.getItem('mnotes_settings')) || {};
-     var lyricsOnlyCSS = currentSettings.printLyricsOnly ? `
-        .chord { display: none !important; }
-        .chords-only-row { display: none !important; }
-        .meta-container { display: none !important; } /* Κρύβει το Key/Capo αφού δεν υπάρχουν συγχορδίες */
-      ` : "";
-      var css = `
-        body { 
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; 
-            padding: 40px; 
-            color: #111;
-            position: relative; 
-        }
-        .logo { position: absolute; top: 20px; right: 30px; width: 50px; height: auto; opacity: 0.9; z-index: 10; }
-        h1 { font-size: 26px; margin: 0 0 5px 0; border-bottom: 2px solid #000; padding-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; margin-right: 60px; }
-        h2 { font-size: 16px; color: #444; margin: 0 0 20px 0; font-weight: normal; font-style: italic; }
-        
-        .meta-container { margin-bottom: 25px; display: flex; gap: 10px; flex-wrap: wrap; }
-        .meta { font-size: 13px; color: #333; font-weight: bold; border: 1px solid #ddd; display: inline-block; padding: 4px 8px; border-radius: 4px; }
-        .capo-meta { background: #e0f7fa; border-color: #00bcd4; color: #006064; }
-
-        .print-row { display: flex; flex-wrap: wrap; align-items: flex-end; margin-bottom: 6px; page-break-inside: avoid; }
-        .empty-row { height: 15px; }
-        .chords-only-row { align-items: center; } 
-        
-        .token { display: flex; flex-direction: column; align-items: flex-start; margin-right: 0; }
-        
-        .chord { font-weight: 800; font-size: 13px; color: #000; height: 16px; line-height: 16px; margin-bottom: 1px; font-family: 'Arial', sans-serif; }
-        .inline-chord { display: inline-block; height: auto; margin-bottom: 0; }
-        
-        .lyric { font-size: 15px; line-height: 1.2; color: #222; font-family: 'Arial', sans-serif; }
-        .lyric-only { font-size: 15px; line-height: 1.5; white-space: pre-wrap; }
-
-        @media print {
-            @page { margin: 1.5cm; }
-            button { display: none; }
-        }
-    `;
-
-    var htmlContent = `
-        <html>
-        <head>
-            <title>${title} - Print</title>
-            <style>${css}
-                   ${lyricsOnlyCSS}
-            </style>
-        </head>
-        <body>
-            <img src="icon-192.png" class="logo" alt="Logo">
-            <h1>${title}</h1>
-            <h2>${artist}</h2>
-            
-            <div class="meta-container">
-                <div class="meta">Key: ${key}</div>
-                ${capoHtml}
-            </div>
-            
-            <div class="content">${htmlBody}</div>
-            
-            <script>
-                window.onload = function() { 
-                    setTimeout(function(){ 
-                        window.print(); 
-                        window.close(); 
-                    }, 800); 
-                }
-            </script>
-        </body>
-        </html>
-    `;
-
-    win.document.write(htmlContent);
-    win.document.close();
-}
-
 function printSetlistPDF() {
     // 🔒 Έλεγχος Δικαιώματος
     if (typeof canUserPerform === 'function' && !canUserPerform('PRINT')) {
@@ -1084,34 +896,49 @@ function printSetlistPDF() {
     }
 
     var fullHtmlBody = "";
+    const chordRxForTranspose = new RegExp("([A-G][b#]?[a-zA-Z0-9#\\/+-]*|[a-g][b#]?)(?![a-z])", "g");
 
     // Κάνουμε Loop σε όλα τα τραγούδια της τρέχουσας λίστας
     liveSetlist.forEach((item, index) => {
-        // Υποστηρίζει είτε string IDs είτε ολόκληρα objects στη λίστα
         let songId = typeof item === 'object' ? item.id : item;
         let s = library.find(x => x.id === songId);
         
-        if (!s) return; // Αν για κάποιο λόγο δεν βρεθεί, προχωράμε στο επόμενο
+        if (!s) return; 
 
-    var title = s.title || "Untitled";
-    var artist = s.artist || "";
-    var bodyRaw = s.body || "";
-    var introRaw = s.intro || "";
-    var interRaw = s.interlude || "";
-    var extras = "";
-    
-    if (introRaw.trim() !== "") extras += "Intro: " + introRaw + "\n";
-    if (interRaw.trim() !== "") extras += "Interlude: " + interRaw + "\n";
-    if (extras !== "") bodyRaw = extras + "\n" + bodyRaw;
+        var title = s.title || "Untitled";
+        var artist = s.artist || "";
+        var bodyRaw = s.body || "";
         
-        // 🎵 Τονικότητα (Επειδή τυπώνουμε λίστα, χρησιμοποιούμε την αποθηκευμένη τονικότητα)
+        // 🎵 Τονικότητα
         var key = s.key || "-";
         var transposeVal = s.personal_transpose || 0;
         
         if (typeof getNote === 'function' && key !== "-") {
             key = getNote(key, transposeVal); 
         }
+
+        // ✨ Επεξεργασία Intro/Interlude (Απλό κείμενο, όχι ChordPro)
+        var introRaw = s.intro || "";
+        var interRaw = s.interlude || "";
+        var introSectionHtml = "";
+
+        // Συνάρτηση για transpose απλού κειμένου
+        function transposePlainText(text) {
+            if (transposeVal === 0 || typeof getNote !== 'function') return text;
+            return text.replace(chordRxForTranspose, function(match) {
+                try { return getNote(match, transposeVal); } catch(e) { return match; }
+            });
+        }
+
+        if (introRaw.trim() !== "") {
+            introSectionHtml += `<div class="intro-line"><strong>Intro:</strong> ${transposePlainText(introRaw)}</div>`;
+        }
+        if (interRaw.trim() !== "") {
+            introSectionHtml += `<div class="intro-line"><strong>Interlude:</strong> ${transposePlainText(interRaw)}</div>`;
+        }
         
+        let introBlock = introSectionHtml !== "" ? `<div class="intro-section">${introSectionHtml}</div>` : "";
+
         title = title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
 
         // 3. Προετοιμασία κειμένου (ChordPro)
@@ -1183,7 +1010,7 @@ function printSetlistPDF() {
             htmlBody += rowHtml;
         });
 
-        // ✨ 5. Σύνθεση του τραγουδιού και Page Break αν δεν είναι το τελευταίο
+        // ✨ 5. Σύνθεση του τραγουδιού
         let pageBreakClass = index < liveSetlist.length - 1 ? 'page-break' : '';
         
         fullHtmlBody += `
@@ -1196,6 +1023,8 @@ function printSetlistPDF() {
                     <div class="meta">Key: ${key}</div>
                 </div>
                 
+                ${introBlock}
+                
                 <div class="content">${htmlBody}</div>
             </div>
         `;
@@ -1203,12 +1032,16 @@ function printSetlistPDF() {
 
     // 6. Στήσιμο του τελικού παραθύρου εκτύπωσης
     var win = window.open('', '', 'width=900,height=1000');
-     var currentSettings = JSON.parse(localStorage.getItem('mnotes_settings')) || {};
-     var lyricsOnlyCSS = currentSettings.printLyricsOnly ? `
+    var currentSettings = JSON.parse(localStorage.getItem('mnotes_settings')) || {};
+    
+    // ✨ Αν είναι Lyrics Only, κρύβουμε τις συγχορδίες, τα metadata ΚΑΙ το Intro!
+    var lyricsOnlyCSS = currentSettings.printLyricsOnly ? `
         .chord { display: none !important; }
         .chords-only-row { display: none !important; }
-        .meta-container { display: none !important; } /* Κρύβει το Key/Capo αφού δεν υπάρχουν συγχορδίες */
+        .meta-container { display: none !important; } 
+        .intro-section { display: none !important; } 
     ` : "";
+
     var css = `
         body { 
             font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; 
@@ -1216,10 +1049,9 @@ function printSetlistPDF() {
         }
         .song-page {
             position: relative;
-            padding: 40px; /* Εσωτερικό περιθώριο αντί για το body */
+            padding: 40px; 
             box-sizing: border-box;
         }
-        /* ✨ Εδώ κρύβεται η μαγεία για το PDF! */
         .page-break {
             page-break-after: always; 
             break-after: page;
@@ -1228,8 +1060,14 @@ function printSetlistPDF() {
         h1 { font-size: 26px; margin: 0 0 5px 0; border-bottom: 2px solid #000; padding-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; margin-right: 60px; }
         h2 { font-size: 16px; color: #444; margin: 0 0 20px 0; font-weight: normal; font-style: italic; }
         
-        .meta-container { margin-bottom: 25px; display: flex; gap: 10px; flex-wrap: wrap; }
+        .meta-container { margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap; }
         .meta { font-size: 13px; color: #333; font-weight: bold; border: 1px solid #ddd; display: inline-block; padding: 4px 8px; border-radius: 4px; }
+
+        /* ✨ Στυλ για το νέο ανεξάρτητο Intro */
+        .intro-section { margin-bottom: 20px; font-size: 15px; font-family: monospace; font-weight: bold; background: #f5f5f5; padding: 10px; border-left: 3px solid #ccc; border-radius: 4px; }
+        .intro-line { margin-bottom: 4px; }
+        .intro-line:last-child { margin-bottom: 0; }
+        .intro-line strong { color: #555; font-family: 'Arial', sans-serif; }
 
         .print-row { display: flex; flex-wrap: wrap; align-items: flex-end; margin-bottom: 6px; page-break-inside: avoid; }
         .empty-row { height: 15px; }
@@ -1253,8 +1091,9 @@ function printSetlistPDF() {
         <html>
         <head>
             <title>Setlist Print</title>
-            <style>${css}
-                   ${lyricsOnlyCSS}
+            <style>
+                ${css}
+                ${lyricsOnlyCSS}
             </style>
         </head>
         <body>

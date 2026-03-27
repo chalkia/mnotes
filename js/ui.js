@@ -994,13 +994,13 @@ function printSongPDF() {
 
     // 5. Στήσιμο του παραθύρου εκτύπωσης (CSS & Logo)
     var win = window.open('', '', 'width=900,height=1000');
-    var currentSettings = JSON.parse(localStorage.getItem('mnotes_settings')) || {};
-    var lyricsOnlyCSS = currentSettings.printLyricsOnly ? `
+     var currentSettings = JSON.parse(localStorage.getItem('mnotes_settings')) || {};
+     var lyricsOnlyCSS = currentSettings.printLyricsOnly ? `
         .chord { display: none !important; }
         .chords-only-row { display: none !important; }
         .meta-container { display: none !important; } /* Κρύβει το Key/Capo αφού δεν υπάρχουν συγχορδίες */
-    ` : "";
-    var css = `
+      ` : "";
+      var css = `
         body { 
             font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; 
             padding: 40px; 

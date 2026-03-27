@@ -2331,7 +2331,9 @@ function openSettings() {
     const distInp = document.getElementById('setChordDist');
     const colInp = document.getElementById('setChordColor');
     const chkDef = document.getElementById('chkDefaultColor'); 
-    
+    const chkPrintLyrics = document.getElementById('setPrintLyricsOnly');
+    if (chkPrintLyrics) chkPrintLyrics.checked = userSettings.printLyricsOnly || false;
+   
     // --- ΠΕΔΙΑ AUTO SCROLL ---
     const speedInp = document.getElementById('setScrollSpeed');
     const btnChk = document.getElementById('setShowScrollBtn');
@@ -2377,6 +2379,8 @@ function saveSettings() {
     const distInp = document.getElementById('setChordDist');
     const colInp = document.getElementById('setChordColor');
     const chkDef = document.getElementById('chkDefaultColor');
+   const chkPrintLyrics = document.getElementById('setPrintLyricsOnly');
+    if (chkPrintLyrics) userSettings.printLyricsOnly = chkPrintLyrics.checked;
     
     // --- ΠΕΔΙΑ ΓΙΑ ΤΟ AUTO SCROLL ---
     const speedInp = document.getElementById('setScrollSpeed');

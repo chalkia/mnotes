@@ -263,12 +263,9 @@ window.sanitizeForDatabase = function(song, userId, groupId = null) {
         user_id: userId,
         group_id: groupId,
         
-        // ✨ Η VIP ΛΙΣΤΑ: Προσθέτουμε τα νέα μας πεδία για να μην διαγράφονται!
+        // ✨ Η VIP ΛΙΣΤΑ: Μόνο τα πεδία που υπάρχουν πραγματικά στον πίνακα songs!
         is_clone: !!song.is_clone,
         parent_id: song.parent_id || null,
-        has_override: !!song.has_override,
-        personal_transpose: song.personal_transpose || 0,
-        personal_notes: song.personal_notes || "",
         
         updated_at: new Date().toISOString()
     };

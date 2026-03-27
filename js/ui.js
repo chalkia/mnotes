@@ -897,6 +897,13 @@ function printSongPDF() {
     var title = (s ? s.title : document.getElementById('inpTitle').value) || "Untitled";
     var artist = (s ? s.artist : document.getElementById('inpArtist').value) || "";
     var bodyRaw = (s ? s.body : document.getElementById('inpBody').value) || "";
+    var introRaw = (s ? s.intro : (document.getElementById('inpIntro') ? document.getElementById('inpIntro').value : "")) || "";
+    var interRaw = (s ? s.interlude : (document.getElementById('inpInter') ? document.getElementById('inpInter').value : "")) || "";
+    
+    var extras = "";
+    if (introRaw.trim() !== "") extras += "Intro: " + introRaw + "\n";
+    if (interRaw.trim() !== "") extras += "Interlude: " + interRaw + "\n";
+    if (extras !== "") bodyRaw = extras + "\n" + bodyRaw;
     
     // 2. Σωστή τονικότητα με υπολογισμό Transpose ΚΑΙ Capo!
     var key = s ? s.key : (document.getElementById('inpKey').value || "-");
@@ -1077,9 +1084,16 @@ function printSetlistPDF() {
         
         if (!s) return; // Αν για κάποιο λόγο δεν βρεθεί, προχωράμε στο επόμενο
 
-        var title = s.title || "Untitled";
-        var artist = s.artist || "";
-        var bodyRaw = s.body || "";
+       var title = (s ? s.title : document.getElementById('inpTitle').value) || "Untitled";
+       var artist = (s ? s.artist : document.getElementById('inpArtist').value) || "";
+       var bodyRaw = (s ? s.body : document.getElementById('inpBody').value) || "";
+       var introRaw = (s ? s.intro : (document.getElementById('inpIntro') ? document.getElementById('inpIntro').value : "")) || "";
+       var interRaw = (s ? s.interlude : (document.getElementById('inpInter') ? document.getElementById('inpInter').value : "")) || "";
+    
+    var extras = "";
+    if (introRaw.trim() !== "") extras += "Intro: " + introRaw + "\n";
+    if (interRaw.trim() !== "") extras += "Interlude: " + interRaw + "\n";
+    if (extras !== "") bodyRaw = extras + "\n" + bodyRaw;
         
         // 🎵 Τονικότητα (Επειδή τυπώνουμε λίστα, χρησιμοποιούμε την αποθηκευμένη τονικότητα)
         var key = s.key || "-";

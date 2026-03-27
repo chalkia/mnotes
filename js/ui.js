@@ -1091,13 +1091,13 @@ function printSetlistPDF() {
         
         if (!s) return; // Αν για κάποιο λόγο δεν βρεθεί, προχωράμε στο επόμενο
 
-       var title = (s ? s.title : document.getElementById('inpTitle').value) || "Untitled";
-       var artist = (s ? s.artist : document.getElementById('inpArtist').value) || "";
-       var bodyRaw = (s ? s.body : document.getElementById('inpBody').value) || "";
-       var introRaw = (s ? s.intro : (document.getElementById('inpIntro') ? document.getElementById('inpIntro').value : "")) || "";
-       var interRaw = (s ? s.interlude : (document.getElementById('inpInter') ? document.getElementById('inpInter').value : "")) || "";
-    
+    var title = s.title || "Untitled";
+    var artist = s.artist || "";
+    var bodyRaw = s.body || "";
+    var introRaw = s.intro || "";
+    var interRaw = s.interlude || "";
     var extras = "";
+    
     if (introRaw.trim() !== "") extras += "Intro: " + introRaw + "\n";
     if (interRaw.trim() !== "") extras += "Interlude: " + interRaw + "\n";
     if (extras !== "") bodyRaw = extras + "\n" + bodyRaw;

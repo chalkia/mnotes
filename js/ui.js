@@ -880,36 +880,6 @@ function calculateOptimalCapo_Safe(bodyText) {
     return bestCapo;
 }
 
-// --- ΒΟΗΘΗΤΙΚΗ: TOAST MESSAGE (Αν λείπει) ---
-// Αν υπάρχει ήδη στο αρχείο, αυτή απλά θα την αντικαταστήσει/αναβαθμίσει
-function showToast(msg) {
-    // Δημιουργία στοιχείου
-    var div = document.createElement("div");
-    div.innerText = msg;
-    div.style.position = "fixed";
-    div.style.bottom = "80px"; // Λίγο πιο ψηλά για να φαίνεται
-    div.style.left = "50%";
-    div.style.transform = "translateX(-50%)";
-    div.style.backgroundColor = "rgba(0,0,0,0.85)";
-    div.style.color = "white";
-    div.style.padding = "12px 24px";
-    div.style.borderRadius = "50px";
-    div.style.zIndex = "10000";
-    div.style.fontSize = "16px";
-    div.style.boxShadow = "0 4px 12px rgba(0,0,0,0.3)";
-    div.style.transition = "opacity 0.5s";
-    
-    document.body.appendChild(div);
-
-    // Εξαφάνιση μετά από 3 δευτερόλεπτα
-    setTimeout(function() {
-        div.style.opacity = "0";
-        setTimeout(function() {
-            if(div.parentNode) div.parentNode.removeChild(div);
-        }, 500);
-    }, 2500);
-}
-
 // PDF / PRINT FUNCTION (FINAL PRO STYLE + LOGO + TOKEN SYSTEM + CAPO)
 function printSongPDF() {
     // 🔒 Έλεγχος Δικαιώματος
@@ -1987,7 +1957,6 @@ function getYoutubeId(url) {
     var match = url.match(regExp); 
     return (match && match[2].length === 11) ? match[2] : null; 
 }
-function showToast(msg) { var x = document.getElementById("toast"); if(x) { x.innerText = msg; x.className = "show"; setTimeout(function(){ x.className = x.className.replace("show", ""); }, 3000); } }
 function saveData() {
     if (Array.isArray(window.library)) {
         localStorage.setItem('mnotes_data', JSON.stringify(window.library));
@@ -2085,18 +2054,18 @@ function getNote(note, semitones) {
 }
 //function parseSongLogic(s) { /* Logic to prepare chords */ }
 
-function calculateOptimalCapo(originalKey, body) {
-    const difficultChords = ["F", "Bm", "Bb", "Cm", "C#", "F#", "G#", "D#m", "G#m", "A#m"];
-    let bestCapo = 0; let minDiff = 1000;
-    for (let i = 0; i <= 5; i++) {
-        let currentDiff = 0;
-        let newKey = getNote(originalKey, -i); 
-        if (difficultChords.includes(newKey)) currentDiff += 10;
-        if (newKey.includes("#") || newKey.includes("b")) currentDiff += 2;
-        if (currentDiff < minDiff) { minDiff = currentDiff; bestCapo = i; }
-    }
-    return bestCapo;
-}
+//function calculateOptimalCapo(originalKey, body) {
+  //  const difficultChords = ["F", "Bm", "Bb", "Cm", "C#", "F#", "G#", "D#m", "G#m", "A#m"];
+  //  let bestCapo = 0; let minDiff = 1000;
+  //  for (let i = 0; i <= 5; i++) {
+  //      let currentDiff = 0;
+  //      let newKey = getNote(originalKey, -i); 
+  //      if (difficultChords.includes(newKey)) currentDiff += 10;
+  //      if (newKey.includes("#") || newKey.includes("b")) currentDiff += 2;
+  //      if (currentDiff < minDiff) { minDiff = currentDiff; bestCapo = i; }
+  //  }
+  //  return bestCapo;
+// }
 function parseMetaLine(text) {
     if (!text) return "";
     

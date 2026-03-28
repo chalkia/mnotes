@@ -1125,69 +1125,75 @@ function printSetlistPDF() {
 // ===========================================================
 
 function switchToEditor() {
-    // ✨ ΕΛΕΓΧΟΣ ΔΙΚΑΙΩΜΑΤΩΝ: Μπλοκάρισμα του Editor σε απλά μέλη/θεατές της μπάντας
+    // ✨ ΕΛΕΓΧΟΣ ΔΙΚΑΙΩΜΑΤΩΝ
     if (typeof currentGroupId !== 'undefined' && currentGroupId !== 'personal') {
         if (typeof currentRole !== 'undefined' && currentRole !== 'admin' && currentRole !== 'owner') {
             showToast("Μόνο οι διαχειριστές μπορούν να επεξεργαστούν τα τραγούδια της μπάντας. Κάντε 'Clone' για δική σας χρήση!", "error");
-            return; // Σταματάει εδώ, δεν ανοίγει ο Editor!
+            return; 
         }
     }
     
     document.getElementById('view-player').classList.remove('active-view'); 
     document.getElementById('view-editor').classList.add('active-view');
    
-    // Άνοιγμα του συρταριού σημειώσεων - κλείσιμο συγχορδιών
     let notesGroup = document.getElementById('perfNotesGroup');
     if (notesGroup) notesGroup.open = true;
     let chordsGroup = document.getElementById('guitarChordsGroup');
     if (chordsGroup) chordsGroup.open = false; 
     
-    // Ενεργοποίηση διγλωσσίας στα placeholders
     if (typeof applyEditorPlaceholders === 'function') applyEditorPlaceholders();
 
     if (currentSongId) { 
         var s = library.find(x => x.id === currentSongId); 
         if (s) { 
-            // 1. Αρχικοποίηση μεταβλητών
             let editBody = s.body || "";
             let editIntro = s.intro || "";
             let editInter = s.interlude || "";
             let newKey = s.key || "";
             
-            // 2. ✨ ΔΙΟΡΘΩΣΗ: Παίρνουμε ΜΟΝΟ το Transpose, ποτέ το Capo!
             let netTranspose = parseInt(state.t || 0, 10); 
             
             if (netTranspose !== 0 && typeof getNote === 'function') {
                 
-                // 3α. Μετάφραση Κορμού (ασφαλής Regex για ChordPro [Am])
-                const bodyRegex = /\[([A-G][b#]?[a-zA-Z0-9#\/+-]*|[a-g][b#]?)(?![a-z])\]/g;
-                editBody = editBody.replace(bodyRegex, (match, chord) => {
-                    // Έξτρα ασπίδα ασφαλείας για δομικές λέξεις
+                // ✨ Η ΕΠΙΣΗΜΗ REGEX ΤΗΣ ΕΦΑΡΜΟΓΗΣ ΣΟΥ (Από renderArea / printSetlistPDF)
+                const chordRxStr = "([A-G][b#]?[a-zA-Z0-9#\\/+-]*|[a-g][b#]?)(?![a-z])";
+                
+                // 1. Σάρωση για Αγκύλες [Am]
+                const bracketRx = new RegExp(`\\[${chordRxStr}\\]`, 'g');
+                editBody = editBody.replace(bracketRx, (match, chord) => {
+                    // Προστασία λέξεων (π.χ. [Chorus])
                     if (chord.toLowerCase().includes('horus') || chord.toLowerCase().includes('erse')) return match;
                     try { return `[${getNote(chord, netTranspose)}]`; } 
                     catch(e) { return match; }
                 });
-                
-                // 3β. ✨ ΔΙΟΡΘΩΣΗ: Μετάφραση σε Intro & Interlude (σκέτο κείμενο)
-                const plainRegex = /([A-G][b#]?[a-zA-Z0-9#\/+-]*|[a-g][b#]?)(?![a-z])/g;
-                editIntro = editIntro.replace(plainRegex, (match) => {
+
+                // 2. Σάρωση για Θαυμαστικά !Am
+                const bangRx = new RegExp(`!${chordRxStr}`, 'g');
+                editBody = editBody.replace(bangRx, (match, chord) => {
+                    try { return `!${getNote(chord, netTranspose)}`; } 
+                    catch(e) { return match; }
+                });
+
+                // 3. Σάρωση για Intro/Interlude (Ακριβώς όπως στην εκτύπωση)
+                const plainRx = new RegExp(chordRxStr, 'g');
+                editIntro = editIntro.replace(plainRx, (match) => {
                     try { return getNote(match, netTranspose); } catch(e) { return match; }
                 });
-                editInter = editInter.replace(plainRegex, (match) => {
+                editInter = editInter.replace(plainRx, (match) => {
                     try { return getNote(match, netTranspose); } catch(e) { return match; }
                 });
 
-                // 3γ. Αλλαγή Κλειδιού
+                // Αλλάζουμε το Key
                 if (newKey && newKey !== "-") {
                     try { newKey = getNote(newKey, netTranspose); } catch(e) {}
                 }
                 
-                // 4. ✨ ΔΙΟΡΘΩΣΗ: Μηδενισμός του Transpose για να μην σωθεί 2 φορές
+                // Μηδενισμός του τρανσπόρτου για να μη σωθεί διπλά
                 state.t = 0;
                 if (typeof updateTransDisplay === 'function') updateTransDisplay();
-            }
+            } 
             
-            // Πέρασμα τιμών στα κουτάκια (Inputs)
+            // Πέρασμα στα πεδία
             document.getElementById('inpTitle').value = s.title || ""; 
             document.getElementById('inpArtist').value = s.artist || ""; 
             document.getElementById('inpVideo').value = s.video || ""; 

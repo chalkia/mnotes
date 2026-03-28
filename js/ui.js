@@ -1125,61 +1125,76 @@ function printSetlistPDF() {
 // ===========================================================
 
 function switchToEditor() {
-   // ✨ ΕΛΕΓΧΟΣ ΔΙΚΑΙΩΜΑΤΩΝ: Μπλοκάρισμα του Editor σε απλά μέλη/θεατές της μπάντας
+    // ✨ ΕΛΕΓΧΟΣ ΔΙΚΑΙΩΜΑΤΩΝ: Μπλοκάρισμα του Editor σε απλά μέλη/θεατές της μπάντας
     if (typeof currentGroupId !== 'undefined' && currentGroupId !== 'personal') {
         if (typeof currentRole !== 'undefined' && currentRole !== 'admin' && currentRole !== 'owner') {
             showToast("Μόνο οι διαχειριστές μπορούν να επεξεργαστούν τα τραγούδια της μπάντας. Κάντε 'Clone' για δική σας χρήση!", "error");
             return; // Σταματάει εδώ, δεν ανοίγει ο Editor!
         }
     }
+    
     document.getElementById('view-player').classList.remove('active-view'); 
     document.getElementById('view-editor').classList.add('active-view');
    
-   // Άνοιγμα του συρταριού σημειώσεων - κλείσιμο συγχορδιών
+    // Άνοιγμα του συρταριού σημειώσεων - κλείσιμο συγχορδιών
     let notesGroup = document.getElementById('perfNotesGroup');
     if (notesGroup) notesGroup.open = true;
-   let chordsGroup = document.getElementById('guitarChordsGroup');
+    let chordsGroup = document.getElementById('guitarChordsGroup');
     if (chordsGroup) chordsGroup.open = false; 
-    
     
     // Ενεργοποίηση διγλωσσίας στα placeholders
     if (typeof applyEditorPlaceholders === 'function') applyEditorPlaceholders();
-if (currentSongId) { 
+
+    if (currentSongId) { 
         var s = library.find(x => x.id === currentSongId); 
         if (s) { 
-            document.getElementById('inpTitle').value = s.title || ""; 
-            document.getElementById('inpArtist').value = s.artist || ""; 
-            document.getElementById('inpVideo').value = s.video || ""; 
-            
-            // ✨ Η ΔΙΟΡΘΩΣΗ ΓΙΑ ΤΟ ΤΡΑΝΣΠΟΡΤΟ (ΜΕ ΤΗΝ ΕΠΙΣΗΜΗ ΚΩΔΙΚΟΠΟΙΗΣΗ ΣΟΥ)
+            // 1. Αρχικοποίηση μεταβλητών
             let editBody = s.body || "";
-            let netTranspose = (state.t || 0) - (state.c || 0); 
+            let editIntro = s.intro || "";
+            let editInter = s.interlude || "";
+            let newKey = s.key || "";
+            
+            // 2. ✨ ΔΙΟΡΘΩΣΗ: Παίρνουμε ΜΟΝΟ το Transpose, ποτέ το Capo!
+            let netTranspose = parseInt(state.t || 0, 10); 
             
             if (netTranspose !== 0 && typeof getNote === 'function') {
-                // Χρησιμοποιούμε την επίσημη Regex σου που ξεχωρίζει τις συγχορδίες από το απλό κείμενο
-                const strictChordRx = new RegExp(`\\[([A-G][b#]?[a-zA-Z0-9#\\/+-]*|[a-g][b#]?)(?![a-z])\\]`, 'g');
-                editBody = editBody.replace(strictChordRx, (match, chord) => {
-                // Έξτρα ασπίδα ασφαλείας για δομικές λέξεις (ώστε το [Chorus] να μην γίνει [Dhorus])
+                
+                // 3α. Μετάφραση Κορμού (ασφαλής Regex για ChordPro [Am])
+                const bodyRegex = /\[([A-G][b#]?[a-zA-Z0-9#\/+-]*|[a-g][b#]?)(?![a-z])\]/g;
+                editBody = editBody.replace(bodyRegex, (match, chord) => {
+                    // Έξτρα ασπίδα ασφαλείας για δομικές λέξεις
                     if (chord.toLowerCase().includes('horus') || chord.toLowerCase().includes('erse')) return match;
-                 
-                   try { return `[${getNote(chord, netTranspose)}]`; } 
-                   catch(e) { return match; }
+                    try { return `[${getNote(chord, netTranspose)}]`; } 
+                    catch(e) { return match; }
                 });
                 
-                // Αλλάζουμε και το γενικό Κλειδί (Key) του τραγουδιού
-                let newKey = s.key || "";
+                // 3β. ✨ ΔΙΟΡΘΩΣΗ: Μετάφραση σε Intro & Interlude (σκέτο κείμενο)
+                const plainRegex = /([A-G][b#]?[a-zA-Z0-9#\/+-]*|[a-g][b#]?)(?![a-z])/g;
+                editIntro = editIntro.replace(plainRegex, (match) => {
+                    try { return getNote(match, netTranspose); } catch(e) { return match; }
+                });
+                editInter = editInter.replace(plainRegex, (match) => {
+                    try { return getNote(match, netTranspose); } catch(e) { return match; }
+                });
+
+                // 3γ. Αλλαγή Κλειδιού
                 if (newKey && newKey !== "-") {
                     try { newKey = getNote(newKey, netTranspose); } catch(e) {}
                 }
-                document.getElementById('inpKey').value = newKey;
-            } else {
-                document.getElementById('inpKey').value = s.key || ""; 
+                
+                // 4. ✨ ΔΙΟΡΘΩΣΗ: Μηδενισμός του Transpose για να μην σωθεί 2 φορές
+                state.t = 0;
+                if (typeof updateTransDisplay === 'function') updateTransDisplay();
             }
             
+            // Πέρασμα τιμών στα κουτάκια (Inputs)
+            document.getElementById('inpTitle').value = s.title || ""; 
+            document.getElementById('inpArtist').value = s.artist || ""; 
+            document.getElementById('inpVideo').value = s.video || ""; 
+            document.getElementById('inpKey').value = newKey; 
             document.getElementById('inpBody').value = editBody; 
-            
-            document.getElementById('inpIntro').value = s.intro || ""; 
-            document.getElementById('inpInter').value = s.interlude || ""; 
+            document.getElementById('inpIntro').value = editIntro; 
+            document.getElementById('inpInter').value = editInter; 
             document.getElementById('inpConductorNotes').value = s.conductorNotes || ""; 
                                            
             editorTags = s.tags ? [...s.tags] : (s.playlists ? [...s.playlists] : []); 

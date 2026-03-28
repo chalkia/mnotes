@@ -57,11 +57,25 @@ scanAndRender: function() {
         }
 
         uniqueChords.forEach(chordName => {
-            const voicings = this.db[chordName];
+            let voicings = this.db[chordName];
             
             if (!voicings) {
-                console.warn(`[GuitarChordsUI] Προσοχή: Η συγχορδία '${chordName}' δεν υπάρχει στο λεξικό (data.js).`);
-                return; 
+                // Έξυπνο Fallback: Αν δεν υπάρχει η ύφεση, ψάξε για την αντίστοιχη δίεση!
+                let altChordName = chordName
+                    .replace('Db', 'C#')
+                    .replace('Eb', 'D#')
+                    .replace('Gb', 'F#')
+                    .replace('Ab', 'G#')
+                    .replace('Bb', 'A#');
+
+                if (chordName !== altChordName && this.db[altChordName]) {
+                    console.log(`[GuitarChordsUI] Βρέθηκε εναλλακτική: H ${chordName} θα ζωγραφιστεί ως ${altChordName}.`);
+                    voicings = this.db[altChordName];
+                    chordName = altChordName; 
+                } else {
+                    console.warn(`[GuitarChordsUI] Προσοχή: Η συγχορδία '${chordName}' δεν υπάρχει στο λεξικό.`);
+                    return; 
+                }
             }
             
             if (this.currentVoicings[chordName] === undefined) {

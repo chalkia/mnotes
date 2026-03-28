@@ -923,25 +923,39 @@ function printSetlistPDF() {
         if (typeof getNote === 'function' && key !== "-") {
             key = getNote(key, transposeVal); 
         }
-
-        // ✨ Επεξεργασία Intro/Interlude (Απλό κείμενο, όχι ChordPro)
+        
+         // ✨ Επεξεργασία Intro/Interlude (Απλό κείμενο, όχι ChordPro)
         var introRaw = s.intro || "";
         var interRaw = s.interlude || "";
         var introSectionHtml = "";
 
-        // Συνάρτηση για transpose απλού κειμένου
-        function transposePlainText(text) {
-            if (transposeVal === 0 || typeof getNote !== 'function') return text;
-            return text.replace(chordRxForTranspose, function(match) {
-                try { return getNote(match, transposeVal); } catch(e) { return match; }
+        // Νέα, έξυπνη συνάρτηση που καθαρίζει τα ! και [] ΚΑΙ κάνει transpose
+        function formatIntroText(text) {
+            if (!text) return "";
+            
+            const chordRxStr = "([A-G][b#]?[a-zA-Z0-9#\\/+-]*|[a-g][b#]?)(?![a-z])";
+            
+            // 1. Ομογενοποίηση: Κάνουμε τα [Am] -> !Am για να τα πιάσουμε όλα μαζί
+            const bracketRegex = new RegExp(`\\[${chordRxStr}\\]`, 'g');
+            text = text.replace(bracketRegex, "!$1 ");
+
+            // 2. Εντοπισμός !Am, Transpose και καθαρισμός συμβόλου
+            const bangRegex = new RegExp(`!${chordRxStr}`, 'g');
+            return text.replace(bangRegex, (match, chord) => {
+                let noteDisp = chord;
+                if (transposeVal !== 0 && typeof getNote === 'function') {
+                    try { noteDisp = getNote(chord, transposeVal); } catch(e) {}
+                }
+                // Επιστρέφουμε τη συγχορδία καθαρή, χωρίς σύμβολα
+                return `<span class="chord inline-chord" style="margin-right: 5px;">${noteDisp}</span>`;
             });
         }
 
         if (introRaw.trim() !== "") {
-            introSectionHtml += `<div class="intro-line"><strong>Intro:</strong> ${transposePlainText(introRaw)}</div>`;
+            introSectionHtml += `<div class="intro-line"><strong>Intro:</strong> ${formatIntroText(introRaw)}</div>`;
         }
         if (interRaw.trim() !== "") {
-            introSectionHtml += `<div class="intro-line"><strong>Interlude:</strong> ${transposePlainText(interRaw)}</div>`;
+            introSectionHtml += `<div class="intro-line"><strong>Interlude:</strong> ${formatIntroText(interRaw)}</div>`;
         }
         
         let introBlock = introSectionHtml !== "" ? `<div class="intro-section">${introSectionHtml}</div>` : "";
@@ -956,7 +970,7 @@ function printSetlistPDF() {
         var lines = bodyRaw.split('\n');
         var htmlBody = "";
 
-        // 4. Χτίσιμο των γραμμών του τραγουδιού
+        // 4. Χτίσιμο των γραμμών
         lines.forEach(function(line) {
             if (line.trim() === '') {
                 htmlBody += '<div class="print-row empty-row">&nbsp;</div>';
@@ -1037,11 +1051,9 @@ function printSetlistPDF() {
         `;
     });
 
-    // 6. Στήσιμο του τελικού παραθύρου εκτύπωσης
-    var win = window.open('', '', 'width=900,height=1000');
     var currentSettings = JSON.parse(localStorage.getItem('mnotes_settings')) || {};
     
-    // ✨ Αν είναι Lyrics Only, κρύβουμε τις συγχορδίες, τα metadata ΚΑΙ το Intro!
+    // ✨ Αν είναι Lyrics Only, κρύβουμε τις συγχορδίες κλπ.
     var lyricsOnlyCSS = currentSettings.printLyricsOnly ? `
         .chord { display: none !important; }
         .chords-only-row { display: none !important; }
@@ -1050,42 +1062,26 @@ function printSetlistPDF() {
     ` : "";
 
     var css = `
-        body { 
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; 
-            padding: 0; margin: 0; color: #111;
-        }
-        .song-page {
-            position: relative;
-            padding: 40px; 
-            box-sizing: border-box;
-        }
-        .page-break {
-            page-break-after: always; 
-            break-after: page;
-        }
+        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 0; margin: 0; color: #111; }
+        .song-page { position: relative; padding: 40px; box-sizing: border-box; }
+        .page-break { page-break-after: always; break-after: page; }
         .logo { position: absolute; top: 20px; right: 30px; width: 50px; height: auto; opacity: 0.9; z-index: 10; }
         h1 { font-size: 26px; margin: 0 0 5px 0; border-bottom: 2px solid #000; padding-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; margin-right: 60px; }
         h2 { font-size: 16px; color: #444; margin: 0 0 20px 0; font-weight: normal; font-style: italic; }
-        
         .meta-container { margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap; }
         .meta { font-size: 13px; color: #333; font-weight: bold; border: 1px solid #ddd; display: inline-block; padding: 4px 8px; border-radius: 4px; }
-
-        /* ✨ Στυλ για το νέο ανεξάρτητο Intro */
         .intro-section { margin-bottom: 20px; font-size: 15px; font-family: monospace; font-weight: bold; background: #f5f5f5; padding: 10px; border-left: 3px solid #ccc; border-radius: 4px; }
         .intro-line { margin-bottom: 4px; }
         .intro-line:last-child { margin-bottom: 0; }
         .intro-line strong { color: #555; font-family: 'Arial', sans-serif; }
-
         .print-row { display: flex; flex-wrap: wrap; align-items: flex-end; margin-bottom: 6px; page-break-inside: avoid; }
         .empty-row { height: 15px; }
         .chords-only-row { align-items: center; } 
-        
         .token { display: flex; flex-direction: column; align-items: flex-start; margin-right: 0; }
         .chord { font-weight: 800; font-size: 13px; color: #000; height: 16px; line-height: 16px; margin-bottom: 1px; font-family: 'Arial', sans-serif; }
         .inline-chord { display: inline-block; height: auto; margin-bottom: 0; }
         .lyric { font-size: 15px; line-height: 1.2; color: #222; font-family: 'Arial', sans-serif; }
         .lyric-only { font-size: 15px; line-height: 1.5; white-space: pre-wrap; }
-
         @media print {
             @page { margin: 1.5cm; }
             button { display: none; }
@@ -1094,6 +1090,7 @@ function printSetlistPDF() {
         }
     `;
 
+    // ⚠️ ΑΦΑΙΡΕΘΗΚΕ ΤΟ ΕΝΣΩΜΑΤΩΜΕΝΟ <script> ΑΠΟ ΤΟ HTML
     var htmlContent = `
         <html>
         <head>
@@ -1105,21 +1102,54 @@ function printSetlistPDF() {
         </head>
         <body>
             ${fullHtmlBody}
-            <script>
-                window.onload = function() { 
-                    setTimeout(function(){ 
-                        window.print(); 
-                        window.close(); 
-                    }, 800); 
-                }
-            </script>
         </body>
         </html>
     `;
 
-    win.document.write(htmlContent);
-    win.document.close();
+    // --- ΕΞΥΠΝΗ ΕΚΤΥΠΩΣΗ (MOBILE VS DESKTOP) ---
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+    if (isMobile) {
+        console.log("[PRINT] Ανιχνεύτηκε κινητό. Χρήση κρυφού iframe.");
+        var iframe = document.createElement('iframe');
+        iframe.style.position = 'fixed';
+        iframe.style.right = '0';
+        iframe.style.bottom = '0';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = '0';
+        document.body.appendChild(iframe);
+
+        iframe.contentDocument.open();
+        iframe.contentDocument.write(htmlContent);
+        iframe.contentDocument.close();
+
+        iframe.onload = function() {
+            setTimeout(function() {
+                iframe.contentWindow.focus();
+                iframe.contentWindow.print();
+                setTimeout(() => document.body.removeChild(iframe), 3000);
+            }, 500);
+        };
+    } else {
+        console.log("[PRINT] Ανιχνεύτηκε Desktop. Χρήση νέου παραθύρου.");
+        var win = window.open('', '', 'width=900,height=1000');
+        if (win) {
+            win.document.write(htmlContent);
+            win.document.close();
+            
+            // ⚠️ Η ΕΚΤΥΠΩΣΗ ΕΚΤΕΛΕΙΤΑΙ ΜΕΣΑ ΑΠΟ ΤΗ JAVASCRIPT ΤΩΡΑ
+            setTimeout(function() {
+                win.focus();
+                win.print();
+                win.close();
+            }, 500);
+        } else {
+            if (typeof showToast === 'function') showToast("Τα αναδυόμενα παράθυρα είναι μπλοκαρισμένα!", "error");
+        }
+    }
 }
+
 // ===========================================================
 // 6. EDITOR LOGIC
 // ===========================================================

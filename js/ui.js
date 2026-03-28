@@ -1529,9 +1529,9 @@ function createSetlist() {
     const name = prompt(typeof t === 'function' ? t('msg_new_setlist') : "Όνομα νέας λίστας:");
     if (name && !allSetlists[name]) {
         allSetlists[name] = { type: 'local', songs: [] }; 
-        saveSetlists(name); 
-        switchSetlist(name); 
-        updateSetlistDropdown();
+        liveSetlist = []; 
+        switchSetlist(name); // Γυρνάμε στη νέα άδεια λίστα
+        saveSetlists(name);  // Τώρα τη σώζουμε πεντακάθαρη
     } else if (allSetlists[name]) {
         alert("Υπάρχει ήδη λίστα με αυτό το όνομα!");
     }

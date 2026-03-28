@@ -442,10 +442,10 @@
        <div style="margin-bottom: 10px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
                 <span data-i18n="lbl_scroll_speed" style="font-weight: bold; color: var(--text-main);">Scroll Speed:</span>
-                <label style="font-size: 0.8rem; color: var(--text-muted); display: flex; align-items: center; gap: 5px; cursor: pointer;">
-                    <input type="checkbox" id="setShowScrollBtn" checked onchange="applyScrollBtnVisibility()">
-                    <i class="fas fa-hand-pointer" style="color:var(--accent);"></i> <span data-i18n="lbl_btn_scroll">Κουμπί</span>
-                </label>
+             <label class="setting-checkbox-label" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer;">
+                <input type="checkbox" id="setShowScrollBtn" checked>
+                <span data-i18n="opt_show_scroll">Εμφάνιση κουμπιού Auto-Scroll</span>
+            </label>   
             </div>
             <input type="range" id="setScrollSpeed" min="10" max="200" style="width: 100%;">
         </div>
@@ -477,14 +477,15 @@
         
         <label><input type="checkbox" id="setShowChords" checked onchange="GuitarChordsUI.toggleVisibility(this.checked)"> <span data-i18n="lbl_show_chords">🎸 Εμφάνιση Συγχορδιών (Κιθάρα)</span></label>
 
-        <label style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border-color); display: block;">
-            <input type="checkbox" id="setDisableSplit"> 
-            <span style="color: var(--accent); font-weight:bold;">Ενιαία Οθόνη (Χωρίς σταθερό τμήμα)</span>
+       <label class="setting-checkbox-label" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer;">
+                <input type="checkbox" id="setDisableSplit">
+                <span data-i18n="opt_disable_split">Ενιαία προβολή κειμένου (Όχι Split)</span>
         </label>
-        <label style="margin-top: 10px; display: block;">
-            <input type="checkbox" id="setPrintLyricsOnly"> 
-            <span style="color: var(--text-main);">Εκτύπωση μόνο Στίχων (Απόκρυψη Συγχορδιών)</span>
+        <label class="setting-checkbox-label" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer;">
+            <input type="checkbox" id="setPrintLyricsOnly">
+            <span data-i18n="opt_print_lyrics">Εκτύπωση μόνο στίχων (PDF)</span>
         </label>
+        
         <hr style="border-color:#444; margin:15px 0;">
         
         <div style="text-align:center;">

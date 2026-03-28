@@ -110,9 +110,9 @@ function populateTags() {
     
     const allTags = new Set();
     library.forEach(s => {
-        if(s.playlists && Array.isArray(s.playlists)) {
-            s.playlists.forEach(t => allTags.add(t));
-        }
+        // ✨ Η ΔΙΟΡΘΩΣΗ: Κοιτάμε ΚΑΙ για 'tags' (νέο σύστημα) ΚΑΙ για 'playlists' (παλιό τοπικό)
+        let sTags = (s.tags && Array.isArray(s.tags)) ? s.tags : ((s.playlists && Array.isArray(s.playlists)) ? s.playlists : []);
+        sTags.forEach(t => allTags.add(t));
     });
     
     Array.from(allTags).sort().forEach(tag => {

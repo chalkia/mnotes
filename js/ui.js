@@ -1144,20 +1144,44 @@ function switchToEditor() {
     
     // Ενεργοποίηση διγλωσσίας στα placeholders
     if (typeof applyEditorPlaceholders === 'function') applyEditorPlaceholders();
-
-    if (currentSongId) { 
+if (currentSongId) { 
         var s = library.find(x => x.id === currentSongId); 
         if (s) { 
             document.getElementById('inpTitle').value = s.title || ""; 
             document.getElementById('inpArtist').value = s.artist || ""; 
             document.getElementById('inpVideo').value = s.video || ""; 
-            document.getElementById('inpKey').value = s.key || ""; 
-            document.getElementById('inpBody').value = s.body || ""; 
+            
+            // ✨ Η ΔΙΟΡΘΩΣΗ ΓΙΑ ΤΟ ΤΡΑΝΣΠΟΡΤΟ (ΜΕ ΤΗΝ ΕΠΙΣΗΜΗ ΚΩΔΙΚΟΠΟΙΗΣΗ ΣΟΥ)
+            let editBody = s.body || "";
+            let netTranspose = (state.t || 0) - (state.c || 0); 
+            
+            if (netTranspose !== 0 && typeof getNote === 'function') {
+                // Χρησιμοποιούμε την επίσημη Regex σου που ξεχωρίζει τις συγχορδίες από το απλό κείμενο
+                const strictChordRx = new RegExp(`\\[([A-G][b#]?[a-zA-Z0-9#\\/+-]*|[a-g][b#]?)(?![a-z])\\]`, 'g');
+                editBody = editBody.replace(strictChordRx, (match, chord) => {
+                // Έξτρα ασπίδα ασφαλείας για δομικές λέξεις (ώστε το [Chorus] να μην γίνει [Dhorus])
+                    if (chord.toLowerCase().includes('horus') || chord.toLowerCase().includes('erse')) return match;
+                 
+                   try { return `[${getNote(chord, netTranspose)}]`; } 
+                   catch(e) { return match; }
+                });
+                
+                // Αλλάζουμε και το γενικό Κλειδί (Key) του τραγουδιού
+                let newKey = s.key || "";
+                if (newKey && newKey !== "-") {
+                    try { newKey = getNote(newKey, netTranspose); } catch(e) {}
+                }
+                document.getElementById('inpKey').value = newKey;
+            } else {
+                document.getElementById('inpKey').value = s.key || ""; 
+            }
+            
+            document.getElementById('inpBody').value = editBody; 
+            
             document.getElementById('inpIntro').value = s.intro || ""; 
             document.getElementById('inpInter').value = s.interlude || ""; 
             document.getElementById('inpConductorNotes').value = s.conductorNotes || ""; 
-                                   
-            // Διόρθωση για να αναγνωρίζει και playlists και tags
+                                           
             editorTags = s.tags ? [...s.tags] : (s.playlists ? [...s.playlists] : []); 
             if(typeof renderTagChips === 'function') renderTagChips(); 
         } 

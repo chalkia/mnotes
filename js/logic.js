@@ -264,16 +264,23 @@ async function loadContextData() {
                         if (!mergedMap.has(s.id)) {
                             // Το τραγούδι υπάρχει ΜΟΝΟ στο PC! 
                             mergedMap.set(s.id, s);
+                            // ✨ AUTO-HEAL: Το στέλνουμε ΤΩΡΑ στη Supabase
+                            // 🛠️ ΔΙΟΡΘΩΣΗ: Προστέθηκε το { onConflict: 'id' } για να λυθεί το 409 Conflict Error
+                            const safePayload = window.sanitizeForDatabase(s, currentUser.id, null);
                             
-                            // ✨ AUTO-HEAL: Το στέλνουμε ΤΩΡΑ στη Supabase για να το πάρει το Tablet!
                             supabaseClient.from('songs')
-                                .upsert(window.sanitizeForDatabase(s, currentUser.id, null))
+                                .upsert(safePayload, { onConflict: 'id' })
                                 .then(({error}) => {
-                                    if (!error) console.log(`🚀 [SYNC] Αυτόματη μεταφόρτωση τοπικού τραγουδιού: ${s.title}`);
+                                    if (error) {
+                                        console.error(`❌ [SYNC] Σφάλμα (409/Άλλο) στο ${s.title}:`, error);
+                                    } else {
+                                        console.log(`🚀 [SYNC] Αυτόματη μεταφόρτωση τοπικού τραγουδιού: ${s.title}`);
+                                    }
                                 });
                             missingPushed++;
                         }
                     });
+                            
 
                     currentLibrary = Array.from(mergedMap.values());
                     localStorage.setItem('mnotes_data', JSON.stringify(currentLibrary));

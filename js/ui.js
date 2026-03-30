@@ -1186,6 +1186,100 @@ function printSetlistPDF() {
 // 6. EDITOR LOGIC
 // ===========================================================
 
+function switchToEditor() {
+    // ✨ ΕΛΕΓΧΟΣ ΔΙΚΑΙΩΜΑΤΩΝ
+    if (typeof currentGroupId !== 'undefined' && currentGroupId !== 'personal') {
+        if (typeof currentRole !== 'undefined' && currentRole !== 'admin' && currentRole !== 'owner') {
+            showToast("Μόνο οι διαχειριστές μπορούν να επεξεργαστούν τα τραγούδια της μπάντας. Κάντε 'Clone' για δική σας χρήση!", "error");
+            return; 
+        }
+    }
+    
+    document.getElementById('view-player').classList.remove('active-view'); 
+    document.getElementById('view-editor').classList.add('active-view');
+   
+    let notesGroup = document.getElementById('perfNotesGroup');
+    if (notesGroup) notesGroup.open = true;
+    let chordsGroup = document.getElementById('guitarChordsGroup');
+    if (chordsGroup) chordsGroup.open = false; 
+    
+    if (typeof applyEditorPlaceholders === 'function') applyEditorPlaceholders();
+
+    if (currentSongId) { 
+        var s = library.find(x => x.id === currentSongId); 
+        if (s) { 
+            let editBody = s.body || "";
+            let editIntro = s.intro || "";
+            let editInter = s.interlude || "";
+            let newKey = s.key || "";
+            
+            let netTranspose = parseInt(state.t || 0, 10); 
+            
+            if (netTranspose !== 0 && typeof getNote === 'function') {
+                
+                // ✨ Η ΕΠΙΣΗΜΗ REGEX ΤΗΣ ΕΦΑΡΜΟΓΗΣ ΣΟΥ (Από renderArea / printSetlistPDF)
+                const chordRxStr = "([A-G][b#]?[a-zA-Z0-9#\\/+-]*|[a-g][b#]?)(?![a-z])";
+                
+                // 1. Σάρωση για Αγκύλες [Am]
+                const bracketRx = new RegExp(`\\[${chordRxStr}\\]`, 'g');
+                editBody = editBody.replace(bracketRx, (match, chord) => {
+                    // Προστασία λέξεων (π.χ. [Chorus])
+                    if (chord.toLowerCase().includes('horus') || chord.toLowerCase().includes('erse')) return match;
+                    try { return `[${getNote(chord, netTranspose)}]`; } 
+                    catch(e) { return match; }
+                });
+
+                // 2. Σάρωση για Θαυμαστικά !Am
+                const bangRx = new RegExp(`!${chordRxStr}`, 'g');
+                editBody = editBody.replace(bangRx, (match, chord) => {
+                    try { return `!${getNote(chord, netTranspose)}`; } 
+                    catch(e) { return match; }
+                });
+
+                // 3. Σάρωση για Intro/Interlude (Ακριβώς όπως στην εκτύπωση)
+                const plainRx = new RegExp(chordRxStr, 'g');
+                editIntro = editIntro.replace(plainRx, (match) => {
+                    try { return getNote(match, netTranspose); } catch(e) { return match; }
+                });
+                editInter = editInter.replace(plainRx, (match) => {
+                    try { return getNote(match, netTranspose); } catch(e) { return match; }
+                });
+
+                // Αλλάζουμε το Key
+                if (newKey && newKey !== "-") {
+                    try { newKey = getNote(newKey, netTranspose); } catch(e) {}
+                }
+                
+                // Μηδενισμός του τρανσπόρτου για να μη σωθεί διπλά
+                state.t = 0;
+                if (typeof updateTransDisplay === 'function') updateTransDisplay();
+            } 
+            
+            // Πέρασμα στα πεδία
+            document.getElementById('inpTitle').value = s.title || ""; 
+            document.getElementById('inpArtist').value = s.artist || ""; 
+            document.getElementById('inpVideo').value = s.video || ""; 
+            document.getElementById('inpKey').value = newKey; 
+            document.getElementById('inpBody').value = editBody; 
+            document.getElementById('inpIntro').value = editIntro; 
+            document.getElementById('inpInter').value = editInter; 
+            
+            // ✨ ΔΙΟΡΘΩΣΗ 1: Φορτώνουμε τις ΠΡΟΣΩΠΙΚΕΣ Σημειώσεις στον Editor (όχι του Μαέστρου)
+            const inpPersonal = document.getElementById('inpPersonalNotes');
+            if (inpPersonal) inpPersonal.value = s.notes || ""; 
+                                                       
+            // ✨ ΔΙΟΡΘΩΣΗ 2: Σωστή ονομασία συνάρτησης & ασφαλής μεταφορά των tags
+            editorTags = Array.isArray(s.tags) ? [...s.tags] : []; 
+            if(typeof renderTags === 'function') {
+                renderTags(); 
+            } else {
+                console.warn("[Editor] Σφάλμα: Η συνάρτηση renderTags() δεν βρέθηκε!");
+            }
+        } 
+    } else { 
+        createNewSong(); 
+    }
+}
  function renderSidebar() {
     var list = document.getElementById('songList');
     if(!list) return;

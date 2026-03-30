@@ -14,6 +14,7 @@ const ASSETS_TO_CACHE = [
     'js/ui.js',
     'js/bandManager.js', 
     'js/audio.js',
+    'js/supabase.min.js',
     'js/supabase-client.js',
     'js/app.js',
     'js/floating-tools.js',
@@ -22,10 +23,8 @@ const ASSETS_TO_CACHE = [
     'js/translations.js',
     'js/chords.js',
     'js/asset-manager.js', // <-- ΠΡΟΣΤΕΘΗΚΕ!
-
-    // Εξωτερικές βιβλιοθήκες που πρέπει να παίζουν Offline
-    'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
-
+    
+    
     // FontAwesome
     'fa/css/all.min.css',
     'fa/webfonts/fa-solid-900.woff2',

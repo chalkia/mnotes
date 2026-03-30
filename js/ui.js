@@ -287,7 +287,6 @@ function clearLibrary() {
         } else if (liveSetlist.includes(s.id)) {
             actionIcon = "fas fa-check-circle in-setlist"; // Πράσινο τικ αν υπάρχει ήδη
         }
-        
       // G. SMART CLONE BADGES (STAGE-READY)
         let badgesHTML = '';
 
@@ -308,6 +307,14 @@ function clearLibrary() {
             badgesHTML += `<i class="fas fa-user-edit" title="Προσωπικός Κλώνος" style="margin-left:8px; font-size:0.75rem; color:#ff4444;"></i>`;
         }
 
+        // ✨ ΔΗΜΙΟΥΡΓΙΑ TAGS ΓΙΑ ΤΗ ΛΙΣΤΑ (ΝΕΟ)
+        let tagsDisplay = "";
+        if (s.tags && Array.isArray(s.tags) && s.tags.length > 0) {
+            let displayTags = s.tags.slice(0, 3).join(', '); // Εμφανίζει έως 3 tags
+            let extra = s.tags.length > 3 ? "..." : "";
+            tagsDisplay = `<div style="font-size:0.7rem; color:var(--accent); margin-top:4px; font-style:italic;">${displayTags}${extra}</div>`;
+        }
+
         // H. HTML Injection
         li.innerHTML = `
             <i class="${actionIcon} song-action" onclick="toggleSetlistSong(event, '${s.id}')"></i>
@@ -320,10 +327,11 @@ function clearLibrary() {
                     <span class="song-artist">${s.artist || "-"}</span>
                     <span class="song-key-badge" onclick="filterByKey(event, '${displayKey}')">${displayKey}</span>
                 </div>
-            </div>
+                ${tagsDisplay} </div>
             ${viewMode === 'setlist' ? `<i class="fas fa-grip-vertical song-handle"></i>` : ``}
         `;
-        list.appendChild(li);
+        list.appendChild(li);  
+
     });
     // --- 3. SORTABLE JS RE-INIT ---
     if (sortableInstance) sortableInstance.destroy();
@@ -614,7 +622,12 @@ function renderPlayer(s) {
                 <i class="fas fa-thumbtack" style="font-size:0.85rem;"></i>
             </button>`;
     }
-    
+       // ✨ ΝΕΟ: Χτίσιμο των Tags για το Player
+    let tagsHtml = "";
+    if (s.tags && Array.isArray(s.tags) && s.tags.length > 0) {
+        tagsHtml = s.tags.map(t => `<span style="background:var(--accent); color:#000; padding:2px 8px; border-radius:12px; font-size:0.7rem; font-weight:bold; margin-right:5px; display:inline-block; margin-top:5px;">#${t}</span>`).join('');
+    }
+
     // --- PLAYER HEADER ---
     const headerContainer = document.querySelector('.player-header-container');
     if (headerContainer) {
@@ -622,16 +635,16 @@ function renderPlayer(s) {
         <div class="player-header">
              <h2 id="mainAppTitle" style="margin:0 0 5px 0; font-size:1.2rem; color:var(--text-main); display:flex; align-items:center; flex-wrap:wrap; position:relative; padding-right:85px;">
                    <span>${s.title} ${s.artist ? `<span style="font-size:0.9rem; opacity:0.6;">- ${s.artist}</span>` : ''}</span>
-                    ${noteBtnHtml}
+                   ${noteBtnHtml}
+             </h2>
+             
+             <div style="margin-bottom: 8px;">${tagsHtml}</div>
+             
+             <div style="display:flex; justify-content:space-between; align-items:center;">
+                 <div style="display:flex; align-items:center; gap: 10px;">
+                     <span class="key-badge">${typeof getNote === 'function' ? getNote(s.key || "-", state.t) : s.key}</span>
+// ... [Συνεχίζει ο υπάρχων κώδικας] ...
     
-                   <div class="mobile-nav-buttons" style="position:absolute; right:0; top:50%; transform:translateY(-50%); display:flex; gap:6px;">
-                       <button onclick="navVisiblePlaylist(-1)" style="background:var(--bg-panel); border:1px solid var(--border-color); color:var(--text-main); border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 4px rgba(0,0,0,0.3); cursor:pointer;"><i class="fas fa-chevron-left"></i></button>
-                       <button onclick="navVisiblePlaylist(1)" style="background:var(--bg-panel); border:1px solid var(--border-color); color:var(--text-main); border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 4px rgba(0,0,0,0.3); cursor:pointer;"><i class="fas fa-chevron-right"></i></button>
-                   </div>
-               </h2>
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div style="display:flex; align-items:center; gap: 10px;">
-                    <span class="key-badge">${typeof getNote === 'function' ? getNote(s.key || "-", state.t) : s.key}</span>
                     <button id="btnToggleView" onclick="toggleViewMode()"></button>
                 </div>
             </div>
@@ -1231,10 +1244,18 @@ function switchToEditor() {
             document.getElementById('inpBody').value = editBody; 
             document.getElementById('inpIntro').value = editIntro; 
             document.getElementById('inpInter').value = editInter; 
-            document.getElementById('inpConductorNotes').value = s.conductorNotes || ""; 
-                                           
-            editorTags = s.tags ? [...s.tags] : (s.playlists ? [...s.playlists] : []); 
-            if(typeof renderTagChips === 'function') renderTagChips(); 
+            
+            // ✨ ΔΙΟΡΘΩΣΗ 1: Φορτώνουμε τις ΠΡΟΣΩΠΙΚΕΣ Σημειώσεις στον Editor (όχι του Μαέστρου)
+            const inpPersonal = document.getElementById('inpPersonalNotes');
+            if (inpPersonal) inpPersonal.value = s.notes || ""; 
+                                                       
+            // ✨ ΔΙΟΡΘΩΣΗ 2: Σωστή ονομασία συνάρτησης & ασφαλής μεταφορά των tags
+            editorTags = Array.isArray(s.tags) ? [...s.tags] : []; 
+            if(typeof renderTags === 'function') {
+                renderTags(); 
+            } else {
+                console.warn("[Editor] Σφάλμα: Η συνάρτηση renderTags() δεν βρέθηκε!");
+            }
         } 
     } else { 
         createNewSong(); 

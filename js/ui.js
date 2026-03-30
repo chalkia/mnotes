@@ -97,7 +97,6 @@ function loadLibrary() {
     if (typeof sortLibrary === 'function') sortLibrary(userSettings.sortMethod || 'alpha');
     renderSidebar();
 }
-
 function populateTags() {
     const select = document.getElementById('tagFilter');
     if(!select) return;
@@ -109,11 +108,30 @@ function populateTags() {
     select.innerHTML = `<option value="">${allTagsText}</option><option value="__no_demo">No Demo</option>`;
     
     const allTags = new Set();
+    
     library.forEach(s => {
-        // ✨ Η ΔΙΟΡΘΩΣΗ: Κοιτάμε ΚΑΙ για 'tags' (νέο σύστημα) ΚΑΙ για 'playlists' (παλιό τοπικό)
-        let sTags = (s.tags && Array.isArray(s.tags)) ? s.tags : ((s.playlists && Array.isArray(s.playlists)) ? s.playlists : []);
-        sTags.forEach(t => allTags.add(t));
+        let sTags = [];
+        
+        // ✨ ΕΛΕΓΧΟΣ 1: Είναι σωστό Array (νέο σύστημα)
+        if (s.tags && Array.isArray(s.tags)) {
+            sTags = s.tags;
+        } 
+        // ✨ ΕΛΕΓΧΟΣ 2: Είναι παλιό String με κόμματα (bug από παλιά saves - ΔΙΟΡΘΩΣΗ)
+        else if (s.tags && typeof s.tags === 'string' && s.tags.trim() !== '') {
+            sTags = s.tags.split(',').map(tag => tag.trim());
+        } 
+        // ✨ ΕΛΕΓΧΟΣ 3: Είναι παλιό σύστημα playlists
+        else if (s.playlists && Array.isArray(s.playlists)) {
+            sTags = s.playlists;
+        }
+
+        sTags.forEach(t => {
+            if(t) allTags.add(t);
+        });
     });
+    
+    // Debugging: Βλέπουμε στην κονσόλα αν τα διαβάζει σωστά
+    console.log(`🏷️ [Tags] Βρέθηκαν ${allTags.size} μοναδικά tags στη βιβλιοθήκη.`);
     
     Array.from(allTags).sort().forEach(tag => {
         const opt = document.createElement('option');
@@ -121,8 +139,10 @@ function populateTags() {
         opt.innerText = tag;
         select.appendChild(opt);
     });
+    
     select.value = currentVal;
 }
+
 
 function applyFilters() {
     renderSidebar();
@@ -1166,98 +1186,180 @@ function printSetlistPDF() {
 // 6. EDITOR LOGIC
 // ===========================================================
 
-function switchToEditor() {
-    // ✨ ΕΛΕΓΧΟΣ ΔΙΚΑΙΩΜΑΤΩΝ
-    if (typeof currentGroupId !== 'undefined' && currentGroupId !== 'personal') {
-        if (typeof currentRole !== 'undefined' && currentRole !== 'admin' && currentRole !== 'owner') {
-            showToast("Μόνο οι διαχειριστές μπορούν να επεξεργαστούν τα τραγούδια της μπάντας. Κάντε 'Clone' για δική σας χρήση!", "error");
-            return; 
-        }
-    }
+ function renderSidebar() {
+    var list = document.getElementById('songList');
+    if(!list) return;
     
-    document.getElementById('view-player').classList.remove('active-view'); 
-    document.getElementById('view-editor').classList.add('active-view');
-   
-    let notesGroup = document.getElementById('perfNotesGroup');
-    if (notesGroup) notesGroup.open = true;
-    let chordsGroup = document.getElementById('guitarChordsGroup');
-    if (chordsGroup) chordsGroup.open = false; 
-    
-    if (typeof applyEditorPlaceholders === 'function') applyEditorPlaceholders();
+    list.innerHTML = "";
+    visiblePlaylist = [];
 
-    if (currentSongId) { 
-        var s = library.find(x => x.id === currentSongId); 
-        if (s) { 
-            let editBody = s.body || "";
-            let editIntro = s.intro || "";
-            let editInter = s.interlude || "";
-            let newKey = s.key || "";
-            
-            let netTranspose = parseInt(state.t || 0, 10); 
-            
-            if (netTranspose !== 0 && typeof getNote === 'function') {
-                
-                // ✨ Η ΕΠΙΣΗΜΗ REGEX ΤΗΣ ΕΦΑΡΜΟΓΗΣ ΣΟΥ (Από renderArea / printSetlistPDF)
-                const chordRxStr = "([A-G][b#]?[a-zA-Z0-9#\\/+-]*|[a-g][b#]?)(?![a-z])";
-                
-                // 1. Σάρωση για Αγκύλες [Am]
-                const bracketRx = new RegExp(`\\[${chordRxStr}\\]`, 'g');
-                editBody = editBody.replace(bracketRx, (match, chord) => {
-                    // Προστασία λέξεων (π.χ. [Chorus])
-                    if (chord.toLowerCase().includes('horus') || chord.toLowerCase().includes('erse')) return match;
-                    try { return `[${getNote(chord, netTranspose)}]`; } 
-                    catch(e) { return match; }
-                });
+    // ✨ Ζητάμε να χτιστεί το Dropdown με τα Tags κάθε φορά που φορτώνει η λίστα
+    if (typeof populateTags === 'function') populateTags();
 
-                // 2. Σάρωση για Θαυμαστικά !Am
-                const bangRx = new RegExp(`!${chordRxStr}`, 'g');
-                editBody = editBody.replace(bangRx, (match, chord) => {
-                    try { return `!${getNote(chord, netTranspose)}`; } 
-                    catch(e) { return match; }
-                });
+    // ✨ ΒΡΙΣΚΟΥΜΕ ΤΑ ID ΤΩΝ MASTER ΠΟΥ ΕΧΟΥΝ ΚΛΩΝΟ, ΓΙΑ ΝΑ ΤΑ ΚΡΥΨΟΥΜΕ ΑΠΟ ΤΗ ΛΙΣΤΑ!
+    const myCloneParentIds = library
+        .filter(s => s.group_id === currentGroupId && s.is_clone && s.user_id === currentUser?.id)
+        .map(s => s.parent_id);
 
-                // 3. Σάρωση για Intro/Interlude (Ακριβώς όπως στην εκτύπωση)
-                const plainRx = new RegExp(chordRxStr, 'g');
-                editIntro = editIntro.replace(plainRx, (match) => {
-                    try { return getNote(match, netTranspose); } catch(e) { return match; }
-                });
-                editInter = editInter.replace(plainRx, (match) => {
-                    try { return getNote(match, netTranspose); } catch(e) { return match; }
-                });
-
-                // Αλλάζουμε το Key
-                if (newKey && newKey !== "-") {
-                    try { newKey = getNote(newKey, netTranspose); } catch(e) {}
-                }
-                
-                // Μηδενισμός του τρανσπόρτου για να μη σωθεί διπλά
-                state.t = 0;
-                if (typeof updateTransDisplay === 'function') updateTransDisplay();
-            } 
-            
-            // Πέρασμα στα πεδία
-            document.getElementById('inpTitle').value = s.title || ""; 
-            document.getElementById('inpArtist').value = s.artist || ""; 
-            document.getElementById('inpVideo').value = s.video || ""; 
-            document.getElementById('inpKey').value = newKey; 
-            document.getElementById('inpBody').value = editBody; 
-            document.getElementById('inpIntro').value = editIntro; 
-            document.getElementById('inpInter').value = editInter; 
-            
-            // ✨ ΔΙΟΡΘΩΣΗ 1: Φορτώνουμε τις ΠΡΟΣΩΠΙΚΕΣ Σημειώσεις στον Editor (όχι του Μαέστρου)
-            const inpPersonal = document.getElementById('inpPersonalNotes');
-            if (inpPersonal) inpPersonal.value = s.notes || ""; 
-                                                       
-            // ✨ ΔΙΟΡΘΩΣΗ 2: Σωστή ονομασία συνάρτησης & ασφαλής μεταφορά των tags
-            editorTags = Array.isArray(s.tags) ? [...s.tags] : []; 
-            if(typeof renderTags === 'function') {
-                renderTags(); 
+    // --- 1. FILTERING LOGIC ---
+    if (viewMode === 'setlist') {
+        liveSetlist.forEach(id => {
+            var s = library.find(x => x.id === id);
+            if (s) visiblePlaylist.push(s);
+        });
+    } else {
+        var txt = document.getElementById('searchInp') ? document.getElementById('searchInp').value.toLowerCase() : "";
+        var tag = document.getElementById('tagFilter') ? document.getElementById('tagFilter').value : "";
+        
+        visiblePlaylist = library.filter(s => {
+            // ΦΙΛΤΡΟ CONTEXT
+            if (currentGroupId === 'personal') {
+                if (s.group_id) return false; // Στα προσωπικά ΜΟΝΟ τα δικά μου
             } else {
-                console.warn("[Editor] Σφάλμα: Η συνάρτηση renderTags() δεν βρέθηκε!");
+                if (s.group_id !== currentGroupId) return false; // Στη μπάντα ΜΟΝΟ της μπάντας
+                if (s.is_clone && s.user_id !== currentUser?.id) return false; 
+                
+                // ✨ ΜΑΓΕΙΑ: Κρύβουμε το Master αν έχουμε φτιάξει δικό μας Κλώνο γι' αυτό!
+                if (!s.is_clone && myCloneParentIds.includes(s.id)) {
+                    return false; 
+                }
             }
-        } 
-    } else { 
-        createNewSong(); 
+
+            // Απόκρυψη Demo
+            if (userSettings.hideDemo && String(s.id).includes("demo") && library.length > 1) return false;
+            
+            // Έλεγχος Τίτλου / Καλλιτέχνη / Τόνου
+            var matchTxt = s.title.toLowerCase().includes(txt) || 
+                           (s.artist && s.artist.toLowerCase().includes(txt)) || 
+                           (s.key && s.key.toLowerCase() === txt);
+            
+            // ✨ ΝΕΟΣ, ΑΛΕΞΙΣΦΑΙΡΟΣ ΕΛΕΓΧΟΣ TAGS
+            let matchTag = true;
+            if (tag === "__no_demo") {
+                matchTag = !String(s.id).includes("demo");
+            } else if (tag !== "") {
+                let sTags = [];
+                if (Array.isArray(s.tags)) sTags = s.tags;
+                else if (typeof s.tags === 'string') sTags = s.tags.split(',').map(t => t.trim());
+                else if (Array.isArray(s.playlists)) sTags = s.playlists;
+                
+                matchTag = sTags.includes(tag);
+            }
+            
+            return matchTxt && matchTag;
+        });
+    }
+
+    // Update Song Count
+    const countEl = document.getElementById('songCount');
+    if(countEl) countEl.innerText = visiblePlaylist.length;
+
+    // --- 2. RENDERING LIST ITEMS ---
+    visiblePlaylist.forEach(s => {
+        var li = document.createElement('li');
+        
+        // A. Classification Logic (Personal / Band / Proposal)
+        let originClass = '';
+        if (s.is_proposal) {
+            originClass = 'proposal-item'; // Dashed Border
+        } else if (s.group_id) {
+            originClass = 'band-cloud';    // Muted/Orange Border + Icon via CSS
+        } else {
+            originClass = 'personal-cloud'; // Accent Border
+        }
+
+        // B. New Import Highlight
+        let isNew = (typeof lastImportedIds !== 'undefined' && lastImportedIds.has(s.id));
+        
+        // C. Construct Class String
+        let itemClass = `song-item ${currentSongId === s.id ? 'active' : ''} ${originClass} ${isNew ? 'new-import' : ''}`;
+        
+        li.className = itemClass;
+        li.setAttribute('data-id', s.id);
+
+        // D. Click Event
+        li.onclick = (e) => {
+            if(e.target.classList.contains('song-action') || e.target.classList.contains('song-key-badge')) return;
+            if (typeof loadSong === 'function') loadSong(s.id);
+            if(window.innerWidth <= 1024) {
+                const d = document.getElementById('rightDrawer');
+                if(d && d.classList.contains('open') && typeof toggleRightDrawer === 'function') {
+                    toggleRightDrawer();
+                }
+            }
+        };
+
+        // E. Display Variables
+        var displayTitle = s.title;
+        var displayKey = s.key || "-";
+        
+        // F. Setlist Action Icon
+        var actionIcon = "far fa-circle";
+        if (viewMode === 'setlist') {
+            actionIcon = "fas fa-minus-circle"; 
+        } else if (liveSetlist.includes(s.id)) {
+            actionIcon = "fas fa-check-circle in-setlist"; 
+        }
+        
+        // G. SMART CLONE BADGES (STAGE-READY)
+        let badgesHTML = '';
+
+        if (!String(s.id).includes('demo')) {
+             if (s.group_id || (typeof canUserPerform === 'function' && canUserPerform('CLOUD_SYNC'))) {
+                  badgesHTML += `<i class="fas fa-cloud badge-cloud" title="Στο Cloud" style="margin-left:8px; font-size:0.75rem; opacity:0.4;"></i>`;
+             }
+        }
+        if (s.personal_transpose && s.personal_transpose !== 0) {
+            badgesHTML += `<i class="fas fa-music" title="Αλλαγμένος Τόνος" style="margin-left:8px; font-size:0.75rem; color:var(--accent);"></i>`;
+        }
+        if (s.is_clone || !!s.parent_id) {
+            badgesHTML += `<i class="fas fa-user-edit" title="Προσωπικός Κλώνος" style="margin-left:8px; font-size:0.75rem; color:#ff4444;"></i>`;
+        }
+
+        // ✨ ΔΗΜΙΟΥΡΓΙΑ TAGS ΓΙΑ ΤΗ ΛΙΣΤΑ (ΝΕΟ)
+        let tagsDisplay = "";
+        if (s.tags && Array.isArray(s.tags) && s.tags.length > 0) {
+            let displayTags = s.tags.slice(0, 3).join(', '); // Εμφανίζει έως 3 tags
+            let extra = s.tags.length > 3 ? "..." : "";
+            tagsDisplay = `<div style="font-size:0.7rem; color:var(--accent); margin-top:4px; font-style:italic;">${displayTags}${extra}</div>`;
+        }
+
+        // H. HTML Injection (Λίγο πιο τακτοποιημένο)
+        li.innerHTML = `
+            <i class="${actionIcon} song-action" onclick="toggleSetlistSong(event, '${s.id}')"></i>
+            <div class="song-info">
+                <div class="song-title" style="display:flex; align-items:center;">
+                     <span style="flex-grow:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${displayTitle}</span>
+                     <span style="white-space:nowrap;">${badgesHTML}</span>
+                </div>
+                <div class="song-meta-row">
+                    <span class="song-artist">${s.artist || "-"}</span>
+                    <span class="song-key-badge" onclick="filterByKey(event, '${displayKey}')">${displayKey}</span>
+                </div>
+                ${tagsDisplay}
+            </div>
+            ${viewMode === 'setlist' ? `<i class="fas fa-grip-vertical song-handle"></i>` : ``}
+        `;
+        list.appendChild(li);  
+    });
+
+    // --- 3. SORTABLE JS RE-INIT ---
+    if (sortableInstance) sortableInstance.destroy();
+    if(typeof Sortable !== 'undefined') {
+        sortableInstance = new Sortable(list, {
+            animation: 150,
+            handle: '.song-handle', 
+            disabled: (viewMode !== 'setlist'), 
+            onEnd: function (evt) {
+                if (viewMode === 'setlist') {
+                    const items = list.querySelectorAll('.song-item');
+                    const newOrder = Array.from(items).map(item => item.getAttribute('data-id'));
+                    liveSetlist.splice(0, liveSetlist.length, ...newOrder);
+                    if (typeof saveSetlists === 'function') saveSetlists();
+                    setTimeout(() => { renderSidebar(); }, 50);
+                }
+            }
+        });
     }
 }
 

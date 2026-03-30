@@ -2238,6 +2238,8 @@ return `<span class="chord" style="display:inline; position:static; font-size:in
 // ===========================================================
 
 function openSettings() {
+   // Διαβάζουμε την τιμή από τη μνήμη και τη δείχνουμε στο checkbox
+    document.getElementById('setWakeLock').checked = userSettings.wakeLock || false;
     const modal = document.getElementById('settingsModal');
     const chkSplit = document.getElementById('setDisableSplit');
     if (chkSplit) chkSplit.checked = userSettings.disableSplit || false;
@@ -2295,6 +2297,8 @@ function closeSettings() {
 }
 
 function saveSettings() {
+    userSettings.wakeLock = document.getElementById('setWakeLock').checked;
+    requestWakeLock();
     const themeSel = document.getElementById('setTheme');
     const langSel = document.getElementById('langSelect');
     const sortSel = document.getElementById('sortDefaultSelect');

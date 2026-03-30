@@ -1555,7 +1555,16 @@ async function initSetlists() {
     var currentSetlistName = localStorage.getItem(activeNameKey) || Object.keys(allSetlists)[0];
     if (!allSetlists[currentSetlistName]) currentSetlistName = Object.keys(allSetlists)[0];
     
-    liveSetlist = allSetlists[currentSetlistName].songs || [];
+    // ✨ ΔΙΟΡΘΩΣΗ & ΚΑΘΑΡΙΣΜΟΣ SETLIST: 
+    // Μετατρέπουμε τυχόν παλιά αποθηκευμένα objects σε καθαρά IDs (Strings)
+    let rawSongs = allSetlists[currentSetlistName].songs || [];
+    liveSetlist = rawSongs.map(item => {
+        if (typeof item === 'object' && item !== null) {
+            console.log(`🧹 [SETLIST CLEANUP] Διορθώθηκε αντικείμενο σε καθαρό ID: ${item.id}`);
+            return item.id;
+        }
+        return item; // Αν είναι ήδη string (ID), το αφήνει ως έχει
+    }).filter(Boolean); // Φιλτράρει τυχόν null/undefined
     
     if (typeof updateSetlistDropdown === 'function') updateSetlistDropdown();
 }

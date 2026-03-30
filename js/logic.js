@@ -466,7 +466,7 @@ window.processImportedData = async function(data) {
             console.log(`✨ Προσθήκη νέου: "${cleanSong.title}"`);
             
             // Παράγουμε ΠΑΝΤΑ νέο ID για τα εντελώς νέα τραγούδια (Ασπίδα Μπάντας)
-            cleanSong.id = "s_" + Date.now() + Math.random().toString(16).slice(2);
+            //cleanSong.id = "s_" + Date.now() + Math.random().toString(16).slice(2);
             if (!cleanSong.updated_at) cleanSong.updated_at = new Date().toISOString();
 
             window.library.push(cleanSong);
@@ -858,10 +858,16 @@ function saveToLocalStorage(songData) {
         const newSong = ensureSongStructure(songData);
         library.push(newSong);
         currentSongId = newSong.id;
+        console.log(`[LOCAL STORAGE] Αποθηκεύτηκε εντελώς νέο τραγούδι: ${currentSongId}`);
     } else {
         const idx = library.findIndex(s => s.id === currentSongId);
         if (idx > -1) {
             library[idx] = { ...library[idx], ...songData, id: currentSongId };
+            console.log(`[LOCAL STORAGE] Ενημερώθηκε το υπάρχον τραγούδι: ${currentSongId}`);
+        } else {
+            // ✨ Η ΔΙΟΡΘΩΣΗ: Αν το ID δημιουργήθηκε στο saveSong αλλά δεν έχει μπει στη βιβλιοθήκη ακόμα, βάλτο!
+            console.log(`[LOCAL STORAGE] Προσθήκη τραγουδιού με φρέσκο ID που έλειπε: ${currentSongId}`);
+            library.push({ ...songData, id: currentSongId });
         }
     }
     localStorage.setItem('mnotes_data', JSON.stringify(library));

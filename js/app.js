@@ -5,7 +5,7 @@
 var hasUnsavedChanges = false;
 window.addEventListener('load', function() {
     console.log("🚀 mNotes Pro v2.1 Initializing...");
-
+    if (typeof requestWakeLock === 'function') requestWakeLock();
     if (typeof applyTheme === 'function') applyTheme();
     
     window.addEventListener('online', () => {

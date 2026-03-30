@@ -2909,3 +2909,51 @@ window.addEventListener('resize', function() {
     // Μικρή καθυστέρηση για να προλάβει ο browser να υπολογίσει τα νέα clientHeight
     setTimeout(applyScrollBtnVisibility, 250);
 });
+// ==========================================
+// WAKE LOCK API (Έξυπνη Διαχείριση Οθόνης)
+// ==========================================
+var wakeLock = null;
+
+async function requestWakeLock() {
+    // 1. Ελέγχουμε αν το υποστηρίζει ο browser
+    if (!('wakeLock' in navigator)) {
+        console.warn("💡 [Wake Lock] Δεν υποστηρίζεται από αυτόν τον browser.");
+        return;
+    }
+
+    // 2. Ελέγχουμε τη ρύθμιση του χρήστη
+    if (!userSettings.wakeLock) {
+        releaseWakeLock(); // Αν το έκλεισε, το απελευθερώνουμε
+        return;
+    }
+
+    try {
+        // Ζητάμε το κλείδωμα της οθόνης
+        wakeLock = await navigator.wakeLock.request('screen');
+        console.log('💡 [Wake Lock] Ενεργοποιήθηκε. Η οθόνη θα μείνει ανοιχτή.');
+        
+        wakeLock.addEventListener('release', () => {
+            console.log('💡 [Wake Lock] Απελευθερώθηκε (π.χ. λόγω αλλαγής καρτέλας ή ειδοποίησης).');
+        });
+    } catch (err) {
+        console.error(`💡 [Wake Lock] Αποτυχία ενεργοποίησης: ${err.name}, ${err.message}`);
+    }
+}
+
+function releaseWakeLock() {
+    if (wakeLock !== null) {
+        wakeLock.release().then(() => { 
+            wakeLock = null; 
+            console.log('💡 [Wake Lock] Απενεργοποιήθηκε χειροκίνητα.');
+        });
+    }
+}
+
+// ✨ ΤΟ ΜΥΣΤΙΚΟ ΓΙΑ ΤΑ ΚΙΝΗΤΑ: 
+// Όταν ο χρήστης βγαίνει από την εφαρμογή και επιστρέφει, το Wake Lock έχει χαθεί. Το ξαναζητάμε αυτόματα!
+document.addEventListener('visibilitychange', async () => {
+    if (document.visibilityState === 'visible' && userSettings.wakeLock) {
+        console.log('💡 [Wake Lock] Επιστροφή στην εφαρμογή. Επαναφορά...');
+        await requestWakeLock();
+    }
+});

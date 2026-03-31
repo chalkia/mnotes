@@ -600,21 +600,49 @@ function renderPlayer(s) {
     
     let metaHtml = ""; 
     
-    // --- ΛΟΓΙΚΗ ΣΗΜΕΙΩΣΕΩΝ (Διαβάζει τα δεδομένα) ---
-    const personalNotesMap = JSON.parse(localStorage.getItem('mnotes_personal_notes') || '{}');
-    const pNote = personalNotesMap[s.id] || "";
+    // ==========================================
+    // ✨ SMART OVERLAY ΣΗΜΕΙΩΣΕΩΝ (BAND HUB & PERSONAL)
+    // ==========================================
+    let pNote = s.notes || ""; 
     const bNote = s.conductorNotes || "";
+    
+    // ✨ ΜΑΓΕΙΑ: Αν παίζει τραγούδι Μπάντας (Master), ψάχνουμε τον Κλώνο σου για να φέρουμε τα δικά σου λόγια!
+    if (typeof currentGroupId !== 'undefined' && currentGroupId !== 'personal') {
+        let myClone = library.find(x => x.is_clone && x.parent_id === s.id && x.user_id === currentUser?.id);
+        if (myClone && myClone.notes && myClone.notes.trim() !== "") {
+            pNote = myClone.notes; 
+        }
+    }
+
     const hasNotes = (bNote.trim().length > 0) || (pNote.trim().length > 0);
 
-    // Γεμίζουμε τα νέα πεδία της πλαϊνής μπάρας (αν υπάρχουν στο DOM)
-    const sideB = document.getElementById('sideBandNotes');
-    const sideP = document.getElementById('sidePersonalNotes');
-    if (sideB) sideB.value = bNote;
-    if (sideP) sideP.value = pNote;
+    // A. Ενημέρωση της Δεξιάς Μπάρας (Band Hub)
+    const txtBandNotes = document.getElementById('sideBandNotes');
+    const dispBandNotes = document.getElementById('sideBandNotesDisplay');
+    
+    if (txtBandNotes) txtBandNotes.value = bNote;
+    if (dispBandNotes) dispBandNotes.innerText = bNote !== "" ? bNote : "Δεν υπάρχουν οδηγίες.";
 
+    // B. Ενημέρωση του Sticky Note (Πάνω από τους στίχους)
+    const stickyArea = document.getElementById('stickyNotesArea');
+    const cNoteText = document.getElementById('conductorNoteText');
+    const pNoteText = document.getElementById('personalNoteText');
+    
+    if (stickyArea) {
+        if (hasNotes) {
+            stickyArea.style.display = 'block';
+            if (cNoteText) cNoteText.innerText = bNote ? "📢 Μαέστρος: " + bNote : "";
+            if (pNoteText) pNoteText.innerText = pNote ? "📝 Εγώ: " + pNote : "";
+        } else {
+            stickyArea.style.display = 'none';
+        }
+    }
+
+    // Γ. Ρυθμίζουμε τα δικαιώματα (Ποιος βλέπει τι στο Band Hub)
+    if (typeof updateBandHubUI === 'function') updateBandHubUI();
+
+    // --- ΛΟΓΙΚΗ INTRO / INTERLUDE ---
     const btnHtml = `<button id="btnIntroToggle" onclick="cycleIntroSize()" class="size-toggle-btn" title="Change Text Size"><i class="fas fa-text-height"></i></button>`;
-
-  // --- ΛΟΓΙΚΗ INTRO / INTERLUDE ---
     const introText = s.intro;
     const interText = s.inter || s.interlude; 
 
@@ -634,7 +662,7 @@ function renderPlayer(s) {
         metaHtml += `</div>`;
     }
     
-    // --- ΤΟ ΝΕΟ ΚΟΥΜΠΙ "ΠΙΝΕΖΑ" (Αντικαθιστά το παλιό μεγάλο κουμπί) ---
+    // --- ΤΟ ΚΟΥΜΠΙ "ΠΙΝΕΖΑ" ΓΙΑ ΤΑ STICKY NOTES ---
     let noteBtnHtml = '';
     if (hasNotes) {
         noteBtnHtml = `
@@ -642,7 +670,8 @@ function renderPlayer(s) {
                 <i class="fas fa-thumbtack" style="font-size:0.85rem;"></i>
             </button>`;
     }
-       // ✨ ΝΕΟ: Χτίσιμο των Tags για το Player
+
+    // ✨ ΧΤΙΣΙΜΟ TAGS ΓΙΑ ΤΟ PLAYER
     let tagsHtml = "";
     if (s.tags && Array.isArray(s.tags) && s.tags.length > 0) {
         tagsHtml = s.tags.map(t => `<span style="background:var(--accent); color:#000; padding:2px 8px; border-radius:12px; font-size:0.7rem; font-weight:bold; margin-right:5px; display:inline-block; margin-top:5px;">#${t}</span>`).join('');
@@ -663,14 +692,14 @@ function renderPlayer(s) {
              <div style="display:flex; justify-content:space-between; align-items:center;">
                  <div style="display:flex; align-items:center; gap: 10px;">
                      <span class="key-badge">${typeof getNote === 'function' ? getNote(s.key || "-", state.t) : s.key}</span>
- 
-                    <button id="btnToggleView" onclick="toggleViewMode()"></button>
-                </div>
+                     <button id="btnToggleView" onclick="toggleViewMode()"></button>
+                 </div>
             </div>
             ${metaHtml}
         </div>`;
     }
-    // --- EXTRAS (Video, Audio, Lyrics) ---
+
+    // --- EXTRAS (Video, Audio, Attachments) ---
     const vidBox = document.getElementById('video-sidebar-container');
     const embedBox = document.getElementById('video-embed-box');
     if (vidBox && embedBox) {
@@ -683,7 +712,6 @@ function renderPlayer(s) {
         } else { vidBox.style.display = 'none'; }
     }
 
-    if(typeof renderStickyNotes === 'function') renderStickyNotes(s);
     if(typeof renderRecordingsList === 'function') renderRecordingsList(s.recordings || [], []); 
     if(typeof renderAttachmentsList === 'function') renderAttachmentsList(s.attachments || []);
    
@@ -695,7 +723,6 @@ function renderPlayer(s) {
     // --- ΕΞΥΠΝΟ SPLIT (Ακυρώνεται στο Lyrics Mode) ---
     var split = { fixed: "", scroll: s.body || "" }; 
     
-    // Αν ΔΕΝ είμαστε σε lyrics mode, κάνε κανονικά το κόψιμο
     if (!isLyricsMode && typeof splitSongBody === 'function') {
         split = splitSongBody(s.body || "");
     }
@@ -703,7 +730,6 @@ function renderPlayer(s) {
     renderArea('fixed-container', split.fixed); 
     renderArea('scroll-container', split.scroll);  
     
-    // Κρύβουμε εντελώς το fixed-container για να μην πιάνει άδειο χώρο
     const fixedEl = document.getElementById('fixed-container');
     if (fixedEl) {
         fixedEl.style.display = split.fixed ? 'block' : 'none';
@@ -3186,3 +3212,86 @@ document.addEventListener('visibilitychange', async () => {
         await requestWakeLock();
     }
 });
+// ==========================================
+// BAND HUB UI & ACTIONS
+// ==========================================
+
+function updateBandHubUI() {
+    const isGod = (typeof currentRole !== 'undefined') && (currentRole === 'admin' || currentRole === 'owner' || currentRole === 'maestro');
+    const isBandContext = (typeof currentGroupId !== 'undefined' && currentGroupId !== 'personal');
+
+    const txtBandNotes = document.getElementById('sideBandNotes'); 
+    const dispBandNotes = document.getElementById('sideBandNotesDisplay'); 
+    const btnSaveNotes = document.getElementById('btnSaveBandNotes');
+    const bandHubGroup = document.getElementById('bandHubGroup');
+
+    // Κρύβουμε εντελώς το Band Hub αν είμαστε στην Προσωπική Βιβλιοθήκη
+    if (!isBandContext) {
+        if(bandHubGroup) bandHubGroup.style.display = 'none';
+        return;
+    } else {
+        if(bandHubGroup) bandHubGroup.style.display = 'block';
+    }
+
+    // Διαχωρισμός δικαιωμάτων
+    if (isGod) {
+        // Ο Μαέστρος βλέπει το Textarea και το κουμπί Save
+        if(txtBandNotes) txtBandNotes.style.display = 'block';
+        if(btnSaveNotes) btnSaveNotes.style.display = 'flex';
+        if(dispBandNotes) dispBandNotes.style.display = 'none';
+    } else {
+        // Το Μέλος βλέπει ΜΟΝΟ το Read-Only κείμενο
+        if(txtBandNotes) txtBandNotes.style.display = 'none';
+        if(btnSaveNotes) btnSaveNotes.style.display = 'none';
+        if(dispBandNotes) dispBandNotes.style.display = 'block';
+    }
+}
+
+async function saveMaestroNotes() {
+    if (!currentSongId) {
+        if (typeof showToast === 'function') showToast("Επιλέξτε ένα τραγούδι πρώτα.", "warning");
+        return;
+    }
+
+    const txtBox = document.getElementById('sideBandNotes');
+    if (!txtBox) return;
+    
+    const notesValue = txtBox.value.trim();
+    const songIndex = library.findIndex(s => s.id === currentSongId);
+    
+    if (songIndex === -1) return;
+
+    // 1. Ενημερώνουμε τη μνήμη RAM (library)
+    library[songIndex].conductorNotes = notesValue;
+    window.library = library;
+
+    // 2. Ενημερώνουμε την Τοπική Μνήμη της Μπάντας (Offline-first)
+    let bandLocalKey = 'mnotes_band_' + currentGroupId;
+    localStorage.setItem(bandLocalKey, JSON.stringify(window.library));
+
+    // 3. Στέλνουμε απευθείας στο Cloud (χωρίς να ανοίξουμε τον Editor)
+    if (typeof canUserPerform === 'function' && canUserPerform('USE_SUPABASE') && !isOffline) {
+        try {
+            const { error } = await supabaseClient
+                .from('songs')
+                .update({ conductorNotes: notesValue })
+                .eq('id', currentSongId);
+                
+            if (error) throw error;
+            if (typeof showToast === 'function') showToast("Η οδηγία καρφιτσώθηκε στο τραγούδι! 📌");
+        } catch (err) {
+            console.error("[Band Hub] Σφάλμα αποθήκευσης:", err);
+            if (typeof showToast === 'function') showToast("Αποθηκεύτηκε τοπικά, αλλά απέτυχε ο συγχρονισμός.", "error");
+        }
+    } else {
+        if (typeof showToast === 'function') showToast("Αποθηκεύτηκε Τοπικά! (Θα συγχρονιστεί όταν συνδεθείτε)");
+        
+        // Μπαίνει στην ουρά συγχρονισμού αν είμαστε offline
+        if (typeof addToSyncQueue === 'function' && currentUser) {
+           addToSyncQueue('SAVE_SONG', window.sanitizeForDatabase(library[songIndex], currentUser.id, currentGroupId));
+        }
+    }
+    
+    // Ανανέωση του Player για να δείξει το Sticky Note άμεσα
+    if (typeof renderPlayer === 'function') renderPlayer(library[songIndex]);
+}

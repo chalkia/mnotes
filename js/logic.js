@@ -271,6 +271,12 @@ async function loadContextData() {
                         if (cloudMap.has(localSong.id)) {
                             // Υπάρχει και στα δύο -> Σύγκριση ημερομηνίας
                             const cloudSong = cloudMap.get(localSong.id);
+                            // ✨ ΑΝΤΙ-ΖΟΜΠΙ: Αν το έκανες is_deleted=true στη Supabase (ή σβήστηκε από άλλο PC), σβήστο τοπικά!
+                            if (cloudSong.is_deleted === true) {
+                                 console.log(`🗑️ [SYNC] Αθόρυβη διαγραφή τοπικού διπλότυπου: ${localSong.title}`);
+                                 cloudMap.delete(localSong.id);
+                                 continue; // Πάμε στο επόμενο τραγούδι ΧΩΡΙΣ να το βάλουμε στη βιβλιοθήκη
+                            }
                             const localTime = new Date(localSong.updated_at || 0).getTime();
                             const cloudTime = new Date(cloudSong.updated_at || 0).getTime();
 
@@ -1669,12 +1675,16 @@ async function revertClone(cloneSong) {
 
     try {
         if (typeof canUserPerform === 'function' && canUserPerform('USE_SUPABASE')) {
+            // Εδώ το hard delete είναι σωστό, γιατί είναι απλά ένας κλώνος (δεν επηρεάζει άλλους)
             await supabaseClient.from('songs').delete().eq('id', cloneSong.id);
         }
 
-        let localData = JSON.parse(localStorage.getItem('mnotes_data') || "[]");
+        // ✨ ΔΙΟΡΘΩΣΗ: Πρέπει να σβηστεί από το ΣΩΣΤΟ storage (της Μπάντας), όχι πάντα από τα Προσωπικά!
+        let storageKey = currentGroupId === 'personal' ? 'mnotes_data' : 'mnotes_band_' + currentGroupId;
+        let localData = JSON.parse(localStorage.getItem(storageKey) || "[]");
+        
         localData = localData.filter(s => s.id !== cloneSong.id);
-        localStorage.setItem('mnotes_data', JSON.stringify(localData));
+        localStorage.setItem(storageKey, JSON.stringify(localData));
         
         window.library = localData;
         library = window.library;

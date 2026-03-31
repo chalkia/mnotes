@@ -245,12 +245,14 @@ function createDebugPanel() {
 
         <div class="debug-row">
             <label>Current Role (Context):</label>
-            <select id="debugRole" class="debug-select">
-                <option value="owner">Owner (Personal)</option>
-                <option value="admin">Band Admin/Leader</option>
-                <option value="member">BandMate</option>
-                <option value="viewer">Viewer (Read Only)</option>
-            </select>
+            <select id="debugTier" class="debug-select">
+                <option value="solo_free">Solo Free</option>
+                <option value="solo_pro">Solo Pro</option>
+                <option value="band_mate">BandMate</option>
+                <option value="band_leader">BandLeader</option>
+                <option value="band_maestro">BandMaestro</option>
+                <option value="ensemble">Ensemble</option>
+             </select>
         </div>
 
         <hr style="border-color:#555; margin:15px 0 10px 0;">
@@ -358,10 +360,10 @@ async function generatePromoCode() {
     if (!codeInp) {
         const randomString = Math.random().toString(36).substring(2, 8).toUpperCase();
         
-        // Προθέματα ανάλογα με το δώρο
-        if (valInp === 'solo') codeInp = `SOLO-${randomString}`;
-        else if (valInp === 'maestro') codeInp = `MAESTRO-${randomString}`;
-        else codeInp = `GIFT-${randomString}`; 
+     // Προθέματα ανάλογα με το δώρο
+    if (valInp === 'solo_pro') codeInp = `SOLO-${randomString}`;
+    else if (valInp === 'band_maestro') codeInp = `MAESTRO-${randomString}`;
+    else codeInp = `GIFT-${randomString}`;
     }
 
     if (!valInp) {

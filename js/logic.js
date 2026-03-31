@@ -766,11 +766,9 @@ async function saveSong() {
         return; 
     }
 
-    // ✨ ΕΝΤΟΠΙΣΜΟΣ ΝΕΟΥ ΤΡΑΓΟΥΔΙΟΥ
     const isNewSong = !currentSongId || currentSongId === 'null';
     if (isNewSong) {
         currentSongId = "s_" + Date.now() + Math.random().toString(16).slice(2);
-        console.log(`✨ [SAVE] Δημιουργήθηκε νέο ID: ${currentSongId}`);
     }
 
     const personalNotes = document.getElementById('inpPersonalNotes')?.value.trim() || "";
@@ -797,9 +795,7 @@ async function saveSong() {
 
     try {
         if (currentGroupId === 'personal') {
-            console.log("🔒 [SAVE] Αποθήκευση στην Προσωπική Βιβλιοθήκη");
             if (typeof saveToLocalStorage === 'function') saveToLocalStorage(songData);
-
             if (typeof canUserPerform === 'function' && canUserPerform('USE_SUPABASE')) {
                 await saveToCloud(songData, null);
                 showToast("Αποθηκεύτηκε στο Cloud! ☁️");
@@ -808,79 +804,56 @@ async function saveSong() {
             }
         }
         else {
-            console.log("🎸 [SAVE] Αποθήκευση σε Περιβάλλον Μπάντας");
-            
-            // ✨ ΔΙΟΡΘΩΣΗ: Αλεξίσφαιρος έλεγχος ρόλου (αγνοεί κεφαλαία/μικρά)
             const safeRole = String(currentRole).toLowerCase();
             const isGod = ['admin', 'owner', 'maestro'].includes(safeRole);
-            
             const hasBaseChanges = isNewSong || checkBaseChanges(songData, existingSong);
          
             if (hasBaseChanges) {
-                console.log("🧬 Εντοπίστηκαν αλλαγές στον κορμό ή είναι νέο τραγούδι.");
-                
-                // Υπο-συνάρτηση για αποθήκευση Master (κεντρικού) τραγουδιού
                 const saveMasterToBand = async () => {
                     let bandLocalKey = 'mnotes_band_' + currentGroupId;
                     let localBandData = JSON.parse(localStorage.getItem(bandLocalKey) || "[]");
                     let idx = localBandData.findIndex(s => s.id === currentSongId);
                     if (idx > -1) localBandData[idx] = songData;
                     else localBandData.push(songData);
-                    
                     localStorage.setItem(bandLocalKey, JSON.stringify(localBandData));
-                    window.library = localBandData;
-                    library = window.library;
-
                     await saveToCloud(songData, currentGroupId);
                     showToast("Η βιβλιοθήκη της μπάντας ενημερώθηκε! 🎸");
                 };
 
-                // ✨ ΕΞΥΠΝΗ ΔΡΟΜΟΛΟΓΗΣΗ: Καταλαβαίνει ακριβώς ΤΙ πας να αποθηκεύσεις
                 if (isNewSong) {
                     if (isGod) await saveMasterToBand();
-                    else await createOrUpdateClone(songData, existingSong); // Ασπίδα για τα απλά μέλη
+                    else await createOrUpdateClone(songData, existingSong);
                 } else if (existingSong && existingSong.is_clone) {
-                    // Αν επεξεργάζεσαι ήδη δικό σου κλώνο, απλά ενημέρωσέ τον (δεν ρωτάμε καν!)
                     await createOrUpdateClone(songData, existingSong);
                 } else {
-                    // Αν επεξεργάζεσαι το MASTER Τραγούδι
                     if (isGod) {
-                        if (confirm("Έχετε αλλάξει τον κορμό του τραγουδιού.\n\n[ΟΚ] Ενημέρωση ΚΟΙΝΟΥ τραγουδιού μπάντας.\n[ΑΚΥΡΩΣΗ] Αποθήκευση ως Προσωπικού Κλώνου.")) {
+                        if (confirm("Ενημέρωση ΚΟΙΝΟΥ τραγουδιού μπάντας; [OK]\nΑποθήκευση ως Προσωπικού Κλώνου; [Cancel]")) {
                             await saveMasterToBand();
                         } else {
                             await createOrUpdateClone(songData, existingSong);
                         }
                     } else {
-                        // Το απλό μέλος δεν ρωτάται. Φτιάχνει κλώνο αναγκαστικά.
                         await createOrUpdateClone(songData, existingSong);
                     }
                 }
             } else {
-                // Δεν άλλαξες τίτλο/στίχους, άλλαξες μόνο προσωπικές σημειώσεις (Overrides)
-                if (typeof saveAsOverride === 'function') {
-                    await saveAsOverride({ ...songData });
-                }
-                showToast(typeof t === 'function' ? t('msg_personal_settings_saved') : "Προσωπικές ρυθμίσεις αποθηκεύτηκαν.");
+                if (typeof saveAsOverride === 'function') await saveAsOverride({ ...songData });
+                showToast("Προσωπικές ρυθμίσεις αποθηκεύτηκαν.");
             }
             lastSaveTimestamp = Date.now();
         }
          
-        // UI & Navigation
+        // UI REFRESH
         const targetId = currentSongId;
         if (typeof loadContextData === 'function') await loadContextData(); 
 
-        if (typeof displaySong === 'function') {
-            displaySong(targetId); 
-        } else if (typeof toViewer === 'function') {
-            toViewer(true);
-        }
+        if (typeof displaySong === 'function') displaySong(targetId); 
+        else if (typeof toViewer === 'function') toViewer(true);
 
-        if (typeof switchView === 'function') {
-            switchView('view-details');
-        }
+        if (typeof switchView === 'function') switchView('view-details');
 
     } catch (err) {
-        console.error("❌ [SAVE ERROR] Αποτυχία αποθήκευσης:", err);
+        console.error("❌ [SAVE ERROR]:", err);
         showToast("Σφάλμα κατά την αποθήκευση", "error");
     }
 }
@@ -1675,5 +1648,60 @@ async function revertClone(cloneSong) {
     } catch (err) {
         console.error("Revert Error:", err);
         showToast("Σφάλμα κατά την ακύρωση.", "error");
+    }
+}
+/**
+ * ΜΟΝΟΔΡΟΜΟΣ ΣΥΓΧΡΟΝΙΣΜΟΣ: Band -> Personal Editor
+ * Φορτώνει τα δεδομένα της Μπάντας στον Editor του χρήστη για έλεγχο.
+ */
+async function syncEditorFromBand() {
+    if (currentGroupId !== 'personal' || !currentSongId) {
+        showToast("Ο συγχρονισμός αφορά τραγούδια μπάντας στην προσωπική βιβλιοθήκη.", "info");
+        return;
+    }
+
+    try {
+        showToast("Αναζήτηση ενημερώσεων στη Μπάντα... 🔍");
+
+        // 1. Αναζήτηση του Master στη Supabase (σε οποιοδήποτε group)
+        const { data: masterSong, error } = await supabaseClient
+            .from('songs')
+            .select('*')
+            .eq('id', currentSongId)
+            .not('group_id', 'is', null)
+            .maybeSingle();
+
+        if (error || !masterSong) {
+            showToast("Δεν βρέθηκε πηγή συγχρονισμού στη Μπάντα.", "error");
+            return;
+        }
+
+        // 2. Σύγκριση Timestamps
+        const localSong = library.find(s => s.id === currentSongId);
+        const localTime = new Date(localSong?.updated_at || 0).getTime();
+        const masterTime = new Date(masterSong.updated_at).getTime();
+
+        let confirmMsg = `🔄 Βρέθηκε έκδοση στη Μπάντα. Θέλετε να τη φορτώσετε στον Editor;`;
+        
+        if (localTime > masterTime) {
+            confirmMsg = `⚠️ ΠΡΟΣΟΧΗ: Το δικό σου τραγούδι είναι πιο πρόσφατο.\n\nΕίσαι σίγουρος ότι θέλεις να το αντικαταστήσεις με την έκδοση της Μπάντας;`;
+        }
+
+        if (!confirm(confirmMsg)) return;
+
+        // 3. ΕΝΗΜΕΡΩΣΗ ΠΕΔΙΩΝ EDITOR (Χωρίς Save)
+        // Επιτρέπουμε στον χρήστη να δει τις αλλαγές πριν τις οριστικοποιήσει
+        document.getElementById('inpTitle').value = masterSong.title;
+        document.getElementById('inpArtist').value = masterSong.artist || "";
+        document.getElementById('inpKey').value = masterSong.key || "";
+        document.getElementById('inpBody').value = masterSong.body || "";
+        document.getElementById('inpIntro').value = masterSong.intro || "";
+        document.getElementById('inpInter').value = masterSong.interlude || "";
+        
+        showToast("Τα δεδομένα φορτώθηκαν! Πατήστε Αποθήκευση για να οριστικοποιηθούν. ✅");
+
+    } catch (err) {
+        console.error("❌ Sync Editor Error:", err);
+        showToast("Σφάλμα κατά τον συγχρονισμό", "error");
     }
 }

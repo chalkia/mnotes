@@ -280,22 +280,36 @@ function clearLibrary() {
         li.className = itemClass;
         li.setAttribute('data-id', s.id);
 
-        // D. Click Event
+       // D. Click Event
         li.onclick = (e) => {
             // Αν πατήσουμε το κυκλάκι ή το κουμπί του τόνου, δεν ανοίγει το τραγούδι
             if(e.target.classList.contains('song-action') || e.target.classList.contains('song-key-badge')) return;
             
             if (typeof loadSong === 'function') loadSong(s.id);
             
+            // ✨ ΝΕΟ 1: Αλλαγή "φωτισμού" στη Δεξιά Μπάρα (Από Library -> Stage)
+            // (Θα χρειαστεί να βάλεις τα σωστά ID των κουμπιών σου εδώ αν διαφέρουν)
+            const btnLibrary = document.getElementById('btnTabLibrary'); // Βάλε το ID του κουμπιού Library
+            const btnStage = document.getElementById('btnTabStage');     // Βάλε το ID του κουμπιού Stage
+            
+            if (btnLibrary) btnLibrary.classList.remove('active');
+            if (btnStage) btnStage.classList.add('active');
+            
             // Κλείσιμο Drawer σε κινητά
             if(window.innerWidth <= 1024) {
-                const d = document.getElementById('rightDrawer');
-                if(d && d.classList.contains('open') && typeof toggleRightDrawer === 'function') {
+                // ✨ ΝΕΟ 2: Διόρθωσα το rightDrawer σε leftDrawer (Η λίστα συνήθως είναι αριστερά!)
+                const leftDrawer = document.getElementById('leftDrawer'); 
+                if(leftDrawer && leftDrawer.classList.contains('open') && typeof toggleLeftDrawer === 'function') {
+                    toggleLeftDrawer();
+                }
+                
+                // Αν έχεις και δεξί συρτάρι που θες να κλείνει:
+                const rightDrawer = document.getElementById('rightDrawer');
+                if(rightDrawer && rightDrawer.classList.contains('open') && typeof toggleRightDrawer === 'function') {
                     toggleRightDrawer();
                 }
             }
         };
-
         // E. Display Variables
         var displayTitle = s.title;
         var displayKey = s.key || "-";

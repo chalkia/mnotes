@@ -235,114 +235,86 @@ function updateUIForRole() {
    DATA LOADING & SYNC (OFFLINE-FIRST)
    ========================================= */
 async function loadContextData() {
-    console.log("🔍 [DEBUG SYNC] Ξεκινάει επαναφόρτωση...");
+    console.log(`🔍 [SYNC] Εκκίνηση συγχρονισμού για Context: ${currentGroupId}`);
     const listEl = document.getElementById('songList');
-    if(listEl) listEl.innerHTML = '<div class="loading-msg">Loading Library...</div>';
+    if(listEl) listEl.innerHTML = '<div class="loading-msg">Συγχρονισμός...</div>';
 
     try {
-        let currentLibrary = []; // Χρησιμοποιούμε προσωρινή μεταβλητή
+        let currentLibrary = []; 
+        let storageKey = currentGroupId === 'personal' ? 'mnotes_data' : `mnotes_band_${currentGroupId}`;
 
-        if (currentGroupId === 'personal') {
-            // 1. Τοπική Φόρτωση
-            const localData = localStorage.getItem('mnotes_data');
-            if (localData) {
-                const parsed = JSON.parse(localData);
-                currentLibrary = Array.isArray(parsed) ? parsed.map(ensureSongStructure) : [];
-            }
+        // --- ΒΗΜΑ 1: ΦΟΡΤΩΣΗ ΚΑΙ ΚΑΘΑΡΙΣΜΟΣ ΤΟΠΙΚΗΣ ΜΝΗΜΗΣ ---
+        const localDataRaw = localStorage.getItem(storageKey);
+        if (localDataRaw) {
+            let parsed = JSON.parse(localDataRaw);
+            
+            // STRICT ISOLATION: Κρατάμε μόνο όσα ανήκουν πραγματικά σε αυτό το context
+            currentLibrary = parsed.filter(s => {
+                if (currentGroupId === 'personal') return !s.group_id; // Στα προσωπικά ΔΕΝ έχει group_id
+                return s.group_id === currentGroupId; // Στη μπάντα ΠΡΕΠΕΙ να έχει ΑΥΤΟ το group_id
+            }).map(ensureSongStructure);
+        }
 
-            // 2. Smart Sync από Cloud (Προσωπικά)
-            if (navigator.onLine && typeof canUserPerform === 'function' && canUserPerform('USE_SUPABASE')) {
-                
-                // ✨ ΒΗΜΑ 1: Αδειάζουμε την ουρά των offline αλλαγών ΠΡΙΝ συγχρονίσουμε
-                if (typeof processSyncQueue === 'function') await processSyncQueue();
+        // --- ΒΗΜΑ 2: CLOUD SYNC ---
+        if (navigator.onLine && typeof canUserPerform === 'function' && canUserPerform('USE_SUPABASE')) {
+            if (typeof processSyncQueue === 'function') await processSyncQueue();
 
+            if (currentGroupId === 'personal') {
+                // ==========================================
+                // ΛΟΓΙΚΗ ΠΡΟΣΩΠΙΚΟΥ ΣΥΓΧΡΟΝΙΣΜΟΥ (SSOT)
+                // ==========================================
                 const cloudSongs = await fetchPrivateSongs();
-                const deletedIds = JSON.parse(localStorage.getItem('mnotes_deleted_ids') || "[]");
-                
-                if (cloudSongs) {
-                    const finalLibraryMap = new Map();
-                    const cloudMap = new Map();
-                    cloudSongs.forEach(s => cloudMap.set(s.id, s));
+                const cloudMap = new Map(cloudSongs.map(s => [s.id, s]));
+                const localMap = new Map(currentLibrary.map(s => [s.id, s]));
+                const resolvedMap = new Map();
 
-                    // Α. Επεξεργασία Τοπικής Βιβλιοθήκης
-                    for (const localSong of currentLibrary) {
-                        if (String(localSong.id).startsWith('demo')) continue;
-
-                              if (cloudMap.has(localSong.id)) {
-                            const cloudSong = cloudMap.get(localSong.id);
-                            
-                            // ✨ ΑΝΤΙ-ΖΟΜΠΙ: Αν στη Supabase είναι διεγραμμένο, σβήστο τοπικά ΑΜΕΣΩΣ!
-                            if (cloudSong.is_deleted === true) {
-                                 console.log(`🗑️ [SYNC] Αθόρυβη διαγραφή τοπικού διπλότυπου: ${localSong.title}`);
-                                 cloudMap.delete(localSong.id);
-                                 continue; // Το αγνοούμε και ΠΡΟΧΩΡΑΜΕ!
-                            }
-
-                            // Σύγκριση ημερομηνίας
-                            const localTime = new Date(localSong.updated_at || 0).getTime();
-                            const cloudTime = new Date(cloudSong.updated_at || 0).getTime();
-
-                            if (localTime > cloudTime + 2000) {
-                                finalLibraryMap.set(localSong.id, localSong);
-                                await supabaseClient.from('songs').upsert(window.sanitizeForDatabase(localSong, currentUser.id, null), { onConflict: 'id' });
-                            } else {
-                                finalLibraryMap.set(localSong.id, cloudSong);
-                            }
-                        } else {
-                            // Υπάρχει ΜΟΝΟ Τοπικά
-                            if (deletedIds.includes(localSong.id)) {
-                                // Ο χρήστης το διέγραψε, αλλά ίσως η άλλη συσκευή δεν το ξέρει.
-                                // Εφόσον λείπει από το cloud, το καθαρίζουμε κι από εδώ.
-                                console.log(`🗑️ [SYNC] Cleaning up local zombie: ${localSong.title}`);
-                            } else {
-                                // Είναι νέο τραγούδι που δεν έχει ανέβει ποτέ
-                                finalLibraryMap.set(localSong.id, localSong);
-                                await supabaseClient.from('songs').upsert(window.sanitizeForDatabase(localSong, currentUser.id, null), { onConflict: 'id' });
-                                console.log(`🚀 [SYNC] Uploaded New: ${localSong.title}`);
-                            }
-                        }
-                        // Αφαιρούμε από το cloudMap ό,τι επεξεργαστήκαμε
-                        cloudMap.delete(localSong.id);
+                // Φάση Α: Επεξεργασία δεδομένων Cloud εναντίον Τοπικών
+                for (const [id, cloudSong] of cloudMap) {
+                    if (cloudSong.is_deleted) {
+                        localMap.delete(id); // Αν το έχουμε τοπικά, το πετάμε.
+                        continue; 
                     }
 
-                    // Β. Επεξεργασία όσων έμειναν στο CloudMap (Υπάρχουν ΜΟΝΟ στη βάση)
-                    for (const [id, cloudSong] of cloudMap) {
-                        
-                       // ✨ ΑΓΝΟΗΣΕ ΤΑ ΔΙΕΓΡΑΜΜΕΝΑ ΤΗΣ ΒΑΣΗΣ (Μην τα κατεβάσεις!)
-                       if (cloudSong.is_deleted === true) continue;
-                       if (deletedIds.includes(id)) {
-                            // ΣΕΝΑΡΙΟ: Το διέγραψα ΕΔΩ, αλλά υπάρχει στη ΒΑΣΗ (από άλλη συσκευή)
-                            const action = confirm(`Το τραγούδι "${cloudSong.title}" διαγράφηκε σε αυτή τη συσκευή, αλλά υπάρχει στο Cloud.\n\n[OK] Επαναφορά στη συσκευή\n[Cancel] Οριστική διαγραφή από παντού`);
-                            
-                            if (action) {
-                                finalLibraryMap.set(id, cloudSong);
-                                // Αφαιρούμε από τα διαγραμμένα
-                                const newDeleted = deletedIds.filter(d => d !== id);
-                                localStorage.setItem('mnotes_deleted_ids', JSON.stringify(newDeleted));
-                            } else {
-                                await supabaseClient.from('songs').delete().eq('id', id);
-                                console.log(`💀 [SYNC] Deleted from Cloud: ${cloudSong.title}`);
-                            }
-                        } else {
-                            // Είναι νέο τραγούδι από άλλη συσκευή
-                            finalLibraryMap.set(id, cloudSong);
-                            console.log(`📥 [SYNC] Downloaded New: ${cloudSong.title}`);
-                        }
-                    }
+                    const localSong = localMap.get(id);
+                    if (localSong) {
+                        // Επίλυση σύγκρουσης με βάση το Timestamp
+                        const localTime = new Date(localSong.updated_at || 0).getTime();
+                        const cloudTime = new Date(cloudSong.updated_at || 0).getTime();
 
-                    currentLibrary = Array.from(finalLibraryMap.values());
-                    localStorage.setItem('mnotes_data', JSON.stringify(currentLibrary));
+                        if (localTime > cloudTime) {
+                            // Τοπικό πιο νέο (το στέλνουμε στο Cloud)
+                            resolvedMap.set(id, localSong);
+                            await supabaseClient.from('songs').upsert(window.sanitizeForDatabase(localSong, currentUser.id, null));
+                            console.log(`⬆️ [SYNC] Ενημέρωση Cloud: ${localSong.title}`);
+                        } else {
+                            // Cloud πιο νέο ή ίδιο (το κρατάμε)
+                            resolvedMap.set(id, cloudSong);
+                        }
+                        localMap.delete(id); // Το επεξεργαστήκαμε, το βγάζουμε από τη λίστα
+                    } else {
+                        // Υπάρχει στο Cloud αλλά όχι τοπικά -> Κατέβασμα
+                        resolvedMap.set(id, cloudSong);
+                    }
                 }
-            } 
-        } else {
-            // Context Μπάντας
-            const bandLocalKey = 'mnotes_band_' + currentGroupId;
-            const localBandData = localStorage.getItem(bandLocalKey);
-            if (localBandData) {
-                currentLibrary = JSON.parse(localBandData);
-            }
 
-            if (navigator.onLine && typeof canUserPerform === 'function' && canUserPerform('USE_SUPABASE')) {
+                // Φάση Β: Όσα τοπικά ΔΕΝ υπήρχαν καν στο Cloud (Νέα offline τραγούδια)
+                for (const [id, localSong] of localMap) {
+                    if (String(id).startsWith('demo')) {
+                        resolvedMap.set(id, localSong);
+                        continue;
+                    }
+                    // Αφού δεν υπάρχει στο Cloud και δεν είναι Demo, είναι ολοκαίνουργιο τοπικό
+                    resolvedMap.set(id, localSong);
+                    await supabaseClient.from('songs').upsert(window.sanitizeForDatabase(localSong, currentUser.id, null));
+                    console.log(`🚀 [SYNC] Ανέβασμα νέου: ${localSong.title}`);
+                }
+
+                currentLibrary = Array.from(resolvedMap.values());
+
+            } else {
+                // ==========================================
+                // ΛΟΓΙΚΗ ΣΥΓΧΡΟΝΙΣΜΟΥ ΜΠΑΝΤΑΣ
+                // ==========================================
                 const cloudBandSongs = await fetchBandSongs(currentGroupId);
                 const { data: overrides } = await supabaseClient
                     .from('personal_overrides')
@@ -350,20 +322,15 @@ async function loadContextData() {
                     .eq('user_id', currentUser.id)
                     .eq('group_id', currentGroupId);
 
-              if (cloudBandSongs) {
-                    // ✨ 1. Ξεχωρίζουμε ποια τραγούδια είναι Ενεργά και ποια Διαγράφηκαν (Soft Deleted)
+                if (cloudBandSongs) {
                     const activeCloudSongs = cloudBandSongs.filter(s => !s.is_deleted);
                     const activeCloudIds = activeCloudSongs.map(s => s.id);
 
-                    // ✨ 2. ΕΝΤΟΠΙΣΜΟΣ ΔΙΑΓΡΑΜΜΕΝΩΝ & ΜΗΧΑΝΙΣΜΟΣ ΔΙΑΣΩΣΗΣ ΓΙΑ ΤΟ ΜΕΛΟΣ
+                    // Μηχανισμός Διάσωσης
                     for (let localSong of currentLibrary) {
                         if (!activeCloudIds.includes(localSong.id) && !String(localSong.id).startsWith('demo')) {
-                            
-                            // Αν ο Admin το διέγραψε, η εφαρμογή ρωτάει το Μέλος αν θέλει να το κρατήσει
-                            const wantsToKeep = confirm(`📢 Ο διαχειριστής διέγραψε το τραγούδι "${localSong.title}" από το ρεπερτόριο της Μπάντας.\n\nΘέλετε να κρατήσετε ένα αντίγραφο (μόνο στίχους/συγχορδίες) στην Προσωπική σας Βιβλιοθήκη;`);
-                            
+                            const wantsToKeep = confirm(`📢 Ο διαχειριστής διέγραψε το τραγούδι "${localSong.title}".\nΘέλετε να κρατήσετε ένα καθαρό αντίγραφο στα Προσωπικά σας;`);
                             if (wantsToKeep) {
-                                // Δημιουργούμε ένα καθαρό αντίγραφο, χωρίς τα "ακριβά" assets της μπάντας
                                 const personalCopy = { 
                                     ...localSong,
                                     id: "s_" + Date.now() + Math.random().toString(16).slice(2),
@@ -371,27 +338,19 @@ async function loadContextData() {
                                     user_id: currentUser.id,
                                     is_clone: false,
                                     parent_id: null,
-                                    conductorNotes: "", // Καθαρίζουμε το IP του Μαέστρου
-                                    recordings: [],     // Δεν παίρνει τα mp3 της μπάντας
-                                    attachments: [],    // Δεν παίρνει τα PDF της μπάντας
-                                    is_deleted: false
+                                    conductorNotes: "", recordings: [], attachments: [], is_deleted: false,
+                                    updated_at: new Date().toISOString()
                                 };
                                 
-                                // Αποθήκευση στην Τοπική Προσωπική Μνήμη
                                 let myData = JSON.parse(localStorage.getItem('mnotes_data') || "[]");
                                 myData.push(personalCopy);
                                 localStorage.setItem('mnotes_data', JSON.stringify(myData));
-                                
-                                // Αποστολή στο Cloud στα Προσωπικά
-                                const safePayload = window.sanitizeForDatabase(personalCopy, currentUser.id, null);
-                                supabaseClient.from('songs').insert([safePayload]);
-                                
-                                if (typeof showToast === 'function') showToast(`Το "${localSong.title}" διασώθηκε στα Προσωπικά σας! 🏠`);
+                                supabaseClient.from('songs').insert([window.sanitizeForDatabase(personalCopy, currentUser.id, null)]);
                             }
                         }
                     }
 
-                    // ✨ 3. Ολοκληρώνουμε τον συγχρονισμό της μπάντας, κρατώντας ΜΟΝΟ τα Ενεργά τραγούδια
+                    // Εφαρμογή των Overrides στα ενεργά τραγούδια
                     currentLibrary = activeCloudSongs.map(song => {
                         const userOverride = overrides?.find(o => o.song_id === song.id);
                         if (userOverride) {
@@ -401,37 +360,27 @@ async function loadContextData() {
                         }
                         return song;
                     });
-                    
-                    localStorage.setItem(bandLocalKey, JSON.stringify(currentLibrary));
-                    console.log(`☁️ Band Sync: Το τοπικό αρχείο της μπάντας ${currentGroupId} ενημερώθηκε. Διαγράφηκαν τα ανενεργά.`);
-                } 
+                }
             }
         }
 
-        // ✨ Η ΚΡΙΣΙΜΗ ΓΕΦΥΡΑ: Ενημερώνουμε την παγκόσμια κατάσταση ΠΡΙΝ το render
+        // --- ΒΗΜΑ 3: ΑΠΟΘΗΚΕΥΣΗ ΚΑΙ ΑΝΑΝΕΩΣΗ UI ---
+        localStorage.setItem(storageKey, JSON.stringify(currentLibrary));
         window.library = currentLibrary;
         library = window.library;
 
         if (typeof renderSidebar === 'function') renderSidebar();
               
-        // Αυτόματη επιλογή τραγουδιού
         if (library.length > 0) {
             const songStillExists = currentSongId ? library.find(s => s.id === currentSongId) : null;
-            if (!songStillExists) {
-                currentSongId = library[0].id;
-            }
+            if (!songStillExists) currentSongId = library[0].id;
             
-            // ✨ ΔΙΟΡΘΩΣΗ ΓΙΑ ΚΙΝΗΤΑ: Ανοίγει τον Viewer αυτόματα ΜΟΝΟ σε οθόνες PC/Tablet (> 1024px).
             if (window.innerWidth > 1024) {
                 if (typeof toViewer === 'function') toViewer(true);
             } else {
-                // ✨ ΚΙΝΗΤΑ: Δεν ανοίγει το τραγούδι, αλλά ανοίγει η Αριστερή Μπάρα (Λίστα)!
                 const leftDrawer = document.getElementById('leftDrawer');
-                if (leftDrawer && typeof toggleLeftDrawer === 'function') {
-                    // Αν δεν είναι ήδη ανοιχτή, άνοιξέ την!
-                    if (!leftDrawer.classList.contains('open')) {
-                        toggleLeftDrawer();
-                    }
+                if (leftDrawer && typeof toggleLeftDrawer === 'function' && !leftDrawer.classList.contains('open')) {
+                    toggleLeftDrawer();
                 }
             }
         } else {
@@ -439,57 +388,7 @@ async function loadContextData() {
         }
         
     } catch (err) { 
-        console.error("❌ Load Context Error:", err);
-        if (typeof showToast === 'function') showToast("Error loading context", "error");
-    }
-    
-    console.log("🔍 [DEBUG SYNC] Τέλος επαναφόρτωσης. Νέο library length:", window.library.length);
-}
-
-// --- Ο ΠΟΡΤΙΕΡΗΣ (Ελεγκτής Δικαιωμάτων) v2.2 --- ΧΡΕΙΑΖΕΤΑΙ ΠΡΟΣΘΗΚΗ ΤΟΥ ΕΝSEMBLE
-function canUserPerform(action) {
-    let tierKey = 'solo_free';
-    
-    if (typeof userProfile !== 'undefined' && userProfile && userProfile.subscription_tier) {
-        tierKey = userProfile.subscription_tier;
-    } else if (typeof currentTier !== 'undefined' && currentTier) {
-        tierKey = currentTier;
-    }
-
-    const tierMapping = {
-        'free': 'solo_free',
-        'solo': 'solo_pro',
-        'member': 'band_mate',
-        'owner': 'band_leader',
-        'maestro': 'band_maestro'
-    };
-
-    if (tierMapping[tierKey]) {
-        tierKey = tierMapping[tierKey];
-    }
-
-    if (!TIER_CONFIG || !TIER_CONFIG[tierKey]) {
-        tierKey = 'solo_free';
-    }
-
-    const tierData = TIER_CONFIG[tierKey];
-
-    switch(action) {
-        case 'USE_SUPABASE':
-        case 'CLOUD_SYNC':
-            return tierData.canCloudSync;
-        case 'JOIN_BANDS':
-            return tierData.canJoinBands;
-        case 'SAVE_ATTACHMENTS':
-            return tierData.canSaveAttachments;
-        case 'ADVANCED_DRUMS':
-            return tierData.hasAdvancedDrums;
-        case 'PRINT':
-            return tierData.canPrint;
-        case 'DELEGATE_ADMIN':
-            return tierData.allowsDelegatedAdmin || false;
-        default:
-            return false;
+        console.error("❌ [SYNC FATAL ERROR]:", err);
     }
 }
 // ==========================================
@@ -753,33 +652,27 @@ async function saveAsOverride(songData) {
         console.log("✈️ Είστε Offline. Οι ρυθμίσεις αποθηκεύτηκαν τοπικά.");
     }
 }
+
 /**
- * Ανάκτηση προσωπικών τραγουδιών από το Cloud (ΕΥΕΛΙΚΤΟ FETCH)
+ * Ανάκτηση προσωπικών τραγουδιών από το Cloud.
+ * Φέρνει ΚΑΙ τα is_deleted για να ενημερώσει σωστά την τοπική μνήμη.
  */
 async function fetchPrivateSongs() {
-    console.log("📥 [FETCH] Ζητάω ΟΛΑ τα τραγούδια του χρήστη από τη Supabase...");
+    console.log("📥 [FETCH] Ανάκτηση Προσωπικής Βιβλιοθήκης από το Cloud...");
     
-    // Τραβάμε ΟΛΑ τα τραγούδια του χρήστη, ανεξαρτήτως group_id
+    // Φέρνουμε ΜΟΝΟ τα προσωπικά (group_id is null) του χρήστη. 
     const { data, error } = await supabaseClient
         .from('songs')
         .select('*')
         .eq('user_id', currentUser.id)
-        .order('title', { ascending: true });
+        .is('group_id', null);
 
     if (error) {
         console.error("❌ [FETCH ERROR]:", error);
         return [];
     }
 
-    console.log(`📥 [FETCH] Η Supabase βρήκε συνολικά ${data.length} τραγούδια (Μπάντας + Προσωπικά).`);
-
-    // Φιλτράρουμε τοπικά με ελαστικότητα! 
-    // Πιάνουμε τα undefined, τα null (ως object), τα "null" (ως string) και τα κενά ("").
-    const privateSongs = data.filter(s => !s.group_id || s.group_id === "" || s.group_id === "null");
-    
-    console.log(`📥 [FETCH] Από αυτά, τα ${privateSongs.length} αναγνωρίστηκαν ως Προσωπικά.`);
-    
-    return privateSongs.map(s => ensureSongStructure(s));
+    return data.map(s => ensureSongStructure(s));
 }
 /**
  * Ανάκτηση κοινών τραγουδιών (Master) ΚΑΙ των δικών σου Κλώνων για τη Μπάντα
@@ -1102,15 +995,29 @@ function ensureSongStructure(song) {
         video: song.video || "",
         tags: Array.isArray(song.playlists) ? song.playlists : (song.tags || []),
         notes: song.notes || "",
-        updatedAt: song.updatedAt || Date.now(),
+        
+        // ✨ Πιάνει είτε το παλιό είτε το νέο, και κρατάει το ISO format
+        updated_at: song.updated_at || song.updatedAt || new Date().toISOString(), 
+        
         group_id: song.group_id || null,
         parent_id: song.parent_id || null,
         is_clone: !!song.is_clone,
         is_deleted: !!song.is_deleted, 
         conductorNotes: song.conductorNotes || "", 
         recordings: Array.isArray(song.recordings) ? song.recordings : [],
-        attachments: Array.isArray(song.attachments) ? song.attachments : []    
+        attachments: Array.isArray(song.attachments) ? song.attachments : [],
+        
+        //  Διατήρηση των Overrides της Μπάντας (Offline Mode)
+        personal_notes: song.personal_notes || "",
+        personal_transpose: song.personal_transpose || 0,
+        personal_capo: song.personal_capo || 0,
+        has_override: !!song.has_override
     };
+    
+    // Δίνουμε πίσω ΚΑΙ το camelCase 
+    // σε περίπτωση που κάποιο παλιό σου script στο UI ψάχνει ακόμα το "updatedAt"
+    cleaned.updatedAt = cleaned.updated_at; 
+
     return cleaned;
 }
 
@@ -1516,10 +1423,12 @@ async function redeemGiftCode() {
         alert("Προέκυψε σφάλμα κατά την εξαργύρωση.");
     }
 }
+/**
+ * Καθαρή διαγραφή: Soft-delete στο Cloud, Hard-delete τοπικά.
+ */
 async function deleteCurrentSong() {
     if (!currentSongId) return;
    
-    // ✨ 1. ΔΙΚΛΙΔΑ ΑΣΦΑΛΕΙΑΣ: Απαγόρευση διαγραφής αν είσαι απλό μέλος (viewer) σε μπάντα!
     if (currentGroupId !== 'personal' && (currentRole !== 'owner' && currentRole !== 'admin')) {
         showToast("Δεν έχετε δικαίωμα διαγραφής σε αυτή τη μπάντα.", "error");
         return;
@@ -1530,54 +1439,36 @@ async function deleteCurrentSong() {
 
     if (!confirm(`Οριστική διαγραφή του "${s.title}";`)) return;
 
-    // ✨ 2. TOMBSTONE (Η "Μαύρη Λίστα"): Καταγράφουμε το ID στα διεγραμμένα ΠΡΙΝ προχωρήσουμε
-    // Αυτό γλιτώνει τα "ζόμπι" στα προσωπικά τραγούδια (ώστε να μην τα ξανανεβάσει το Smart Sync)
-    let deletedIds = JSON.parse(localStorage.getItem('mnotes_deleted_ids') || "[]");
-    if (!deletedIds.includes(currentSongId)) {
-        deletedIds.push(currentSongId);
-        localStorage.setItem('mnotes_deleted_ids', JSON.stringify(deletedIds));
-    }
-
     try {
-        // --- STEP 1: CLOUD DELETION ---
-        
-        // A. Supabase (Maestro / Bands & Προσωπικά)
+        console.log(`🗑️ [DELETE] Εκκίνηση διαγραφής για: ${s.title}`);
+
+        // 1. Ενημέρωση Cloud (Soft Delete)
         if (canUserPerform('USE_SUPABASE') && !String(currentSongId).startsWith('demo')) {
-             // ✨ ΛΥΣΗ Α (SOFT DELETE): Σημαδεύουμε το τραγούδι ως διεγραμμένο αντί να το κάψουμε!
-             await supabaseClient.from('songs')
-                .update({ is_deleted: true, updated_at: new Date().toISOString() })
-                .eq('id', currentSongId);
+             const payload = { is_deleted: true, updated_at: new Date().toISOString() };
              
-             await supabaseClient.from('personal_overrides').delete().eq('song_id', currentSongId);
-        }
-        // B. Google Drive (Solo Tier)
-        else if (canUserPerform('USE_DRIVE')) {
-            // Εδώ θα μπει μελλοντικά η διαγραφή από το Drive
+             if (navigator.onLine) {
+                 await supabaseClient.from('songs').update(payload).eq('id', currentSongId);
+                 await supabaseClient.from('personal_overrides').delete().eq('song_id', currentSongId);
+             } else {
+                 // Αν είμαστε offline, μπαίνει στην ουρά για να διαγραφεί όταν συνδεθούμε!
+                 addToSyncQueue('SAVE_SONG', { id: currentSongId, ...payload });
+             }
         }
 
-        // --- STEP 2: LOCAL DELETION ---
-        window.library = window.library.filter(x => x.id !== currentSongId);
-        
-        // ✨ ΔΙΟΡΘΩΣΗ: Σώζουμε στο ΣΩΣΤΟ Local Storage ανάλογα με το πού βρισκόμαστε (Personal ή Band)
+        // 2. Τοπική Διαγραφή (Hard Delete)
         let storageKey = currentGroupId === 'personal' ? 'mnotes_data' : 'mnotes_band_' + currentGroupId;
+        window.library = window.library.filter(x => x.id !== currentSongId);
         localStorage.setItem(storageKey, JSON.stringify(window.library));
 
         currentSongId = null;
-        
-        // Ανανεώνουμε το UI
         renderSidebar(); 
         showToast("Το τραγούδι διαγράφηκε.");
 
-        if (window.library.length === 0) {
-             console.log("Library is now empty.");
-        }
-        
-        // Φόρτωση επόμενου ή επιστροφή στον Editor
         if (library.length > 0) loadSong(library[0].id);
         else if (typeof toEditor === 'function') toEditor();
 
     } catch (err) {
-        console.error("Delete Error:", err);
+        console.error("❌ [DELETE ERROR]:", err);
         showToast("Σφάλμα κατά τη διαγραφή", "error");
     }
 }

@@ -158,7 +158,6 @@ if (typeof window.t === 'undefined') {
 /* =========================================
    USER & CONTEXT MANAGEMENT (CLEANED)
    ========================================= */
-
 async function initUserData() {
     if (!currentUser) return;
     try {
@@ -170,12 +169,20 @@ async function initUserData() {
 
         if (profile) {
             userProfile = profile;
-            // Σιγουρευόμαστε ότι το tier είναι μικρά γράμματα
             userProfile.subscription_tier = profile.subscription_tier.toLowerCase();
         } else {
             const newProfile = { id: currentUser.id, email: currentUser.email, subscription_tier: 'free' };
             await supabaseClient.from('profiles').insert([newProfile]);
             userProfile = newProfile;
+        }
+
+        // ✨ ΜΕΤΑΚΙΝΗΣΗ ΕΔΩ: Ενημερώνουμε το UI και βγάζουμε το Toast ΑΜΕΣΩΣ μόλις μάθουμε το Tier
+        // Πριν ξεκινήσει ο βαρύς συγχρονισμός δεδομένων.
+        if (typeof refreshUIByTier === 'function') refreshUIByTier();
+
+        if (typeof showToast === 'function') {
+            const tierName = TIER_CONFIG[userProfile.subscription_tier]?.label || "Free";
+            showToast(`Σύνδεση ως ${tierName} ✅`);
         }
 
         // 2. Groups (Bands) - Με σωστό Join και Error Handling
@@ -203,18 +210,12 @@ async function initUserData() {
             console.log(`🎸 Συνδέθηκαν ${myGroups.length} μπάντες.`);
         }
 
-        // Ενημέρωση UI
+        // Ενημέρωση UI Dropdown
         updateGroupDropdown();
 
         // 3. Αρχικοποίηση Context (Προσωπική Βιβλιοθήκη)
+        // Αυτό θα καλέσει τη loadContextData και θα ξεκινήσει το Sync
         await switchContext('personal');
-
-        if (typeof refreshUIByTier === 'function') refreshUIByTier();
-
-        if (typeof showToast === 'function') {
-            const tierName = TIER_CONFIG[userProfile.subscription_tier]?.label || "Free";
-            showToast(`Σύνδεση ως ${tierName}`);
-        }
 
     } catch (err) {
         console.error("❌ Critical Init Error:", err);
@@ -765,17 +766,17 @@ async function saveSong() {
         return; 
     }
 
-    if (!currentSongId || currentSongId === 'null') {
+    // ✨ ΕΝΤΟΠΙΣΜΟΣ ΝΕΟΥ ΤΡΑΓΟΥΔΙΟΥ
+    const isNewSong = !currentSongId || currentSongId === 'null';
+    if (isNewSong) {
         currentSongId = "s_" + Date.now() + Math.random().toString(16).slice(2);
         console.log(`✨ [SAVE] Δημιουργήθηκε νέο ID: ${currentSongId}`);
     }
 
-    // ✨ ΝΕΑ ΛΟΓΙΚΗ ΣΗΜΕΙΩΣΕΩΝ: Διαβάζουμε τις προσωπικές από τον Editor
     const personalNotes = document.getElementById('inpPersonalNotes')?.value.trim() || "";
     const tagsRaw = document.getElementById('inpTags')?.value || "";
     const tagsArray = tagsRaw.split(',').map(tag => tag.trim()).filter(tag => tag !== "");
 
-    // ✨ ΠΡΟΣΤΑΣΙΑ ΟΔΗΓΙΩΝ ΜΑΕΣΤΡΟΥ: Τις διαβάζουμε από τη μνήμη για να μην τις σβήσουμε!
     const existingSong = library.find(x => x.id === currentSongId);
     const preservedConductorNotes = existingSong ? (existingSong.conductorNotes || "") : "";
 
@@ -787,70 +788,102 @@ async function saveSong() {
         body: body,
         intro: document.getElementById('inpIntro')?.value.trim() || "",
         interlude: document.getElementById('inpInter')?.value.trim() || "",
-        conductorNotes: preservedConductorNotes, // ✨ Διατηρείται άθικτο!
-        notes: personalNotes,                    // ✨ Οι δικές σου σημειώσεις!
+        conductorNotes: preservedConductorNotes, 
+        notes: personalNotes,                    
         video: document.getElementById('inpVideo')?.value.trim() || "",
         tags: tagsArray,
         updated_at: new Date().toISOString()
     };
+
     try {
         if (currentGroupId === 'personal') {
             console.log("🔒 [SAVE] Αποθήκευση στην Προσωπική Βιβλιοθήκη");
-
-            // 1. OFFLINE FIRST: ΟΛΟΙ αποθηκεύουν τοπικά ακαριαία!
             if (typeof saveToLocalStorage === 'function') saveToLocalStorage(songData);
 
-            // 2. CLOUD SYNC: Αναβάθμιση για τους Premium
             if (typeof canUserPerform === 'function' && canUserPerform('USE_SUPABASE')) {
                 await saveToCloud(songData, null);
                 showToast("Αποθηκεύτηκε στο Cloud! ☁️");
-            } 
-            else if (typeof canUserPerform === 'function' && canUserPerform('USE_DRIVE')) {
-                if (typeof saveToDrive === 'function') await saveToDrive(library);
-                showToast("Αποθηκεύτηκε στο Google Drive! 📂");
-            } 
-            else {
+            } else {
                 showToast("Αποθηκεύτηκε Τοπικά! 💾");
             }
         }
         else {
             console.log("🎸 [SAVE] Αποθήκευση σε Περιβάλλον Μπάντας");
             
-            const isGod = (currentRole === 'admin' || currentRole === 'owner' || currentRole === 'maestro');
-            const originalSong = library.find(s => s.id === currentSongId);
-            const hasBaseChanges = checkBaseChanges(songData, originalSong);
+            // ✨ ΔΙΟΡΘΩΣΗ: Αλεξίσφαιρος έλεγχος ρόλου (αγνοεί κεφαλαία/μικρά)
+            const safeRole = String(currentRole).toLowerCase();
+            const isGod = ['admin', 'owner', 'maestro'].includes(safeRole);
+            
+            const hasBaseChanges = isNewSong || checkBaseChanges(songData, existingSong);
          
             if (hasBaseChanges) {
-                console.log("🧬 Εντοπίστηκαν αλλαγές στον κορμό.");
+                console.log("🧬 Εντοπίστηκαν αλλαγές στον κορμό ή είναι νέο τραγούδι.");
                 
-                if (isGod && confirm("Έχετε αλλάξει τον κορμό του τραγουδιού.\n\n[ΟΚ] Ενημέρωση ΚΟΙΝΟΥ τραγουδιού μπάντας.\n[ΑΚΥΡΩΣΗ] Αποθήκευση ως Προσωπικού Κλώνου.")) {
-                    
-                    // ✨ OFFLINE FIRST: Αποθήκευση του Master στην ΤΟΠΙΚΗ μνήμη της μπάντας
+                // Υπο-συνάρτηση για αποθήκευση Master (κεντρικού) τραγουδιού
+                const saveMasterToBand = async () => {
                     let bandLocalKey = 'mnotes_band_' + currentGroupId;
                     let localBandData = JSON.parse(localStorage.getItem(bandLocalKey) || "[]");
                     let idx = localBandData.findIndex(s => s.id === currentSongId);
                     if (idx > -1) localBandData[idx] = songData;
                     else localBandData.push(songData);
-                    localStorage.setItem(bandLocalKey, JSON.stringify(localBandData));
                     
-                    // Ενημέρωση και της RAM (library)
+                    localStorage.setItem(bandLocalKey, JSON.stringify(localBandData));
                     window.library = localBandData;
                     library = window.library;
 
-                    // Αποστολή στο Cloud
                     await saveToCloud(songData, currentGroupId);
                     showToast("Η βιβλιοθήκη της μπάντας ενημερώθηκε! 🎸");
+                };
+
+                // ✨ ΕΞΥΠΝΗ ΔΡΟΜΟΛΟΓΗΣΗ: Καταλαβαίνει ακριβώς ΤΙ πας να αποθηκεύσεις
+                if (isNewSong) {
+                    if (isGod) await saveMasterToBand();
+                    else await createOrUpdateClone(songData, existingSong); // Ασπίδα για τα απλά μέλη
+                } else if (existingSong && existingSong.is_clone) {
+                    // Αν επεξεργάζεσαι ήδη δικό σου κλώνο, απλά ενημέρωσέ τον (δεν ρωτάμε καν!)
+                    await createOrUpdateClone(songData, existingSong);
                 } else {
-                    await createOrUpdateClone(songData, originalSong);
+                    // Αν επεξεργάζεσαι το MASTER Τραγούδι
+                    if (isGod) {
+                        if (confirm("Έχετε αλλάξει τον κορμό του τραγουδιού.\n\n[ΟΚ] Ενημέρωση ΚΟΙΝΟΥ τραγουδιού μπάντας.\n[ΑΚΥΡΩΣΗ] Αποθήκευση ως Προσωπικού Κλώνου.")) {
+                            await saveMasterToBand();
+                        } else {
+                            await createOrUpdateClone(songData, existingSong);
+                        }
+                    } else {
+                        // Το απλό μέλος δεν ρωτάται. Φτιάχνει κλώνο αναγκαστικά.
+                        await createOrUpdateClone(songData, existingSong);
+                    }
                 }
             } else {
+                // Δεν άλλαξες τίτλο/στίχους, άλλαξες μόνο προσωπικές σημειώσεις (Overrides)
                 if (typeof saveAsOverride === 'function') {
                     await saveAsOverride({ ...songData });
                 }
                 showToast(typeof t === 'function' ? t('msg_personal_settings_saved') : "Προσωπικές ρυθμίσεις αποθηκεύτηκαν.");
             }
-          lastSaveTimestamp = Date.now();
+            lastSaveTimestamp = Date.now();
         }
+         
+        // UI & Navigation
+        const targetId = currentSongId;
+        if (typeof loadContextData === 'function') await loadContextData(); 
+
+        if (typeof displaySong === 'function') {
+            displaySong(targetId); 
+        } else if (typeof toViewer === 'function') {
+            toViewer(true);
+        }
+
+        if (typeof switchView === 'function') {
+            switchView('view-details');
+        }
+
+    } catch (err) {
+        console.error("❌ [SAVE ERROR] Αποτυχία αποθήκευσης:", err);
+        showToast("Σφάλμα κατά την αποθήκευση", "error");
+    }
+}
          
         // ==========================================
         // UI & NAVIGATION (Επιστροφή στον Viewer)
@@ -1533,15 +1566,18 @@ window.addEventListener('visibilitychange', () => {
         }
     }
 });
-// Ελέγχει αν έχουν γίνει αλλαγές στον "κορμό" του τραγουδιού
+// Ελέγχει αν έχουν γίνει πραγματικές αλλαγές στον "κορμό" του τραγουδιού
 function checkBaseChanges(newData, oldData) {
     if (!oldData) return true;
-    return newData.body !== oldData.body || 
-           newData.title !== oldData.title || 
-           newData.key !== oldData.key;
+    
+    // ✨ ΚΑΘΑΡΙΣΜΟΣ: Αγνοεί αόρατα κενά και διαφορές στις αλλαγές γραμμής (Windows vs Mac)
+    const normalize = (str) => (str || "").replace(/\r\n/g, '\n').trim();
+    
+    return normalize(newData.body) !== normalize(oldData.body) || 
+           normalize(newData.title) !== normalize(oldData.title) || 
+           normalize(newData.key) !== normalize(oldData.key);
 }
 
-// Δημιουργεί ή ενημερώνει τον Προσωπικό Κλώνο ΜΕΣΑ στη Μπάντα
 // Δημιουργεί ή ενημερώνει τον μοναδικό Προσωπικό Κλώνο ΜΕΣΑ στη Μπάντα
 async function createOrUpdateClone(songData, originalSong) {
     console.log(`[CLONE] Δημιουργία ή ενημέρωση κλώνου για τη μπάντα: ${currentGroupId}`);

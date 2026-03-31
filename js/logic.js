@@ -24,6 +24,7 @@ const TIER_CONFIG = {
         useDrive: false, 
         canJoinBands: false,       // 🔒 Μόνο ως Viewer σε Ensemble
         maxBandsOwned: 0,
+        maxSetlists: 0, 
         canSaveAttachments: false, 
         hasAdvancedDrums: false,   
         canPrint: false,           
@@ -34,7 +35,8 @@ const TIER_CONFIG = {
         billing: "One-Time",
         canCloudSync: true, 
         useSupabase: true, 
-        useDrive: false, 
+        useDrive: false,
+        maxSetlists: 1, 
         canJoinBands: false,       // 🔒 Αποκλειστικά Solo
         maxBandsOwned: 0,          
         canSaveAttachments: true,  
@@ -47,7 +49,8 @@ const TIER_CONFIG = {
         billing: "Quarterly",
         canCloudSync: true, 
         useSupabase: true, 
-        useDrive: false, 
+        useDrive: false,
+        maxSetlists: 50, 
         canJoinBands: true,        // ✅ Μπαίνει παντού ελεύθερα
         maxBandsOwned: 0,          
         canSaveAttachments: true, 
@@ -60,7 +63,8 @@ const TIER_CONFIG = {
         billing: "Quarterly",
         canCloudSync: true, 
         useSupabase: true, 
-        useDrive: false, 
+        useDrive: false,
+        maxSetlists: 150, 
         canJoinBands: true, 
         maxBandsOwned: 1,          
         canSaveAttachments: true, 
@@ -73,7 +77,8 @@ const TIER_CONFIG = {
         billing: "Quarterly",
         canCloudSync: true, 
         useSupabase: true, 
-        useDrive: false, 
+        useDrive: false,
+        maxSetlists: 500, 
         canJoinBands: true, 
         maxBandsOwned: 5,          
         canSaveAttachments: true, 
@@ -88,7 +93,8 @@ const TIER_CONFIG = {
         useSupabase: true, 
         useDrive: false, 
         canJoinBands: true, 
-        maxBandsOwned: 1,          
+        maxBandsOwned: 1,
+        maxSetlists: 1000,
         canSaveAttachments: true, 
         hasAdvancedDrums: true, 
         canPrint: true,
@@ -101,7 +107,7 @@ const TIER_CONFIG = {
 };
 
 // --- Ο ΠΟΡΤΙΕΡΗΣ (Ελεγκτής Δικαιωμάτων) v2.2 --- Ισως ΧΡΕΙΑΖΕΤΑΙ ΠΡΟΣΘΗΚΗ ΤΟΥ ΕΝSEMBLE
-function canUserPerform(action) {
+function canUserPerform (action, currentCount=0) {
     let tierKey = 'solo_free';
     
     if (typeof userProfile !== 'undefined' && userProfile && userProfile.subscription_tier) {
@@ -142,6 +148,9 @@ function canUserPerform(action) {
             return tierData.canPrint;
         case 'DELEGATE_ADMIN':
             return tierData.allowsDelegatedAdmin || false;
+        case 'CREATE_SETLIST':
+            // Το currentCount θα είναι ο αριθμός των CUSTOM λιστών που έχει ήδη φτιάξει ο χρήστης
+            return currentCount < tierData.maxSetlists;
         default:
             return false;
     }

@@ -747,10 +747,8 @@ async function fetchBandSongs(groupId) {
     console.log(`📥 [FETCH] Βρέθηκαν ${filteredData.length} τραγούδια για τη μπάντα (Master + Οι κλώνοι μου)`);
     return filteredData.map(s => ensureSongStructure(s));
 }
-
 /**
  * Κεντρική συνάρτηση αποθήκευσης τραγουδιού
- * Διαχειρίζεται αυτόματα Local Storage, Personal Cloud και Band Cloud.
  */
 async function saveSong() {
     console.log(`📝 [SAVE] Ξεκινάει η αποθήκευση. SongID: ${currentSongId || 'NEW'}, Context: ${currentGroupId}`);
@@ -840,10 +838,9 @@ async function saveSong() {
                 if (typeof saveAsOverride === 'function') await saveAsOverride({ ...songData });
                 showToast("Προσωπικές ρυθμίσεις αποθηκεύτηκαν.");
             }
-            lastSaveTimestamp = Date.now();
         }
          
-        // UI REFRESH
+        // UI & NAVIGATION REFRESH
         const targetId = currentSongId;
         if (typeof loadContextData === 'function') await loadContextData(); 
 
@@ -851,39 +848,15 @@ async function saveSong() {
         else if (typeof toViewer === 'function') toViewer(true);
 
         if (typeof switchView === 'function') switchView('view-details');
+        
+        lastSaveTimestamp = Date.now();
+        console.log("🏁 [SAVE] Επιτυχής ολοκλήρωση.");
 
     } catch (err) {
         console.error("❌ [SAVE ERROR]:", err);
         showToast("Σφάλμα κατά την αποθήκευση", "error");
     }
-}
          
-        // ==========================================
-        // UI & NAVIGATION (Επιστροφή στον Viewer)
-        // ==========================================
-        const targetId = currentSongId;
-        
-        // Φρεσκάρισμα της λίστας με τα νέα δεδομένα
-        if (typeof loadContextData === 'function') await loadContextData(); 
-
-        // Εμφάνιση του τραγουδιού
-        if (typeof displaySong === 'function') {
-            displaySong(targetId); 
-        } else if (typeof toViewer === 'function') {
-            toViewer(true);
-        }
-
-        // Οπτική μετάβαση
-        if (typeof switchView === 'function') {
-            switchView('view-details');
-        }
-
-        console.log("🏁 [SAVE] Η διαδικασία αποθήκευσης ολοκληρώθηκε επιτυχώς.");
-
-    } catch (err) {
-        console.error("❌ [SAVE ERROR] Αποτυχία αποθήκευσης:", err);
-        showToast("Σφάλμα κατά την αποθήκευση", "error");
-    }
 }
       
 /**

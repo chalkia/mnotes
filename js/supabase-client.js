@@ -245,7 +245,6 @@ supabaseClient.auth.onAuthStateChange((event, session) => {
 });
 
 // --- DTO & SANITIZATION ΓΙΑ TH SUPABASE ---
-// Κρατάει ΜΟΝΟ τις στήλες που περιμένει η βάση, αποτρέποντας τα Error 400.
 window.sanitizeForDatabase = function(song, userId, groupId = null) {
     return {
         id: song.id,
@@ -255,7 +254,11 @@ window.sanitizeForDatabase = function(song, userId, groupId = null) {
         body: song.body || "",
         intro: song.intro || "",
         interlude: song.interlude || song.inter || "", 
-        notes: song.notes || song.conductorNotes || "", 
+        
+        notes: song.notes || "", 
+        // ✨ Η ΤΕΛΙΚΗ ΔΙΟΡΘΩΣΗ: Κάνουμε map το camelCase του JS στο snake_case της SQL
+        conductor_notes: song.conductorNotes || song.conductor_notes || "", 
+        
         video: song.video || "",
         tags: Array.isArray(song.tags) ? song.tags : (Array.isArray(song.playlists) ? song.playlists : []),
         recordings: Array.isArray(song.recordings) ? song.recordings : [],
@@ -263,9 +266,9 @@ window.sanitizeForDatabase = function(song, userId, groupId = null) {
         user_id: userId,
         group_id: groupId,
         
-        // ✨ Η VIP ΛΙΣΤΑ: Μόνο τα πεδία που υπάρχουν πραγματικά στον πίνακα songs!
         is_clone: !!song.is_clone,
         parent_id: song.parent_id || null,
+        is_deleted: !!song.is_deleted,
         
         updated_at: new Date().toISOString()
     };

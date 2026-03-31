@@ -29,6 +29,7 @@ async function loadBandDashboard() {
         `;
         return;
     }
+    
     // --- ΣΕΝΑΡΙΟ 2: BAND CONTEXT (Διαχείριση) ---
     container.innerHTML = '<p class="loading-text" style="text-align:center;"><i class="fas fa-spinner fa-spin"></i> Φόρτωση δεδομένων...</p>';
 
@@ -42,23 +43,35 @@ async function loadBandDashboard() {
 
         if (groupErr) throw groupErr;
 
-        // Β. Ανάκτηση μελών με αυτόματο Join στο profiles (για email/username)
+        // ✨ Β. ΕΞΥΠΝΟ JOIN: Φέρνουμε username, email ΚΑΙ subscription_tier
         const { data: members, error: memErr } = await supabaseClient
             .from('group_members')
-            .select(`role, user_id, profiles ( username, email )`)
+            .select(`role, user_id, profiles ( username, email, subscription_tier )`)
             .eq('group_id', currentGroupId);
 
         if (memErr) throw memErr;
 
         const isOwner = (currentRole === 'owner' || currentRole === 'admin');
-        const MAX_BAND_MEMBERS = 5; 
+        
+        // ✨ Γ. ΔΥΝΑΜΙΚΟΣ ΥΠΟΛΟΓΙΣΜΟΣ ΟΡΙΟΥ ΜΕΛΩΝ
+        let MAX_BAND_MEMBERS = 10; // Απόλυτο fallback ασφαλείας
+        if (typeof TIER_CONFIG !== 'undefined') {
+            // Ψάχνουμε ποιος από όλους τους χρήστες είναι ο Ιδιοκτήτης (owner)
+            const ownerMember = members.find(m => m.role === 'owner');
+            // Διαβάζουμε το Tier του (αν δεν βρεθεί, υποθέτουμε band_leader)
+            const ownerTier = ownerMember?.profiles?.subscription_tier || 'band_leader';
+            
+            // Παίρνουμε το ακριβές όριο για τη συγκεκριμένη μπάντα
+            MAX_BAND_MEMBERS = TIER_CONFIG[ownerTier]?.maxBandMembers || TIER_CONFIG['band_leader']?.maxBandMembers || 10;
+        }
+        
         const currentCount = members.length;
         const hasAvailableSlots = currentCount < MAX_BAND_MEMBERS;
 
-        // Γ. Χτίσιμο του HTML
+        // Δ. Χτίσιμο του HTML
         let html = `<div class="band-dashboard">`;
 
-        // Λίστα Μελών
+        // Λίστα Μελών (Εμφανίζει πλέον δυναμικά π.χ. "4 / 15")
         html += `<div class="band-stat" style="margin-bottom:10px; font-weight:bold;">MEMBERS: ${currentCount} / ${MAX_BAND_MEMBERS}</div>`;
         html += `<div class="member-list">`;
 
@@ -74,7 +87,6 @@ async function loadBandDashboard() {
                         ${isMe ? '<strong>Εσύ</strong>' : displayName}
                     </div>`;
             
-            // Το κουμπί αποβολής εμφανίζεται μόνο αν είμαστε owner/admin και δεν πρόκειται για τον εαυτό μας
             if (isOwner && !isMe) {
                 html += `
                     <button onclick="expelMember('${currentGroupId}', '${m.user_id}')" class="icon-btn danger" title="Αποβολή" style="padding:2px 6px; font-size:0.8rem;">
@@ -85,7 +97,7 @@ async function loadBandDashboard() {
         });
         html += `</div>`; // Κλείσιμο λίστας
 
-        // Εργαλεία Admin (Invite Code & Disband)
+        // Εργαλεία Admin
         if (isOwner) {
             html += `
                 <div class="invite-box" style="margin-top:20px; text-align:center;">
@@ -94,7 +106,7 @@ async function loadBandDashboard() {
                     <button onclick="copyInviteCode()" class="footer-btn small" style="margin:0 auto 10px auto;">
                         <i class="far fa-copy"></i> Copy Link
                     </button>
-                    ${!hasAvailableSlots ? '<p style="color:var(--danger); font-size:0.8rem;">Η μπάντα είναι πλήρης.</p>' : ''}
+                    ${!hasAvailableSlots ? `<p style="color:var(--danger); font-size:0.8rem;">Η μπάντα είναι πλήρης (${MAX_BAND_MEMBERS} μέλη).</p>` : ''}
                 </div>
                 <button onclick="deleteBand()" class="footer-btn danger-v2" style="width:100%; margin-top:15px;">
                     <i class="fas fa-bomb"></i> DISBAND GROUP
@@ -118,7 +130,6 @@ async function loadBandDashboard() {
         container.innerHTML = '<p class="error-text" style="color:var(--danger); text-align:center;">Σφάλμα φόρτωσης.</p>';
     }
 }
-
 /**
  * 2. Αποβολή Μέλους (Η νέα, ασφαλής έκδοση με RLS)
  */
@@ -213,66 +224,49 @@ async function createNewBandUI() {
  * 5. Ένταξη σε υπάρχουσα Μπάντα (με Invite Code)
  */
 async function joinBandWithCode() {
-    // Έλεγχος δικαιώματος: Μόνο οι Pro/Premium μπαίνουν σε μπάντες
-    const tier = userProfile?.subscription_tier || 'free';
-    if (tier === 'free') {
+    const tier = userProfile?.subscription_tier || 'solo_free';
+    if (tier === 'solo_free') {
         if (typeof promptUpgrade === 'function') promptUpgrade('Συμμετοχή σε Μπάντα');
         return;
     }
 
     const code = prompt("Εισάγετε τον κωδικό πρόσκλησης (Invite Code):");
     if (!code) return;
-
-    // Καθαρισμός κενών και μετατροπή σε κεφαλαία για αποφυγή λαθών
     const cleanCode = code.trim().toUpperCase();
 
     try {
-        // 1. Ψάχνουμε τη μπάντα με αυτόν τον κωδικό
         const { data: groupData, error: groupErr } = await supabaseClient
-            .from('groups')
-            .select('id, name')
-            .eq('invite_code', cleanCode)
-            .single();
+            .from('groups').select('id, name, owner_id').eq('invite_code', cleanCode).single();
 
         if (groupErr || !groupData) {
-            showToast("Ο κωδικός δεν είναι έγκυρος ή η μπάντα δεν υπάρχει.", "error");
+            showToast("Ο κωδικός δεν είναι έγκυρος.", "error");
             return;
         }
 
-        const groupId = groupData.id;
+        // ✨ ΔΥΝΑΜΙΚΟΣ ΕΛΕΓΧΟΣ ΧΩΡΗΤΙΚΟΤΗΤΑΣ ΒΑΣΕΙ ΤΟΥ TIER ΤΟΥ ΙΔΙΟΚΤΗΤΗ
+        const { data: ownerData } = await supabaseClient
+            .from('profiles').select('subscription_tier').eq('id', groupData.owner_id).maybeSingle();
 
-        // 2. Ελέγχουμε αν είναι ήδη μέλος
-        const { data: existingMember } = await supabaseClient
-            .from('group_members')
-            .select('id')
-            .eq('group_id', groupId)
-            .eq('user_id', currentUser.id)
-            .maybeSingle();
+        const ownerTier = ownerData ? ownerData.subscription_tier : 'band_leader';
+        const MAX_BAND_MEMBERS = TIER_CONFIG[ownerTier]?.maxBandMembers || 10; 
 
-        if (existingMember) {
-            showToast("Είστε ήδη μέλος σε αυτή την μπάντα!", "info");
+        const { data: currentMembers, error: countErr } = await supabaseClient
+            .from('group_members').select('id').eq('group_id', groupData.id);
+        
+        if (!countErr && currentMembers.length >= MAX_BAND_MEMBERS) {
+            alert(`Λυπούμαστε, η μπάντα "${groupData.name}" είναι πλήρης (${MAX_BAND_MEMBERS} μέλη).`);
             return;
         }
 
-        // 3. Εγγραφή του χρήστη ως 'member'
         const { error: joinErr } = await supabaseClient
-            .from('group_members')
-            .insert([{
-                group_id: groupId,
-                user_id: currentUser.id,
-                role: 'member' // Ο νέος παίρνει πάντα τον βασικό ρόλο
-            }]);
+            .from('group_members').insert([{ group_id: groupData.id, user_id: currentUser.id, role: 'member' }]);
 
         if (joinErr) throw joinErr;
-
         showToast(`Καλώς ήρθατε στην μπάντα "${groupData.name}"! 🎉`);
-        
-        // Κάνουμε ένα reload για να "τραβήξει" τη νέα μπάντα στο dropdown μενού
         setTimeout(() => window.location.reload(), 1500);
 
     } catch (err) {
-        console.error("[JOIN BAND] Σφάλμα:", err.message);
-        showToast("Σφάλμα κατά την ένταξη στη μπάντα.", "error");
+        showToast("Σφάλμα κατά την ένταξη.", "error");
     }
 }
 /**

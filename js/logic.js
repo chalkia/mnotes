@@ -5,7 +5,8 @@
 // --- Global State ---
 let userProfile = null;
 let lastSaveTimestamp= 0;
-let myGroups = [];           
+let myGroups = [];
+let isSyncing = false; // ΝΕΟ: Φρένο συγχρονισμού           
 let currentGroupId = 'personal'; 
 let currentRole = 'owner';   
 let isOffline = !navigator.onLine;
@@ -282,6 +283,11 @@ function updateUIForRole() {
    DATA LOADING & SYNC (OFFLINE-FIRST)
    ========================================= */
 async function loadContextData() {
+   if (isSyncing) {
+        console.warn("⏳ [SYNC] Ήδη σε εξέλιξη. Ακύρωση διπλής κλήσης.");
+        return; 
+    }
+    isSyncing = true; // Κλείδωμα
     console.log(`🔍 [SYNC] Εκκίνηση συγχρονισμού για Context: ${currentGroupId}`);
     const listEl = document.getElementById('songList');
     if(listEl) listEl.innerHTML = '<div class="loading-msg">Συγχρονισμός...</div>';
@@ -436,6 +442,9 @@ async function loadContextData() {
         
     } catch (err) { 
         console.error("❌ [SYNC FATAL ERROR]:", err);
+    } finally {
+        // ✨ ΞΕΚΛΕΙΔΩΜΑ: Είτε πετύχει, είτε αποτύχει, ελευθερώνουμε το φρένο
+        setTimeout(() => { isSyncing = false; }, 500); // 500ms cooldown
     }
 }
 // ==========================================
@@ -1500,16 +1509,25 @@ async function deleteCurrentSong() {
 // ==========================================
 // 🛡️ ΑΣΠΙΔΑ EDITOR (Για αποφυγή απώλειας δεδομένων)
 // ==========================================
+
 window.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
         const editorEl = document.getElementById('view-editor');
-        // Αν ο Editor είναι ανοιχτός (active-view), ΜΗΝ κάνεις fetch από τη βάση!
+        
+        // 1. Αν είμαστε σε Editor, ΜΗΝ κάνεις sync.
         if (editorEl && editorEl.classList.contains('active-view')) {
             console.log("🛡️ Auto-Sync Blocked: Ο χρήστης επεξεργάζεται τραγούδι.");
-        } else {
-            console.log("🔄 Auto-Sync: Φόρτωση νέων δεδομένων από Cloud...");
-            if (typeof loadContextData === 'function') loadContextData();
+            return;
+        } 
+        
+        // 2. Αν σώσαμε κάτι πριν από λιγότερο από 5 δευτερόλεπτα, ΜΗΝ κάνεις sync (αποφυγή λούπας).
+        if (Date.now() - lastSaveTimestamp < 5000) {
+            console.log("🛡️ Auto-Sync Blocked: Πρόσφατη αποθήκευση.");
+            return;
         }
+
+        console.log("🔄 Auto-Sync: Φόρτωση νέων δεδομένων από Cloud...");
+        if (typeof loadContextData === 'function') loadContextData();
     }
 });
 // Ελέγχει αν έχουν γίνει πραγματικές αλλαγές στον "κορμό" του τραγουδιού

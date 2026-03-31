@@ -606,25 +606,21 @@ async function addAttachmentToCurrentSong(newDoc) {
 /**
  * Αποθήκευση προσωπικών ρυθμίσεων πάνω σε κοινό τραγούδι μπάντας (Layer)
  */
-
-/**
- * Αποθήκευση προσωπικών ρυθμίσεων πάνω σε κοινό τραγούδι μπάντας (Layer)
- */
 async function saveAsOverride(songData) {
     if (!currentSongId || !currentUser) return;
     console.log("💾 Saving personal override layer...");
 
     let s = window.library.find(x => x.id === currentSongId);
 
-    // ✨ ΔΙΟΡΘΩΣΗ: Διαβάζουμε από τον Editor, ή (αν είναι κλειστός) κρατάμε τις παλιές σημειώσεις
+    //  Διαβάζουμε από τον Editor, ή (αν είναι κλειστός) κρατάμε τις παλιές σημειώσεις
     const pNotesEl = document.getElementById('inpPersonalNotes');
     const pNotes = (pNotesEl && pNotesEl.offsetParent !== null) ? pNotesEl.value.trim() : (s ? s.personal_notes || s.notes || "" : "");
     
     const pTrans = state.t || 0;
     const pCapo = state.c || 0;
 
-       // ✨ 1. OFFLINE FIRST: Ενημέρωση της τρέχουσας βιβλιοθήκης και αποθήκευση τοπικά!
-    let s = window.library.find(x => x.id === currentSongId);
+       //  1. OFFLINE FIRST: Ενημέρωση της τρέχουσας βιβλιοθήκης και αποθήκευση τοπικά!
+    
     if (s) {
         s.personal_transpose = pTrans;
         s.personal_capo = pCapo;

@@ -99,6 +99,52 @@ const TIER_CONFIG = {
     }
 };
 
+// --- Ο ΠΟΡΤΙΕΡΗΣ (Ελεγκτής Δικαιωμάτων) v2.2 --- Ισως ΧΡΕΙΑΖΕΤΑΙ ΠΡΟΣΘΗΚΗ ΤΟΥ ΕΝSEMBLE
+function canUserPerform(action) {
+    let tierKey = 'solo_free';
+    
+    if (typeof userProfile !== 'undefined' && userProfile && userProfile.subscription_tier) {
+        tierKey = userProfile.subscription_tier;
+    } else if (typeof currentTier !== 'undefined' && currentTier) {
+        tierKey = currentTier;
+    }
+
+    const tierMapping = {
+        'free': 'solo_free',
+        'solo': 'solo_pro',
+        'member': 'band_mate',
+        'owner': 'band_leader',
+        'maestro': 'band_maestro'
+    };
+
+    if (tierMapping[tierKey]) {
+        tierKey = tierMapping[tierKey];
+    }
+
+    if (!TIER_CONFIG || !TIER_CONFIG[tierKey]) {
+        tierKey = 'solo_free';
+    }
+
+    const tierData = TIER_CONFIG[tierKey];
+
+    switch(action) {
+        case 'USE_SUPABASE':
+        case 'CLOUD_SYNC':
+            return tierData.canCloudSync;
+        case 'JOIN_BANDS':
+            return tierData.canJoinBands;
+        case 'SAVE_ATTACHMENTS':
+            return tierData.canSaveAttachments;
+        case 'ADVANCED_DRUMS':
+            return tierData.hasAdvancedDrums;
+        case 'PRINT':
+            return tierData.canPrint;
+        case 'DELEGATE_ADMIN':
+            return tierData.allowsDelegatedAdmin || false;
+        default:
+            return false;
+    }
+}
 // Helper translation function
 if (typeof window.t === 'undefined') {
     window.t = function(key) {

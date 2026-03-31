@@ -614,11 +614,16 @@ async function saveAsOverride(songData) {
     if (!currentSongId || !currentUser) return;
     console.log("💾 Saving personal override layer...");
 
-    const pNotes = document.getElementById('sidePersonalNotes')?.value || "";
+    let s = window.library.find(x => x.id === currentSongId);
+
+    // ✨ ΔΙΟΡΘΩΣΗ: Διαβάζουμε από τον Editor, ή (αν είναι κλειστός) κρατάμε τις παλιές σημειώσεις
+    const pNotesEl = document.getElementById('inpPersonalNotes');
+    const pNotes = (pNotesEl && pNotesEl.offsetParent !== null) ? pNotesEl.value.trim() : (s ? s.personal_notes || s.notes || "" : "");
+    
     const pTrans = state.t || 0;
     const pCapo = state.c || 0;
 
-    // ✨ 1. OFFLINE FIRST: Ενημέρωση της τρέχουσας βιβλιοθήκης και αποθήκευση τοπικά!
+       // ✨ 1. OFFLINE FIRST: Ενημέρωση της τρέχουσας βιβλιοθήκης και αποθήκευση τοπικά!
     let s = window.library.find(x => x.id === currentSongId);
     if (s) {
         s.personal_transpose = pTrans;
@@ -733,9 +738,14 @@ async function saveSong() {
         console.log(`✨ [SAVE] Δημιουργήθηκε νέο ID: ${currentSongId}`);
     }
 
-    const publicBandNotes = document.getElementById('inpConductorNotes')?.value.trim() || "";
+    // ✨ ΝΕΑ ΛΟΓΙΚΗ ΣΗΜΕΙΩΣΕΩΝ: Διαβάζουμε τις προσωπικές από τον Editor
+    const personalNotes = document.getElementById('inpPersonalNotes')?.value.trim() || "";
     const tagsRaw = document.getElementById('inpTags')?.value || "";
     const tagsArray = tagsRaw.split(',').map(tag => tag.trim()).filter(tag => tag !== "");
+
+    // ✨ ΠΡΟΣΤΑΣΙΑ ΟΔΗΓΙΩΝ ΜΑΕΣΤΡΟΥ: Τις διαβάζουμε από τη μνήμη για να μην τις σβήσουμε!
+    const existingSong = library.find(x => x.id === currentSongId);
+    const preservedConductorNotes = existingSong ? (existingSong.conductorNotes || "") : "";
 
     const songData = {
         id: currentSongId,
@@ -745,13 +755,12 @@ async function saveSong() {
         body: body,
         intro: document.getElementById('inpIntro')?.value.trim() || "",
         interlude: document.getElementById('inpInter')?.value.trim() || "",
-        conductorNotes: publicBandNotes, 
-        notes: publicBandNotes,          
+        conductorNotes: preservedConductorNotes, // ✨ Διατηρείται άθικτο!
+        notes: personalNotes,                    // ✨ Οι δικές σου σημειώσεις!
         video: document.getElementById('inpVideo')?.value.trim() || "",
         tags: tagsArray,
         updated_at: new Date().toISOString()
     };
-   
     try {
         if (currentGroupId === 'personal') {
             console.log("🔒 [SAVE] Αποθήκευση στην Προσωπική Βιβλιοθήκη");
@@ -940,20 +949,21 @@ async function cloneToPersonal() {
     const titleSuffix = isMasterChosen ? " (Band Master)" : " (My Version)";
 
     const clonedSong = {
-        id: newId,
+           id: newId,
         title: songToClone.title + titleSuffix, 
         artist: songToClone.artist,
         body: songToClone.body,
         key: songToClone.key,
         intro: songToClone.intro,
         interlude: songToClone.interlude,
-        video: songToClone.video || "", // ✅ Το YouTube link ανήκει στον "κορμό" και επιτρέπεται
+        video: songToClone.video || "", 
         tags: songToClone.tags || [],
         user_id: currentUser.id,
-        group_id: null,       
-        notes: finalNotes,    // ✅ Καθαρό από σημειώσεις του Leader
-        recordings: [],       // 🚫 Απαγόρευση μεταφοράς κοινών mp3
-        attachments: [],      // 🚫 Απαγόρευση μεταφοράς κοινών pdf
+        group_id: null,        
+        conductorNotes: "",   // ✨ ΝΕΟ: Καθαρίζουμε τις οδηγίες του Μαέστρου (IP Protection)
+        notes: finalNotes,    // ✅ Οι δικές σου σημειώσεις
+        recordings: [],       
+        attachments: [],      
         is_clone: false,      
         parent_id: null
     };

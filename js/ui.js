@@ -1248,6 +1248,7 @@ function switchToEditor() {
     if (currentSongId) { 
         var s = library.find(x => x.id === currentSongId); 
         if (s) { 
+            refreshSyncButtonVisibility(s);
             let editBody = s.body || "";
             let editIntro = s.intro || "";
             let editInter = s.interlude || "";
@@ -1496,7 +1497,26 @@ function switchToEditor() {
         });
     }
 }
+function refreshSyncButtonVisibility(song) {
+    const btnSync = document.getElementById('btnSyncFromBand');
+    if (!btnSync) return;
 
+    btnSync.style.display = 'none';
+
+    // Εμφάνιση αν: Προσωπική Βιβλιοθήκη + Το ID υπάρχει σε κάποια μπάντα
+    if (currentGroupId === 'personal' && song && song.id) {
+        let isShared = false;
+        myGroups.forEach(g => {
+            const bandData = JSON.parse(localStorage.getItem('mnotes_band_' + g.group_id) || "[]");
+            if (bandData.some(s => s.id === song.id)) isShared = true;
+        });
+
+        if (isShared) {
+            btnSync.style.display = 'inline-block';
+            btnSync.title = "Συγχρονισμός από Μπάντα 🔄";
+        }
+    }
+}
 function saveEdit() { 
     let bodyArea = document.getElementById('inpBody'); 
     if (bodyArea) bodyArea.value = fixTrailingChords(bodyArea.value); 

@@ -1880,18 +1880,36 @@ function switchSetlist(name) {
 }
 
 function createSetlist() {
+    // 1. Έλεγχος Δικαιωμάτων Μπάντας (αν είμαστε σε μπάντα)
     const isBandViewer = (currentGroupId !== 'personal' && currentRole !== 'admin' && currentRole !== 'owner');
     if (isBandViewer) {
         showToast("Μόνο οι διαχειριστές μπορούν να φτιάξουν λίστες για τη μπάντα.", "error");
         return;
     }
 
+    // ✨ 2. ΕΛΕΓΧΟΣ ΟΡΙΩΝ PAYWALL (Μόνο για την Προσωπική Βιβλιοθήκη)
+    if (currentGroupId === 'personal') {
+        // Υπολογίζουμε πόσες CUSTOM λίστες έχει (αφαιρούμε 1 για τη "Default Setlist" που έχουν όλοι)
+        const customListsCount = Object.keys(allSetlists).length - 1; 
+        
+        // Ρωτάμε τον Πορτιέρη αν δικαιούται κι άλλη (χρησιμοποιώντας το νέο όνομα currentCount)
+        if (typeof canUserPerform === 'function' && !canUserPerform('CREATE_SETLIST', customListsCount)) {
+            if (typeof promptUpgrade === 'function') {
+                promptUpgrade('Δημιουργία πολλαπλών Playlists');
+            } else {
+                alert("Έχετε φτάσει το όριο λιστών για το τρέχον πακέτο σας.");
+            }
+            return; 
+        }
+    }
+
+    // 3. Κανονική Ροή δημιουργίας
     const name = prompt(typeof t === 'function' ? t('msg_new_setlist') : "Όνομα νέας λίστας:");
     if (name && !allSetlists[name]) {
         allSetlists[name] = { type: 'local', songs: [] }; 
         liveSetlist = []; 
-        switchSetlist(name); // Γυρνάμε στη νέα άδεια λίστα
-        saveSetlists(name);  // Τώρα τη σώζουμε πεντακάθαρη
+        switchSetlist(name);
+        saveSetlists(name);
     } else if (allSetlists[name]) {
         alert("Υπάρχει ήδη λίστα με αυτό το όνομα!");
     }

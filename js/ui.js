@@ -3309,3 +3309,33 @@ async function saveMaestroNotes() {
     // Ανανέωση του Player για να δείξει το Sticky Note άμεσα
     if (typeof renderPlayer === 'function') renderPlayer(library[songIndex]);
 }
+/**
+ * Ελέγχει αν πρέπει να εμφανιστεί το κουμπί Sync στον Editor
+ */
+function refreshSyncButtonVisibility(song) {
+    const btnSync = document.getElementById('btnSyncFromBand');
+    if (!btnSync) return;
+
+    // Default: Κρυμμένο
+    btnSync.style.display = 'none';
+
+    // Προϋποθέσεις εμφάνισης:
+    // 1. Είμαστε στην Προσωπική Βιβλιοθήκη
+    // 2. Το τραγούδι υπάρχει (δεν είναι νέο)
+    // 3. Το ID του τραγουδιού βρίσκεται σε κάποια από τις μπάντες μας
+    if (currentGroupId === 'personal' && song && song.id) {
+        let isShared = false;
+        
+        myGroups.forEach(g => {
+            const bandData = JSON.parse(localStorage.getItem('mnotes_band_' + g.group_id) || "[]");
+            if (bandData.some(s => s.id === song.id)) {
+                isShared = true;
+            }
+        });
+
+        if (isShared) {
+            btnSync.style.display = 'inline-block';
+            btnSync.title = t('Sync from Band') || "Συγχρονισμός από Μπάντα";
+        }
+    }
+}

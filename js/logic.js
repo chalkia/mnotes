@@ -250,46 +250,80 @@ async function loadContextData() {
                 currentLibrary = Array.isArray(parsed) ? parsed.map(ensureSongStructure) : [];
             }
 
-            // 2. Αναπλήρωση από Cloud
-        // 2. Αναπλήρωση από Cloud (Προσωπικά)
+            // 2. Smart Sync από Cloud (Προσωπικά)
             if (navigator.onLine && typeof canUserPerform === 'function' && canUserPerform('USE_SUPABASE')) {
+                
+                // ✨ ΒΗΜΑ 1: Αδειάζουμε την ουρά των offline αλλαγών ΠΡΙΝ συγχρονίσουμε
+                if (typeof processSyncQueue === 'function') await processSyncQueue();
+
                 const cloudSongs = await fetchPrivateSongs();
-                if (cloudSongs && cloudSongs.length > 0) {
-                    const mergedMap = new Map();
-                    cloudSongs.forEach(s => mergedMap.set(s.id, s));
-                    
-                    let missingPushed = 0; // Μετρητής για τα χαμένα
+                const deletedIds = JSON.parse(localStorage.getItem('mnotes_deleted_ids') || "[]");
+                
+                if (cloudSongs) {
+                    const finalLibraryMap = new Map();
+                    const cloudMap = new Map();
+                    cloudSongs.forEach(s => cloudMap.set(s.id, s));
 
-                    currentLibrary.forEach(s => {
-                        if (!mergedMap.has(s.id)) {
-                            // Το τραγούδι υπάρχει ΜΟΝΟ στο PC! 
-                            mergedMap.set(s.id, s);
-                            // ✨ AUTO-HEAL: Το στέλνουμε ΤΩΡΑ στη Supabase
-                            // 🛠️ ΔΙΟΡΘΩΣΗ: Προστέθηκε το { onConflict: 'id' } για να λυθεί το 409 Conflict Error
-                            const safePayload = window.sanitizeForDatabase(s, currentUser.id, null);
-                            
-                            supabaseClient.from('songs')
-                                .upsert(safePayload, { onConflict: 'id' })
-                                .then(({error}) => {
-                                    if (error) {
-                                        console.error(`❌ [SYNC] Σφάλμα (409/Άλλο) στο ${s.title}:`, error);
-                                    } else {
-                                        console.log(`🚀 [SYNC] Αυτόματη μεταφόρτωση τοπικού τραγουδιού: ${s.title}`);
-                                    }
-                                });
-                            missingPushed++;
+                    // Α. Επεξεργασία Τοπικής Βιβλιοθήκης
+                    for (const localSong of currentLibrary) {
+                        if (String(localSong.id).startsWith('demo')) continue;
+
+                        if (cloudMap.has(localSong.id)) {
+                            // Υπάρχει και στα δύο -> Σύγκριση ημερομηνίας
+                            const cloudSong = cloudMap.get(localSong.id);
+                            const localTime = new Date(localSong.updated_at || 0).getTime();
+                            const cloudTime = new Date(cloudSong.updated_at || 0).getTime();
+
+                            if (localTime > cloudTime + 2000) {
+                                // Τοπικό πιο νέο -> Ενημέρωση Cloud
+                                finalLibraryMap.set(localSong.id, localSong);
+                                await supabaseClient.from('songs').upsert(window.sanitizeForDatabase(localSong, currentUser.id, null), { onConflict: 'id' });
+                                console.log(`⬆️ [SYNC] Updated Cloud: ${localSong.title}`);
+                            } else {
+                                // Cloud πιο νέο ή ίδιο -> Ενημέρωση Τοπικού
+                                finalLibraryMap.set(localSong.id, cloudSong);
+                            }
+                        } else {
+                            // Υπάρχει ΜΟΝΟ Τοπικά
+                            if (deletedIds.includes(localSong.id)) {
+                                // Ο χρήστης το διέγραψε, αλλά ίσως η άλλη συσκευή δεν το ξέρει.
+                                // Εφόσον λείπει από το cloud, το καθαρίζουμε κι από εδώ.
+                                console.log(`🗑️ [SYNC] Cleaning up local zombie: ${localSong.title}`);
+                            } else {
+                                // Είναι νέο τραγούδι που δεν έχει ανέβει ποτέ
+                                finalLibraryMap.set(localSong.id, localSong);
+                                await supabaseClient.from('songs').upsert(window.sanitizeForDatabase(localSong, currentUser.id, null), { onConflict: 'id' });
+                                console.log(`🚀 [SYNC] Uploaded New: ${localSong.title}`);
+                            }
                         }
-                    });
-                            
-
-                    currentLibrary = Array.from(mergedMap.values());
-                    localStorage.setItem('mnotes_data', JSON.stringify(currentLibrary));
-                    
-                    if (missingPushed > 0) {
-                        console.log(`☁️ Cloud Sync: Τοπικό ενημερώθηκε ΚΑΙ ανέβηκαν ${missingPushed} αγνοούμενα τραγούδια στο Cloud!`);
-                    } else {
-                        console.log("☁️ Cloud Sync: Το LocalStorage ενημερώθηκε από το Cloud (Όλα συγχρονισμένα).");
+                        // Αφαιρούμε από το cloudMap ό,τι επεξεργαστήκαμε
+                        cloudMap.delete(localSong.id);
                     }
+
+                    // Β. Επεξεργασία όσων έμειναν στο CloudMap (Υπάρχουν ΜΟΝΟ στη βάση)
+                    for (const [id, cloudSong] of cloudMap) {
+                        if (deletedIds.includes(id)) {
+                            // ΣΕΝΑΡΙΟ: Το διέγραψα ΕΔΩ, αλλά υπάρχει στη ΒΑΣΗ (από άλλη συσκευή)
+                            const action = confirm(`Το τραγούδι "${cloudSong.title}" διαγράφηκε σε αυτή τη συσκευή, αλλά υπάρχει στο Cloud.\n\n[OK] Επαναφορά στη συσκευή\n[Cancel] Οριστική διαγραφή από παντού`);
+                            
+                            if (action) {
+                                finalLibraryMap.set(id, cloudSong);
+                                // Αφαιρούμε από τα διαγραμμένα
+                                const newDeleted = deletedIds.filter(d => d !== id);
+                                localStorage.setItem('mnotes_deleted_ids', JSON.stringify(newDeleted));
+                            } else {
+                                await supabaseClient.from('songs').delete().eq('id', id);
+                                console.log(`💀 [SYNC] Deleted from Cloud: ${cloudSong.title}`);
+                            }
+                        } else {
+                            // Είναι νέο τραγούδι από άλλη συσκευή
+                            finalLibraryMap.set(id, cloudSong);
+                            console.log(`📥 [SYNC] Downloaded New: ${cloudSong.title}`);
+                        }
+                    }
+
+                    currentLibrary = Array.from(finalLibraryMap.values());
+                    localStorage.setItem('mnotes_data', JSON.stringify(currentLibrary));
                 }
             } 
         } else {
@@ -336,7 +370,20 @@ async function loadContextData() {
             if (!songStillExists) {
                 currentSongId = library[0].id;
             }
-            if (typeof toViewer === 'function') toViewer(true);
+            
+            // ✨ ΔΙΟΡΘΩΣΗ ΓΙΑ ΚΙΝΗΤΑ: Ανοίγει τον Viewer αυτόματα ΜΟΝΟ σε οθόνες PC/Tablet (> 1024px).
+            if (window.innerWidth > 1024) {
+                if (typeof toViewer === 'function') toViewer(true);
+            } else {
+                // ✨ ΚΙΝΗΤΑ: Δεν ανοίγει το τραγούδι, αλλά ανοίγει η Αριστερή Μπάρα (Λίστα)!
+                const leftDrawer = document.getElementById('leftDrawer');
+                if (leftDrawer && typeof toggleLeftDrawer === 'function') {
+                    // Αν δεν είναι ήδη ανοιχτή, άνοιξέ την!
+                    if (!leftDrawer.classList.contains('open')) {
+                        toggleLeftDrawer();
+                    }
+                }
+            }
         } else {
             if (typeof toEditor === 'function') toEditor();
         }
@@ -1432,6 +1479,13 @@ async function deleteCurrentSong() {
     if (!s) return;
 
     if (!confirm(`Οριστική διαγραφή του "${s.title}";`)) return;
+
+    // ✨ ΝΕΟ (TOMBSTONE): Καταγράφουμε το ID στα διεγραμμένα ΠΡΙΝ προχωρήσουμε
+    let deletedIds = JSON.parse(localStorage.getItem('mnotes_deleted_ids') || "[]");
+    if (!deletedIds.includes(currentSongId)) {
+        deletedIds.push(currentSongId);
+        localStorage.setItem('mnotes_deleted_ids', JSON.stringify(deletedIds));
+    }
 
     try {
         // --- STEP 1: CLOUD DELETION (Αν αφορά το Tier) ---

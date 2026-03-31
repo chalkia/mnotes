@@ -268,25 +268,24 @@ async function loadContextData() {
                     for (const localSong of currentLibrary) {
                         if (String(localSong.id).startsWith('demo')) continue;
 
-                        if (cloudMap.has(localSong.id)) {
-                            // Υπάρχει και στα δύο -> Σύγκριση ημερομηνίας
+                              if (cloudMap.has(localSong.id)) {
                             const cloudSong = cloudMap.get(localSong.id);
-                            // ✨ ΑΝΤΙ-ΖΟΜΠΙ: Αν το έκανες is_deleted=true στη Supabase (ή σβήστηκε από άλλο PC), σβήστο τοπικά!
+                            
+                            // ✨ ΑΝΤΙ-ΖΟΜΠΙ: Αν στη Supabase είναι διεγραμμένο, σβήστο τοπικά ΑΜΕΣΩΣ!
                             if (cloudSong.is_deleted === true) {
                                  console.log(`🗑️ [SYNC] Αθόρυβη διαγραφή τοπικού διπλότυπου: ${localSong.title}`);
                                  cloudMap.delete(localSong.id);
-                                 continue; // Πάμε στο επόμενο τραγούδι ΧΩΡΙΣ να το βάλουμε στη βιβλιοθήκη
+                                 continue; // Το αγνοούμε και ΠΡΟΧΩΡΑΜΕ!
                             }
+
+                            // Σύγκριση ημερομηνίας
                             const localTime = new Date(localSong.updated_at || 0).getTime();
                             const cloudTime = new Date(cloudSong.updated_at || 0).getTime();
 
                             if (localTime > cloudTime + 2000) {
-                                // Τοπικό πιο νέο -> Ενημέρωση Cloud
                                 finalLibraryMap.set(localSong.id, localSong);
                                 await supabaseClient.from('songs').upsert(window.sanitizeForDatabase(localSong, currentUser.id, null), { onConflict: 'id' });
-                                console.log(`⬆️ [SYNC] Updated Cloud: ${localSong.title}`);
                             } else {
-                                // Cloud πιο νέο ή ίδιο -> Ενημέρωση Τοπικού
                                 finalLibraryMap.set(localSong.id, cloudSong);
                             }
                         } else {
@@ -308,7 +307,10 @@ async function loadContextData() {
 
                     // Β. Επεξεργασία όσων έμειναν στο CloudMap (Υπάρχουν ΜΟΝΟ στη βάση)
                     for (const [id, cloudSong] of cloudMap) {
-                        if (deletedIds.includes(id)) {
+                        
+                       // ✨ ΑΓΝΟΗΣΕ ΤΑ ΔΙΕΓΡΑΜΜΕΝΑ ΤΗΣ ΒΑΣΗΣ (Μην τα κατεβάσεις!)
+                       if (cloudSong.is_deleted === true) continue;
+                       if (deletedIds.includes(id)) {
                             // ΣΕΝΑΡΙΟ: Το διέγραψα ΕΔΩ, αλλά υπάρχει στη ΒΑΣΗ (από άλλη συσκευή)
                             const action = confirm(`Το τραγούδι "${cloudSong.title}" διαγράφηκε σε αυτή τη συσκευή, αλλά υπάρχει στο Cloud.\n\n[OK] Επαναφορά στη συσκευή\n[Cancel] Οριστική διαγραφή από παντού`);
                             
@@ -1101,12 +1103,11 @@ function ensureSongStructure(song) {
         tags: Array.isArray(song.playlists) ? song.playlists : (song.tags || []),
         notes: song.notes || "",
         updatedAt: song.updatedAt || Date.now(),
-       // ✨ Τα απαραίτητα πεδία για Μπάντες και Κλώνους
         group_id: song.group_id || null,
         parent_id: song.parent_id || null,
         is_clone: !!song.is_clone,
-        
-        // ✨ Τα προσαρτήματα παραμένουν ως Arrays
+        is_deleted: !!song.is_deleted, 
+        conductorNotes: song.conductorNotes || "", 
         recordings: Array.isArray(song.recordings) ? song.recordings : [],
         attachments: Array.isArray(song.attachments) ? song.attachments : []    
     };

@@ -899,22 +899,23 @@ async function saveToCloud(songData, groupId) {
  * Υποστηρικτική: Αποθήκευση στο κλασικό LocalStorage (Οffline - First)
  */
 function saveToLocalStorage(songData) {
-    if (!currentSongId || !currentSongId.startsWith('s_')) {
+    // ✨ ΝΕΟΣ, ΑΣΦΑΛΗΣ ΕΛΕΓΧΟΣ: Δεν κοιτάμε πώς μοιάζει το ID, 
+    // απλά ψάχνουμε αν το έχουμε ήδη στη μνήμη μας!
+    const existingIdx = library.findIndex(s => s.id === currentSongId);
+
+    if (existingIdx > -1) {
+        // Το βρήκαμε! Απλά το ενημερώνουμε (δεν του αλλάζουμε ID)
+        library[existingIdx] = { ...library[existingIdx], ...songData, id: currentSongId };
+        console.log(`[LOCAL STORAGE] Ενημερώθηκε το υπάρχον τραγούδι: ${currentSongId}`);
+    } else {
+        // Δεν υπάρχει! Είναι εντελώς νέο τραγούδι.
         const newSong = ensureSongStructure(songData);
         library.push(newSong);
         currentSongId = newSong.id;
-        console.log(`[LOCAL STORAGE] Αποθηκεύτηκε εντελώς νέο τραγούδι: ${currentSongId}`);
-    } else {
-        const idx = library.findIndex(s => s.id === currentSongId);
-        if (idx > -1) {
-            library[idx] = { ...library[idx], ...songData, id: currentSongId };
-            console.log(`[LOCAL STORAGE] Ενημερώθηκε το υπάρχον τραγούδι: ${currentSongId}`);
-        } else {
-            // ✨ Η ΔΙΟΡΘΩΣΗ: Αν το ID δημιουργήθηκε στο saveSong αλλά δεν έχει μπει στη βιβλιοθήκη ακόμα, βάλτο!
-            console.log(`[LOCAL STORAGE] Προσθήκη τραγουδιού με φρέσκο ID που έλειπε: ${currentSongId}`);
-            library.push({ ...songData, id: currentSongId });
-        }
+        console.log(`[LOCAL STORAGE] Αποθηκεύτηκε νέο τραγούδι: ${currentSongId}`);
     }
+    
+    // Αποθήκευση της ανανεωμένης λίστας
     localStorage.setItem('mnotes_data', JSON.stringify(library));
 }
 

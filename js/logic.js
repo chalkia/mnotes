@@ -1002,7 +1002,12 @@ async function cloneToPersonal() {
     try {
         if (typeof canUserPerform === 'function' && canUserPerform('USE_SUPABASE')) {
             const safePayload = typeof window.sanitizeForDatabase === 'function' ? window.sanitizeForDatabase(clonedSong, currentUser.id, null) : clonedSong;
-            const { error } = await supabaseClient.from('songs').insert([safePayload]);
+           
+           // 🚨 Η ΠΑΓΙΔΑ ΜΑΣ ΕΔΩ:
+            console.log("🚨 [ΠΑΓΙΔΑ - CLONE] Πάω να ανεβάσω τον κλώνο:", clonedSong.title); 
+            console.trace("🔍 Ιχνηλάτηση κλήσης Clone:");
+           
+           const { error } = await supabaseClient.from('songs').insert([safePayload]);
             if (error) throw error;
         } else {
             let localData = JSON.parse(localStorage.getItem('mnotes_data') || "[]");
@@ -1187,6 +1192,10 @@ async function processSyncQueue() {
     console.log(`♻️ Syncing ${queue.length} pending changes...`);
     for (const item of queue) {
         if (item.type === 'SAVE_SONG') {
+
+         // 🚨 Η ΠΑΓΙΔΑ ΜΑΣ
+        console.log(`🚨 [SYNC QUEUE] Επαναφορά/Ανέβασμα τραγουδιού από την ουρά:`, item.data.title || item.data.id);            
+           
             await supabaseClient.from('songs').upsert(item.data);
         }
     }

@@ -10,15 +10,16 @@
     <link rel="stylesheet" href="fa/css/all.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="theme-dark"> 
-    <script>
-        (function() {
-            if (window.innerWidth <= 1024) document.body.className = 'theme-slate';
-        })();
-    </script>
-
+<body class="theme-slate"> 
+      <div id="fullScreenLoader" class="loader-overlay hidden">
+            <div class="loader-content">
+                <img src="icon-512-maskable.png" alt="mNotes Logo" class="loader-logo">
+                <div class="spinner"></div>
+                <p id="loaderText" data-i18n="syncing_data">Συγχρονισμός...</p>
+            </div>
+        </div>
     <div class="app-container">
-        
+       
         <aside class="col-nav" id="sidebar">
             <div class="sidebar-header">
                 <div style="display: flex; flex-direction: column; gap: 5px; width: 100%;">
@@ -446,7 +447,7 @@
             <select id="setTheme" onchange="toggleCustomColors(this.value)" class="inp">
                 <option value="theme-dark">Dark</option>
                 <option value="theme-light">Light</option>
-                <option value="theme-slate">Slate</option>
+                <option value="theme-slate">Slate selected</option>
                 <option value="theme-custom">Custom</option>
             </select>
         </label>

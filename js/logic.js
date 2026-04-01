@@ -388,30 +388,64 @@ async function loadContextData() {
                     const activeCloudSongs = cloudBandSongs.filter(s => !s.is_deleted);
                     const activeCloudIds = activeCloudSongs.map(s => s.id);
 
-                    // Μηχανισμός Διάσωσης
+           // Μηχανισμός Διάσωσης (Όταν ο Leader διαγράφει τραγούδι)
                     for (let localSong of currentLibrary) {
                         if (!activeCloudIds.includes(localSong.id) && !String(localSong.id).startsWith('demo')) {
-                            const wantsToKeep = confirm(`📢 Ο διαχειριστής διέγραψε το τραγούδι "${localSong.title}".\nΘέλετε να κρατήσετε ένα καθαρό αντίγραφο στα Προσωπικά σας;`);
-                            if (wantsToKeep) {
-                                const personalCopy = { 
-                                    ...localSong,
-                                    id: "s_" + Date.now() + Math.random().toString(16).slice(2),
-                                    group_id: null,
-                                    user_id: currentUser.id,
-                                    is_clone: false,
-                                    parent_id: null,
-                                    conductorNotes: "", recordings: [], attachments: [], is_deleted: false,
-                                    updated_at: new Date().toISOString()
-                                };
-                                
-                                let myData = JSON.parse(localStorage.getItem('mnotes_data') || "[]");
-                                myData.push(personalCopy);
-                                localStorage.setItem('mnotes_data', JSON.stringify(myData));
-                                supabaseClient.from('songs').insert([window.sanitizeForDatabase(personalCopy, currentUser.id, null)]);
+                            
+                            // 1. Ψάχνουμε στα Προσωπικά μας αν έχουμε ΗΔΗ αυτό το τραγούδι (βάσει DNA/parent_id ή Τίτλου)
+                            let myPersonalData = JSON.parse(localStorage.getItem('mnotes_data') || "[]");
+                            
+                            // Έλεγχος αν υπάρχει Κλώνος (Σενάριο 2)
+                            let existingClone = myPersonalData.find(s => s.parent_id === localSong.id);
+                            
+                            // Έλεγχος αν υπάρχει το ίδιο τραγούδι ανεξάρτητα (Σενάριο 3)
+                            let existingIndependent = myPersonalData.find(s => s.title === localSong.title && s.parent_id !== localSong.id);
+
+                            if (existingClone) {
+                                // ΣΕΝΑΡΙΟ 2: Υπάρχει ήδη Κλώνος!
+                                const updateClone = confirm(`📢 Η μπάντα διέγραψε το "${localSong.title}".\nΈχεις ήδη έναν Κλώνο στα Προσωπικά σου.\nΘέλεις να τον ενημερώσεις με την τελευταία έκδοση της μπάντας; (Το δικό σου ID διατηρείται)`);
+                                if (updateClone) {
+                                    existingClone.body = localSong.body;
+                                    existingClone.key = localSong.key;
+                                    existingClone.updated_at = new Date().toISOString();
+                                    localStorage.setItem('mnotes_data', JSON.stringify(myPersonalData));
+                                    supabaseClient.from('songs').upsert(window.sanitizeForDatabase(existingClone, currentUser.id, null));
+                                    console.log("✅ Ο κλώνος ενημερώθηκε με το τελικό Master.");
+                                }
+                            } 
+                            else if (existingIndependent) {
+                                // ΣΕΝΑΡΙΟ 3: Υπάρχει ανεξάρτητο ίδιο τραγούδι!
+                                const updateIndep = confirm(`📢 Η μπάντα διέγραψε το "${localSong.title}".\nΒρέθηκε τραγούδι με ίδιο τίτλο στα Προσωπικά σου.\nΘέλεις να αντικαταστήσεις τους δικούς σου στίχους/συγχορδίες με αυτούς της μπάντας; (Το δικό σου ID διατηρείται)`);
+                                if (updateIndep) {
+                                    existingIndependent.body = localSong.body;
+                                    existingIndependent.key = localSong.key;
+                                    existingIndependent.updated_at = new Date().toISOString();
+                                    localStorage.setItem('mnotes_data', JSON.stringify(myPersonalData));
+                                    supabaseClient.from('songs').upsert(window.sanitizeForDatabase(existingIndependent, currentUser.id, null));
+                                }
+                            } 
+                            else {
+                                // ΣΕΝΑΡΙΟ 1: Δεν υπάρχει πουθενά. Το σώζουμε ως νέο Κλώνο στα προσωπικά.
+                                const wantsToKeep = confirm(`📢 Ο διαχειριστής διέγραψε το τραγούδι "${localSong.title}".\nΔεν βρέθηκε στα Προσωπικά σου. Θέλετε να κρατήσετε ένα αντίγραφο ασφαλείας;`);
+                                if (wantsToKeep) {
+                                    const personalCopy = { 
+                                        ...localSong,
+                                        id: "s_" + Date.now() + Math.random().toString(16).slice(2),
+                                        group_id: null,
+                                        user_id: currentUser.id,
+                                        is_clone: true,                 // Μαρκάρεται ως κλώνος
+                                        parent_id: localSong.id,        // Κρατάμε το DNA
+                                        conductorNotes: "", recordings: [], attachments: [], is_deleted: false,
+                                        updated_at: new Date().toISOString()
+                                    };
+                                    
+                                    myPersonalData.push(personalCopy);
+                                    localStorage.setItem('mnotes_data', JSON.stringify(myPersonalData));
+                                    supabaseClient.from('songs').insert([window.sanitizeForDatabase(personalCopy, currentUser.id, null)]);
+                                }
                             }
                         }
                     }
-
                     // Εφαρμογή των Overrides στα ενεργά τραγούδια
                     currentLibrary = activeCloudSongs.map(song => {
                         const userOverride = overrides?.find(o => o.song_id === song.id);
@@ -977,7 +1011,9 @@ async function cloneToPersonal() {
     // Οι σημειώσεις του Leader ΔΙΑΓΡΑΦΟΝΤΑΙ. Ο BandMate κρατάει ΜΟΝΟ τις δικές του (αν επέλεξε το My Version).
     const finalNotes = isMasterChosen ? "" : (sourceSong.personal_notes || "");
     const titleSuffix = isMasterChosen ? " (Band Master)" : " (My Version)";
-
+    // Αν το sourceSong είναι ήδη κλώνος, το DNA του είναι το parent_id. 
+    // Αν είναι το Master της μπάντας, το DNA του είναι το δικό του id.
+    const originalBandSongId = sourceSong.parent_id || sourceSong.id;
     const clonedSong = {
            id: newId,
         title: songToClone.title + titleSuffix, 
@@ -994,8 +1030,8 @@ async function cloneToPersonal() {
         notes: finalNotes,    // ✅ Οι δικές σου σημειώσεις
         recordings: [],       
         attachments: [],      
-        is_clone: false,      
-        parent_id: null
+        is_clone: true,      
+        parent_id: originalBandSongId
     };
 
     // 4. Αποθήκευση

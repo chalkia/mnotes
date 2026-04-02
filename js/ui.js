@@ -2822,7 +2822,23 @@ function refreshHeaderUI() {
 
 // Alias για συμβατότητα με το logic.js
 function toEditor() { switchToEditor(); }
-function toViewer(shouldLoad = true) { exitEditor(); }
+function toViewer(shouldLoad = true) { 
+       exitEditor(); 
+   if (window.innerWidth <= 1024) {
+           const drawerBtns = document.querySelectorAll('#rightDrawer .drawer-section .drawer-btn');
+           if (drawerBtns.length > 0) {
+               // Σβήνουμε το 'active' από όλα τα κουμπιά
+               drawerBtns.forEach(btn => btn.classList.remove('active'));
+               // Βρίσκουμε το κουμπί του Stage και το ανάβουμε
+               const stageBtn = Array.from(drawerBtns).find(btn => 
+                   btn.getAttribute('onclick') && btn.getAttribute('onclick').includes("'stage'")
+               );
+               if (stageBtn) stageBtn.classList.add('active');
+           }
+       }
+   }
+
+
 /* ===========================================================
    15. W.Y.S.I.W.Y.G. VIEW MODES (Band vs My View)
    =========================================================== */

@@ -2014,11 +2014,25 @@ function switchSidebarTab(mode) {
 }
 
 function navSetlist(dir) {
-    if (!liveSetlist || liveSetlist.length === 0) { showToast("Setlist is empty!"); return; }
-    let currentIndex = -1; if (currentSongId) currentIndex = liveSetlist.indexOf(currentSongId);
+    // Κοιτάμε τη λίστα που βλέπει ΠΡΑΓΜΑΤΙΚΑ ο χρήστης (Βιβλιοθήκη, Φίλτρα, ή Setlist)
+    if (!visiblePlaylist || visiblePlaylist.length === 0) { 
+        if (typeof showToast === 'function') showToast("Η λίστα είναι άδεια!"); 
+        return; 
+    }
+    
+    // Βρίσκουμε πού βρισκόμαστε αυτή τη στιγμή μέσα στη λίστα
+    let currentIndex = visiblePlaylist.findIndex(s => s.id === currentSongId);
     let newIndex = currentIndex + dir;
-    if (newIndex >= 0 && newIndex < liveSetlist.length) { loadSong(liveSetlist[newIndex]); } 
-    else { showToast(dir > 0 ? "Τέλος Λίστας" : "Αρχή Λίστας"); }
+    
+    // Αν υπάρχει επόμενο/προηγούμενο, το φορτώνουμε
+    if (newIndex >= 0 && newIndex < visiblePlaylist.length) { 
+        loadSong(visiblePlaylist[newIndex].id); 
+    } else { 
+        // Αλλιώς βγάζουμε μήνυμα ότι φτάσαμε στο τέρμα
+        if (typeof showToast === 'function') {
+            showToast(dir > 0 ? "Τέλος Λίστας" : "Αρχή Λίστας"); 
+        }
+    }
 }
 
 // ===========================================================

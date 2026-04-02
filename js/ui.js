@@ -2608,7 +2608,8 @@ function closeSettings() {
 
 function saveSettings() {
     userSettings.wakeLock = document.getElementById('setWakeLock').checked;
-    requestWakeLock();
+    if (typeof requestWakeLock === 'function') requestWakeLock();
+    
     const themeSel = document.getElementById('setTheme');
     const langSel = document.getElementById('langSelect');
     const sizeInp = document.getElementById('setChordSize');
@@ -2616,27 +2617,23 @@ function saveSettings() {
     const colInp = document.getElementById('setChordColor');
     const chkDef = document.getElementById('chkDefaultColor');
     const chkPrintLyrics = document.getElementById('setPrintLyricsOnly');
+    
     if (chkPrintLyrics) userSettings.printLyricsOnly = chkPrintLyrics.checked;
     
-    // ✨ ΝΕΑ ΠΡΟΣΘΗΚΗ: Αποθήκευση επιλογής Capo
     const chkCapo = document.getElementById('chkAutoSaveCapo');
     if (chkCapo) userSettings.autoSaveCapo = chkCapo.checked;
     
-    // --- ΠΕΔΙΑ ΓΙΑ ΤΟ AUTO SCROLL ---
     const speedInp = document.getElementById('setScrollSpeed');
     const btnChk = document.getElementById('setShowScrollBtn');
     
     if (speedInp) userSettings.scrollSpeed = speedInp.value;
     if (btnChk) userSettings.showScrollBtn = btnChk.checked;
-    // --------------------------------
 
-    // 1. Εφαρμογή Θέματος
     if (themeSel) {
         userSettings.theme = themeSel.value;
         if(typeof applyTheme === 'function') applyTheme();
     }
 
-    // 2. Εφαρμογή Γλώσσας
     if (langSel) {
         userSettings.lang = langSel.value;
         if(typeof toggleLanguage === 'function') {
@@ -2655,32 +2652,30 @@ function saveSettings() {
     } else if (colInp) {
         userSettings.chordColor = colInp.value;
     }
-    
-    // 3. Προεπιλογή Ταξινόμησης
-    if (sortSel) { userSettings.sortMethod = sortSel.value; }
      
     const chkSplit = document.getElementById('setDisableSplit');
     if (chkSplit) userSettings.disableSplit = chkSplit.checked;
     
-    // 4. Αποθήκευση στη μνήμη
     localStorage.setItem('mnotes_settings', JSON.stringify(userSettings));
     
-    // ΕΦΑΡΜΟΓΗ ΟΠΤΙΚΩΝ ΑΛΛΑΓΩΝ ΑΜΕΣΑ!
     if (typeof applyTheme === 'function') applyTheme();
     if (typeof applyScrollBtnVisibility === 'function') applyScrollBtnVisibility();
 
-    // Κλείσιμο παραθύρου & Ενημέρωση
     closeSettings();
     
-    // Ανανέωση λίστας με τις νέες ρυθμίσεις
-    if (typeof sortLibrary === 'function') sortLibrary(userSettings.sortMethod);
+    // Πάντα ταξινόμηση αλφαβητικά ("alpha") κατά το κλείσιμο των ρυθμίσεων
+    // (Έτσι λύνεται και το πρόβλημα με τα πλήκτρα πλοήγησης) 
+    if (typeof applySortAndRender === 'function') applySortAndRender();
+    
     
     if (typeof currentSongId !== 'undefined' && currentSongId) {
         const s = library.find(x => x.id === currentSongId);
         if (s && typeof renderPlayer === 'function') renderPlayer(s);
     }
     
-    showToast(userSettings.lang === 'el' ? "Οι ρυθμίσεις αποθηκεύτηκαν" : "Settings saved");
+    if (typeof showToast === 'function') {
+        showToast(userSettings.lang === 'el' ? "Οι ρυθμίσεις αποθηκεύτηκαν" : "Settings saved");
+    }
 }
 // ===========================================================
 // 14. TRANSPOSITION & CAPO CONTROLS (THE MISSING LINK)

@@ -469,7 +469,12 @@ async function loadContextData() {
         window.library = currentLibrary;
         library = window.library;
 
-        if (typeof renderSidebar === 'function') renderSidebar();
+        // ✨ Αρχικά ταξινομούμε και ΜΕΤΑ ζωγραφίζουμε τη λίστα
+        if (typeof applySortAndRender === 'function') {
+            applySortAndRender(); 
+        } else if (typeof renderSidebar === 'function') {
+            renderSidebar();
+        }
               
         if (library.length > 0) {
             const songStillExists = currentSongId ? library.find(s => s.id === currentSongId) : null;

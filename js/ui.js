@@ -2566,7 +2566,9 @@ function openSettings() {
     const chkDef = document.getElementById('chkDefaultColor'); 
     const chkPrintLyrics = document.getElementById('setPrintLyricsOnly');
     if (chkPrintLyrics) chkPrintLyrics.checked = userSettings.printLyricsOnly || false;
-   
+   // --- Φόρτωση επιλογής Capo
+    const chkCapo = document.getElementById('chkAutoSaveCapo');
+    if (chkCapo) chkCapo.checked = userSettings.autoSaveCapo || false;
     // --- ΠΕΔΙΑ AUTO SCROLL ---
     const speedInp = document.getElementById('setScrollSpeed');
     const btnChk = document.getElementById('setShowScrollBtn');
@@ -2614,8 +2616,12 @@ function saveSettings() {
     const distInp = document.getElementById('setChordDist');
     const colInp = document.getElementById('setChordColor');
     const chkDef = document.getElementById('chkDefaultColor');
-   const chkPrintLyrics = document.getElementById('setPrintLyricsOnly');
+    const chkPrintLyrics = document.getElementById('setPrintLyricsOnly');
     if (chkPrintLyrics) userSettings.printLyricsOnly = chkPrintLyrics.checked;
+    
+    // ✨ ΝΕΑ ΠΡΟΣΘΗΚΗ: Αποθήκευση επιλογής Capo
+    const chkCapo = document.getElementById('chkAutoSaveCapo');
+    if (chkCapo) userSettings.autoSaveCapo = chkCapo.checked;
     
     // --- ΠΕΔΙΑ ΓΙΑ ΤΟ AUTO SCROLL ---
     const speedInp = document.getElementById('setScrollSpeed');
@@ -2676,20 +2682,6 @@ function saveSettings() {
     }
     
     showToast(userSettings.lang === 'el' ? "Οι ρυθμίσεις αποθηκεύτηκαν" : "Settings saved");
-}
-
-// Κλείσιμο των modals αν πατήσουμε έξω από το κουτί
-window.onclick = function(event) {
-    const setsModal = document.getElementById('settingsModal');
-    const impModal = document.getElementById('importChoiceModal');
-    const qrModal = document.getElementById('qrModal');
-    const scanModal = document.getElementById('scanModal');
-    const authModal = document.getElementById('authModal');
-
-    if (event.target === setsModal) closeSettings();
-    if (event.target === impModal) impModal.style.display = 'none';
-    if (event.target === qrModal) qrModal.style.display = 'none';
-    if (event.target === authModal) authModal.style.display = 'none';
 }
 // ===========================================================
 // 14. TRANSPOSITION & CAPO CONTROLS (THE MISSING LINK)

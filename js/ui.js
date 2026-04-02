@@ -695,13 +695,18 @@ function renderPlayer(s) {
     if (s.tags && Array.isArray(s.tags) && s.tags.length > 0) {
         tagsHtml = s.tags.map(t => `<span style="background:var(--accent); color:#000; padding:2px 8px; border-radius:12px; font-size:0.7rem; font-weight:bold; margin-right:5px; display:inline-block; margin-top:5px;">#${t}</span>`).join('');
     }
-
- // --- PLAYER HEADER ---
+// --- PLAYER HEADER ---
     const headerContainer = document.querySelector('.player-header-container');
     if (headerContainer) {
         headerContainer.innerHTML = `
-        <div class="player-header">
-             <h2 id="mainAppTitle" style="margin:0 0 5px 0; font-size:1.2rem; color:var(--text-main); display:flex; align-items:center; flex-wrap:wrap; position:relative; padding-right:85px;">
+        <div class="player-header" style="position: relative;">
+             
+             <div class="mobile-nav-buttons" style="position: absolute; top: 0; right: 0; display: flex; gap: 8px; z-index: 10;">
+                 <button onclick="navSetlist(-1)" class="round-btn" style="width: 38px; height: 38px; font-size: 1rem; padding: 0; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"><i class="fas fa-step-backward"></i></button>
+                 <button onclick="navSetlist(1)" class="round-btn" style="width: 38px; height: 38px; font-size: 1rem; padding: 0; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"><i class="fas fa-step-forward"></i></button>
+             </div>
+
+             <h2 id="mainAppTitle" style="margin:0 0 5px 0; font-size:1.2rem; color:var(--text-main); display:flex; align-items:center; flex-wrap:wrap; padding-right:95px;">
                    <span>${s.title} ${s.artist ? `<span style="font-size:0.9rem; opacity:0.6;">- ${s.artist}</span>` : ''}</span>
                    ${noteBtnHtml}
              </h2>

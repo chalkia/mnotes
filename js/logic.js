@@ -299,7 +299,7 @@ async function loadContextData() {
     isSyncing = true; // Κλείδωμα
     console.log(`🔍 [SYNC] Εκκίνηση συγχρονισμού για Context: ${currentGroupId}`);
     const listEl = document.getElementById('songList');
-    if(listEl) listEl.innerHTML = '<div class="loading-msg">Συγχρονισμός...</div>';
+    if (typeof showLoader === 'function') showLoader('syncing_data', 'Συγχρονισμός...');
 
     try {
         let currentLibrary = []; 
@@ -409,6 +409,7 @@ async function loadContextData() {
                                     existingClone.key = localSong.key;
                                     existingClone.updated_at = new Date().toISOString();
                                     localStorage.setItem('mnotes_data', JSON.stringify(myPersonalData));
+                                    await
                                     supabaseClient.from('songs').upsert(window.sanitizeForDatabase(existingClone, currentUser.id, null));
                                     console.log("✅ Ο κλώνος ενημερώθηκε με το τελικό Master.");
                                 }
@@ -421,6 +422,7 @@ async function loadContextData() {
                                     existingIndependent.key = localSong.key;
                                     existingIndependent.updated_at = new Date().toISOString();
                                     localStorage.setItem('mnotes_data', JSON.stringify(myPersonalData));
+                                    await
                                     supabaseClient.from('songs').upsert(window.sanitizeForDatabase(existingIndependent, currentUser.id, null));
                                 }
                             } 
@@ -441,6 +443,7 @@ async function loadContextData() {
                                     
                                     myPersonalData.push(personalCopy);
                                     localStorage.setItem('mnotes_data', JSON.stringify(myPersonalData));
+                                    await 
                                     supabaseClient.from('songs').insert([window.sanitizeForDatabase(personalCopy, currentUser.id, null)]);
                                 }
                             }
@@ -471,14 +474,19 @@ async function loadContextData() {
             const songStillExists = currentSongId ? library.find(s => s.id === currentSongId) : null;
             if (!songStillExists) currentSongId = library[0].id;
             
-            if (window.innerWidth > 1024) {
+        if (window.innerWidth > 1024) {
                 if (typeof toViewer === 'function') toViewer(true);
             } else {
-                const leftDrawer = document.getElementById('leftDrawer');
-                if (leftDrawer && typeof toggleLeftDrawer === 'function' && !leftDrawer.classList.contains('open')) {
-                    toggleLeftDrawer();
+                // Κινητές συσκευές: Εξαναγκασμός προβολής της Βιβλιοθήκης στην εκκίνηση
+                if (typeof switchDrawerTab === 'function') {
+                    switchDrawerTab('library');
+                } else {
+                    // Fallback σε περίπτωση που η συνάρτηση έχει άλλο όνομα
+                    const sidebar = document.getElementById('sidebar');
+                    if (sidebar) sidebar.classList.add('active');
                 }
             }
+        
         } else {
             if (typeof toEditor === 'function') toEditor();
         }
@@ -488,6 +496,7 @@ async function loadContextData() {
     } finally {
         // ✨ ΞΕΚΛΕΙΔΩΜΑ: Είτε πετύχει, είτε αποτύχει, ελευθερώνουμε το φρένο
         setTimeout(() => { isSyncing = false; }, 500); // 500ms cooldown
+        if (typeof hideLoader === 'function') hideLoader(); 
     }
 }
 // ==========================================

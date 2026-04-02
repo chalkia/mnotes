@@ -696,7 +696,7 @@ function renderPlayer(s) {
         tagsHtml = s.tags.map(t => `<span style="background:var(--accent); color:#000; padding:2px 8px; border-radius:12px; font-size:0.7rem; font-weight:bold; margin-right:5px; display:inline-block; margin-top:5px;">#${t}</span>`).join('');
     }
 
-    // --- PLAYER HEADER ---
+ // --- PLAYER HEADER ---
     const headerContainer = document.querySelector('.player-header-container');
     if (headerContainer) {
         headerContainer.innerHTML = `
@@ -711,6 +711,9 @@ function renderPlayer(s) {
              <div style="display:flex; justify-content:space-between; align-items:center;">
                  <div style="display:flex; align-items:center; gap: 10px;">
                      <span class="key-badge">${typeof getNote === 'function' ? getNote(s.key || "-", state.t) : s.key}</span>
+                     
+                     <span id="stageCapoInfo" style="display:${state.c > 0 ? 'inline-block' : 'none'}; background-color:#e74c3c; color:#fff; padding:2px 6px; border-radius:4px; font-size:0.8rem; font-weight:bold; letter-spacing: 0.5px;">CAPO ${state.c}</span>
+                     
                      <button id="btnToggleView" onclick="toggleViewMode()"></button>
                  </div>
             </div>
@@ -2546,7 +2549,6 @@ return `<span class="chord" style="display:inline; position:static; font-size:in
 // ===========================================================
 
 function openSettings() {
-   // Διαβάζουμε την τιμή από τη μνήμη και τη δείχνουμε στο checkbox
     document.getElementById('setWakeLock').checked = userSettings.wakeLock || false;
     const modal = document.getElementById('settingsModal');
     const chkSplit = document.getElementById('setDisableSplit');
@@ -2554,7 +2556,7 @@ function openSettings() {
     if (!modal) return;
 
     if (typeof userSettings === 'undefined') {
-        userSettings = JSON.parse(localStorage.getItem('mnotes_settings')) || { theme: 'theme-dark', lang: 'el', sortMethod: 'alpha' };
+        userSettings = JSON.parse(localStorage.getItem('mnotes_settings')) || { theme: 'theme-dark', lang: 'el' };
     }
 
     const themeSel = document.getElementById('setTheme');
@@ -2565,24 +2567,24 @@ function openSettings() {
     const chkDef = document.getElementById('chkDefaultColor'); 
     const chkPrintLyrics = document.getElementById('setPrintLyricsOnly');
     if (chkPrintLyrics) chkPrintLyrics.checked = userSettings.printLyricsOnly || false;
-   // --- Φόρτωση επιλογής Capo
+   
     const chkCapo = document.getElementById('chkAutoSaveCapo');
     if (chkCapo) chkCapo.checked = userSettings.autoSaveCapo || false;
-    // --- ΠΕΔΙΑ AUTO SCROLL ---
+
     const speedInp = document.getElementById('setScrollSpeed');
     const btnChk = document.getElementById('setShowScrollBtn');
 
     if(themeSel) themeSel.value = userSettings.theme || 'theme-dark';
-   // if(langSel) langSel.value = userSettings.lang || 'el';
-    if(sortSel) sortSel.value = userSettings.sortMethod || 'alpha';
+    if(langSel) langSel.value = userSettings.lang || 'el';
+    
+    // ✨ ΕΔΩ ΗΤΑΝ ΤΟ ΛΑΘΟΣ - Η γραμμή διεγράφη
+    
     if(sizeInp) sizeInp.value = userSettings.chordSize || 1;
     if(distInp) distInp.value = userSettings.chordDist || 0;
     
-    // Φόρτωση ρυθμίσεων Scroll
     if(speedInp) speedInp.value = userSettings.scrollSpeed || 50;
     if(btnChk) btnChk.checked = (typeof userSettings.showScrollBtn !== 'undefined') ? userSettings.showScrollBtn : true;
 
-    // Λογική για το Χρώμα
     if(colInp && chkDef) {
         if (!userSettings.chordColor || userSettings.chordColor === 'default') {
             chkDef.checked = true;
@@ -2599,7 +2601,6 @@ function openSettings() {
 
     modal.style.display = 'flex';
 }
-
 function closeSettings() {
     const modal = document.getElementById('settingsModal');
     if (modal) modal.style.display = 'none';

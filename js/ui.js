@@ -2559,7 +2559,6 @@ function openSettings() {
 
     const themeSel = document.getElementById('setTheme');
     const langSel = document.getElementById('langSelect');
-    const sortSel = document.getElementById('sortDefaultSelect'); 
     const sizeInp = document.getElementById('setChordSize');
     const distInp = document.getElementById('setChordDist');
     const colInp = document.getElementById('setChordColor');
@@ -2611,7 +2610,6 @@ function saveSettings() {
     requestWakeLock();
     const themeSel = document.getElementById('setTheme');
     const langSel = document.getElementById('langSelect');
-    const sortSel = document.getElementById('sortDefaultSelect');
     const sizeInp = document.getElementById('setChordSize');
     const distInp = document.getElementById('setChordDist');
     const colInp = document.getElementById('setChordColor');

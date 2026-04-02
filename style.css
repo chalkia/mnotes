@@ -164,6 +164,19 @@ body.lyrics-mode .line-row { align-items: center; line-height: 1.8; }
 .icon-btn { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-main); padding: 5px; }
 .icon-btn.danger { color: var(--danger); }
 .icon-btn.accent { color: var(--accent); font-size: 1.5rem; }
+.capo-badge {
+    display: none; /* Κρυφό από προεπιλογή */
+    background-color: #f59e0b; /* Πορτοκαλί προειδοποίησης */
+    color: #000;
+    font-weight: bold;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75em;
+    margin-left: 10px;
+    text-transform: uppercase;
+    vertical-align: middle;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
 /* Καθαρό και αλάνθαστο YouTube Container */
 .video-responsive { 
     position: relative; 
@@ -1808,9 +1821,68 @@ body.band-mode::before { z-index: 8000; } /* Το σηματάκι της Μπά
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
+/* Το βασικό κουτί των ρυθμίσεων */
+.settings-content {
+    background: var(--bg-panel, #222); /* Αν δεν έχεις τη μεταβλητή, βάζει σκούρο γκρι */
+    color: var(--text-main, #eee);
+    width: 90%;
+    max-width: 450px; /* Δεν το αφήνουμε να γίνει τεράστιο στις οθόνες PC */
+    max-height: 85vh; /* ✨ ΑΠΑΡΑΙΤΗΤΟ: Σταματάει στο 85% του ύψους της οθόνης */
+    overflow-y: auto; /* ✨ ΑΠΑΡΑΙΤΗΤΟ: Ενεργοποιεί το κάθετο scroll */
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+}
 
+/* Ομορφη, λεπτή μπάρα κύλισης ειδικά για τις ρυθμίσεις */
+.settings-content::-webkit-scrollbar {
+    width: 6px;
+}
+.settings-content::-webkit-scrollbar-thumb {
+    background: var(--accent, #ffb74d); 
+    border-radius: 4px;
+}
+/* Μεγαλώνουμε ελαφρώς τα κουτάκια */
+.setting-checkbox-label input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: var(--accent, #ffb74d); /* ✨ Κάνει το "τικ" να παίρνει το χρώμα της εφαρμογής σου! */
+    margin: 0; /* Βγάζουμε περιττά περιθώρια */
+}
 
+/* Ομοιομορφία στα πεδία κειμένου/αριθμών */
+.settings-content select, 
+.settings-content input[type="number"] {
+    background: rgba(255, 255, 255, 0.05); /* Ελαφρώς διαφανές φόντο */
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: inherit;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-family: inherit;
+    outline: none;
+}
+.settings-content select:focus, 
+.settings-content input[type="number"]:focus {
+    border-color: var(--accent, #ffb74d);
+}
+/* Ομαλή μετάβαση (hover) στα checkboxes */
+.setting-checkbox-label {
+    padding: 4px 0;
+    transition: opacity 0.2s ease;
+}
+.setting-checkbox-label:hover {
+    opacity: 0.8;
+}
 
+/* Στρογγύλεμα των κουμπιών δράσης στο τέλος */
+.modal-buttons button {
+    border-radius: 6px;
+    transition: filter 0.2s ease;
+}
+.modal-buttons button:hover {
+    filter: brightness(1.2);
+}
 
 
 

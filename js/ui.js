@@ -398,6 +398,20 @@ function clearLibrary() {
                 }
             }
         });
+       // --- 4. AUTO-LOAD ΠΡΩΤΟΥ ΤΡΑΓΟΥΔΙΟΥ (Αν η Σκηνή είναι άδεια) ---
+       if (visiblePlaylist.length > 0) {
+           // Ελέγχουμε αν βρισκόμαστε σε κατάσταση επεξεργασίας (δεν θέλουμε να του κλείσουμε τον Editor)
+           const isEditing = document.getElementById('view-editor')?.classList.contains('active-view');
+           
+           // Ελέγχουμε αν το Τρέχον Τραγούδι υπάρχει μέσα στην ΟΡΑΤΗ λίστα
+           const isCurrentVisible = visiblePlaylist.find(s => s.id === currentSongId);
+           
+           // Αν δεν είναι στον Editor, ΚΑΙ (δεν έχει επιλέξει τίποτα Ή το επιλεγμένο δεν φαίνεται πια λόγω φίλτρων)
+           if (!isEditing && (!currentSongId || !isCurrentVisible)) {
+               // Φορτώνουμε αυτόματα το πρώτο της λίστας!
+               loadSong(visiblePlaylist[0].id);
+           }
+       }
     }
  }
 
@@ -1583,9 +1597,15 @@ function handleTagInput(input) {
     const allTags = new Set();
     if (typeof library !== 'undefined') {
         library.forEach(s => {
-            if (s.playlists && Array.isArray(s.playlists)) {
-                s.playlists.forEach(t => allTags.add(t));
-            }
+            // ✨ ΔΙΟΡΘΩΣΗ: Πιάνουμε Array, Strings και το παλιό σύστημα Playlists
+            let sTags = [];
+            if (Array.isArray(s.tags)) sTags = s.tags;
+            else if (typeof s.tags === 'string') sTags = s.tags.split(',').map(t => t.trim());
+            else if (Array.isArray(s.playlists)) sTags = s.playlists;
+
+            sTags.forEach(t => {
+                if(t && t.trim() !== '') allTags.add(t.trim());
+            });
         });
     }
 
@@ -1600,7 +1620,7 @@ function handleTagInput(input) {
         if (matches.length > 0) {
             matches.forEach(match => {
                 const div = document.createElement('div');
-                div.className = 'tag-suggestion-item'; // Χρειάζεται CSS (δες παρακάτω)
+                div.className = 'tag-suggestion-item'; 
                 div.innerText = match;
                 div.onclick = () => {
                     addTag(match);

@@ -455,6 +455,7 @@ async function loadContextData() {
                         if (userOverride) {
                             song.personal_notes = userOverride.personal_notes;
                             song.personal_transpose = userOverride.local_transpose || 0;
+                            song.personal_capo = userOverride.local_capo || 0; 
                             song.has_override = true;
                         }
                         return song;
@@ -603,7 +604,7 @@ window.processImportedData = async function(data) {
         library = window.library; 
         
         if (typeof saveData === 'function') saveData(); 
-        if (typeof renderSidebar === 'function') renderSidebar();
+        if (typeof applySortAndRender === 'function') applySortAndRender(); // ✅ Χρήση της νέας (ασφαλούς) ταξινόμησης
         
         let msg = "";
         if (importCount > 0) msg += `${importCount} Νέα ✅ `;
@@ -620,7 +621,13 @@ window.processImportedData = async function(data) {
         if (finalTargetId && typeof loadSong === 'function') {
             currentSongId = finalTargetId;
             loadSong(finalTargetId);
-            if (typeof switchView === 'function') switchView('view-details');
+            
+            // ✅ UX: Στο Desktop πάμε Stage, στο κινητό πάμε στο Stage tab
+            if (window.innerWidth > 1024) {
+                if (typeof toViewer === 'function') toViewer(true);
+            } else {
+                if (typeof switchDrawerTab === 'function') switchDrawerTab('stage'); 
+            }
         }
     } else {
         console.log("ℹ️ Η εισαγωγή ολοκληρώθηκε χωρίς αλλαγές.");
@@ -716,13 +723,19 @@ async function saveAsOverride(songData) {
 
     let s = window.library.find(x => x.id === currentSongId);
 
-    //  Διαβάζουμε από τον Editor, ή (αν είναι κλειστός) κρατάμε τις παλιές σημειώσεις
+   //  Διαβάζουμε από τον Editor, ή (αν είναι κλειστός) κρατάμε τις παλιές σημειώσεις
     const pNotesEl = document.getElementById('inpPersonalNotes');
     const pNotes = (pNotesEl && pNotesEl.offsetParent !== null) ? pNotesEl.value.trim() : (s ? s.personal_notes || s.notes || "" : "");
     
     const pTrans = state.t || 0;
-    const pCapo = state.c || 0;
-
+    
+    // ✨ Ο ΚΟΦΤΗΣ ΤΟΥ CAPO: Ελέγχει τα settings πριν το αποθηκεύσει
+    let pCapo = 0;
+    const currentSettings = JSON.parse(localStorage.getItem('mnotes_settings') || "{}");
+    if (currentSettings.autoSaveCapo === true) {
+        pCapo = state.c || 0;
+    } 
+    
        //  1. OFFLINE FIRST: Ενημέρωση της τρέχουσας βιβλιοθήκης και αποθήκευση τοπικά!
     
     if (s) {

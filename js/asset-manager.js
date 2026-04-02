@@ -67,61 +67,72 @@ async function loadUserAssets(type) {
 }
 
 // 3. Η Καρδιά του Συστήματος: Background Upload με τη μέθοδο της "Σφραγίδας"
-async function handleGlobalUpload(inputElement) {
-    // Έλεγχος δικαιωμάτων
-    if (typeof canUserPerform === 'function' && !canUserPerform('SAVE_ATTACHMENTS')) {
-        if (typeof promptUpgrade === 'function') promptUpgrade('Αποθήκευση Αρχείων / Save Files');
-        inputElement.value = ""; 
-        return; 
-    }
+      async function handleGlobalUpload(inputElement) {
+                // 1. Έλεγχος Δικαιώματος (Feature Check)
+                if (typeof canUserPerform === 'function' && !canUserPerform('SAVE_ATTACHMENTS')) {
+                    if (typeof promptUpgrade === 'function') promptUpgrade('Αποθήκευση Αρχείων / Save Files');
+                    inputElement.value = ""; 
+                    return; 
+                }
+            
+                const file = inputElement.files[0];
+                if (!file) return;
+            
+                // ✨ 2. ΕΛΕΓΧΟΣ ΟΡΙΟΥ ΧΩΡΗΤΙΚΟΤΗΤΑΣ (Storage Quota Check)
+                const limits = typeof getUserLimits === 'function' ? getUserLimits() : { storageLimitMB: 50 };
+                const fileSizeMB = file.size / (1024 * 1024);
+                
+                // Σημείωση: Ιδανικά, στο μέλλον, θα πρέπει να προσθέσεις μια στήλη 'file_size_mb' 
+                // στον πίνακα 'user_assets' στη Supabase και να κάνεις SUM όλα τα αρχεία του χρήστη.
+                // Προς το παρόν, ελέγχουμε αν το αρχείο από μόνο του ξεπερνάει το όριο του πακέτου 
+                // (ή ένα προσωρινό σκληρό όριο για να μην γεμίσει ο server).
+                if (fileSizeMB > limits.storageLimitMB) {
+                    showToast(`Το αρχείο είναι πολύ μεγάλο (${fileSizeMB.toFixed(1)}MB). Το όριό σας είναι ${limits.storageLimitMB}MB.`, "error");
+                    inputElement.value = ""; 
+                    return;
+                }
+            
+                // 3. Έλεγχος Επέκτασης Αρχείου (Ο Νέος μας Πορτιέρης για τα αρχεία)
+                const fileExt = file.name.split('.').pop().toLowerCase();
+                const currentType = document.getElementById('assetManagerCurrentType')?.value || 'audio';
+                
+                if (currentType === 'audio') {
+                    const allowedAudio = ['mp3', 'wav', 'm4a', 'webm'];
+                    if (!allowedAudio.includes(fileExt)) {
+                        showToast("⚠️ Μη υποστηριζόμενη μορφή. Παρακαλώ επιλέξτε MP3, WAV ή M4A.", "error");
+                        inputElement.value = ''; 
+                        return; 
+                    }
+                } else {
+                    const allowedDocs = ['pdf', 'png', 'jpg', 'jpeg'];
+                    if (!allowedDocs.includes(fileExt)) {
+                        showToast("⚠️ Μη υποστηριζόμενη μορφή. Παρακαλώ επιλέξτε PDF ή εικόνα.", "error");
+                        inputElement.value = ''; 
+                        return; 
+                    }
+                }
+            
+                // --- Η ΣΦΡΑΓΙΔΑ ---
+                const targetSongId = currentSongId;
+                if (!targetSongId) { showToast("Επιλέξτε τραγούδι πρώτα! / Select a song first!"); inputElement.value = ""; return; }
+            
+                const assetType = document.getElementById('assetManagerCurrentType').value;
+                
+                const defaultName = file.name.replace(/\.[^/.]+$/, ""); 
+                let customTrackName = window.prompt("Όνομα Αρχείου / File Name:", defaultName);
+            
+                if (customTrackName === null) {
+                    inputElement.value = ""; 
+                    return;
+                }
+                
+                if (customTrackName.trim() === "") customTrackName = "Untitled Asset";
 
-    const file = inputElement.files[0];
-    if (!file) return;
-
-    // --- Ο ΝΕΟΣ ΜΑΣ ΠΟΡΤΙΕΡΗΣ ΓΙΑ ΤΑ ΑΡΧΕΙΑ ---
-    const fileExt = file.name.split('.').pop().toLowerCase();
-    
-    // Ξεχωρίζουμε τι πάει να ανεβάσει βάσει της καρτέλας που είναι ανοιχτή
-    const currentType = document.getElementById('assetManagerCurrentType')?.value || 'audio';
-    
-    if (currentType === 'audio') {
-        const allowedAudio = ['mp3', 'wav', 'm4a', 'webm'];
-        if (!allowedAudio.includes(fileExt)) {
-            showToast("⚠️ Μη υποστηριζόμενη μορφή. Παρακαλώ επιλέξτε MP3, WAV ή M4A.", "error");
-            inputElement.value = ''; // ΔΙΟΡΘΩΘΗΚΕ: Ήταν input.value
-            return; // STOP! Διακόπτουμε το ανέβασμα
-        }
-    } else {
-        const allowedDocs = ['pdf', 'png', 'jpg', 'jpeg'];
-        if (!allowedDocs.includes(fileExt)) {
-            showToast("⚠️ Μη υποστηριζόμενη μορφή. Παρακαλώ επιλέξτε PDF ή εικόνα.", "error");
-            inputElement.value = ''; // ΔΙΟΡΘΩΘΗΚΕ: Ήταν input.value
-            return; // STOP! Διακόπτουμε το ανέβασμα
-        }
-    }
-
-    // --- Η ΣΦΡΑΓΙΔΑ ---
-    // Κρατάμε το ID του τραγουδιού που κοιτούσε ο χρήστης ΤΗ ΣΤΙΓΜΗ που πάτησε το κουμπί
-    const targetSongId = currentSongId;
-    if (!targetSongId) { showToast("Επιλέξτε τραγούδι πρώτα! / Select a song first!"); return; }
-
-    const assetType = document.getElementById('assetManagerCurrentType').value;
-    
-    // Προετοιμασία ονόματος (Bilingual prompt)
-    const defaultName = file.name.replace(/\.[^/.]+$/, ""); 
-    let customTrackName = window.prompt("Όνομα Αρχείου / File Name:", defaultName);
-
-    if (customTrackName === null) {
-        inputElement.value = ""; // Ακύρωση
-        return;
-    }
-    if (customTrackName.trim() === "") customTrackName = "Untitled Asset";
-
-    // Κλείνουμε το modal για να μην τον εμποδίζουμε, ξεκινάει το background upload!
-    closeAssetManager();
-    showToast(`Uploading '${customTrackName}'... Μπορείτε να συνεχίσετε την εργασία σας!`, "info");
-    console.log(`[AssetManager] Ξεκινάει upload για το τραγούδι [${targetSongId}] στο παρασκήνιο...`);
-
+             // Κλείνουμε το modal για να μην τον εμποδίζουμε, ξεκινάει το background upload!
+             closeAssetManager();
+             showToast(`Uploading '${customTrackName}'... Μπορείτε να συνεχίσετε την εργασία σας!`, "info");
+             console.log(`[AssetManager] Ξεκινάει upload για το τραγούδι [${targetSongId}] στο παρασκήνιο...`);
+      
     const safeNameForStorage = customTrackName.replace(/[^a-zA-Z0-9]/g, '_');
     const filename = `Asset_${Date.now()}_${safeNameForStorage}`;
 

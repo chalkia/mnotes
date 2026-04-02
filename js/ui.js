@@ -181,11 +181,6 @@ function sortLibrary(method) {
     if (typeof renderSidebar === 'function') renderSidebar();
 }
     
-    userSettings.sortMethod = method;
-    localStorage.setItem('mnotes_settings', JSON.stringify(userSettings));
-    renderSidebar();
-}
-
 
 function applySortAndRender() {
     const sortSel = document.getElementById('sortFilter');

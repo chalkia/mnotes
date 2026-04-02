@@ -251,15 +251,14 @@ body.lyrics-mode .line-row { align-items: center; line-height: 1.8; }
 }
 
 .tag-suggestion-item {
-    padding: 8px;
+    padding: 8px 12px;
     cursor: pointer;
-    color: #fff;
-    border-bottom: 1px solid #444;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .tag-suggestion-item:hover {
     background: var(--accent);
-    color: #000;
+    color: var(--accent);
 }
 
 /* =========================================

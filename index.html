@@ -440,87 +440,121 @@
         </div>
     </div> 
     
-  <div id="settingsModal" class="modal" style="display:none;">
+    <div id="settingsModal" class="modal" style="display:none;">
     <div class="modal-content settings-content">
-        <h3 data-i18n="title_settings">Settings</h3>
-        <label><span data-i18n="lbl_theme">Theme:</span> 
-            <select id="setTheme" onchange="toggleCustomColors(this.value)" class="inp">
-                <option value="theme-dark">Dark</option>
-                <option value="theme-light">Light</option>
-                <option value="theme-slate">Slate selected</option>
-                <option value="theme-custom">Custom</option>
-            </select>
-        </label>
-                                                      
-        <div id="customColorArea" style="display:none; border:1px solid #444; padding:10px; margin:10px 0;">
-            <label>Bg: <input type="color" id="colBgMain" value="#000000"></label>
-            <label>Text: <input type="color" id="colTextMain" value="#ffffff"></label>
-            <label>Accent: <input type="color" id="colAccent" value="#00ff00"></label>
-            <label>Chord: <input type="color" id="colChord" value="#ffff00"></label>
-        </div>
+        <h3 data-i18n="title_settings" style="margin-top: 0; margin-bottom: 20px; border-bottom: 2px solid var(--accent); padding-bottom: 10px;">Settings</h3>
 
-       <div style="margin-bottom: 10px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-                <span data-i18n="lbl_scroll_speed" style="font-weight: bold; color: var(--text-main);">Scroll Speed:</span>
-             <label class="setting-checkbox-label" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer;">
-                <input type="checkbox" id="setShowScrollBtn" checked>
-                <span data-i18n="opt_show_scroll">Εμφάνιση κουμπιού Auto-Scroll</span>
-            </label>   
-            </div>
-            <input type="range" id="setScrollSpeed" min="10" max="200" style="width: 100%;">
-        </div>
-
-        <label><span data-i18n="lbl_max_capo">Max Capo:</span> <input type="number" id="setMaxCapo" value="12" class="inp" style="width: 60px; padding: 4px;"></label>
-
-        <hr style="border-color:#444; margin:10px 0;">
-        <div style="margin-bottom: 5px; font-weight: bold; color: var(--accent);" data-i18n="lbl_chord_appearance">Εμφάνιση Συγχορδιών</div>
-        
-        <label><span data-i18n="lbl_chord_size">Μέγεθος:</span> 
-            <input type="range" id="setChordSize" min="0.5" max="2" step="0.1" value="1">
-        </label>
-        
-        <label><span data-i18n="lbl_chord_dist">Απόσταση (Ύψος):</span> 
-            <input type="range" id="setChordDist" min="-10" max="20" step="1" value="0">
-        </label>
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-            <span data-i18n="lbl_chord_color">Χρώμα:</span>
-            <label style="font-size: 0.8rem; color: var(--text-muted); display: flex; align-items: center; gap: 5px; cursor: pointer;">
-                <input type="checkbox" id="chkDefaultColor" onchange="document.getElementById('setChordColor').disabled = this.checked; document.getElementById('setChordColor').style.opacity = this.checked ? '0.3' : '1';">
-                Από Θέμα
+        <div class="settings-group">
+            <h4 style="color: var(--accent); margin-bottom: 15px; text-transform: uppercase; font-size: 0.85em; opacity: 0.9;">Γενικά & Εμφάνιση</h4>
+            
+            <label style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <span data-i18n="lbl_theme">Theme:</span> 
+                <select id="setTheme" onchange="toggleCustomColors(this.value)" class="inp" style="width: auto;">
+                    <option value="theme-dark">Dark</option>
+                    <option value="theme-light">Light</option>
+                    <option value="theme-slate">Slate selected</option>
+                    <option value="theme-custom">Custom</option>
+                </select>
             </label>
-        </div>
-        <input type="color" id="setChordColor" value="#ffb74d" style="width: 100%; height: 30px; border: none; border-radius: 4px; cursor: pointer;">
-        
-        <hr style="border-color:#444; margin:10px 0;">
-        <label><input type="checkbox" id="setHideDemo"> <span data-i18n="lbl_hide_demo">Hide Demo</span></label>
-        <label><input type="checkbox" id="setWakeLock"> <span data-i18n="lbl_keep_screen">Keep Screen On</span></label>
-        
-        <label><input type="checkbox" id="setShowChords" checked onchange="GuitarChordsUI.toggleVisibility(this.checked)"> <span data-i18n="lbl_show_chords">🎸 Εμφάνιση Συγχορδιών (Κιθάρα)</span></label>
+                                                                                
+            <div id="customColorArea" style="display:none; border:1px solid #444; padding:10px; margin-bottom:10px; border-radius: 6px;">
+                <label style="display: flex; justify-content: space-between; margin-bottom: 5px;">Bg: <input type="color" id="colBgMain" value="#000000"></label>
+                <label style="display: flex; justify-content: space-between; margin-bottom: 5px;">Text: <input type="color" id="colTextMain" value="#ffffff"></label>
+                <label style="display: flex; justify-content: space-between; margin-bottom: 5px;">Accent: <input type="color" id="colAccent" value="#00ff00"></label>
+                <label style="display: flex; justify-content: space-between;">Chord: <input type="color" id="colChord" value="#ffff00"></label>
+            </div>
 
-       <label class="setting-checkbox-label" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer;">
+            <label class="setting-checkbox-label" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer;">
                 <input type="checkbox" id="setDisableSplit">
                 <span data-i18n="opt_disable_split">Ενιαία προβολή κειμένου (Όχι Split)</span>
-        </label>
-        <label class="setting-checkbox-label" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer;">
-            <input type="checkbox" id="setPrintLyricsOnly">
-            <span data-i18n="opt_print_lyrics">Εκτύπωση μόνο στίχων (PDF)</span>
-        </label>
-        <label class="setting-checkbox-label" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer;">
-            <input type="checkbox" id="setOnlySharps">
-            <span data-i18n="opt_only_sharps">Χρήση μόνο διέσεων (Sharps)</span>
-        </label>
+            </label>
+
+            <label class="setting-checkbox-label" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer;">
+                <input type="checkbox" id="setWakeLock"> 
+                <span data-i18n="lbl_keep_screen">Keep Screen On</span>
+            </label>
+
+            <label class="setting-checkbox-label" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer;">
+                <input type="checkbox" id="setHideDemo"> 
+                <span data-i18n="lbl_hide_demo">Hide Demo Songs</span>
+            </label>
+        </div>
+
+        <div class="settings-group" style="margin-top: 20px; border-top: 1px solid rgba(150,150,150,0.2); padding-top: 15px;">
+            <h4 style="color: var(--accent); margin-bottom: 15px; text-transform: uppercase; font-size: 0.85em; opacity: 0.9;" data-i18n="lbl_chord_appearance">Σκηνή & Συγχορδίες</h4>
+            
+            <label style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <span data-i18n="lbl_chord_size">Μέγεθος:</span> 
+                <input type="range" id="setChordSize" min="0.5" max="2" step="0.1" value="1" style="width: 50%;">
+            </label>
+            
+            <label style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <span data-i18n="lbl_chord_dist">Απόσταση (Ύψος):</span> 
+                <input type="range" id="setChordDist" min="-10" max="20" step="1" value="0" style="width: 50%;">
+            </label>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                <span data-i18n="lbl_chord_color">Χρώμα:</span>
+                <label style="font-size: 0.8rem; color: var(--text-muted); display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                    <input type="checkbox" id="chkDefaultColor" onchange="document.getElementById('setChordColor').disabled = this.checked; document.getElementById('setChordColor').style.opacity = this.checked ? '0.3' : '1';">
+                    Από Θέμα
+                </label>
+            </div>
+            <input type="color" id="setChordColor" value="#ffb74d" style="width: 100%; height: 35px; border: none; border-radius: 4px; cursor: pointer; margin-bottom: 15px;">
+
+            <label class="setting-checkbox-label" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer;">
+                <input type="checkbox" id="setShowChords" checked onchange="GuitarChordsUI.toggleVisibility(this.checked)"> 
+                <span data-i18n="lbl_show_chords">🎸 Εμφάνιση Συγχορδιών (Κιθάρα)</span>
+            </label>
+
+            <label class="setting-checkbox-label" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer;">
+                <input type="checkbox" id="setOnlySharps">
+                <span data-i18n="opt_only_sharps">Χρήση μόνο διέσεων (Sharps)</span>
+            </label>
+
+            <label style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <span data-i18n="lbl_max_capo">Max Capo:</span> 
+                <input type="number" id="setMaxCapo" value="12" class="inp" style="width: 60px; padding: 4px; text-align: center;">
+            </label>
+
+            <label class="setting-checkbox-label" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer;">
+                <input type="checkbox" id="chkAutoSaveCapo">
+                <span style="color: var(--accent);">Απομνημόνευση Capo (Auto-Save)</span>
+            </label>
+        </div>
+
+        <div class="settings-group" style="margin-top: 20px; border-top: 1px solid rgba(150,150,150,0.2); padding-top: 15px;">
+            <h4 style="color: var(--accent); margin-bottom: 15px; text-transform: uppercase; font-size: 0.85em; opacity: 0.9;">Auto-Scroll</h4>
+
+            <label class="setting-checkbox-label" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer;">
+                <input type="checkbox" id="setShowScrollBtn" checked>
+                <span data-i18n="opt_show_scroll">Εμφάνιση κουμπιού Scroll</span>
+            </label>   
+            
+            <div style="margin-bottom: 10px;">
+                <span data-i18n="lbl_scroll_speed" style="display: block; margin-bottom: 5px;">Ταχύτητα (Speed):</span>
+                <input type="range" id="setScrollSpeed" min="10" max="200" style="width: 100%;">
+            </div>
+        </div>
+
+        <div class="settings-group" style="margin-top: 20px; border-top: 1px solid rgba(150,150,150,0.2); padding-top: 15px;">
+            <h4 style="color: var(--accent); margin-bottom: 15px; text-transform: uppercase; font-size: 0.85em; opacity: 0.9;">Εκτύπωση & Εξαγωγή</h4>
+            
+            <label class="setting-checkbox-label" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer;">
+                <input type="checkbox" id="setPrintLyricsOnly">
+                <span data-i18n="opt_print_lyrics">Εκτύπωση μόνο στίχων (PDF)</span>
+            </label>
+        </div>
         
-        <hr style="border-color:#444; margin:15px 0;">
-        
-        <div style="text-align:center;">
-              <button onclick="redeemGiftCode()" class="modal-btn" style="width:100%; background:var(--bg-panel); border:1px dashed var(--accent); color:var(--accent);">
+        <div style="margin-top:25px; text-align:center;">
+              <button onclick="redeemGiftCode()" class="modal-btn" style="width:100%; padding: 10px; background:var(--bg-panel); border:1px dashed var(--accent); color:var(--accent); cursor: pointer; border-radius: 6px;">
                   <i class="fas fa-gift"></i> Έχετε Κωδικό Δώρου;
               </button>
         </div>
         
-        <div style="margin-top:15px; display:flex; gap:10px;">
-            <button onclick="saveSettings()" class="modal-btn accent" data-i18n="btn_save">Save</button>
-            <button onclick="document.getElementById('settingsModal').style.display='none'" class="modal-btn cancel" data-i18n="btn_cancel">Cancel</button>
+        <div style="margin-top:20px; display:flex; gap:10px;">
+            <button onclick="saveSettings()" class="modal-btn accent" data-i18n="btn_save" style="flex: 1; padding: 12px; font-weight: bold;">Save</button>
+            <button onclick="document.getElementById('settingsModal').style.display='none'" class="modal-btn cancel" data-i18n="btn_cancel" style="flex: 1; padding: 12px;">Cancel</button>
         </div>
     </div>
 </div>

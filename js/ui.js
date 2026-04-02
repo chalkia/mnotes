@@ -149,27 +149,37 @@ function applyFilters() {
 }
 
 function sortLibrary(method) {
-    if(!method) method = 'alpha';
+    if (!method) method = 'alpha';
     
     if (method === 'alpha') {
-        library.sort((a, b) => a.title.localeCompare(b.title));
+        // Ασφαλής Ελληνική Ταξινόμηση (αγνοεί τόνους και κεφαλαία/μικρά)
+        library.sort((a, b) => String(a.title).localeCompare(String(b.title), 'el', { sensitivity: 'base' }));
     } 
     else if (method === 'created') {
-        // Εξάγουμε το Timestamp (Date.now) κατευθείαν μέσα από το ID (π.χ. s_1700000000_xyz)
+        // Υβριδικός έλεγχος: Πρώτα Supabase, μετά το ID τρικ
         library.sort((a, b) => {
-            let timeA = parseInt(String(a.id).split('_')[1]) || 0;
-            let timeB = parseInt(String(b.id).split('_')[1]) || 0;
+            let timeA = a.created_at ? new Date(a.created_at).getTime() : (parseInt(String(a.id).split('_')[1]) || 0);
+            let timeB = b.created_at ? new Date(b.created_at).getTime() : (parseInt(String(b.id).split('_')[1]) || 0);
             return timeB - timeA;
         });
     } 
     else if (method === 'modified') {
-        // Μετατρέπουμε το ISO String του updated_at σε αριθμό για να κάνουμε την αφαίρεση
+        //  Έλεγχος updated_at
         library.sort((a, b) => {
             let timeA = new Date(a.updated_at || a.updatedAt || 0).getTime();
             let timeB = new Date(b.updated_at || b.updatedAt || 0).getTime();
             return timeB - timeA;
         });
     }
+    
+    // Αποθήκευση και Ανανέωση UI
+    if (typeof userSettings !== 'undefined') {
+        userSettings.sortMethod = method;
+        localStorage.setItem('mnotes_settings', JSON.stringify(userSettings));
+    }
+    
+    if (typeof renderSidebar === 'function') renderSidebar();
+}
     
     userSettings.sortMethod = method;
     localStorage.setItem('mnotes_settings', JSON.stringify(userSettings));
@@ -1517,12 +1527,12 @@ function refreshSyncButtonVisibility(song) {
         }
     }
 }
-function saveEdit() { 
+async function saveEdit() { 
     let bodyArea = document.getElementById('inpBody'); 
     if (bodyArea) bodyArea.value = fixTrailingChords(bodyArea.value); 
-    saveSong(); 
+    await saveSong(); 
     populateTags(); 
-    applyFilters(); 
+    //applyFilters(); 
 }
 
 function fixTrailingChords(text) { let lines = text.split('\n'); return lines.map(line => { const trailingChordRegex = /![A-G][b#]?[m]?[maj7|sus4|7|add9|dim|0-9]*(\/[A-G][b#]?)?\s*$/; if (line.match(trailingChordRegex)) return line.trimEnd() + "    "; return line; }).join('\n'); }

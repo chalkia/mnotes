@@ -2573,7 +2573,7 @@ function openSettings() {
     const btnChk = document.getElementById('setShowScrollBtn');
 
     if(themeSel) themeSel.value = userSettings.theme || 'theme-dark';
-    if(langSel) langSel.value = userSettings.lang || 'el';
+   // if(langSel) langSel.value = userSettings.lang || 'el';
     if(sortSel) sortSel.value = userSettings.sortMethod || 'alpha';
     if(sizeInp) sizeInp.value = userSettings.chordSize || 1;
     if(distInp) distInp.value = userSettings.chordDist || 0;

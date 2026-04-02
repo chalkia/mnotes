@@ -1884,5 +1884,10 @@ body.band-mode::before { z-index: 8000; } /* Το σηματάκι της Μπά
     filter: brightness(1.2);
 }
 
-
+/* Κρύβουμε τα πλωτά βελάκια της Σκηνής στις μεγάλες οθόνες */
+@media (min-width: 1025px) {
+    .mobile-nav-buttons {
+        display: none !important;
+    }
+}
 

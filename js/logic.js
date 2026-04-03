@@ -215,62 +215,59 @@ async function initUserData() {
         if (pError && pError.code !== 'PGRST116') throw pError;
 
         let isTierChanged = false;
-
-        if (profile) {
-            const fetchedTier = profile.subscription_tier.toLowerCase();
-            // Αν δεν είχαμε cache ή αν το tier άλλαξε στο μεταξύ
-            if (!userProfile || userProfile.subscription_tier !== fetchedTier) {
-                isTierChanged = true;
-            }
-            userProfile = profile;
-            userProfile.subscription_tier = fetchedTier;
-        } else {
-            const newProfile = { id: currentUser.id, email: currentUser.email, subscription_tier: 'free' };
-            await supabaseClient.from('profiles').insert([newProfile]);
-            userProfile = newProfile;
-            isTierChanged = true;
-        }
-
-        // Αποθηκεύουμε τη σωστή κατάσταση για την ΕΠΟΜΕΝΗ φορά
-        localStorage.setItem(cacheKey, JSON.stringify(userProfile));
-
-        // Αν άλλαξε κάτι σε σχέση με την cache (ή αν μπήκε πρώτη φορά), ξανακάνουμε refresh
-        if (isTierChanged || !cachedProfile) {
-            if (typeof refreshUIByTier === 'function') refreshUIByTier();
-        }
-
-        // Το Toast βγαίνει αφού έχουμε επιβεβαιώσει 100% τα δεδομένα
-        if (typeof showToast === 'function') {
-            const tierName = (typeof TIER_CONFIG !== 'undefined' && TIER_CONFIG[userProfile.subscription_tier]) 
-                             ? TIER_CONFIG[userProfile.subscription_tier].label 
-                             : "Free";
-            showToast(`Σύνδεση ως ${tierName} ✅`);
-        }
+         if (profile) {
+                     // ✨ Ο ΑΠΟΛΥΤΟΣ ΜΕΤΑΦΡΑΣΤΗΣ: 
+                     // Ό,τι κι αν γράφει η βάση (bandLeader, owner, κλπ), το κάνει σωστό κλειδί!
+                     let rawTier = profile.subscription_tier.toLowerCase().replace(/[^a-z_]/g, '');
+                     
+                     const tierMap = { 
+                         'free': 'solo_free', 'solo': 'solo_pro', 'pro': 'solo_pro',
+                         'member': 'band_mate', 'bandmate': 'band_mate',
+                         'owner': 'band_leader', 'bandleader': 'band_leader',
+                         'maestro': 'band_maestro', 'bandmaestro': 'band_maestro',
+                         'ensemble': 'ensemble'
+                     };
+                     
+                     const fetchedTier = tierMap[rawTier] || rawTier;
+         
+                     if (!userProfile || userProfile.subscription_tier !== fetchedTier) {
+                         isTierChanged = true;
+                     }
+                     userProfile = profile;
+                     userProfile.subscription_tier = fetchedTier;
+                 } else {
+                     const newProfile = { id: currentUser.id, email: currentUser.email, subscription_tier: 'solo_free' };
+                     await supabaseClient.from('profiles').insert([newProfile]);
+                     userProfile = newProfile;
+                     isTierChanged = true;
+                 }
+         
+                 // Αποθήκευση για την επόμενη φορά
+                 localStorage.setItem(cacheKey, JSON.stringify(userProfile));
+         
+                 if (isTierChanged || !cachedProfile) {
+                     if (typeof refreshUIByTier === 'function') refreshUIByTier();
+                 }
+         
+                 // 📢 ΕΝΔΕΙΞΗ ΣΥΝΔΕΣΗΣ: Διαβάζει κατευθείαν το καθαρό Label από το TIER_CONFIG
+                 if (typeof showToast === 'function') {
+                     const tierLabel = TIER_CONFIG[userProfile.subscription_tier]?.label || "User";
+                     showToast(`Σύνδεση ως ${tierLabel} ✅`);
+                 }
 
         // 2. Groups (Bands) - Με σωστό Join και Error Handling
         const { data: groups, error: gError } = await supabaseClient
             .from('group_members')
-            .select(`
-                group_id, 
-                role, 
-                groups!group_members_group_id_fkey (
-                    name, 
-                    owner_id
-                )
-            `)
+            .select(`group_id, role, groups!group_members_group_id_fkey (name, owner_id)`)
             .eq('user_id', currentUser.id);
 
         if (gError) {
-            console.warn("⚠️ Join failed, trying simple fetch...");
-            const { data: simpleGroups } = await supabaseClient
-                .from('group_members')
-                .select('group_id, role')
-                .eq('user_id', currentUser.id);
+               const { data: simpleGroups } = await supabaseClient
+                .from('group_members') .select('group_id, role') .eq('user_id', currentUser.id);
             myGroups = simpleGroups || [];
         } else {
             myGroups = groups || [];
-            console.log(`🎸 Συνδέθηκαν ${myGroups.length} μπάντες.`);
-        }
+           }
 
         // Ενημέρωση UI Dropdown
         if (typeof updateGroupDropdown === 'function') updateGroupDropdown();
@@ -280,8 +277,7 @@ async function initUserData() {
 
     } catch (err) {
         console.error("❌ Critical Init Error:", err);
-        showToast("Database connection issue. Working locally.", "error");
-    }
+        if (typeof showToast === 'function') showToast("Λειτουργία Offline.", "error");
 }
 /**
  * Εναλλαγή περιβάλλοντος εργασίας (Personal vs Band)

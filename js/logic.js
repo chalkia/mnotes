@@ -25,7 +25,9 @@ const TIER_CONFIG = {
         canJoinBands: false,       // 🔒 Μόνο ως Viewer σε Ensemble
         maxBandsOwned: 0,
         maxSetlists: 0, 
-        canSaveAttachments: false, 
+        canSaveAttachments: false,
+        use_audio: true,
+        use_sequencer: false,    // Για μελλοντική Χρήση. Δεν χρησιμοποιείται για την ώρα και ταυτίζεται με το hasAdvancedDrums
         hasAdvancedDrums: false,   
         canPrint: false,           
         storageLimitMB: 0,
@@ -40,7 +42,9 @@ const TIER_CONFIG = {
         maxSetlists: 1, 
         canJoinBands: false,       // 🔒 Αποκλειστικά Solo/Viewer σε Ensemble
         maxBandsOwned: 0,          
-        canSaveAttachments: true,  
+        canSaveAttachments: true,
+        use_audio: true,
+        use_sequencer: true,
         hasAdvancedDrums: true,    
         canPrint: true,            
         storageLimitMB: 50,
@@ -55,7 +59,9 @@ const TIER_CONFIG = {
         maxSetlists: 50, 
         canJoinBands: true,        // ✅ Μπαίνει παντού ελεύθερα
         maxBandsOwned: 0,          
-        canSaveAttachments: true, 
+        canSaveAttachments: true,
+        use_audio: true,
+        use_sequencer: true,
         hasAdvancedDrums: true, 
         canPrint: true,
         storageLimitMB: 500,
@@ -70,7 +76,9 @@ const TIER_CONFIG = {
         maxSetlists: 150, 
         canJoinBands: true, 
         maxBandsOwned: 1,          
-        canSaveAttachments: true, 
+        canSaveAttachments: true,
+        use_audio: true,
+        use_sequencer: true,
         hasAdvancedDrums: true, 
         canPrint: true,
         storageLimitMB: 1500,
@@ -86,7 +94,9 @@ const TIER_CONFIG = {
         canJoinBands: true, 
         maxBandsOwned: 5,          
         canSaveAttachments: true, 
-        hasAdvancedDrums: true, 
+        hasAdvancedDrums: true,
+        use_audio: true,
+        use_sequencer: true,
         canPrint: true,
         storageLimitMB: 4500,
         includedBandMates: 0      // 🌟 Έτοιμο για add-ons
@@ -101,7 +111,9 @@ const TIER_CONFIG = {
         maxBandsOwned: 10,
         maxSetlists: 1000,
         canSaveAttachments: true, 
-        hasAdvancedDrums: true, 
+        hasAdvancedDrums: true,
+        use_audio: true,
+        use_sequencer: true,
         canPrint: true,
         storageLimitMB: 4500,
         // --- ENSEMBLE SPECIFIC LIMITS ---
@@ -161,8 +173,10 @@ function canUserPerform (action, currentCount=0) {
             return limits.canJoinBands;
         case 'SAVE_ATTACHMENTS':
             return limits.canSaveAttachments;
+        case 'USE_SEQUENCER':          
+             return limits.use_sequencer;
         case 'ADVANCED_DRUMS':
-            return limits.hasAdvancedDrums;
+             return limits.hasAdvancedDrums;
         case 'PRINT':
             return limits.canPrint;
         case 'DELEGATE_ADMIN':

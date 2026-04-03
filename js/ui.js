@@ -2384,23 +2384,41 @@ function setupEvents() {
 
 function switchMobileTab(tabName) {
     const map = { 'library': 'sidebar', 'stage': 'mainZone', 'tools': 'rhythmTools' };
-    ['sidebar', 'mainZone', 'rhythmTools'].forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove('mobile-view-active'); });
-    const targetId = map[tabName]; const targetEl = document.getElementById(targetId);
+    ['sidebar', 'mainZone', 'rhythmTools'].forEach(id => { 
+        const el = document.getElementById(id); 
+        if (el) el.classList.remove('mobile-view-active'); 
+    });
+    
+    const targetId = map[tabName]; 
+    const targetEl = document.getElementById(targetId);
     if (targetEl) { targetEl.classList.add('mobile-view-active'); }
-    const btns = document.querySelectorAll('.tab-btn-mob'); btns.forEach(b => b.classList.remove('active'));
+    
+    const btns = document.querySelectorAll('.tab-btn-mob'); 
+    btns.forEach(b => b.classList.remove('active'));
     if (tabName === 'library' && btns[0]) btns[0].classList.add('active');
     if (tabName === 'stage' && btns[1]) btns[1].classList.add('active');
     if (tabName === 'tools' && btns[2]) btns[2].classList.add('active');
-   // ✨ ΠΡΟΣΘΗΚΗ: Κρύβουμε το PDF όταν φεύγουμε από το Stage στα κινητά!
-      if (typeof FloatingTools !== 'undefined' && FloatingTools.isOpen) {
-          const fw = document.getElementById('floating-viewer');
-          if (fw) {
-              // Αν πάμε πίσω στο stage, το εμφανίζουμε, αλλιώς το κρύβουμε
-              fw.style.display = (tabName === 'stage') ? 'flex' : 'none';
-          }
-      }
-}
 
+    // ✨ ΠΡΟΣΘΗΚΗ 1: Συγχρονισμός των κουμπιών του Μενού (Drawer)!
+    document.querySelectorAll('.drawer-btn').forEach(btn => btn.classList.remove('active'));
+    const drawerBtn = document.querySelector(`.drawer-btn[onclick*="'${tabName}'"]`);
+    if (drawerBtn) drawerBtn.classList.add('active');
+    
+    // ✨ ΠΡΟΣΘΗΚΗ 2: Εμφάνιση/Απόκρυψη των Player Controls (Transpose, κλπ) μέσα στο Drawer
+    const controlsDiv = document.getElementById('drawer-player-controls');
+    if (controlsDiv) {
+        controlsDiv.style.display = (tabName === 'stage') ? 'block' : 'none';
+    }
+
+    // ✨ ΠΡΟΣΘΗΚΗ 3: Κρύβουμε το PDF όταν φεύγουμε από το Stage στα κινητά!
+    if (typeof FloatingTools !== 'undefined' && FloatingTools.isOpen) {
+        const fw = document.getElementById('floating-viewer');
+        if (fw) {
+            // Αν πάμε πίσω στο stage, το εμφανίζουμε, αλλιώς το κρύβουμε
+            fw.style.display = (tabName === 'stage') ? 'flex' : 'none';
+        }
+    }
+}
 function toggleRightDrawer() {
     const d = document.getElementById('rightDrawer'); if(!d) return;
     const isOpen = d.classList.contains('open');
@@ -2440,31 +2458,26 @@ function setupDrawerListeners(drawer) {
         if (Math.abs(diffX) > Math.abs(diffY) && diffX > 50) { toggleRightDrawer(); }
     };
 }
-
 function switchDrawerTab(tabName) {
     if (window.innerWidth > 1024) return;
 
-    // 1. Αφαίρεση του active από όλα τα κουμπιά του Drawer
-    document.querySelectorAll('.drawer-btn').forEach(btn => btn.classList.remove('active'));
+    // ✨ ΝΕΟ: Αν πατήσουμε να πάμε στο Stage και η οθόνη είναι άδεια, 
+    // "αρπάζουμε" το τρέχον τραγούδι και το ζωγραφίζουμε!
+    if (tabName === 'stage' && typeof currentSongId !== 'undefined' && currentSongId) {
+        const titleEl = document.getElementById('mainAppTitle');
+        // Αν δεν υπάρχει τίτλος, πάει να πει ότι η σκηνή είναι άδεια
+        if (!titleEl || titleEl.innerText.trim() === '') {
+            if (typeof loadSong === 'function') loadSong(currentSongId);
+        }
+    }
 
-    // 2. Εύρεση και ενεργοποίηση του σωστού κουμπιού βάσει του tabName
-    // Χρησιμοποιούμε το onclick attribute για να βρούμε το σωστό κουμπί
-    const targetBtn = document.querySelector(`.drawer-btn[onclick*="'${tabName}'"]`);
-    if (targetBtn) targetBtn.classList.add('active');
-
-    // 3. Εναλλαγή του View (Library, Stage, Tools)
+    // Καλούμε την switchMobileTab που πλέον κάνει ΟΛΗ τη δουλειά 
+    // (συγχρονισμό χρωμάτων μενού, Player Controls και απόκρυψη PDF)
     if (typeof switchMobileTab === 'function') {
         switchMobileTab(tabName);
     }
 
-    // 4. Εμφάνιση/Απόκρυψη των Player Controls (Transpose, κλπ) μέσα στο Drawer
-    const controlsDiv = document.getElementById('drawer-player-controls');
-    if (controlsDiv) {
-        // Τα controls εμφανίζονται ΜΟΝΟ όταν είμαστε στο Stage
-        controlsDiv.style.display = (tabName === 'stage') ? 'block' : 'none';
-    }
-
-    // 5. Κλείσιμο του Drawer για να αποκαλυφθεί η οθόνη
+    // Κλείσιμο του Drawer για να αποκαλυφθεί η οθόνη
     if (typeof toggleRightDrawer === 'function') {
         toggleRightDrawer();
     }

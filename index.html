@@ -377,19 +377,26 @@
         <details class="tool-group" id="rhythmsMetronomeGroup" open>
             <summary><i class="fas fa-drum"></i> <span data-i18n="sum_rhythms">RHYTHMS & METRONOME</span></summary>
             <div class="group-content">
-                
-                <div class="bpm-row" style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid var(--border-color);">
-                    <button id="btnPlayRhythm" onclick="BasicMetronome.toggle()" class="action-btn-circle" style="width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; background: var(--accent); color: #000; border: none; box-shadow: 0 4px 10px rgba(0,0,0,0.3); cursor: pointer; transition: 0.2s transform;">
-                           <i class="fas fa-play"></i>
-                    </button>
-                    <div style="flex: 1; text-align: center;">
-                        <div class="bpm-display" style="margin-bottom: 5px;">
-                            <span id="dispBpm" style="font-size: 1.8rem; font-weight: bold; color: var(--text-main);">100</span> 
-                            <span style="font-size:0.75rem; color: var(--text-muted); font-weight: bold;" data-i18n="lbl_bpm">BPM</span>
-                        </div>
-                      <input type="range" id="rngBpm" min="40" max="250" value="100" class="compact-range" style="width: 95%; accent-color: var(--accent);" oninput="BasicMetronome.setBpm(this.value)">
+            <div class="bpm-row" style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid var(--border-color);">
+            <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                <button id="btnPlayRhythm" onclick="BasicMetronome.toggle()" class="action-btn-circle" style="width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; background: var(--accent); color: #000; border: none; box-shadow: 0 4px 10px rgba(0,0,0,0.3); cursor: pointer; transition: 0.2s transform;">
+                    <i class="fas fa-play"></i>
+                </button>
+                <div style="flex: 1; text-align: center;">
+                    <div class="bpm-display" style="margin-bottom: 5px;">
+                        <span id="dispBpm" style="font-size: 1.8rem; font-weight: bold; color: var(--text-main);">100</span> 
+                        <span style="font-size:0.75rem; color: var(--text-muted); font-weight: bold;" data-i18n="lbl_bpm">BPM</span>
                     </div>
+                    <input type="range" id="rngBpm" min="40" max="250" value="100" class="compact-range" style="width: 95%; accent-color: var(--accent);" oninput="BasicMetronome.setBpm(this.value)">
                 </div>
+            </div>
+    
+            <div style="display: flex; align-items: center; gap: 10px; margin-top: 5px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.05);">
+                <i class="fas fa-wave-square" style="color: var(--text-muted); font-size: 0.9rem;"></i>
+                <input type="range" id="rngPitch" min="400" max="1500" value="800" class="compact-range" style="flex: 1; height: 3px; accent-color: #888;" oninput="BasicMetronome.setPitch(this.value)" title="Ρύθμιση Συχνότητας (Pitch)">
+            </div>
+</div>            
+
 
                 <div id="activeRhythmBox" style="background: rgba(255,255,255,0.03); border: 1px dashed var(--border-color); border-radius: 6px; padding: 10px; text-align: center; margin-bottom: 12px;">
                     <span style="color: var(--text-muted); display: block; font-size: 0.75rem; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px;">Ενεργος Ρυθμος:</span>

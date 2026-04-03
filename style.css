@@ -438,7 +438,7 @@ body.theme-light .modal-btn {
         top: 0; 
         left: 0; 
         width: 100%; 
-        height: calc(100% - 60px); /* Αφήνουμε χώρο για την μπάρα κάτω */
+        height: 100%;
         z-index: 10;
         border: none;
         background: var(--bg-main); /* Σημαντικό για να μην είναι διάφανα */

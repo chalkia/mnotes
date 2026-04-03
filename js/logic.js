@@ -278,6 +278,7 @@ async function initUserData() {
     } catch (err) {
         console.error("❌ Critical Init Error:", err);
         if (typeof showToast === 'function') showToast("Λειτουργία Offline.", "error");
+  }
 }
 /**
  * Εναλλαγή περιβάλλοντος εργασίας (Personal vs Band)

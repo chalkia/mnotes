@@ -549,13 +549,13 @@ async function importFromURL() {
 function loadSong(id) {
     // 1. Σταμάτημα Auto Scroll αν τρέχει
     if(typeof scrollTimer !== 'undefined' && scrollTimer) toggleAutoScroll();
-   
+    
     // Κλείσιμο του συρταριού σημειώσεων στο Live View - Άνοιγμα των συγχορδιών
     let notesGroup = document.getElementById('perfNotesGroup');
     if (notesGroup) notesGroup.open = false;
     let chordsGroup = document.getElementById('guitarChordsGroup');
     if (chordsGroup) chordsGroup.open = true; 
-   
+    
     // 2.1 Εύρεση Τραγουδιού
     currentSongId = id; 
    // ✨ Κλείσιμο του Floating Viewer (PDF) αν αλλάξαμε τραγούδι!
@@ -564,7 +564,7 @@ function loadSong(id) {
     }
     var s = library.find(x => x.id === id); 
     if(!s) return;
-   
+    
    // 2.2✨ ΑΝΟΙΓΕΙΣ ΤΟ MASTER ΜΕΣΑ ΑΠΟ SETLIST ΑΛΛΑ ΕΧΕΙΣ ΚΛΩΝΟ; ΦΟΡΤΩΣΕ ΤΟΝ ΚΛΩΝΟ ΣΟΥ!
     if (!s.is_clone && currentGroupId !== 'personal') {
         const myClone = library.find(c => c.parent_id === s.id && c.is_clone && c.user_id === currentUser?.id);
@@ -585,11 +585,17 @@ function loadSong(id) {
     // 4. Εμφάνιση Στίχων & Header
     renderPlayer(s);
     
-    // 5. ΣΥΓΧΡΟΝΙΣΜΟΣ RHYTHM / SEQUENCER
-    if (typeof syncSequencerToSong === 'function') {
-        syncSequencerToSong(s);
-    } else if (s.rhythm && s.rhythm.bpm && typeof AudioEngine !== 'undefined') {
-        AudioEngine.setBpm(s.rhythm.bpm);
+    // 5. ΣΥΓΧΡΟΝΙΣΜΟΣ ΜΕΤΡΟΝΟΜΟΥ / RHYTHM (ΤΑ ΦΑΝΤΑΣΜΑΤΑ ΕΦΥΓΑΝ!)
+    if (s.rhythm && s.rhythm.bpm) {
+        if (typeof BasicMetronome !== 'undefined') {
+            BasicMetronome.setBpm(s.rhythm.bpm);
+            
+            // Συγχρονίζουμε και τα γραφικά στοιχεία (Slider & Κείμενο) στο UI
+            const rngBpm = document.getElementById('rngBpm');
+            const dispBpm = document.getElementById('dispBpm');
+            if (rngBpm) rngBpm.value = s.rhythm.bpm;
+            if (dispBpm) dispBpm.innerText = s.rhythm.bpm;
+        }
     }
 
     // 6. Αλλαγή Προβολής (View)
@@ -740,7 +746,7 @@ function renderPlayer(s) {
                    
                    <div style="display:flex; justify-content:space-between; align-items:center;">
                        <div style="display:flex; align-items:center; gap: 10px;">
-                           <span class="key-badge">${typeof getNote === 'function' ? getNote(s.key || "-", state.t) : s.key}</span>
+                          <span class="key-badge" style="color: var(--accent); font-size: 1.8rem; font-weight: 900; text-shadow: 0 2px 5px rgba(0,0,0,0.4); border: 2px solid var(--accent); padding: 4px 12px; border-radius: 8px; background: rgba(0,0,0,0.2);">${typeof getNote === 'function' ? getNote(s.key || "-", state.t) : s.key}</span>
                            
                            <span id="stageCapoInfo" style="display:${state.c > 0 ? 'inline-block' : 'none'}; background-color:#e74c3c; color:#fff; padding:2px 6px; border-radius:4px; font-size:0.8rem; font-weight:bold; letter-spacing: 0.5px;">CAPO ${state.c}</span>
                            

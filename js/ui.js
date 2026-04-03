@@ -558,6 +558,10 @@ function loadSong(id) {
    
     // 2.1 Εύρεση Τραγουδιού
     currentSongId = id; 
+   // ✨ Κλείσιμο του Floating Viewer (PDF) αν αλλάξαμε τραγούδι!
+    if (typeof FloatingTools !== 'undefined' && FloatingTools.isOpen && FloatingTools.boundSongId !== id) {
+        if (typeof FloatingTools.close === 'function') FloatingTools.close();
+    }
     var s = library.find(x => x.id === id); 
     if(!s) return;
    
@@ -1793,8 +1797,6 @@ async function uploadAndLinkCurrent() {
              if (typeof saveData === 'function') saveData(); 
         }
         
-        s.recordings.push(newRec);
-
         showToast(`Take ${takeNum} Saved! ☁️`);
         btnLink.style.display = 'none'; 
         
@@ -2389,13 +2391,40 @@ function switchMobileTab(tabName) {
     if (tabName === 'library' && btns[0]) btns[0].classList.add('active');
     if (tabName === 'stage' && btns[1]) btns[1].classList.add('active');
     if (tabName === 'tools' && btns[2]) btns[2].classList.add('active');
+   // ✨ ΠΡΟΣΘΗΚΗ: Κρύβουμε το PDF όταν φεύγουμε από το Stage στα κινητά!
+      if (typeof FloatingTools !== 'undefined' && FloatingTools.isOpen) {
+          const fw = document.getElementById('floating-viewer');
+          if (fw) {
+              // Αν πάμε πίσω στο stage, το εμφανίζουμε, αλλιώς το κρύβουμε
+              fw.style.display = (tabName === 'stage') ? 'flex' : 'none';
+          }
+      }
 }
 
 function toggleRightDrawer() {
     const d = document.getElementById('rightDrawer'); if(!d) return;
     const isOpen = d.classList.contains('open');
-    if (isOpen) { d.classList.remove('open');document.removeEventListener('click', closeDrawerOutside); } 
-    else { d.classList.add('open'); setTimeout(() => { document.addEventListener('click', closeDrawerOutside); }, 100); setupDrawerListeners(d); }
+    
+    if (isOpen) { 
+        d.classList.remove('open');
+        document.removeEventListener('click', closeDrawerOutside); 
+        
+        // ✨ ΠΡΟΣΘΗΚΗ: Επαναφορά του PDF όταν κλείνει το συρτάρι (αν είμαστε στο Stage)
+        if (typeof FloatingTools !== 'undefined' && FloatingTools.isOpen) {
+            const isStageActive = document.getElementById('mainZone')?.classList.contains('mobile-view-active') || window.innerWidth > 1024;
+            document.getElementById('floating-viewer').style.display = isStageActive ? 'flex' : 'none';
+        }
+    } 
+    else { 
+        d.classList.add('open'); 
+        setTimeout(() => { document.addEventListener('click', closeDrawerOutside); }, 100); 
+        setupDrawerListeners(d); 
+        
+        // ✨ ΠΡΟΣΘΗΚΗ: Κρύβουμε το PDF για να μη μας ενοχλεί όσο είναι ανοιχτό το μενού
+        if (typeof FloatingTools !== 'undefined' && FloatingTools.isOpen) {
+            document.getElementById('floating-viewer').style.display = 'none';
+        }
+    }
 }
 function closeDrawerOutside(e) {
     const d = document.getElementById('rightDrawer'); const h = document.getElementById('drawerHandle');

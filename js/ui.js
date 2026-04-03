@@ -663,7 +663,7 @@ function renderPlayer(s) {
     
     if (stickyArea) {
         if (hasNotes) {
-            stickyArea.style.display = 'block';
+            stickyArea.style.display = 'none';
             if (cNoteText) cNoteText.innerText = bNote ? "📢 Μαέστρος: " + bNote : "";
             if (pNoteText) pNoteText.innerText = pNote ? "📝 Εγώ: " + pNote : "";
         } else {
@@ -704,41 +704,48 @@ function renderPlayer(s) {
             </button>`;
     }
 
-    // ✨ ΧΤΙΣΙΜΟ TAGS ΓΙΑ ΤΟ PLAYER
-    let tagsHtml = "";
-    if (s.tags && Array.isArray(s.tags) && s.tags.length > 0) {
-        tagsHtml = s.tags.map(t => `<span style="background:var(--accent); color:#000; padding:2px 8px; border-radius:12px; font-size:0.7rem; font-weight:bold; margin-right:5px; display:inline-block; margin-top:5px;">#${t}</span>`).join('');
-    }
-// --- PLAYER HEADER ---
-    const headerContainer = document.querySelector('.player-header-container');
-    if (headerContainer) {
-        headerContainer.innerHTML = `
-        <div class="player-header" style="position: relative;">
-             
-             <div class="mobile-nav-buttons" style="position: absolute; top: 0; right: 0; display: flex; gap: 8px; z-index: 10;">
-                 <button onclick="navSetlist(-1)" class="round-btn" style="width: 38px; height: 38px; font-size: 1rem; padding: 0; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"><i class="fas fa-step-backward"></i></button>
-                 <button onclick="navSetlist(1)" class="round-btn" style="width: 38px; height: 38px; font-size: 1rem; padding: 0; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"><i class="fas fa-step-forward"></i></button>
-             </div>
-
-             <h2 id="mainAppTitle" style="margin:0 0 5px 0; font-size:1.2rem; color:var(--text-main); display:flex; align-items:center; flex-wrap:wrap; padding-right:95px;">
-                   <span>${s.title} ${s.artist ? `<span style="font-size:0.9rem; opacity:0.6;">- ${s.artist}</span>` : ''}</span>
-                   ${noteBtnHtml}
-             </h2>
-             
-             <div style="margin-bottom: 8px;">${tagsHtml}</div>
-             
-             <div style="display:flex; justify-content:space-between; align-items:center;">
-                 <div style="display:flex; align-items:center; gap: 10px;">
-                     <span class="key-badge">${typeof getNote === 'function' ? getNote(s.key || "-", state.t) : s.key}</span>
-                     
-                     <span id="stageCapoInfo" style="display:${state.c > 0 ? 'inline-block' : 'none'}; background-color:#e74c3c; color:#fff; padding:2px 6px; border-radius:4px; font-size:0.8rem; font-weight:bold; letter-spacing: 0.5px;">CAPO ${state.c}</span>
-                     
-                     <button id="btnToggleView" onclick="toggleViewMode()"></button>
-                 </div>
-            </div>
-            ${metaHtml}
-        </div>`;
-    }
+      // ✨ ΧΤΙΣΙΜΟ TAGS ΓΙΑ ΤΟ PLAYER (Τώρα είναι Κουμπιά/Φίλτρα!)
+          let tagsHtml = "";
+          if (s.tags && Array.isArray(s.tags) && s.tags.length > 0) {
+              tagsHtml = s.tags.map(t => `
+                  <span onclick="filterByTag(event, '${t}')" 
+                        title="Φιλτράρισμα με #${t}"
+                        style="cursor:pointer; background:var(--accent); color:#000; padding:2px 8px; border-radius:12px; font-size:0.7rem; font-weight:bold; margin-right:5px; display:inline-block; margin-top:5px; box-shadow:0 2px 4px rgba(0,0,0,0.2); transition:transform 0.1s;" 
+                        onmouseover="this.style.transform='scale(1.05)'" 
+                        onmouseout="this.style.transform='scale(1)'">
+                      #${t}
+                  </span>`).join('');
+          }
+      // --- PLAYER HEADER ---
+          const headerContainer = document.querySelector('.player-header-container');
+          if (headerContainer) {
+              headerContainer.innerHTML = `
+              <div class="player-header" style="position: relative;">
+                   
+                   <div class="mobile-nav-buttons" style="position: absolute; top: 0; right: 0; display: flex; gap: 8px; z-index: 10;">
+                       <button onclick="navSetlist(-1)" class="round-btn" style="width: 38px; height: 38px; font-size: 1rem; padding: 0; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"><i class="fas fa-step-backward"></i></button>
+                       <button onclick="navSetlist(1)" class="round-btn" style="width: 38px; height: 38px; font-size: 1rem; padding: 0; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"><i class="fas fa-step-forward"></i></button>
+                   </div>
+      
+                   <h2 id="mainAppTitle" style="margin:0 0 5px 0; font-size:1.2rem; color:var(--text-main); display:flex; align-items:center; flex-wrap:wrap; padding-right:95px;">
+                         <span>${s.title} ${s.artist ? `<span style="font-size:0.9rem; opacity:0.6;">- ${s.artist}</span>` : ''}</span>
+                         ${noteBtnHtml}
+                   </h2>
+                   
+                   <div style="margin-bottom: 8px;">${tagsHtml}</div>
+                   
+                   <div style="display:flex; justify-content:space-between; align-items:center;">
+                       <div style="display:flex; align-items:center; gap: 10px;">
+                           <span class="key-badge">${typeof getNote === 'function' ? getNote(s.key || "-", state.t) : s.key}</span>
+                           
+                           <span id="stageCapoInfo" style="display:${state.c > 0 ? 'inline-block' : 'none'}; background-color:#e74c3c; color:#fff; padding:2px 6px; border-radius:4px; font-size:0.8rem; font-weight:bold; letter-spacing: 0.5px;">CAPO ${state.c}</span>
+                           
+                           <button id="btnToggleView" onclick="toggleViewMode()"></button>
+                       </div>
+                  </div>
+                  ${metaHtml}
+              </div>`;
+          }
 
     // --- EXTRAS (Video, Audio, Attachments) ---
     const vidBox = document.getElementById('video-sidebar-container');
@@ -2451,6 +2458,24 @@ function saveData() {
     if (Array.isArray(window.library)) {
         localStorage.setItem('mnotes_data', JSON.stringify(window.library));
         console.log("💾 LocalStorage Updated. Songs count:", window.library.length);
+    }
+}
+function filterByTag(e, tag) { 
+    e.stopPropagation(); 
+    const tagSelect = document.getElementById('tagFilter'); 
+        if(tagSelect) { 
+        console.log(`🏷️ [TAG CLICK] Εφαρμογή φίλτρου για το tag: ${tag}`);
+        tagSelect.value = tag; 
+        // Σιγουρευόμαστε ότι είμαστε στο "Library" view της μπάρας και όχι στο "Setlist"
+        if (typeof switchSidebarTab === 'function') switchSidebarTab('library');
+             applyFilters(); 
+        if (typeof showToast === 'function') showToast("Φίλτρο: #" + tag); 
+        // Αν είμαστε σε κινητό, γυρνάμε αμέσως στην προβολή της Λίστας!
+        if (window.innerWidth <= 1024 && typeof switchDrawerTab === 'function') {
+            switchDrawerTab('library');
+        }
+    } else {
+        console.warn("⚠️ [TAG CLICK] Δεν βρέθηκε το dropdown των Tags!");
     }
 }
 function filterByKey(e, key) { e.stopPropagation(); var inp = document.getElementById('searchInp'); if(inp) { inp.value = key; applyFilters(); showToast("Filter: " + key); } }

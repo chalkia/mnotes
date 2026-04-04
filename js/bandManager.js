@@ -71,8 +71,10 @@ async function loadBandDashboard() {
         if (currentRole === 'owner') {
             html += `
                 <button onclick="showToast(currentLang === 'en' ? 'mNotes Studio: Coming Soon for Pro Users!' : 'mNotes Studio: Έρχεται σύντομα για Pro χρήστες!', 'info')" 
-                        style="width:100%; margin-bottom:15px; padding:12px; background:linear-gradient(45deg, #1a237e, #0d47a1); color:#fff; border:none; border-radius:8px; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
-                    <i class="fas fa-desktop"></i> MNOTES STUDIO
+                        style="width: 100%; padding: 12px; margin-bottom: 15px; font-size: 1.05rem; font-weight: bold; background: var(--bg-panel); color: var(--text-main); border: 2px solid var(--accent); border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); cursor: pointer; transition: 0.2s transform; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <i class="fas fa-desktop" style="color: var(--accent);"></i> 
+                    <span>mStudio</span> 
+                    <i class="fas fa-lock" style="font-size: 0.8rem; color: var(--text-muted);"></i>
                 </button>
             `;
         }

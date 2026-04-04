@@ -3496,6 +3496,95 @@ function refreshSyncButtonVisibility(song) {
         }
     }
 }
-<button id="btnPlayRhythm" onclick="toggleMasterRhythm()" class="action-btn-circle" style="width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; background: var(--accent); color: #000; border: none; box-shadow: 0 4px 10px rgba(0,0,0,0.3); cursor: pointer; transition: 0.2s transform;">
-    <i class="fas fa-play" id="iconPlayRhythm"></i>
-</button>
+// --- 1. ΕΜΦΑΝΙΣΗ ΡΥΘΜΩΝ ΤΡΑΓΟΥΔΙΟΥ (Ζωγραφίζει τη λίστα) ---
+function renderRhythmsList(rhythms = []) {
+    const listEl = document.getElementById('list-rhythms'); 
+    if (!listEl) return;
+    
+    listEl.innerHTML = ''; 
+    let hasItems = false;
+    
+    rhythms.forEach((rhythm, index) => {
+        const el = document.createElement('div'); 
+        el.className = 'track-item'; 
+        el.style.cssText = `display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.2); padding:8px; margin-bottom:5px; border-radius:4px; border-left: 3px solid var(--accent);`;
+        
+        const isOwnerOrAdmin = (typeof currentRole !== 'undefined' && (currentRole === 'owner' || currentRole === 'admin'));
+        const canDelete = currentGroupId === 'personal' || isOwnerOrAdmin;
+        let deleteBtnHtml = canDelete ? `<button onclick="deleteMediaItem('${currentSongId}', 'rhythms', ${index})" style="background:none; border:none; color:var(--danger); cursor:pointer; padding:0 5px;" title="Delete"><i class="fas fa-times"></i></button>` : '';
+
+        el.innerHTML = `
+            <div onclick="activateSongRhythm('${rhythm.url}', '${rhythm.name}')" style="cursor:pointer; flex:1; display:flex; align-items:center; overflow:hidden;" title="Φόρτωση ρυθμού">
+                <i class="fas fa-drum" style="color:var(--accent); margin-right:8px;"></i>
+                <span style="font-size:0.85rem; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${rhythm.name}</span>
+            </div>
+            ${deleteBtnHtml}
+        `;
+        listEl.appendChild(el); 
+        hasItems = true;
+    });
+}
+
+// Global μεταβλητή για να ξέρουμε τι παίζει
+window.activeRhythmType = 'metronome'; 
+
+// --- 2. ΦΟΡΤΩΣΗ ΤΟΥ ΡΥΘΜΟΥ ΣΤΗ ΜΗΧΑΝΗ (Όταν τον κλικάρεις) ---
+async function activateSongRhythm(url, name) {
+    try {
+        console.log(`[RHYTHM] Κατέβασμα αρχείου .nmr από: ${url}`);
+        const response = await fetch(url);
+        if (!response.ok) throw new Error("Αποτυχία λήψης αρχείου");
+        const rhythmData = await response.json();
+
+        // Ενημέρωση του UI
+        const nameDisplay = document.getElementById('seq-current-name');
+        if (nameDisplay) {
+            nameDisplay.innerText = name || rhythmData.metadata?.name || "Custom Rhythm";
+            nameDisplay.style.color = "var(--accent)"; 
+        }
+
+        // Σταματάμε τον παλιό μετρονόμο αν παίζει
+        if (typeof BasicMetronome !== 'undefined' && BasicMetronome.isPlaying) {
+            BasicMetronome.stop();
+        }
+
+        // Στέλνουμε τα δεδομένα στο AudioEngine (mStudio)
+        if (typeof AudioEngine !== 'undefined' && typeof AudioEngine.loadPattern === 'function') {
+            AudioEngine.loadPattern(rhythmData);
+            window.activeRhythmType = 'sequencer'; // Αλλάζουμε την ταμπέλα!
+            showToast(`Ο ρυθμός ενεργοποιήθηκε! 🥁`);
+        } else {
+            console.warn("[RHYTHM] Δεν βρέθηκε το AudioEngine.");
+        }
+    } catch (error) {
+        console.error("[RHYTHM ERROR]:", error);
+        showToast("Σφάλμα φόρτωσης ρυθμού.", "error");
+    }
+}
+
+// --- 3. ΤΟ ΕΞΥΠΝΟ PLAY BUTTON ---
+function toggleMasterRhythm() {
+    const icon = document.getElementById('iconPlayRhythm');
+
+    if (window.activeRhythmType === 'sequencer' && typeof AudioEngine !== 'undefined') {
+        // Ελέγχουμε την AudioEngine
+        if (AudioEngine.isPlaying) {
+            AudioEngine.stop();
+            if (icon) { icon.classList.remove('fa-stop'); icon.classList.add('fa-play'); }
+        } else {
+            AudioEngine.play();
+            if (icon) { icon.classList.remove('fa-play'); icon.classList.add('fa-stop'); }
+        }
+    } else {
+        // Fallback: Απλός Μετρονόμος
+        if (typeof BasicMetronome !== 'undefined') {
+            BasicMetronome.toggle();
+            // Αλλαγή εικονιδίου για τον απλό μετρονόμο
+            if (BasicMetronome.isPlaying && icon) {
+                icon.classList.remove('fa-play'); icon.classList.add('fa-stop');
+            } else if (icon) {
+                icon.classList.remove('fa-stop'); icon.classList.add('fa-play');
+            }
+        }
+    }
+}

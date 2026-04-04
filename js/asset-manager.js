@@ -216,13 +216,15 @@ async function processAssetAttachment(targetSongId, type, name, url) {
         targetSong.rhythms.push(newAssetObj);
         
         if(typeof saveSong === 'function') saveSong(targetSong);
-        
         // Αν υπάρχει συνάρτηση να ζωγραφίζει τους ρυθμούς (όπως τις ηχογραφήσεις), την καλούμε εδώ
         if (currentSongId === targetSongId && typeof renderRhythmsList === 'function') {
             renderRhythmsList(targetSong.rhythms);
+           //  Φορτώνει τον ρυθμό αμέσως!
+            if (typeof activateSongRhythm === 'function') {
+                activateSongRhythm(newAssetObj.url, newAssetObj.name);
+            }
         }
-        console.log(`🥁 [AssetManager] Ο ρυθμός προστέθηκε! Σύνολο ρυθμών: ${targetSong.rhythms.length}`);
-
+        
     } else { // type === 'document'
         if (!targetSong.attachments) targetSong.attachments = [];
         targetSong.attachments.push(newAssetObj);

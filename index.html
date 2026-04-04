@@ -362,12 +362,16 @@
         </details>
          
         <hr class="sep">
-
+    
         <details class="tool-group" id="bandToolGroup">
             <summary>
                 <i class="fas fa-users-cog"></i> <span data-i18n="sum_band_manager">BAND MANAGER</span>
             </summary>
             <div class="group-content" id="bandManagerContent">
+                <button id="btnInviteMembers" onclick="showInviteCode()" style="display: none; width: 100%; margin-bottom: 15px; padding: 10px; background: rgba(21, 101, 192, 0.2); color: #64b5f6; border: 1px solid #1565c0; border-radius: 8px; font-weight: bold; cursor: pointer; align-items: center; justify-content: center; gap: 8px; transition: 0.2s;">
+                    <i class="fas fa-user-plus"></i> <span data-i18n="btn_invite_members">Κωδικός Πρόσκλησης</span>
+                </button>
+                
                 <div class="loading-placeholder">Select a Band or Create New...</div>
             </div>
         </details>

@@ -5,14 +5,13 @@
    =========================================================== */
 
 /**
- * 1. Εμφάνιση του Band Dashboard (Αντικαθιστά την renderBandManager)
- * Ενοποιεί τη δημιουργία (Personal) και τη διαχείριση (Band)
+ * 1. Εμφάνιση του Band Dashboard (Με σύστημα Sponsored Tickets)
  */
 async function loadBandDashboard() {
     const container = document.getElementById('bandManagerContent');
     if (!container) return;
 
-   // --- ΣΕΝΑΡΙΟ 1: PERSONAL CONTEXT (Δημιουργία & Ένταξη) ---
+    // --- ΣΕΝΑΡΙΟ 1: PERSONAL CONTEXT ---
     if (currentGroupId === 'personal') {
         container.innerHTML = `
             <div style="text-align:center; padding:20px 10px;">
@@ -30,33 +29,47 @@ async function loadBandDashboard() {
         return;
     }
     
-    // --- ΣΕΝΑΡΙΟ 2: BAND CONTEXT (Διαχείριση) ---
+    // --- ΣΕΝΑΡΙΟ 2: BAND CONTEXT ---
     container.innerHTML = '<p class="loading-text" style="text-align:center;"><i class="fas fa-spinner fa-spin"></i> Φόρτωση δεδομένων...</p>';
 
     try {
-        // Α. Ανάκτηση στοιχείων της μπάντας
-        const { data: groupData, error: groupErr } = await supabaseClient
-            .from('groups')
-            .select('invite_code')
-            .eq('id', currentGroupId)
-            .single();
-
+        const { data: groupData, error: groupErr } = await supabaseClient.from('groups').select('invite_code').eq('id', currentGroupId).single();
         if (groupErr) throw groupErr;
 
-        // Β. Ανάκτηση Μελών
+        // Ζητάμε πλέον ΚΑΙ το is_sponsored
         const { data: members, error: memErr } = await supabaseClient
             .from('group_members')
-            .select(`role, user_id, profiles ( username, email, subscription_tier, special_unlocks )`)
+            .select(`role, user_id, is_sponsored, profiles ( username, email, subscription_tier )`)
             .eq('group_id', currentGroupId);
-
         if (memErr) throw memErr;
 
         const isOwner = (currentRole === 'owner' || currentRole === 'admin');
+        const currentCount = members.length;
         
+        // --- ΜΑΘΗΜΑΤΙΚΑ ΓΙΑ ΤΑ ΕΙΣΙΤΗΡΙΑ (TICKETS) ---
+        let totalTickets = 0;
+        let usedTickets = 0;
+        
+        const ownerMember = members.find(m => m.role === 'owner');
+        if (ownerMember && ownerMember.profiles) {
+            const tempOwnerProfile = { subscription_tier: ownerMember.profiles.subscription_tier };
+            const baseConf = TIER_CONFIG[tempOwnerProfile.subscription_tier] || TIER_CONFIG['band_leader'];
+            totalTickets = baseConf.includedBandMates || 0;
+        }
+        
+        usedTickets = members.filter(m => m.is_sponsored).length;
 
-        // Γ. Χτίσιμο του HTML
+        // Δ. Χτίσιμο του HTML
         let html = `<div class="band-dashboard">`;
-        html += `<div class="band-stat" style="margin-bottom:10px; font-weight:bold;">MEMBERS: ${currentCount} / ${maxMembers}</div>`;
+        html += `<div class="band-stat" style="margin-bottom:5px; font-weight:bold; font-size:1.1rem;">👥 MEMBERS: ${currentCount}</div>`;
+        
+        // Εμφάνιση μετρητή Εισιτηρίων μόνο αν ο Leader δικαιούται
+        if (totalTickets > 0) {
+            html += `<div style="margin-bottom:15px; font-size:0.9rem; color:var(--accent); font-weight:bold;">🎫 SPONSORED SEATS: ${usedTickets} / ${totalTickets}</div>`;
+        } else {
+            html += `<div style="margin-bottom:15px;"></div>`;
+        }
+
         html += `<div class="member-list">`;
 
         members.forEach(m => {
@@ -64,24 +77,42 @@ async function loadBandDashboard() {
             const roleIcon = m.role === 'owner' ? '👑' : '🎸';
             const isMe = (m.user_id === currentUser.id);
 
+            // Γραφικά για το αν έχει εισιτήριο
+            const ticketBadge = m.is_sponsored ? `<span style="font-size:0.7rem; background:var(--accent); color:#000; padding:2px 5px; border-radius:4px; margin-left:5px;">🎫 VIP</span>` : '';
+
             html += `
                 <div id="member-card-${m.user_id}" class="member-item ${m.role}">
-                    <div style="overflow:hidden; text-overflow:ellipsis;">
+                    <div style="overflow:hidden; text-overflow:ellipsis; display:flex; align-items:center;">
                         <span title="${m.role}">${roleIcon}</span> 
-                        ${isMe ? '<strong>Εσύ</strong>' : displayName}
-                    </div>`;
+                        <span style="margin-left:5px;">${isMe ? '<strong>Εσύ</strong>' : displayName}</span>
+                        ${ticketBadge}
+                    </div>
+                    <div style="display:flex; gap:5px;">`;
             
+            // Εργαλεία Διαχείρισης Μέλους (Μόνο ο Owner τα βλέπει, και όχι για τον εαυτό του)
             if (isOwner && !isMe) {
+                // Κουμπί Εισιτηρίου (Αν ο Owner έχει γενικά διαθέσιμα εισιτήρια)
+                if (totalTickets > 0) {
+                    const ticketIcon = m.is_sponsored ? 'fas fa-ticket-alt' : 'fas fa-plus';
+                    const ticketColor = m.is_sponsored ? '#ff9800' : '#4db6ac';
+                    const ticketTitle = m.is_sponsored ? 'Αφαίρεση Εισιτηρίου' : 'Παροχή Εισιτηρίου';
+                    html += `
+                        <button onclick="toggleMemberTicket('${m.user_id}', ${m.is_sponsored}, ${usedTickets}, ${totalTickets})" class="icon-btn" title="${ticketTitle}" style="padding:2px 6px; font-size:0.8rem; color:${ticketColor}; border:1px solid ${ticketColor};">
+                            <i class="${ticketIcon}"></i>
+                        </button>`;
+                }
+                
+                // Κουμπί Αποβολής
                 html += `
-                    <button onclick="expelMember('${currentGroupId}', '${m.user_id}')" class="icon-btn danger" title="Αποβολή" style="padding:2px 6px; font-size:0.8rem;">
-                        <i class="fas fa-user-times"></i>
-                    </button>`;
+                        <button onclick="expelMember('${currentGroupId}', '${m.user_id}')" class="icon-btn danger" title="Αποβολή" style="padding:2px 6px; font-size:0.8rem;">
+                            <i class="fas fa-user-times"></i>
+                        </button>`;
             }
-            html += `</div>`;
+            html += `</div></div>`;
         });
         html += `</div>`; // Κλείσιμο λίστας
 
-        // Εργαλεία Admin
+        // Εργαλεία Leader (Invite Code, Disband)
         if (isOwner) {
             html += `
                 <div class="invite-box" style="margin-top:20px; text-align:center;">
@@ -90,7 +121,6 @@ async function loadBandDashboard() {
                     <button onclick="copyInviteCode()" class="footer-btn small" style="margin:0 auto 10px auto;">
                         <i class="far fa-copy"></i> Copy Link
                     </button>
-                    ${!hasAvailableSlots ? `<p style="color:var(--danger); font-size:0.8rem;">Η μπάντα είναι πλήρης (${maxMembers} μέλη).</p>` : ''}
                 </div>
                 <button onclick="deleteBand()" class="footer-btn danger-v2" style="width:100%; margin-top:15px;">
                     <i class="fas fa-bomb"></i> DISBAND GROUP
@@ -98,7 +128,7 @@ async function loadBandDashboard() {
             `;
             if (!groupData.invite_code) setTimeout(fetchInviteCode, 100); 
         } else {
-            // Εργαλεία Απλού Μέλους
+            // Εργαλεία Απλού Μέλους (Η Οικειοθελής Αποχώρηση που ζήτησες!)
             html += `
                 <button onclick="leaveBand()" class="footer-btn danger-v2" style="width:100%; margin-top:20px;">
                     <i class="fas fa-sign-out-alt"></i> LEAVE BAND
@@ -112,6 +142,42 @@ async function loadBandDashboard() {
     } catch (err) {
         console.error("[BAND_DASHBOARD] Σφάλμα:", err.message);
         container.innerHTML = '<p class="error-text" style="color:var(--danger); text-align:center;">Σφάλμα φόρτωσης.</p>';
+    }
+}
+
+/**
+ * 1.5. Διαχείριση Προπληρωμένων Εισιτηρίων (Sponsored Seats)
+ */
+async function toggleMemberTicket(targetUserId, currentlySponsored, usedTickets, totalTickets) {
+    // Αν πάει να δώσει νέο εισιτήριο, αλλά τα έχει εξαντλήσει
+    if (!currentlySponsored && usedTickets >= totalTickets) {
+        if (typeof showToast === 'function') showToast("Έχετε εξαντλήσει τα διαθέσιμα εισιτήρια του πακέτου σας!", "error");
+        console.log("🎟️ [TICKETS] Αποτυχία: Εξαντλημένα όρια.");
+        return;
+    }
+
+    const newStatus = !currentlySponsored;
+    console.log(`🎟️ [TICKETS] Ενημέρωση μέλους ${targetUserId}: Sponsored = ${newStatus}`);
+
+    try {
+        const { error } = await supabaseClient
+            .from('group_members')
+            .update({ is_sponsored: newStatus })
+            .eq('group_id', currentGroupId)
+            .eq('user_id', targetUserId);
+
+        if (error) throw error;
+        
+        if (typeof showToast === 'function') {
+            showToast(newStatus ? "Το εισιτήριο δόθηκε! 🎫" : "Το εισιτήριο αφαιρέθηκε.");
+        }
+        
+        // Ξαναφορτώνουμε το dashboard για να ενημερωθούν τα νούμερα και τα κουμπιά
+        loadBandDashboard();
+        
+    } catch (err) {
+        console.error("🎟️ [TICKETS] Σφάλμα Database:", err.message);
+        if (typeof showToast === 'function') showToast("Σφάλμα κατά την ενημέρωση του εισιτηρίου.", "error");
     }
 }
 /**

@@ -1,11 +1,11 @@
 /* ===========================================================
    mNotes Pro - BAND MANAGER LOGIC (bandManager.js)
-   Διαχειρίζεται αποκλειστικά τα μέλη, τη δημιουργία και 
-   τα δικαιώματα (Roles) των ομάδων (Bands).
+   Διαχειρίζεται αποκλειστικά τα μέλη, τη δημιουργία, τα εισιτήρια
+   (Sponsored Seats), τις προαγωγές και τη Μαύρη Λίστα.
    =========================================================== */
 
 /**
- * 1. Εμφάνιση του Band Dashboard (Με σύστημα Sponsored Tickets)
+ * 1. Εμφάνιση του Band Dashboard (Mε Σύστημα Sponsored & Banned)
  */
 async function loadBandDashboard() {
     const container = document.getElementById('bandManagerContent');
@@ -16,7 +16,7 @@ async function loadBandDashboard() {
         container.innerHTML = `
             <div style="text-align:center; padding:20px 10px;">
                 <p style="font-size:0.9rem; color:var(--text-muted); margin-bottom:15px;">
-                    Διαχειριστείτε τις μπάντες σας ή συνδεθείτε σε μια υπάρχουσα.
+                    ${currentLang === 'en' ? "Manage your bands or join an existing one." : "Διαχειριστείτε τις μπάντες σας ή συνδεθείτε σε μια υπάρχουσα."}
                 </p>
                 <button onclick="createNewBandUI()" class="footer-btn" style="width:100%; justify-content:center; background:var(--accent); color:#000; font-weight:bold; margin-bottom:10px;">
                     <i class="fas fa-plus-circle"></i> Create New Band
@@ -33,14 +33,18 @@ async function loadBandDashboard() {
     container.innerHTML = '<p class="loading-text" style="text-align:center;"><i class="fas fa-spinner fa-spin"></i> Φόρτωση δεδομένων...</p>';
 
     try {
+        console.log(`📡 [BAND MANAGER] Φόρτωση δεδομένων για μπάντα: ${currentGroupId}`);
+        
         const { data: groupData, error: groupErr } = await supabaseClient.from('groups').select('invite_code').eq('id', currentGroupId).single();
         if (groupErr) throw groupErr;
 
-        // Ζητάμε πλέον ΚΑΙ το is_sponsored
+        // Φέρνουμε ΜΟΝΟ τους ενεργούς χρήστες (όχι τους is_banned)
         const { data: members, error: memErr } = await supabaseClient
             .from('group_members')
-            .select(`role, user_id, is_sponsored, profiles ( username, email, subscription_tier )`)
-            .eq('group_id', currentGroupId);
+            .select(`role, user_id, is_sponsored, is_banned, profiles ( username, email, subscription_tier )`)
+            .eq('group_id', currentGroupId)
+            .is('is_banned', false); 
+
         if (memErr) throw memErr;
 
         const isOwner = (currentRole === 'owner' || currentRole === 'admin');
@@ -58,12 +62,23 @@ async function loadBandDashboard() {
         }
         
         usedTickets = members.filter(m => m.is_sponsored).length;
+        console.log(`📊 [TICKETS] Χρησιμοποιημένα: ${usedTickets} / ${totalTickets}`);
 
         // Δ. Χτίσιμο του HTML
         let html = `<div class="band-dashboard">`;
+
+        // --- ΝΕΟ: ΚΟΥΜΠΙ MNOTES STUDIO (Ορατό μόνο στον Owner) ---
+        if (currentRole === 'owner') {
+            html += `
+                <button onclick="showToast(currentLang === 'en' ? 'mNotes Studio: Coming Soon for Pro Users!' : 'mNotes Studio: Έρχεται σύντομα για Pro χρήστες!', 'info')" 
+                        style="width:100%; margin-bottom:15px; padding:12px; background:linear-gradient(45deg, #1a237e, #0d47a1); color:#fff; border:none; border-radius:8px; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+                    <i class="fas fa-desktop"></i> MNOTES STUDIO
+                </button>
+            `;
+        }
+        
         html += `<div class="band-stat" style="margin-bottom:5px; font-weight:bold; font-size:1.1rem;">👥 MEMBERS: ${currentCount}</div>`;
         
-        // Εμφάνιση μετρητή Εισιτηρίων μόνο αν ο Leader δικαιούται
         if (totalTickets > 0) {
             html += `<div style="margin-bottom:15px; font-size:0.9rem; color:var(--accent); font-weight:bold;">🎫 SPONSORED SEATS: ${usedTickets} / ${totalTickets}</div>`;
         } else {
@@ -74,10 +89,14 @@ async function loadBandDashboard() {
 
         members.forEach(m => {
             let displayName = m.profiles?.username || (m.profiles?.email ? m.profiles.email.split('@')[0] : "User " + m.user_id.slice(0,4));
-            const roleIcon = m.role === 'owner' ? '👑' : '🎸';
-            const isMe = (m.user_id === currentUser.id);
+            let roleIcon = '🎸';
+            
+            // Γραφικά ρόλων
+            if (m.role === 'owner') roleIcon = '👑';
+            else if (m.role === 'admin') roleIcon = '⭐';
+            else if (m.profiles?.subscription_tier === 'solo_free' && !m.is_sponsored) roleIcon = '👁️'; // Viewer
 
-            // Γραφικά για το αν έχει εισιτήριο
+            const isMe = (m.user_id === currentUser.id);
             const ticketBadge = m.is_sponsored ? `<span style="font-size:0.7rem; background:var(--accent); color:#000; padding:2px 5px; border-radius:4px; margin-left:5px;">🎫 VIP</span>` : '';
 
             html += `
@@ -89,36 +108,45 @@ async function loadBandDashboard() {
                     </div>
                     <div style="display:flex; gap:5px;">`;
             
-            // Εργαλεία Διαχείρισης Μέλους (Μόνο ο Owner τα βλέπει, και όχι για τον εαυτό του)
+            // Εργαλεία Διαχείρισης Μέλους
             if (isOwner && !isMe) {
                 const targetTier = m.profiles?.subscription_tier || 'solo_free';
-                const isSelfPaid = (targetTier !== 'solo_free'); // Αν πληρώνει δική του συνδρομή
-            
-                // Εμφάνιση κουμπιού Εισιτηρίου ΜΟΝΟ αν ο χρήστης είναι Free
-                // Αν είναι ήδη Band Mate / Maestro, δεν του χρειάζεται εισιτήριο.
+                const isSelfPaid = (targetTier !== 'solo_free');
+
+                // 1. Κουμπί Εισιτηρίου
                 if (totalTickets > 0 && !isSelfPaid) {
                     const ticketIcon = m.is_sponsored ? 'fas fa-ticket-alt' : 'fas fa-plus';
                     const ticketColor = m.is_sponsored ? '#ff9800' : '#4db6ac';
-                    const ticketTitle = m.is_sponsored ? 'Αφαίρεση Εισιτηρίου' : 'Παροχή Εισιτηρίου';
-                    
                     html += `
-                        <button onclick="toggleMemberTicket('${m.user_id}', ${m.is_sponsored}, ${usedTickets}, ${totalTickets})" class="icon-btn" title="${ticketTitle}" style="padding:2px 6px; font-size:0.8rem; color:${ticketColor}; border:1px solid ${ticketColor};">
+                        <button onclick="toggleMemberTicket('${m.user_id}', ${m.is_sponsored}, ${usedTickets}, ${totalTickets})" class="icon-btn" title="Εισιτήριο" style="padding:2px 6px; font-size:0.8rem; color:${ticketColor}; border:1px solid ${ticketColor};">
                             <i class="${ticketIcon}"></i>
                         </button>`;
                 } else if (isSelfPaid) {
-                    // Προαιρετικά: Ένα εικονίδιο που δείχνει ότι ο χρήστης είναι αυτόνομος
                     html += `<span title="Αυτοχρηματοδοτούμενο Μέλος" style="font-size:0.8rem; color:var(--text-muted); padding:0 5px;"><i class="fas fa-check-double"></i></span>`;
                 }
                 
-                // Κουμπί Αποβολής (Παραμένει πάντα για τον Owner)
-                html += `
-                    <button onclick="expelMember('${currentGroupId}', '${m.user_id}')" class="icon-btn danger" title="Αποβολή" style="padding:2px 6px; font-size:0.8rem;">
-                        <i class="fas fa-user-times"></i>
-                    </button>`;
+                // 2. Κουμπί Προαγωγής σε Leader
+                if (currentRole === 'owner' && (m.role === 'member' || m.role === 'admin')) {
+                    const promoIcon = m.role === 'admin' ? 'fas fa-arrow-down' : 'fas fa-arrow-up';
+                    const promoColor = m.role === 'admin' ? '#f44336' : '#2196f3';
+                    const promoTitle = m.role === 'admin' ? 'Υποβιβασμός' : 'Προαγωγή σε Leader';
+                    html += `
+                        <button onclick="toggleMemberRole('${m.user_id}', '${m.role}')" class="icon-btn" title="${promoTitle}" style="padding:2px 6px; font-size:0.8rem; color:${promoColor}; border:1px solid ${promoColor};">
+                            <i class="${promoIcon}"></i>
+                        </button>`;
+                }
+                
+                // 3. Κουμπί Αποβολής (Blacklist)
+                if (currentRole === 'owner') {
+                    html += `
+                        <button onclick="expelMember('${currentGroupId}', '${m.user_id}')" class="icon-btn danger" title="Αποβολή" style="padding:2px 6px; font-size:0.8rem;">
+                            <i class="fas fa-user-times"></i>
+                        </button>`;
+                }
             }
             html += `</div></div>`;
         });
-        html += `</div>`; // Κλείσιμο λίστας
+        html += `</div>`; 
 
         // Εργαλεία Leader (Invite Code, Disband)
         if (isOwner) {
@@ -130,13 +158,17 @@ async function loadBandDashboard() {
                         <i class="far fa-copy"></i> Copy Link
                     </button>
                 </div>
-                <button onclick="deleteBand()" class="footer-btn danger-v2" style="width:100%; margin-top:15px;">
-                    <i class="fas fa-bomb"></i> DISBAND GROUP
-                </button>
             `;
+            if (currentRole === 'owner') {
+                html += `
+                    <button onclick="deleteBand()" class="footer-btn danger-v2" style="width:100%; margin-top:15px;">
+                        <i class="fas fa-bomb"></i> DISBAND GROUP
+                    </button>
+                `;
+            }
             if (!groupData.invite_code) setTimeout(fetchInviteCode, 100); 
         } else {
-            // Εργαλεία Απλού Μέλους (Η Οικειοθελής Αποχώρηση που ζήτησες!)
+            // Οικειοθελής Αποχώρηση (Για Members & Viewers)
             html += `
                 <button onclick="leaveBand()" class="footer-btn danger-v2" style="width:100%; margin-top:20px;">
                     <i class="fas fa-sign-out-alt"></i> LEAVE BAND
@@ -148,18 +180,17 @@ async function loadBandDashboard() {
         container.innerHTML = html;
 
     } catch (err) {
-        console.error("[BAND_DASHBOARD] Σφάλμα:", err.message);
+        console.error("❌ [BAND_DASHBOARD] Σφάλμα:", err.message);
         container.innerHTML = '<p class="error-text" style="color:var(--danger); text-align:center;">Σφάλμα φόρτωσης.</p>';
     }
 }
 
 /**
- * 1.5. Διαχείριση Προπληρωμένων Εισιτηρίων (Sponsored Seats)
+ * 2. Διαχείριση Προπληρωμένων Εισιτηρίων (Sponsored Seats)
  */
 async function toggleMemberTicket(targetUserId, currentlySponsored, usedTickets, totalTickets) {
-    // Αν πάει να δώσει νέο εισιτήριο, αλλά τα έχει εξαντλήσει
     if (!currentlySponsored && usedTickets >= totalTickets) {
-        if (typeof showToast === 'function') showToast("Έχετε εξαντλήσει τα διαθέσιμα εισιτήρια του πακέτου σας!", "error");
+        if (typeof showToast === 'function') showToast(currentLang === 'en' ? "Ticket limit reached!" : "Έχετε εξαντλήσει τα εισιτήρια!", "error");
         console.log("🎟️ [TICKETS] Αποτυχία: Εξαντλημένα όρια.");
         return;
     }
@@ -176,82 +207,95 @@ async function toggleMemberTicket(targetUserId, currentlySponsored, usedTickets,
 
         if (error) throw error;
         
-        if (typeof showToast === 'function') {
-            showToast(newStatus ? "Το εισιτήριο δόθηκε! 🎫" : "Το εισιτήριο αφαιρέθηκε.");
-        }
-        
-        // Ξαναφορτώνουμε το dashboard για να ενημερωθούν τα νούμερα και τα κουμπιά
+        if (typeof showToast === 'function') showToast(newStatus ? "Το εισιτήριο δόθηκε! 🎫" : "Το εισιτήριο αφαιρέθηκε.");
         loadBandDashboard();
         
     } catch (err) {
-        console.error("🎟️ [TICKETS] Σφάλμα Database:", err.message);
-        if (typeof showToast === 'function') showToast("Σφάλμα κατά την ενημέρωση του εισιτηρίου.", "error");
+        console.error("❌ [TICKETS] Σφάλμα Database:", err.message);
     }
 }
+
 /**
- * 2. Αποβολή Μέλους (Η νέα, ασφαλής έκδοση με RLS)
+ * 3. Προαγωγή / Υποβιβασμός σε Leader (Admin)
  */
-async function expelMember(groupId, userIdToKick) {
-    if (!confirm("Είστε σίγουροι ότι θέλετε να απομακρύνετε αυτό το μέλος; Τα προσωπικά του αρχεία θα παραμείνουν στη βιβλιοθήκη της μπάντας.")) return;
+async function toggleMemberRole(targetUserId, currentMemberRole) {
+    const newRole = currentMemberRole === 'admin' ? 'member' : 'admin';
+    const msg = newRole === 'admin' ? "Το μέλος έγινε Leader! ⭐" : "Το μέλος επέστρεψε σε απλό ρόλο. 🎸";
+    
+    if (!confirm(currentLang === 'en' ? `Change role to ${newRole.toUpperCase()}?` : `Αλλαγή ρόλου σε ${newRole.toUpperCase()};`)) return;
 
     try {
+        console.log(`⭐ [ROLES] Ενημέρωση μέλους ${targetUserId} σε ρόλο: ${newRole}`);
         const { error } = await supabaseClient
             .from('group_members')
-            .delete()
+            .update({ role: newRole })
+            .eq('group_id', currentGroupId)
+            .eq('user_id', targetUserId);
+
+        if (error) throw error;
+        if (typeof showToast === 'function') showToast(msg);
+        loadBandDashboard(); 
+    } catch (err) {
+        console.error("❌ [ROLES] Σφάλμα αλλαγής ρόλου:", err.message);
+    }
+}
+
+/**
+ * 4. Αποβολή Μέλους (Blacklisting)
+ */
+async function expelMember(groupId, userIdToKick) {
+    if (!confirm(currentLang === 'en' ? "Are you sure you want to ban this member?" : "Είστε σίγουροι ότι θέλετε να αποβάλετε και να μπλοκάρετε αυτό το μέλος;")) return;
+
+    try {
+        console.log(`🚫 [EXPEL] Εφαρμογή Ban στο μέλος: ${userIdToKick}`);
+        const { error } = await supabaseClient
+            .from('group_members')
+            .update({ 
+                is_banned: true, 
+                is_sponsored: false, 
+                role: 'viewer'       
+            })
             .eq('group_id', groupId)
             .eq('user_id', userIdToKick);
 
-        if (error) {
-            console.error("[EXPEL] Σφάλμα:", error.message);
-            showToast("Υπήρξε πρόβλημα κατά την αποβολή. Έλεγξε τα δικαιώματά σου.", "error");
-            return;
-        }
+        if (error) throw error;
 
         const memberCard = document.getElementById(`member-card-${userIdToKick}`);
         if (memberCard) memberCard.remove();
         
-        showToast("Το μέλος απομακρύνθηκε επιτυχώς.");
-        
-        // Προαιρετικό: Ξαναφορτώνουμε το dashboard για να ανανεωθούν τα νούμερα
+        if (typeof showToast === 'function') showToast("Το μέλος αποβλήθηκε οριστικά (Blacklisted).");
         loadBandDashboard();
-
     } catch (err) {
-        console.error("Απρόσμενο σφάλμα:", err);
+        console.error("❌ [EXPEL] Σφάλμα:", err.message);
     }
 }
 
 /**
- * 3. Οικειοθελής Αποχώρηση
+ * 5. Οικειοθελής Αποχώρηση
  */
 async function leaveBand() {
-    if(!confirm("Θέλετε οριστικά να αποχωρήσετε από την μπάντα;")) return;
+    if(!confirm(currentLang === 'en' ? "Leave band permanently?" : "Θέλετε οριστικά να αποχωρήσετε από την μπάντα;")) return;
     await supabaseClient.from('group_members').delete().eq('group_id', currentGroupId).eq('user_id', currentUser.id);
     window.location.reload();
 }
 
 /**
- * 4. Δημιουργία Μπάντας
+ * 6. Δημιουργία Μπάντας
  */
 async function createNewBandUI() {
-    // 1. Βρίσκουμε πόσες μπάντες κατέχει ΗΔΗ ο χρήστης
-    const myOwnedGroups = myGroups.filter(g => g.role === 'owner' || g.role === 'admin').length;
+    const myOwnedGroups = myGroups.filter(g => g.role === 'owner').length;
     
-    // 2. Ρωτάμε τον Πορτιέρη αν δικαιούται κι άλλη
     if (!canUserPerform('CREATE_BAND', myOwnedGroups)) {
-        if (typeof promptUpgrade === 'function') {
-            promptUpgrade('Όριο Δημιουργίας Μπαντών');
-        } else {
-            showToast("Έχετε φτάσει το όριο των συγκροτημάτων για το πακέτο σας.", "error");
-        }
+        if (typeof promptUpgrade === 'function') promptUpgrade('Όριο Δημιουργίας Μπαντών');
+        else if (typeof showToast === 'function') showToast("Έχετε φτάσει το όριο των συγκροτημάτων για το πακέτο σας.", "error");
         return;
     }
 
-    const name = prompt("Όνομα νέας μπάντας:");
+    const name = prompt(currentLang === 'en' ? "New band name:" : "Όνομα νέας μπάντας:");
     if(!name) return;
 
     try {
         const { data, error } = await supabaseClient.from('groups').insert([{ name: name, owner_id: currentUser.id }]).select();
-        
         if (error) { 
             if (error.code === '23505') alert("⚠️ Αυτό το όνομα μπάντας χρησιμοποιείται ήδη!");
             else throw error;
@@ -261,7 +305,6 @@ async function createNewBandUI() {
         const newGroupId = data[0].id;
         await supabaseClient.from('group_members').insert([{ group_id: newGroupId, user_id: currentUser.id, role: 'owner' }]);
 
-        // Προσθήκη Demo (Βεβαιώσου ότι το DEFAULT_DEMO_SONGS υπάρχει)
         if (typeof DEFAULT_DEMO_SONGS !== 'undefined') {
             const bandDemoSongs = DEFAULT_DEMO_SONGS.map((ds, idx) => ({
                 ...ds,
@@ -272,26 +315,24 @@ async function createNewBandUI() {
             await supabaseClient.from('songs').insert(bandDemoSongs);
         }
 
-        showToast("Band Created! 🎉");
+        if (typeof showToast === 'function') showToast("Band Created! 🎉");
         window.location.reload(); 
-        
     } catch (err) {
         console.error(err); 
-        showToast("Σφάλμα κατά τη δημιουργία", "error");
+        if (typeof showToast === 'function') showToast("Σφάλμα κατά τη δημιουργία", "error");
     }
 }
 
 /**
- * 5. Ένταξη σε υπάρχουσα Μπάντα (με Invite Code)
+ * 7. Ένταξη σε υπάρχουσα Μπάντα (με Invite Code & Blacklist Check)
  */
 async function joinBandWithCode() {
-    // 1. Μπορεί ο χρήστης γενικά να μπει σε μπάντες;
     if (!canUserPerform('JOIN_BANDS')) {
         if (typeof promptUpgrade === 'function') promptUpgrade('Συμμετοχή σε Μπάντα');
         return;
     }
 
-    const code = prompt("Εισάγετε τον κωδικό πρόσκλησης (Invite Code):");
+    const code = prompt(currentLang === 'en' ? "Enter Invite Code:" : "Εισάγετε τον κωδικό πρόσκλησης:");
     if (!code) return;
     const cleanCode = code.trim().toUpperCase();
 
@@ -300,49 +341,47 @@ async function joinBandWithCode() {
             .from('groups').select('id, name, owner_id').eq('invite_code', cleanCode).single();
 
         if (groupErr || !groupData) {
-            showToast("Ο κωδικός δεν είναι έγκυρος.", "error");
+            if (typeof showToast === 'function') showToast("Ο κωδικός δεν είναι έγκυρος.", "error");
             return;
         }
 
-        // 2. Δυναμικός Έλεγχος Χωρητικότητας της Μπάντας (βάσει του ιδιοκτήτη)
-        const { data: ownerData } = await supabaseClient
-            .from('profiles').select('subscription_tier, special_unlocks').eq('id', groupData.owner_id).maybeSingle();
+        console.log(`🔍 [JOIN] Έλεγχος Blacklist για μπάντα: ${groupData.id}`);
+        const { data: existingMember } = await supabaseClient
+            .from('group_members')
+            .select('is_banned')
+            .eq('group_id', groupData.id)
+            .eq('user_id', currentUser.id)
+            .maybeSingle();
 
-        let maxMembers = 10; // Default
-        if (ownerData) {
-            const baseConf = TIER_CONFIG[ownerData.subscription_tier] || TIER_CONFIG['band_leader'];
-            const extraSlots = ownerData.special_unlocks?.extra_band_mates || 0;
-            maxMembers = (baseConf.includedBandMates || 0) + parseInt(extraSlots, 10) + 1; // +1 για τον owner
+        if (existingMember) {
+            if (existingMember.is_banned) {
+                alert(currentLang === 'en' ? "🚫 You have been banned from this band." : "🚫 Η είσοδός σας έχει απαγορευτεί οριστικά από τον διαχειριστή.");
+                return;
+            } else {
+                if (typeof showToast === 'function') showToast("Είστε ήδη μέλος αυτής της μπάντας!", "info");
+                return;
+            }
         }
 
-        const { data: currentMembers, error: countErr } = await supabaseClient
-            .from('group_members').select('id').eq('group_id', groupData.id);
-        
-        if (!countErr && currentMembers.length >= maxMembers) {
-            alert(`Λυπούμαστε, η μπάντα "${groupData.name}" είναι πλήρης (${maxMembers} μέλη).`);
-            return;
-        }
-
-        // 3. Εγγραφή στη Μπάντα
         const { error: joinErr } = await supabaseClient
             .from('group_members').insert([{ group_id: groupData.id, user_id: currentUser.id, role: 'member' }]);
 
         if (joinErr) throw joinErr;
         
-        showToast(`Καλώς ήρθατε στην μπάντα "${groupData.name}"! 🎉`);
+        if (typeof showToast === 'function') showToast(`Καλώς ήρθατε στην μπάντα "${groupData.name}"! 🎉`);
         setTimeout(() => window.location.reload(), 1500);
 
     } catch (err) {
-        console.error("Join Error:", err);
-        showToast("Σφάλμα κατά την ένταξη.", "error");
+        console.error("❌ Join Error:", err);
+        if (typeof showToast === 'function') showToast("Σφάλμα κατά την ένταξη.", "error");
     }
 }
+
 /**
- * 6. Ανάκτηση & Αντιγραφή Κωδικού (Invite Code)
+ * 8. Ανάκτηση, Αντιγραφή Κωδικού & Διάλυση
  */
 async function fetchInviteCode() {
     const { data, error } = await supabaseClient.from('groups').select('invite_code').eq('id', currentGroupId).single();
-        
     if(data) {
         let code = data.invite_code;
         if(!code) {
@@ -359,15 +398,13 @@ function copyInviteCode() {
     if (!codeEl) return;
     const link = `${window.location.origin}?join=${codeEl.innerText}`;
     navigator.clipboard.writeText(link);
-    showToast("Invite Link Copied! 📋");
+    if (typeof showToast === 'function') showToast("Invite Link Copied! 📋");
 }
 
-/**
- * 7. Οριστική Διάλυση Μπάντας
- */
 async function deleteBand() {
-    const conf = prompt("ΠΡΟΣΟΧΗ: Θα διαγραφούν ΟΛΑ τα δεδομένα της μπάντας.\nΓράψτε 'DELETE' για επιβεβαίωση:");
+    const conf = prompt(currentLang === 'en' ? "WARNING: All band data will be deleted.\nType 'DELETE' to confirm:" : "ΠΡΟΣΟΧΗ: Θα διαγραφούν ΟΛΑ τα δεδομένα της μπάντας.\nΓράψτε 'DELETE' για επιβεβαίωση:");
     if(conf === 'DELETE') {
+        console.log(`💣 [DISBAND] Διαγραφή της μπάντας: ${currentGroupId}`);
         await supabaseClient.from('groups').delete().eq('id', currentGroupId);
         window.location.reload();
     }

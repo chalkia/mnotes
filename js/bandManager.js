@@ -91,22 +91,30 @@ async function loadBandDashboard() {
             
             // Εργαλεία Διαχείρισης Μέλους (Μόνο ο Owner τα βλέπει, και όχι για τον εαυτό του)
             if (isOwner && !isMe) {
-                // Κουμπί Εισιτηρίου (Αν ο Owner έχει γενικά διαθέσιμα εισιτήρια)
-                if (totalTickets > 0) {
+                const targetTier = m.profiles?.subscription_tier || 'solo_free';
+                const isSelfPaid = (targetTier !== 'solo_free'); // Αν πληρώνει δική του συνδρομή
+            
+                // Εμφάνιση κουμπιού Εισιτηρίου ΜΟΝΟ αν ο χρήστης είναι Free
+                // Αν είναι ήδη Band Mate / Maestro, δεν του χρειάζεται εισιτήριο.
+                if (totalTickets > 0 && !isSelfPaid) {
                     const ticketIcon = m.is_sponsored ? 'fas fa-ticket-alt' : 'fas fa-plus';
                     const ticketColor = m.is_sponsored ? '#ff9800' : '#4db6ac';
                     const ticketTitle = m.is_sponsored ? 'Αφαίρεση Εισιτηρίου' : 'Παροχή Εισιτηρίου';
+                    
                     html += `
                         <button onclick="toggleMemberTicket('${m.user_id}', ${m.is_sponsored}, ${usedTickets}, ${totalTickets})" class="icon-btn" title="${ticketTitle}" style="padding:2px 6px; font-size:0.8rem; color:${ticketColor}; border:1px solid ${ticketColor};">
                             <i class="${ticketIcon}"></i>
                         </button>`;
+                } else if (isSelfPaid) {
+                    // Προαιρετικά: Ένα εικονίδιο που δείχνει ότι ο χρήστης είναι αυτόνομος
+                    html += `<span title="Αυτοχρηματοδοτούμενο Μέλος" style="font-size:0.8rem; color:var(--text-muted); padding:0 5px;"><i class="fas fa-check-double"></i></span>`;
                 }
                 
-                // Κουμπί Αποβολής
+                // Κουμπί Αποβολής (Παραμένει πάντα για τον Owner)
                 html += `
-                        <button onclick="expelMember('${currentGroupId}', '${m.user_id}')" class="icon-btn danger" title="Αποβολή" style="padding:2px 6px; font-size:0.8rem;">
-                            <i class="fas fa-user-times"></i>
-                        </button>`;
+                    <button onclick="expelMember('${currentGroupId}', '${m.user_id}')" class="icon-btn danger" title="Αποβολή" style="padding:2px 6px; font-size:0.8rem;">
+                        <i class="fas fa-user-times"></i>
+                    </button>`;
             }
             html += `</div></div>`;
         });

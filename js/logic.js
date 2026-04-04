@@ -295,11 +295,48 @@ async function initUserData() {
   }
 }
 /**
- * Εναλλαγή περιβάλλοντος εργασίας (Personal vs Band)
+ * Εναλλαγή περιβάλλοντος εργασίας (Personal vs Band) με έλεγχο Πορτιέρη
  */
 async function switchContext(targetId) {
+    console.log(`🔄 [CONTEXT] Αίτημα αλλαγής σε: ${targetId}`);
+
+    // --- ΝΕΟΣ ΕΛΕΓΧΟΣ: ΕΙΣΙΤΗΡΙΑ, BLACKLIST & VIEWERS (PORTIER LOGIC) ---
+    if (targetId !== 'personal') {
+        const groupData = typeof myGroups !== 'undefined' ? myGroups.find(g => g.group_id === targetId) : null;
+        
+        if (groupData) {
+            const role = groupData.role;
+            const isSponsored = groupData.is_sponsored === true; 
+            const isBanned = groupData.is_banned === true;
+            const personalTier = (typeof userProfile !== 'undefined' && userProfile) ? (userProfile.subscription_tier || 'solo_free') : 'solo_free';
+
+            // 1. Έλεγχος Blacklist
+            if (isBanned) {
+                console.log(`🚫 [BANNED] Απαγόρευση εισόδου. Ο χρήστης είναι στη Μαύρη Λίστα.`);
+                if (typeof showToast === 'function') {
+                    showToast(typeof currentLang !== 'undefined' && currentLang === 'en' ? "Access Denied: You have been banned from this group." : "Απαγόρευση Πρόσβασης: Έχετε αποβληθεί από αυτή την ομάδα.", "error");
+                }
+                const sel = document.getElementById('contextSelector');
+                if (sel) sel.value = 'personal';
+                targetId = 'personal'; // Εξαναγκασμός σε Personal
+            } 
+            // 2. Έλεγχος Viewer Mode (Free χωρίς εισιτήριο και δεν είναι Admin/Owner)
+            else if (personalTier === 'solo_free' && !isSponsored && role !== 'owner' && role !== 'admin') {
+                console.log(`👁️ [VIEWER MODE] Ο Free χρήστης μπαίνει σε κατάσταση ανάγνωσης.`);
+                if (typeof showToast === 'function') {
+                    showToast(typeof currentLang !== 'undefined' && currentLang === 'en' ? "Viewer Mode: You can only read setlists." : "Viewer Mode: Βλέπετε μόνο τα Setlists της μπάντας.", "warning");
+                }
+                groupData.role = 'viewer'; // Προσωρινή αλλαγή ρόλου για το Session
+            } else {
+                console.log(`✅ [ACCESS GRANTED] Είσοδος επιτράπηκε.`);
+            }
+        }
+    }
+    // -------------------------------------------------------------
+
     currentGroupId = targetId;
     
+    // Αλλαγή CSS Κλάσεων & Ορισμός Ρόλου
     if (targetId === 'personal') {
         currentRole = 'owner';
         document.body.classList.remove('band-mode');
@@ -329,29 +366,44 @@ function updateUIForRole() {
     const btnDel = document.getElementById('btnDelSetlist'); 
     const btnAdd = document.getElementById('btnAddSong');
     const btnClone = document.getElementById('btnCloneToPersonal');
+    const btnTabLibrary = document.getElementById('btnTabLibrary'); // ΝΕΟ: Για έλεγχο Viewer
 
     // 1. Έλεγχος για το κουμπί Clone (Αντιγραφή στα Προσωπικά)
     if (btnClone) {
-        btnClone.style.display = (currentGroupId !== 'personal' && currentSongId) ? 'inline-block' : 'none';
+        btnClone.style.display = (currentGroupId !== 'personal' && typeof currentSongId !== 'undefined' && currentSongId) ? 'inline-block' : 'none';
     }
 
-    // 2. Έλεγχος για δικαιώματα διαχείρισης (Viewer vs Admin)
-      if (currentGroupId !== 'personal' && (currentRole !== 'admin' && currentRole !== 'owner')) {
-        console.log("🔒 [UI] Περιορισμός Δικαιωμάτων: Απόκρυψη κουμπιών Add/Delete για το απλό μέλος.");
+    const isLeader = (currentRole === 'admin' || currentRole === 'owner');
+    const isViewer = (currentRole === 'viewer');
+
+    // 2. ΝΕΟ: Περιορισμοί του Viewer (Βλέπει ΜΟΝΟ Setlists)
+    if (isViewer) {
+        if (btnTabLibrary) btnTabLibrary.style.display = 'none';
+        if (typeof switchSidebarTab === 'function') switchSidebarTab('setlist');
+        
         if(btnDel) btnDel.style.display = 'none';
         if(btnAdd) btnAdd.style.display = 'none';
-       } else {
-        if(btnDel) btnDel.style.display = 'inline-block';
-        if(btnAdd) btnAdd.style.display = 'flex'; // ή inline-block ανάλογα με το αρχικό σου CSS
-       }
+    } else {
+        if (btnTabLibrary) btnTabLibrary.style.display = 'inline-block';
+        
+        // 3. Έλεγχος για δικαιώματα διαχείρισης (Viewer vs Admin vs Member)
+        if (currentGroupId !== 'personal' && !isLeader) {
+            console.log("🔒 [UI] Περιορισμός Δικαιωμάτων: Απόκρυψη κουμπιών Add/Delete για το απλό μέλος.");
+            if(btnDel) btnDel.style.display = 'none';
+            if(btnAdd) btnAdd.style.display = 'none';
+        } else {
+            if(btnDel) btnDel.style.display = 'inline-block';
+            if(btnAdd) btnAdd.style.display = 'flex'; // ή inline-block ανάλογα με το αρχικό σου CSS
+        }
+    }
     
-    // 3. Ενημέρωση του Header (Τίτλος Μπάντας vs My Songs)
+    // 4. Ενημέρωση του Header (Τίτλος Μπάντας vs My Songs)
     if (typeof refreshHeaderUI === 'function') refreshHeaderUI();
+    
     if (typeof loadBandDashboard === 'function') {
         loadBandDashboard();
     }
 }
-
 
 /* =========================================
    DATA LOADING & SYNC (OFFLINE-FIRST)

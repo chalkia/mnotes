@@ -53,30 +53,8 @@ async function loadBandDashboard() {
 
         const isOwner = (currentRole === 'owner' || currentRole === 'admin');
         
-        // ✨ Γ. ΥΠΟΛΟΓΙΣΜΟΣ ΟΡΙΟΥ ΜΕΛΩΝ ΜΕ ΤΗ ΝΕΑ ΜΕΘΟΔΟ
-        let maxMembers = 10; // Fallback
-        
-        // Βρίσκουμε τον Ιδιοκτήτη για να ελέγξουμε τα όριά ΤΟΥ (όχι του τρέχοντος χρήστη)
-        const ownerMember = members.find(m => m.role === 'owner');
-        if (ownerMember && ownerMember.profiles) {
-            // Δημιουργούμε ένα προσωρινό profile object για τον Owner, για να το περάσουμε στην getUserLimits
-            const tempOwnerProfile = {
-                subscription_tier: ownerMember.profiles.subscription_tier,
-                special_unlocks: ownerMember.profiles.special_unlocks
-            };
-            
-            // "Κλέβουμε" τη λογική της getUserLimits χωρίς να επηρεάσουμε τον current user
-            const baseConf = TIER_CONFIG[tempOwnerProfile.subscription_tier] || TIER_CONFIG['band_leader'];
-            const extraSlots = tempOwnerProfile.special_unlocks?.extra_band_mates || 0;
-            
-            // Το όριο είναι: Ενσωματωμένες θέσεις + Έξτρα θέσεις + 1 (Ο ίδιος ο Leader)
-            maxMembers = (baseConf.includedBandMates || 0) + parseInt(extraSlots, 10) + 1;
-        }
-        
-        const currentCount = members.length;
-        const hasAvailableSlots = currentCount < maxMembers;
 
-        // Δ. Χτίσιμο του HTML
+        // Γ. Χτίσιμο του HTML
         let html = `<div class="band-dashboard">`;
         html += `<div class="band-stat" style="margin-bottom:10px; font-weight:bold;">MEMBERS: ${currentCount} / ${maxMembers}</div>`;
         html += `<div class="member-list">`;

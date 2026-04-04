@@ -106,8 +106,8 @@ async function handleGlobalUpload(inputElement) {
         }
     } else if (currentType === 'rhythm') {
         // ΝΕΟ: Έλεγχος για αρχεία ρυθμών mNotes (.mnr)
-        if (fileExt !== 'mnr') {
-            showToast("⚠️ Παρακαλώ επιλέξτε ένα αρχείο ρυθμού mNotes (.mnr).", "error");
+        if (fileExt !== 'mnr'&& fileExt !== 'mnr' && fileExt !== 'mnrythm') {
+            showToast("⚠️ Παρακαλώ επιλέξτε ένα αρχείο ρυθμού mNotes (.mnr, .mnrythm).", "error");
             inputElement.value = ''; return; 
         }
     } else { // documents

@@ -3536,29 +3536,35 @@ async function activateSongRhythm(url, name) {
         if (!response.ok) throw new Error("Αποτυχία λήψης αρχείου");
         const rhythmData = await response.json();
 
-        // Ενημέρωση του UI
+        // Ενημέρωση του UI (Αλλαγή ταμπέλας)
         const nameDisplay = document.getElementById('seq-current-name');
         if (nameDisplay) {
             nameDisplay.innerText = name || rhythmData.metadata?.name || "Custom Rhythm";
             nameDisplay.style.color = "var(--accent)"; 
         }
 
-        // Σταματάμε τον παλιό μετρονόμο αν παίζει
+        // ΔΙΟΡΘΩΣΗ 1: Ασφαλές σταμάτημα του παλιού μετρονόμου
         if (typeof BasicMetronome !== 'undefined' && BasicMetronome.isPlaying) {
-            BasicMetronome.stop();
+            BasicMetronome.toggle(); // Χρησιμοποιούμε το toggle αντί για stop!
         }
 
-        // Στέλνουμε τα δεδομένα στο AudioEngine (mStudio)
-        if (typeof AudioEngine !== 'undefined' && typeof AudioEngine.loadPattern === 'function') {
-            AudioEngine.loadPattern(rhythmData);
-            window.activeRhythmType = 'sequencer'; // Αλλάζουμε την ταμπέλα!
-            showToast(`Ο ρυθμός ενεργοποιήθηκε! 🥁`);
+        // ΔΙΟΡΘΩΣΗ 2: Ασφαλής έλεγχος για το AudioEngine της άλλης ομάδας
+        if (typeof AudioEngine !== 'undefined') {
+            if (typeof AudioEngine.loadPattern === 'function') {
+                AudioEngine.loadPattern(rhythmData);
+            } else if (typeof AudioEngine.loadRhythm === 'function') {
+                AudioEngine.loadRhythm(rhythmData);
+            }
+            window.activeRhythmType = 'sequencer'; 
+            if (typeof showToast === 'function') showToast(`Ο ρυθμός ${name} φορτώθηκε! 🥁`);
         } else {
-            console.warn("[RHYTHM] Δεν βρέθηκε το AudioEngine.");
+            console.warn("[RHYTHM] Προσοχή: Δεν βρέθηκε το αντικείμενο AudioEngine.");
+            window.activeRhythmType = 'metronome'; // Fallback για να μην σπάσει το κουμπί Play
+            if (typeof showToast === 'function') showToast(`Ο ρυθμός φορτώθηκε στο UI, αλλά λείπει η μηχανή αναπαραγωγής!`, "warning");
         }
     } catch (error) {
         console.error("[RHYTHM ERROR]:", error);
-        showToast("Σφάλμα φόρτωσης ρυθμού.", "error");
+        if (typeof showToast === 'function') showToast("Σφάλμα φόρτωσης ρυθμού.", "error");
     }
 }
 

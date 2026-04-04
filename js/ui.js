@@ -3496,3 +3496,6 @@ function refreshSyncButtonVisibility(song) {
         }
     }
 }
+<button id="btnPlayRhythm" onclick="toggleMasterRhythm()" class="action-btn-circle" style="width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; background: var(--accent); color: #000; border: none; box-shadow: 0 4px 10px rgba(0,0,0,0.3); cursor: pointer; transition: 0.2s transform;">
+    <i class="fas fa-play" id="iconPlayRhythm"></i>
+</button>

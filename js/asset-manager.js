@@ -1,5 +1,6 @@
 /* ==========================================================================
    ASSET MANAGER (MEDIA LIBRARY) - Διαχείριση Αρχείων Χρήστη
+   Υποστηρίζει: Audio (mp3/wav), Έγγραφα (pdf/jpg), Ρυθμούς (.mnr)
    ========================================================================== */
 
 // 1. Άνοιγμα / Κλείσιμο του Modal
@@ -9,11 +10,10 @@ function openAssetManager(type) {
         return;
     }
     
-    // Αποθηκεύουμε τον τύπο (audio ή document) για να ξέρουμε τι ανεβάζουμε
+    // Αποθηκεύουμε τον τύπο (audio, document ή rhythm)
     document.getElementById('assetManagerCurrentType').value = type;
     document.getElementById('assetManagerModal').style.display = 'flex';
     
-    // Φορτώνουμε τα υπάρχοντα αρχεία του χρήστη
     loadUserAssets(type);
 }
 
@@ -43,11 +43,17 @@ async function loadUserAssets(type) {
             return;
         }
 
-     // Σχεδιάζουμε τη λίστα
+        // Επιλογή εικονιδίου ανάλογα με τον τύπο
+        let iconClass = 'fas fa-file';
+        if (type === 'audio') iconClass = 'fas fa-music';
+        else if (type === 'document') iconClass = 'fas fa-file-pdf';
+        else if (type === 'rhythm') iconClass = 'fas fa-drum'; // ΝΕΟ!
+
+        // Σχεδιάζουμε τη λίστα
         listContainer.innerHTML = data.map(asset => `
             <div style="display:flex; justify-content:space-between; align-items:center; padding:8px; border-bottom:1px solid var(--border-color);">
                 <span style="font-size:0.85rem; word-break:break-all;">
-                    <i class="${type === 'audio' ? 'fas fa-music' : 'fas fa-file-pdf'}"></i> ${asset.custom_name}
+                    <i class="${iconClass}" style="margin-right:5px; color:var(--accent);"></i> ${asset.custom_name}
                 </span>
                 <div style="display:flex; gap: 8px;">
                     <button onclick="attachExistingAsset('${asset.custom_name}', '${asset.file_url}')" class="add-mini-btn" title="Σύνδεση με το τραγούδι / Attach to song">
@@ -67,77 +73,76 @@ async function loadUserAssets(type) {
 }
 
 // 3. Η Καρδιά του Συστήματος: Background Upload με τη μέθοδο της "Σφραγίδας"
-      async function handleGlobalUpload(inputElement) {
-                // 1. Έλεγχος Δικαιώματος (Feature Check)
-                if (typeof canUserPerform === 'function' && !canUserPerform('SAVE_ATTACHMENTS')) {
-                    if (typeof promptUpgrade === 'function') promptUpgrade('Αποθήκευση Αρχείων / Save Files');
-                    inputElement.value = ""; 
-                    return; 
-                }
-            
-                const file = inputElement.files[0];
-                if (!file) return;
-            
-                // ✨ 2. ΕΛΕΓΧΟΣ ΟΡΙΟΥ ΧΩΡΗΤΙΚΟΤΗΤΑΣ (Storage Quota Check)
-                const limits = typeof getUserLimits === 'function' ? getUserLimits() : { storageLimitMB: 50 };
-                const fileSizeMB = file.size / (1024 * 1024);
-                
-                // Σημείωση: Ιδανικά, στο μέλλον, θα πρέπει να προσθέσεις μια στήλη 'file_size_mb' 
-                // στον πίνακα 'user_assets' στη Supabase και να κάνεις SUM όλα τα αρχεία του χρήστη.
-                // Προς το παρόν, ελέγχουμε αν το αρχείο από μόνο του ξεπερνάει το όριο του πακέτου 
-                // (ή ένα προσωρινό σκληρό όριο για να μην γεμίσει ο server).
-                if (fileSizeMB > limits.storageLimitMB) {
-                    showToast(`Το αρχείο είναι πολύ μεγάλο (${fileSizeMB.toFixed(1)}MB). Το όριό σας είναι ${limits.storageLimitMB}MB.`, "error");
-                    inputElement.value = ""; 
-                    return;
-                }
-            
-                // 3. Έλεγχος Επέκτασης Αρχείου (Ο Νέος μας Πορτιέρης για τα αρχεία)
-                const fileExt = file.name.split('.').pop().toLowerCase();
-                const currentType = document.getElementById('assetManagerCurrentType')?.value || 'audio';
-                
-                if (currentType === 'audio') {
-                    const allowedAudio = ['mp3', 'wav', 'm4a', 'webm'];
-                    if (!allowedAudio.includes(fileExt)) {
-                        showToast("⚠️ Μη υποστηριζόμενη μορφή. Παρακαλώ επιλέξτε MP3, WAV ή M4A.", "error");
-                        inputElement.value = ''; 
-                        return; 
-                    }
-                } else {
-                    const allowedDocs = ['pdf', 'png', 'jpg', 'jpeg'];
-                    if (!allowedDocs.includes(fileExt)) {
-                        showToast("⚠️ Μη υποστηριζόμενη μορφή. Παρακαλώ επιλέξτε PDF ή εικόνα.", "error");
-                        inputElement.value = ''; 
-                        return; 
-                    }
-                }
-            
-                // --- Η ΣΦΡΑΓΙΔΑ ---
-                const targetSongId = currentSongId;
-                if (!targetSongId) { showToast("Επιλέξτε τραγούδι πρώτα! / Select a song first!"); inputElement.value = ""; return; }
-            
-                const assetType = document.getElementById('assetManagerCurrentType').value;
-                
-                const defaultName = file.name.replace(/\.[^/.]+$/, ""); 
-                let customTrackName = window.prompt("Όνομα Αρχείου / File Name:", defaultName);
-            
-                if (customTrackName === null) {
-                    inputElement.value = ""; 
-                    return;
-                }
-                
-                if (customTrackName.trim() === "") customTrackName = "Untitled Asset";
+async function handleGlobalUpload(inputElement) {
+    // 1. Έλεγχος Δικαιώματος (Feature Check)
+    if (typeof canUserPerform === 'function' && !canUserPerform('SAVE_ATTACHMENTS')) {
+        if (typeof promptUpgrade === 'function') promptUpgrade('Αποθήκευση Αρχείων / Save Files');
+        inputElement.value = ""; 
+        return; 
+    }
 
-             // Κλείνουμε το modal για να μην τον εμποδίζουμε, ξεκινάει το background upload!
-             closeAssetManager();
-             showToast(`Uploading '${customTrackName}'... Μπορείτε να συνεχίσετε την εργασία σας!`, "info");
-             console.log(`[AssetManager] Ξεκινάει upload για το τραγούδι [${targetSongId}] στο παρασκήνιο...`);
-      
+    const file = inputElement.files[0];
+    if (!file) return;
+
+    // 2. ΕΛΕΓΧΟΣ ΟΡΙΟΥ ΧΩΡΗΤΙΚΟΤΗΤΑΣ (Storage Quota Check)
+    const limits = typeof getUserLimits === 'function' ? getUserLimits() : { storageLimitMB: 50 };
+    const fileSizeMB = file.size / (1024 * 1024);
+    
+    if (fileSizeMB > limits.storageLimitMB) {
+        showToast(`Το αρχείο είναι πολύ μεγάλο (${fileSizeMB.toFixed(1)}MB). Το όριό σας είναι ${limits.storageLimitMB}MB.`, "error");
+        inputElement.value = ""; 
+        return;
+    }
+
+    // 3. Έλεγχος Επέκτασης Αρχείου (Ο Νέος μας Πορτιέρης για τα αρχεία)
+    const fileExt = file.name.split('.').pop().toLowerCase();
+    const currentType = document.getElementById('assetManagerCurrentType')?.value || 'audio';
+    
+    if (currentType === 'audio') {
+        const allowedAudio = ['mp3', 'wav', 'm4a', 'webm'];
+        if (!allowedAudio.includes(fileExt)) {
+            showToast("⚠️ Μη υποστηριζόμενη μορφή. Παρακαλώ επιλέξτε MP3, WAV ή M4A.", "error");
+            inputElement.value = ''; return; 
+        }
+    } else if (currentType === 'rhythm') {
+        // ΝΕΟ: Έλεγχος για αρχεία ρυθμών mNotes (.mnr)
+        if (fileExt !== 'mnr') {
+            showToast("⚠️ Παρακαλώ επιλέξτε ένα αρχείο ρυθμού mNotes (.mnr).", "error");
+            inputElement.value = ''; return; 
+        }
+    } else { // documents
+        const allowedDocs = ['pdf', 'png', 'jpg', 'jpeg'];
+        if (!allowedDocs.includes(fileExt)) {
+            showToast("⚠️ Μη υποστηριζόμενη μορφή. Παρακαλώ επιλέξτε PDF ή εικόνα.", "error");
+            inputElement.value = ''; return; 
+        }
+    }
+
+    // --- Η ΣΦΡΑΓΙΔΑ ---
+    const targetSongId = currentSongId;
+    if (!targetSongId) { showToast("Επιλέξτε τραγούδι πρώτα! / Select a song first!"); inputElement.value = ""; return; }
+
+    const assetType = document.getElementById('assetManagerCurrentType').value;
+    const defaultName = file.name.replace(/\.[^/.]+$/, ""); 
+    let customTrackName = window.prompt("Όνομα Αρχείου / File Name:", defaultName);
+
+    if (customTrackName === null) {
+        inputElement.value = ""; 
+        return;
+    }
+    
+    if (customTrackName.trim() === "") customTrackName = "Untitled Asset";
+
+    // Κλείνουμε το modal
+    closeAssetManager();
+    showToast(`Uploading '${customTrackName}'... Μπορείτε να συνεχίσετε την εργασία σας!`, "info");
+    console.log(`[AssetManager] Ξεκινάει upload για το τραγούδι [${targetSongId}] στο παρασκήνιο...`);
+
     const safeNameForStorage = customTrackName.replace(/[^a-zA-Z0-9]/g, '_');
     const filename = `Asset_${Date.now()}_${safeNameForStorage}`;
 
     try {
-        // Βήμα Α: Ανέβασμα στο Supabase Storage
+        // Βήμα Α: Ανέβασμα στο Supabase Storage (Όλα μπαίνουν στον ίδιο bucket 'audio_files' προς το παρόν)
         const { error: uploadErr } = await supabaseClient.storage.from('audio_files').upload(`${currentUser.id}/${filename}`, file);
         if (uploadErr) throw uploadErr;
 
@@ -195,24 +200,33 @@ async function processAssetAttachment(targetSongId, type, name, url) {
         if (!targetSong.recordings) targetSong.recordings = [];
         targetSong.recordings.push(newAssetObj);
         
-        // Καλούμε την παλιά σου συνάρτηση αποθήκευσης αν υπάρχει, αλλιώς πρέπει να σώσουμε το targetSong
         if (typeof addRecordingToCurrentSong === 'function' && targetSongId === currentSongId) {
              await addRecordingToCurrentSong(newAssetObj);
         } else {
-             // Αν έχεις γενική συνάρτηση saveSong()
              if(typeof saveSong === 'function') saveSong(targetSong);
         }
 
-        // Ανανέωση UI ΜΟΝΟ αν ο χρήστης κοιτάζει ακόμα το ίδιο τραγούδι! (Αποτρέπει το AbortError)
         if (currentSongId === targetSongId && typeof renderRecordingsList === 'function') {
             renderRecordingsList(targetSong.recordings, []);
         }
+
+    } else if (type === 'rhythm') { 
+        // ΝΕΟ: Λογική για τους Ρυθμούς!
+        if (!targetSong.rhythms) targetSong.rhythms = [];
+        targetSong.rhythms.push(newAssetObj);
+        
+        if(typeof saveSong === 'function') saveSong(targetSong);
+        
+        // Αν υπάρχει συνάρτηση να ζωγραφίζει τους ρυθμούς (όπως τις ηχογραφήσεις), την καλούμε εδώ
+        if (currentSongId === targetSongId && typeof renderRhythmsList === 'function') {
+            renderRhythmsList(targetSong.rhythms);
+        }
+        console.log(`🥁 [AssetManager] Ο ρυθμός προστέθηκε! Σύνολο ρυθμών: ${targetSong.rhythms.length}`);
 
     } else { // type === 'document'
         if (!targetSong.attachments) targetSong.attachments = [];
         targetSong.attachments.push(newAssetObj);
         
-        // Αντίστοιχη λογική για τα έγγραφα
         if(typeof saveSong === 'function') saveSong(targetSong);
         
         if (currentSongId === targetSongId && typeof renderAttachmentsList === 'function') {
@@ -220,6 +234,7 @@ async function processAssetAttachment(targetSongId, type, name, url) {
         }
     }
 }
+
 // 6. Οριστική Διαγραφή (Hard Delete)
 async function deleteAssetFromLibrary(assetId, fileUrl, assetName) {
     if (!confirm(`Οριστική διαγραφή του "${assetName}" από το Cloud; Η ενέργεια δεν αναιρείται! \n\nPermanently delete from Cloud? This cannot be undone!`)) return;

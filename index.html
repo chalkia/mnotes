@@ -6,7 +6,7 @@
     <title data-i18n="app_title">mNotes Pro</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="icon-192.png">
-    <meta name="theme-coloφr" content="#121212">
+    <meta name="theme-coloφr" content="#121212">activeRhythmBox
     <link rel="stylesheet" href="fa/css/all.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
@@ -397,24 +397,26 @@
             </div>
 </div>            
 
-
-                <div id="activeRhythmBox" style="background: rgba(255,255,255,0.03); border: 1px dashed var(--border-color); border-radius: 6px; padding: 10px; text-align: center; margin-bottom: 12px;">
+              <div id="activeRhythmBox" style="background: rgba(255,255,255,0.03); border: 1px dashed var(--border-color); border-radius: 6px; padding: 10px; text-align: center; margin-bottom: 12px;">
                     <span style="color: var(--text-muted); display: block; font-size: 0.75rem; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px;">Ενεργος Ρυθμος:</span>
                     <span id="seq-current-name" style="font-weight: bold; color: var(--text-main); font-size: 0.95rem;">Απλός Μετρονόμος (Tick)</span>
                 </div>
-
-                <button onclick="openPercussionStudio()" style="width: 100%; justify-content: center; padding: 12px; margin-bottom: 10px; font-size: 1.05rem; font-weight: bold; background: var(--accent); color: #000; border: none; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.25); cursor: pointer; transition: 0.2s transform; display: flex; align-items: center;">
-                    <i class="fas fa-sliders-h" style="margin-right: 8px;"></i> 
+                
+                <div id="list-rhythms" class="file-list compact" style="margin-bottom: 15px;"></div>
+                
+                <button onclick="openPercussionStudio()" 
+                        style="width: 100%; padding: 12px; margin-bottom: 10px; font-size: 1.05rem; font-weight: bold; background: var(--bg-panel); color: var(--text-main); border: 2px solid var(--accent); border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); cursor: pointer; transition: 0.2s transform; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <i class="fas fa-sliders-h" style="color: var(--accent);"></i> 
                     <span>mStudio</span> 
-                    <i class="fas fa-lock" id="lockStudioIcon" style="font-size: 0.8rem; margin-left: 8px; opacity: 0.7;"></i>
+                    <i class="fas fa-lock" id="lockStudioIcon" style="font-size: 0.8rem; color: var(--text-muted);"></i>
                 </button>
-
+                
                 <button onclick="openAssetManager('rhythm')" class="add-mini-btn" style="width: 100%; justify-content: center; padding: 10px; font-size: 0.85rem; margin-top: 10px; background: rgba(0,0,0,0.2); border: 1px solid var(--accent);">
                     <i class="fas fa-drum" style="color: var(--accent);"></i> 
                     <span data-i18n="btn_manage_rhythms" style="margin-left: 8px;">Rhythms Library (.nmr)</span>
                 </button>
-                
-            </div>
+               
+             </div>
         </details>
         
     </div> 

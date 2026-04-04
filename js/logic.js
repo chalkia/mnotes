@@ -347,6 +347,9 @@ function updateUIForRole() {
     
     // 3. Ενημέρωση του Header (Τίτλος Μπάντας vs My Songs)
     if (typeof refreshHeaderUI === 'function') refreshHeaderUI();
+    if (typeof loadBandDashboard === 'function') {
+        loadBandDashboard();
+    }
 }
 
 

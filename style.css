@@ -1889,4 +1889,28 @@ body.band-mode::before { z-index: 8000; } /* Το σηματάκι της Μπά
         display: none !important;
     }
 }
+/* Επιβολή χρωμάτων σε όλα τα dropdowns και τα πεδία εισαγωγής */
+.set-control, 
+select, 
+option {
+    background-color: var(--bg-panel, #222) !important; /* Το φόντο του πάνελ */
+    color: var(--text-main, #fff) !important;         /* Το κύριο χρώμα κειμένου */
+    border: 1px solid var(--border-color, #444);
+    padding: 5px;
+    border-radius: 4px;
+}
 
+/* Συγκεκριμένα για τις επιλογές (Options) που συχνά "επαναστατούν" */
+select option {
+    background-color: var(--bg-panel, #222);
+    color: var(--text-main, #fff);
+}
+
+/* Διόρθωση για το Light Theme (επειδή εκεί θέλουμε το αντίθετο) */
+.theme-light .set-control,
+.theme-light select,
+.theme-light option {
+    background-color: #ffffff !important;
+    color: #222222 !important;
+    border: 1px solid #cccccc;
+}

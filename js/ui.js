@@ -42,20 +42,23 @@ var tempIntroScale = 0;
 function toggleLanguage() { currentLang = (currentLang === 'en') ? 'el' : 'en'; localStorage.setItem('mnotes_lang', currentLang); applyTranslations(); renderSidebar(); populateTags(); if(currentSongId && currentSongId.includes('demo')) loadSong(currentSongId); }
 function applyTranslations() { if(typeof TRANSLATIONS === 'undefined') return; document.querySelectorAll('[data-i18n]').forEach(el => { var key = el.getAttribute('data-i18n'); if (TRANSLATIONS[currentLang][key]) el.innerText = TRANSLATIONS[currentLang][key]; }); var btn = document.getElementById('btnLang'); if(btn) btn.innerHTML = (currentLang === 'en') ? '<i class="fas fa-globe"></i> EN' : '<i class="fas fa-globe"></i> EL'; }
 function applyTheme() { 
-    document.body.className = userSettings.theme; 
-    if (window.innerWidth <= 1024 && userSettings.theme === 'theme-dark') { document.body.classList.add('theme-slate'); }
-    var root = document.documentElement; 
-    if (userSettings.theme === 'theme-custom' && userSettings.customColors) { 
-        for (var key in userSettings.customColors) { root.style.setProperty(key, userSettings.customColors[key]); } 
-    } else { 
-        ['--bg-main','--bg-panel','--text-main','--accent','--chord-color'].forEach(k => root.style.removeProperty(k)); 
+    // 1. Εφαρμογή της κλάσης του θέματος
+    document.body.className = userSettings.theme || 'theme-slate'; 
+    
+    if (window.innerWidth <= 1024 && userSettings.theme === 'theme-dark') { 
+        document.body.classList.add('theme-slate'); 
     } 
+    
+    // 2. ✨ ΚΑΘΑΡΙΣΜΟΣ: Σβήνουμε οριστικά τυχόν παλιά "ορφανά" custom χρώματα
+    const root = document.documentElement; 
+    ['--bg-main','--bg-panel','--text-main','--accent','--chord-color'].forEach(k => root.style.removeProperty(k)); 
+
+    // 3. Υπολογισμός μεγεθών (Intro/Chords)
     var newSize = 1.1 + ((userSettings.introScale || 0) * 0.11); 
     root.style.setProperty('--intro-size', newSize.toFixed(2) + "rem"); 
     document.body.style.setProperty('--chord-scale', userSettings.chordSize || 1);
     document.body.style.setProperty('--chord-mb', (userSettings.chordDist || 0) + "px");
     
-   // Αν έχει επιλέξει 'default', σβήνουμε το custom χρώμα για να "ξυπνήσει" το χρώμα του Theme!
     if (userSettings.chordColor && userSettings.chordColor !== 'default') {
         document.body.style.setProperty('--chord-color', userSettings.chordColor);
     } else {
@@ -2720,136 +2723,121 @@ return `<span class="chord" style="display:inline; position:static; font-size:in
 // ===========================================================
 // 13. SETTINGS & MODAL LOGIC (ADD THIS TO THE END)
 // ===========================================================
-
 function openSettings() {
-    document.getElementById('setWakeLock').checked = userSettings.wakeLock || false;
     const modal = document.getElementById('settingsModal');
-    const chkSplit = document.getElementById('setDisableSplit');
-    if (chkSplit) chkSplit.checked = userSettings.disableSplit || false;
     if (!modal) return;
 
-    if (typeof userSettings === 'undefined') {
-        userSettings = JSON.parse(localStorage.getItem('mnotes_settings')) || { theme: 'theme-dark', lang: 'el' };
+    // 1. Εξασφάλιση ότι τα userSettings υπάρχουν στη μνήμη
+    if (typeof userSettings === 'undefined' || !userSettings) {
+        userSettings = JSON.parse(localStorage.getItem('mnotes_settings')) || { theme: 'theme-slate', lang: 'el' };
     }
 
-    const themeSel = document.getElementById('setTheme');
-    const langSel = document.getElementById('langSelect');
-    const sizeInp = document.getElementById('setChordSize');
-    const distInp = document.getElementById('setChordDist');
-    const colInp = document.getElementById('setChordColor');
-    const chkDef = document.getElementById('chkDefaultColor'); 
-    const chkPrintLyrics = document.getElementById('setPrintLyricsOnly');
-    if (chkPrintLyrics) chkPrintLyrics.checked = userSettings.printLyricsOnly || false;
-   
-    const chkCapo = document.getElementById('chkAutoSaveCapo');
-    if (chkCapo) chkCapo.checked = userSettings.autoSaveCapo || false;
+    // 2. Ενημέρωση Checkboxes (On/Off)
+    // Εδώ βάζουμε όλα τα πεδία που είναι τύπου checkbox
+    const checkboxes = {
+        'setWakeLock': userSettings.wakeLock,
+        'setDisableSplit': userSettings.disableSplit,
+        'setPrintLyricsOnly': userSettings.printLyricsOnly,
+        'chkAutoSaveCapo': userSettings.autoSaveCapo,
+        'setShowScrollBtn': (typeof userSettings.showScrollBtn !== 'undefined') ? userSettings.showScrollBtn : true
+    };
 
-    const speedInp = document.getElementById('setScrollSpeed');
-    const btnChk = document.getElementById('setShowScrollBtn');
-
-    if(themeSel) themeSel.value = userSettings.theme || 'theme-dark';
-    if(langSel) langSel.value = userSettings.lang || 'el';
-    
-    // ✨ ΕΔΩ ΗΤΑΝ ΤΟ ΛΑΘΟΣ - Η γραμμή διεγράφη
-    
-    if(sizeInp) sizeInp.value = userSettings.chordSize || 1;
-    if(distInp) distInp.value = userSettings.chordDist || 0;
-    
-    if(speedInp) speedInp.value = userSettings.scrollSpeed || 50;
-    if(btnChk) btnChk.checked = (typeof userSettings.showScrollBtn !== 'undefined') ? userSettings.showScrollBtn : true;
-
-    if(colInp && chkDef) {
-        if (!userSettings.chordColor || userSettings.chordColor === 'default') {
-            chkDef.checked = true;
-            colInp.disabled = true;
-            colInp.style.opacity = '0.3';
-            colInp.value = '#ffb74d'; 
-        } else {
-            chkDef.checked = false;
-            colInp.disabled = false;
-            colInp.style.opacity = '1';
-            colInp.value = userSettings.chordColor;
-        }
+    for (let id in checkboxes) {
+        const el = document.getElementById(id);
+        if (el) el.checked = checkboxes[id] || false;
     }
+
+    // 3. Ενημέρωση Τιμών (Dropdowns, Sliders, Text)
+    const values = {
+        'setTheme': userSettings.theme || 'theme-dark',
+        'langSelect': userSettings.lang || 'el',
+        'setChordSize': userSettings.chordSize || 1,
+        'setChordDist': userSettings.chordDist || 0,
+        'setScrollSpeed': userSettings.scrollSpeed || 50
+    };
+
+    for (let id in values) {
+        const el = document.getElementById(id);
+        if (el) el.value = values[id];
+    }
+
+    // ✨ ΤΟ ΣΚΟΥΠΙΣΜΑ: 
+    // Αφαιρέθηκε όλο το μπλοκ if(colInp && chkDef) { ... } 
+    // Πλέον η εφαρμογή δεν ασχολείται με μεμονωμένα χρώματα συγχορδιών.
 
     modal.style.display = 'flex';
+    console.log("⚙️ [SETTINGS] Clean Settings Modal Opened.");
 }
+
 function closeSettings() {
     const modal = document.getElementById('settingsModal');
     if (modal) modal.style.display = 'none';
 }
-
-function saveSettings() {
-    userSettings.wakeLock = document.getElementById('setWakeLock').checked;
-    if (typeof requestWakeLock === 'function') requestWakeLock();
+async function saveSettings() {
+    // 1. Checkboxes (Booleans)
+    userSettings.wakeLock = document.getElementById('setWakeLock')?.checked || false;
+    userSettings.disableSplit = document.getElementById('setDisableSplit')?.checked || false;
+    userSettings.printLyricsOnly = document.getElementById('setPrintLyricsOnly')?.checked || false;
+    userSettings.autoSaveCapo = document.getElementById('chkAutoSaveCapo')?.checked || false;
     
-    const themeSel = document.getElementById('setTheme');
-    const langSel = document.getElementById('langSelect');
-    const sizeInp = document.getElementById('setChordSize');
-    const distInp = document.getElementById('setChordDist');
-    const colInp = document.getElementById('setChordColor');
-    const chkDef = document.getElementById('chkDefaultColor');
-    const chkPrintLyrics = document.getElementById('setPrintLyricsOnly');
-    
-    if (chkPrintLyrics) userSettings.printLyricsOnly = chkPrintLyrics.checked;
-    
-    const chkCapo = document.getElementById('chkAutoSaveCapo');
-    if (chkCapo) userSettings.autoSaveCapo = chkCapo.checked;
-    
-    const speedInp = document.getElementById('setScrollSpeed');
     const btnChk = document.getElementById('setShowScrollBtn');
-    
-    if (speedInp) userSettings.scrollSpeed = speedInp.value;
     if (btnChk) userSettings.showScrollBtn = btnChk.checked;
 
+    // 2. Wake Lock Trigger
+    if (typeof requestWakeLock === 'function') requestWakeLock();
+
+    // 3. Theme & Language
+    const themeSel = document.getElementById('setTheme');
     if (themeSel) {
         userSettings.theme = themeSel.value;
-        if(typeof applyTheme === 'function') applyTheme();
     }
 
+    const langSel = document.getElementById('langSelect');
     if (langSel) {
-        userSettings.lang = langSel.value;
-        if(typeof toggleLanguage === 'function') {
-             const currentLangStored = localStorage.getItem('mnotes_lang');
-             if(currentLangStored !== userSettings.lang) {
-                 toggleLanguage(); 
-             }
+        const newLang = langSel.value;
+        if (typeof toggleLanguage === 'function' && userSettings.lang !== newLang) {
+            userSettings.lang = newLang;
+            localStorage.setItem('mnotes_lang', newLang);
+            toggleLanguage(); // Αυτή η συνάρτηση συνήθως κάνει reload/apply translations
+        } else {
+            userSettings.lang = newLang;
         }
     }
-    
+
+    // 4. Numeric Values (Sizes & Speeds)
+    const sizeInp = document.getElementById('setChordSize');
+    const distInp = document.getElementById('setChordDist');
+    const speedInp = document.getElementById('setScrollSpeed');
+
     if (sizeInp) userSettings.chordSize = parseFloat(sizeInp.value);
     if (distInp) userSettings.chordDist = parseInt(distInp.value);
-    
-    if (chkDef && chkDef.checked) {
-        userSettings.chordColor = 'default';
-    } else if (colInp) {
-        userSettings.chordColor = colInp.value;
-    }
-     
-    const chkSplit = document.getElementById('setDisableSplit');
-    if (chkSplit) userSettings.disableSplit = chkSplit.checked;
-    
+    if (speedInp) userSettings.scrollSpeed = parseInt(speedInp.value);
+
+    // ✨ ΤΟ ΣΚΟΥΠΙΣΜΑ: Αφαιρέθηκε όλο το logic για chkDef και colInp.
+    // Πλέον δεν αποθηκεύουμε custom χρώματα συγχορδιών.
+
+    // 5. Finalize & Save
     localStorage.setItem('mnotes_settings', JSON.stringify(userSettings));
-    
+
+    // 6. UI Updates
     if (typeof applyTheme === 'function') applyTheme();
     if (typeof applyScrollBtnVisibility === 'function') applyScrollBtnVisibility();
-
+    
     closeSettings();
-    
-    // Πάντα ταξινόμηση αλφαβητικά ("alpha") κατά το κλείσιμο των ρυθμίσεων
-    // (Έτσι λύνεται και το πρόβλημα με τα πλήκτρα πλοήγησης) 
+
+    // 7. Refresh View
     if (typeof applySortAndRender === 'function') applySortAndRender();
-    
-    
-    if (typeof currentSongId !== 'undefined' && currentSongId) {
+
+    if (currentSongId && typeof library !== 'undefined') {
         const s = library.find(x => x.id === currentSongId);
         if (s && typeof renderPlayer === 'function') renderPlayer(s);
     }
-    
+
     if (typeof showToast === 'function') {
         showToast(userSettings.lang === 'el' ? "Οι ρυθμίσεις αποθηκεύτηκαν" : "Settings saved");
     }
 }
+
 // ===========================================================
 // 14. TRANSPOSITION & CAPO CONTROLS (THE MISSING LINK)
 // ===========================================================

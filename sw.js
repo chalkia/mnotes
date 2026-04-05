@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mnotes-ver0.28.0'; // Ανέβασα την έκδοση για να πάρει την αλλαγή
+const CACHE_NAME = 'mnotes-ver0.5.0'; // Ανέβασα την έκδοση για να πάρει την αλλαγή
 const ASSETS_TO_CACHE = [
     './',
     'index.html',

@@ -1610,15 +1610,18 @@ function autoSaveDraft() {
 async function saveEdit() { 
     let bodyArea = document.getElementById('inpBody'); 
     if (bodyArea) bodyArea.value = fixTrailingChords(bodyArea.value); 
-    await saveSong(); 
-    populateTags(); 
-     // Καθαρίζουμε το Draft από τη μνήμη του browser αφού το τραγούδι σώθηκε κανονικά!
-    if (currentSongId) {
-        localStorage.removeItem('mnotes_draft_' + currentSongId);
-        console.log("Το προσωρινό Draft καθαρίστηκε επιτυχώς.");
-    }
-}
+    
+    let oldId = currentSongId; // Κρατάμε το "DNA" πριν το Save
 
+    await saveSong(); // Η logic.js αναλαμβάνει όλη τη μαγεία!
+    
+    if (typeof populateTags === 'function') populateTags(); 
+    
+    // Σκουπίζουμε το draft και του Master (oldId) και του Κλώνου (αν άλλαξε το currentSongId)
+    if (oldId) localStorage.removeItem('mnotes_draft_' + oldId);
+    if (currentSongId) localStorage.removeItem('mnotes_draft_' + currentSongId);
+    console.log("[SaveEdit] Τα προσωρινά Drafts καθαρίστηκαν.");
+}
 function fixTrailingChords(text) { let lines = text.split('\n'); return lines.map(line => { const trailingChordRegex = /![A-G][b#]?[m]?[maj7|sus4|7|add9|dim|0-9]*(\/[A-G][b#]?)?\s*$/; if (line.match(trailingChordRegex)) return line.trimEnd() + "    "; return line; }).join('\n'); }
 function createNewSong() { currentSongId = null; document.querySelectorAll('.inp').forEach(e => e.value = ""); editorTags = []; if(typeof renderTagChips === 'function') renderTagChips(); document.getElementById('view-player').classList.remove('active-view'); document.getElementById('view-editor').classList.add('active-view'); if (typeof applyEditorPlaceholders === 'function') {applyEditorPlaceholders();}}
 function exitEditor() { 

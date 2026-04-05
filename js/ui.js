@@ -398,21 +398,30 @@ function clearLibrary() {
                 }
             }
         });
-       // --- 4. AUTO-LOAD ΠΡΩΤΟΥ ΤΡΑΓΟΥΔΙΟΥ (Αν η Σκηνή είναι άδεια) ---
-       if (visiblePlaylist.length > 0) {
-           // Ελέγχουμε αν βρισκόμαστε σε κατάσταση επεξεργασίας (δεν θέλουμε να του κλείσουμε τον Editor)
-           const isEditing = document.getElementById('view-editor')?.classList.contains('active-view');
-           
-           // Ελέγχουμε αν το Τρέχον Τραγούδι υπάρχει μέσα στην ΟΡΑΤΗ λίστα
-           const isCurrentVisible = visiblePlaylist.find(s => s.id === currentSongId);
-           
-           // Αν δεν είναι στον Editor, ΚΑΙ (δεν έχει επιλέξει τίποτα Ή το επιλεγμένο δεν φαίνεται πια λόγω φίλτρων)
-           if (!isEditing && (!currentSongId || !isCurrentVisible)) {
-               // Φορτώνουμε αυτόματα το πρώτο της λίστας!
-               loadSong(visiblePlaylist[0].id);
-           }
-       }
-    }
+       // --- 4. AUTO-LOAD ΤΡΑΓΟΥΔΙΟΥ (Αν η Σκηνή είναι άδεια) ---
+        if (visiblePlaylist.length > 0) {
+            // Ελέγχουμε αν βρισκόμαστε σε κατάσταση επεξεργασίας
+            const isEditing = document.getElementById('view-editor')?.classList.contains('active-view');
+            
+            // Ελέγχουμε αν το Τρέχον Τραγούδι υπάρχει μέσα στην ΟΡΑΤΗ λίστα
+            const isCurrentVisible = visiblePlaylist.find(s => s.id === currentSongId);
+            
+            // Αν δεν είναι στον Editor, ΚΑΙ (δεν έχει επιλέξει τίποτα Ή το επιλεγμένο δεν φαίνεται πια)
+            if (!isEditing && (!currentSongId || !isCurrentVisible)) {
+                
+                // ✨ ΝΕΟ: Ψάχνουμε αν υπάρχει αποθηκευμένο προηγούμενο τραγούδι
+                const lastSavedId = localStorage.getItem('mnotes_last_song');
+                const isLastSavedVisible = lastSavedId ? visiblePlaylist.find(s => s.id === lastSavedId) : null;
+
+                if (isLastSavedVisible) {
+                    // Φορτώνει αυτό που είχες αφήσει ανοιχτό πριν το Refresh
+                    loadSong(lastSavedId);
+                } else {
+                    // Fallback: Αν έχει διαγραφεί ή δεν υπάρχει, φορτώνει το πρώτο
+                    loadSong(visiblePlaylist[0].id);
+                }
+            }
+        }
  }
 
 // ===========================================================
@@ -558,6 +567,8 @@ function loadSong(id) {
     
     // 2.1 Εύρεση Τραγουδιού
     currentSongId = id; 
+   // ✨ Αποθηκεύουμε το ID του τραγουδιού τοπικά στον browser
+    localStorage.setItem('mnotes_last_song', id);
    // ✨ Κλείσιμο του Floating Viewer (PDF) αν αλλάξαμε τραγούδι!
     if (typeof FloatingTools !== 'undefined' && FloatingTools.isOpen && FloatingTools.boundSongId !== id) {
         if (typeof FloatingTools.close === 'function') FloatingTools.close();
@@ -599,8 +610,13 @@ function loadSong(id) {
     }
 
     // 6. Αλλαγή Προβολής (View)
-    document.getElementById('view-player').classList.add('active-view'); 
-    document.getElementById('view-editor').classList.remove('active-view');
+    const viewState = localStorage.getItem('mnotes_view_state');
+    if (viewState === 'editor') {
+        switchToEditor();
+    } else {
+        document.getElementById('view-player').classList.add('active-view'); 
+        document.getElementById('view-editor').classList.remove('active-view');
+    }
     
     // 7. Highlight στη λίστα
     document.querySelectorAll('.song-item').forEach(i => i.classList.remove('active')); 
@@ -1271,6 +1287,8 @@ function printSetlistPDF() {
 // ===========================================================
 
 function switchToEditor() {
+    // Αποθήκευση κατάστασης: Είμαστε στον Editor
+   localStorage.setItem('mnotes_view_state', 'editor');
     // ✨ ΕΛΕΓΧΟΣ ΔΙΚΑΙΩΜΑΤΩΝ
     if (typeof currentGroupId !== 'undefined' && currentGroupId !== 'personal') {
         if (typeof currentRole !== 'undefined' && currentRole !== 'admin' && currentRole !== 'owner') {
@@ -1340,14 +1358,23 @@ function switchToEditor() {
                 if (typeof updateTransDisplay === 'function') updateTransDisplay();
             } 
             
-            // Πέρασμα στα πεδία
-            document.getElementById('inpTitle').value = s.title || ""; 
-            document.getElementById('inpArtist').value = s.artist || ""; 
-            document.getElementById('inpVideo').value = s.video || ""; 
-            document.getElementById('inpKey').value = newKey; 
-            document.getElementById('inpBody').value = editBody; 
-            document.getElementById('inpIntro').value = editIntro; 
-            document.getElementById('inpInter').value = editInter; 
+           // --- ΑΝΑΚΤΗΣΗ DRAFT (Αν υπάρχει) ---
+            const savedDraftStr = localStorage.getItem('mnotes_draft_' + s.id);
+            let draft = null;
+            try { if (savedDraftStr) draft = JSON.parse(savedDraftStr); } catch(e){}
+
+            // Πέρασμα στα πεδία (Αν υπάρχει draft, παίρνει το draft, αλλιώς το κανονικό)
+            document.getElementById('inpTitle').value = draft ? draft.title : (s.title || ""); 
+            document.getElementById('inpArtist').value = draft ? draft.artist : (s.artist || ""); 
+            document.getElementById('inpVideo').value = draft ? draft.video : (s.video || ""); 
+            document.getElementById('inpKey').value = draft ? draft.key : newKey; 
+            document.getElementById('inpBody').value = draft ? draft.body : editBody; 
+            document.getElementById('inpIntro').value = draft ? draft.intro : editIntro; 
+            document.getElementById('inpInter').value = draft ? draft.inter : editInter; 
+            
+            if (draft && typeof showToast === 'function') {
+                showToast("Ανάκτηση μη αποθηκευμένων αλλαγών (Draft) 📝");
+            }
             
             // ✨ ΔΙΟΡΘΩΣΗ 1: Φορτώνουμε τις ΠΡΟΣΩΠΙΚΕΣ Σημειώσεις στον Editor (όχι του Μαέστρου)
             const inpPersonal = document.getElementById('inpPersonalNotes');
@@ -1561,17 +1588,42 @@ function refreshSyncButtonVisibility(song) {
         }
     }
 }
+// Σώζει αυτόματα ένα προσωρινό αντίγραφο καθώς πληκτρολογείς
+function autoSaveDraft() {
+    if (!currentSongId) return;
+    
+    const draft = {
+        title: document.getElementById('inpTitle').value,
+        artist: document.getElementById('inpArtist').value,
+        video: document.getElementById('inpVideo').value,
+        key: document.getElementById('inpKey').value,
+        body: document.getElementById('inpBody').value,
+        intro: document.getElementById('inpIntro').value,
+        inter: document.getElementById('inpInter').value
+    };
+    
+    localStorage.setItem('mnotes_draft_' + currentSongId, JSON.stringify(draft));
+}
 async function saveEdit() { 
     let bodyArea = document.getElementById('inpBody'); 
     if (bodyArea) bodyArea.value = fixTrailingChords(bodyArea.value); 
     await saveSong(); 
     populateTags(); 
-    //applyFilters(); 
+     // Καθαρίζουμε το Draft από τη μνήμη του browser αφού το τραγούδι σώθηκε κανονικά!
+    if (currentSongId) {
+        localStorage.removeItem('mnotes_draft_' + currentSongId);
+        console.log("Το προσωρινό Draft καθαρίστηκε επιτυχώς.");
+    }
+}
 }
 
 function fixTrailingChords(text) { let lines = text.split('\n'); return lines.map(line => { const trailingChordRegex = /![A-G][b#]?[m]?[maj7|sus4|7|add9|dim|0-9]*(\/[A-G][b#]?)?\s*$/; if (line.match(trailingChordRegex)) return line.trimEnd() + "    "; return line; }).join('\n'); }
 function createNewSong() { currentSongId = null; document.querySelectorAll('.inp').forEach(e => e.value = ""); editorTags = []; if(typeof renderTagChips === 'function') renderTagChips(); document.getElementById('view-player').classList.remove('active-view'); document.getElementById('view-editor').classList.add('active-view'); if (typeof applyEditorPlaceholders === 'function') {applyEditorPlaceholders();}}
 function exitEditor() { 
+   // 0. Αποθήκευση κατάστασης: Γυρίσαμε στον Player
+    localStorage.setItem('mnotes_view_state', 'player');
+    // 0.5 Καθαρίζουμε τυχόν "μισοτελειωμένα" drafts αφού βγήκαμε
+    localStorage.removeItem('mnotes_draft_' + currentSongId);
     // 1. Κλείνουμε το συρτάρι των Σημειώσεων (δεν το χρειαζόμαστε ανοιχτό στο Stage)
     let notesGroup = document.getElementById('perfNotesGroup');
     if (notesGroup) notesGroup.open = false;

@@ -625,10 +625,22 @@ async function loadContextData() {
 // ==========================================
 // IMPORT ΛΕΙΤΟΥΡΓΙΑ (SMART MERGE ΜΕ ΕΓΚΡΙΣΗ ΧΡΗΣΤΗ)
 // ==========================================
-
 window.processImportedData = async function(data) {
-    console.log("📥 Import Started (Interactive Merge Mode)...");
+    console.log("📥 Import Started (Forced Personal Context)...");
     if (!data) return;
+    
+    // 1. ✨ ΕΠΙΒΟΛΗ CONTEXT (ΓΙΑ ΟΛΟΥΣ): Γυρνάμε ΠΑΝΤΑ στα Προσωπικά πριν την επεξεργασία
+    if (typeof currentGroupId !== 'undefined' && currentGroupId !== 'personal') {
+        console.log("🔄 Context Switch: Μεταφορά στην Προσωπική Βιβλιοθήκη για την εισαγωγή.");
+        if (typeof switchContext === 'function') {
+            await switchContext('personal');
+        }
+    }
+
+    // 2. ✨ ΕΠΙΒΟΛΗ UI: Εξασφαλίζουμε ότι βλέπουμε το Library Tab και όχι το Setlist Tab
+    if (typeof switchSidebarTab === 'function') {
+        switchSidebarTab('library');
+    }
     
     let newSongs = Array.isArray(data) ? data : (data.songs ? data.songs : [data]);
     let importCount = 0;
@@ -636,15 +648,10 @@ window.processImportedData = async function(data) {
 
     if (!window.library) window.library = [];
 
-    // Context switch στα προσωπικά
-    if (typeof currentGroupId !== 'undefined' && currentGroupId !== 'personal') {
-        if (typeof switchContext === 'function') await switchContext('personal');
-    }
-
     for (let song of newSongs) {
         let cleanSong = typeof ensureSongStructure === 'function' ? ensureSongStructure(song) : song;
         
-        // Αν το τραγούδι δεν έχει ID από το αρχείο (σπάνιο αλλά πιθανό), του δίνουμε ένα προσωρινό
+        // Καθαρισμός ID αν είναι demo ή λείπει
         if (!cleanSong.id || String(cleanSong.id).startsWith('demo')) {
             cleanSong.id = "s_" + Date.now() + Math.random().toString(16).slice(2);
         }
@@ -659,17 +666,14 @@ window.processImportedData = async function(data) {
 
             // Αν είναι ακριβώς το ίδιο αρχείο, το προσπερνάμε αθόρυβα 
             if (importedTime === localTime) {
-                console.log(`⏭️ Παράβλεψη: Το "${cleanSong.title}" είναι ακριβώς το ίδιο.`);
+                console.log(`| Skip: ${cleanSong.title} (Same version)`);
                 continue; 
             }
 
             // Καθορισμός του λεκτικού (Νεότερη/Παλαιότερη)
             const ageStatus = importedTime > localTime ? "ΝΕΟΤΕΡΗ" : "ΠΑΛΑΙΟΤΕΡΗ";
-            
-            // Το μήνυμα που θα δει ο χρήστης
             const confirmMsg = `Στη βιβλιοθήκη σας βρέθηκε μια ${ageStatus} έκδοση του τραγουδιού με τίτλο "${cleanSong.title}" που προσπαθείτε να εισάγετε.\n\nΝα γίνει αντικατάσταση; (OK = Ναι, Ακύρωση = Όχι)`;
             
-            // Ερώτηση στον χρήστη
             const userAgrees = confirm(confirmMsg);
 
             if (userAgrees) {
@@ -682,10 +686,10 @@ window.processImportedData = async function(data) {
                 window.library[existingIndex] = cleanSong;
                 updateCount++;
                 
-                // Cloud Sync (Με await για να μην κοπεί στη μέση!)
+                // Cloud Sync
                 if (typeof canUserPerform === 'function' && canUserPerform('USE_SUPABASE') && currentUser) {
                     if (typeof window.sanitizeForDatabase === 'function') {
-                        const safePayload = window.sanitizeForDatabase(cleanSong, currentUser.id, existingSong.group_id);
+                        const safePayload = window.sanitizeForDatabase(cleanSong, currentUser.id, null);
                         if (typeof supabaseClient !== 'undefined') {
                             await supabaseClient.from('songs').upsert(safePayload);
                         }
@@ -699,14 +703,12 @@ window.processImportedData = async function(data) {
             // --- ΝΕΟ ΤΡΑΓΟΥΔΙ ---
             console.log(`✨ Προσθήκη νέου: "${cleanSong.title}"`);
             
-            // Παράγουμε ΠΑΝΤΑ νέο ID για τα εντελώς νέα τραγούδια (Ασπίδα Μπάντας)
-            //cleanSong.id = "s_" + Date.now() + Math.random().toString(16).slice(2);
             if (!cleanSong.updated_at) cleanSong.updated_at = new Date().toISOString();
 
             window.library.push(cleanSong);
             importCount++;
             
-            // Cloud Sync (Με await)
+            // Cloud Sync
             if (typeof canUserPerform === 'function' && canUserPerform('USE_SUPABASE') && currentUser) {
                 if (typeof window.sanitizeForDatabase === 'function') {
                     const safePayload = window.sanitizeForDatabase(cleanSong, currentUser.id, null);
@@ -719,14 +721,14 @@ window.processImportedData = async function(data) {
     }
 
     // --- ΤΕΛΙΚΗ ΕΝΗΜΕΡΩΣΗ UI ---
-    let finalTargetId = null; // ✨ Δηλώνεται ΕΞΩ από το if για να μην "χάνεται" στα logs
+    let finalTargetId = null;
 
     if (importCount > 0 || updateCount > 0) {
         // Ενημερώνουμε την τοπική αναφορά
         library = window.library; 
         
         if (typeof saveData === 'function') saveData(); 
-        if (typeof applySortAndRender === 'function') applySortAndRender(); // ✅ Χρήση της νέας (ασφαλούς) ταξινόμησης
+        if (typeof applySortAndRender === 'function') applySortAndRender(); 
         
         let msg = "";
         if (importCount > 0) msg += `${importCount} Νέα ✅ `;
@@ -755,12 +757,8 @@ window.processImportedData = async function(data) {
         console.log("ℹ️ Η εισαγωγή ολοκληρώθηκε χωρίς αλλαγές.");
         if (typeof showToast === 'function') showToast("Δεν έγιναν νέες εισαγωγές ή αντικαταστάσεις.");
     }
-
-    console.log("🔍 [DEBUG IMPORT] Ολοκληρώθηκε η εισαγωγή.");
-    console.log("🔍 [DEBUG IMPORT] Τελευταίο ID που εισήχθη/φορτώθηκε:", finalTargetId);
-    console.log("🔍 [DEBUG IMPORT] Τρέχον currentSongId:", currentSongId);
-    console.log("🔍 [DEBUG IMPORT] Σύνολο τραγουδιών:", window.library.length);
 };
+
 // --- AUDIO & ATTACHMENT RECORDING SAVING ---
 async function addRecordingToCurrentSong(newRec) {
     if (!currentSongId || typeof currentUser === 'undefined' || !currentUser) return;
@@ -1015,20 +1013,27 @@ async function saveSong() {
                 };
 
                 if (isNewSong) {
-                    if (isGod) await saveMasterToBand();
-                    else await createOrUpdateClone(songData, existingSong);
+                    if (isGod) {
+                        await saveMasterToBand();
+                    } else {
+                        // 🛡️ ΠΡΟΣΤΑΣΙΑ: Αποτροπή crash. Απλά μέλη ΔΕΝ φτιάχνουν νέα τραγούδια στη μπάντα.
+                        showToast("Μόνο οι διαχειριστές μπορούν να προσθέσουν νέα τραγούδια στη μπάντα.", "error");
+                        return; 
+                    }
                 } else if (existingSong && existingSong.is_clone) {
                     await createOrUpdateClone(songData, existingSong);
                 } else {
                     if (isGod) {
-                        if (confirm("Ενημέρωση ΚΟΙΝΟΥ τραγουδιού μπάντας; [OK]\nΑποθήκευση ως Προσωπικού Κλώνου; [Cancel]")) {
-                            await saveMasterToBand();
-                        } else {
-                            await createOrUpdateClone(songData, existingSong);
+                        // ✨ ΝΕΟΣ, ΑΥΣΤΗΡΟΣ ΚΑΝΟΝΑΣ OWNER
+                        const userAgreed = confirm("Το τραγούδι θα αποθηκευτεί σαν προσωπικός κλώνος.\n\nΑν επιθυμείτε να κάνετε μετατροπές σε κοινό τραγούδι (της μπάντας) θα πρέπει να το επεξεργαστείτε στην Προσωπική σας Βιβλιοθήκη και στη συνέχεια να επιλέξετε 'Κοινοποίηση στη Μπάντα' για να γίνει αντικατάσταση.\n\nΘέλετε να συνεχίσετε με τη δημιουργία του προσωπικού κλώνου;");
+                        
+                        if (!userAgreed) {
+                            console.log("🚫 [SAVE] Η αποθήκευση ακυρώθηκε από τον χρήστη.");
+                            return; 
                         }
-                    } else {
-                        await createOrUpdateClone(songData, existingSong);
                     }
+                    // Αν φτάσαμε εδώ, είτε είναι God που πάτησε ΟΚ, είτε Member. Πάμε για κλώνο!
+                    await createOrUpdateClone(songData, existingSong);
                 }
             } else {
                 if (typeof saveAsOverride === 'function') await saveAsOverride({ ...songData });
@@ -1037,7 +1042,7 @@ async function saveSong() {
         }
          
         // UI & NAVIGATION REFRESH
-        const targetId = currentSongId;
+        const targetId = currentSongId; // Παίρνει σωστά το νέο ID αν άλλαξε στην createOrUpdateClone
         if (typeof loadContextData === 'function') await loadContextData(); 
 
         if (typeof displaySong === 'function') displaySong(targetId); 
@@ -1052,7 +1057,6 @@ async function saveSong() {
         console.error("❌ [SAVE ERROR]:", err);
         showToast("Σφάλμα κατά την αποθήκευση", "error");
     }
-         
 }
       
 /**

@@ -422,6 +422,7 @@ function clearLibrary() {
                 }
             }
         }
+    }
  }
 
 // ===========================================================
@@ -1593,16 +1594,18 @@ function autoSaveDraft() {
     if (!currentSongId) return;
     
     const draft = {
-        title: document.getElementById('inpTitle').value,
-        artist: document.getElementById('inpArtist').value,
-        video: document.getElementById('inpVideo').value,
-        key: document.getElementById('inpKey').value,
-        body: document.getElementById('inpBody').value,
-        intro: document.getElementById('inpIntro').value,
-        inter: document.getElementById('inpInter').value
+        title: document.getElementById('inpTitle')?.value || "",
+        artist: document.getElementById('inpArtist')?.value || "",
+        video: document.getElementById('inpVideo')?.value || "",
+        key: document.getElementById('inpKey')?.value || "",
+        body: document.getElementById('inpBody')?.value || "",
+        intro: document.getElementById('inpIntro')?.value || "",
+        inter: document.getElementById('inpInter')?.value || "",
+        notes: document.getElementById('inpPersonalNotes')?.value || ""
     };
     
     localStorage.setItem('mnotes_draft_' + currentSongId, JSON.stringify(draft));
+    console.log(`[Auto-Save] Το draft για το ${currentSongId} ενημερώθηκε (Size: ${JSON.stringify(draft).length} bytes)`);
 }
 async function saveEdit() { 
     let bodyArea = document.getElementById('inpBody'); 

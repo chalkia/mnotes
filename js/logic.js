@@ -1398,7 +1398,7 @@ async function transferSong(targetContext) {
     const sourceSong = library.find(s => s.id === currentSongId);
     if (!sourceSong) return;
 
-    // ✨ Νέο ID για το αντίγραφο της μπάντας (για να μην "κλαπεί" το προσωπικό)
+    // ✨ Νέο ID (σε περίπτωση που είναι απλή αντιγραφή/νέο τραγούδι)
     const newId = "s_" + Date.now() + Math.random().toString(16).slice(2);
 
     const newSongData = {
@@ -1418,17 +1418,46 @@ async function transferSong(targetContext) {
         attachments: [] 
     };
 
+    // --- ✨ ΝΕΑ ΛΟΓΙΚΗ: ΕΛΕΓΧΟΣ ΓΙΑ ΑΝΤΙΚΑΤΑΣΤΑΣΗ MASTER ---
+    
+    // 1. Βρίσκουμε τον ΠΡΑΓΜΑΤΙΚΟ ρόλο μας στη μπάντα-στόχο
+    const targetBandInfo = typeof myGroups !== 'undefined' ? myGroups.find(g => g.group_id === targetContext) : null;
+    const roleInTargetBand = targetBandInfo ? targetBandInfo.role : 'member';
+    const isGodInTarget = ['admin', 'owner', 'maestro'].includes(roleInTargetBand);
+
+    // 2. Αν είμαστε Θεοί στη μπάντα-στόχο ΚΑΙ το τραγούδι είναι κλώνος (έχει parent_id)
+    if (targetContext !== 'personal' && isGodInTarget && sourceSong.parent_id) {
+        
+        // Ψάχνουμε στα "συρτάρια" της μπάντας να βρούμε τον "Πατέρα" (Master)
+        const bandSongs = JSON.parse(localStorage.getItem(`mnotes_band_${targetContext}`) || "[]");
+        const existingMaster = bandSongs.find(s => s.id === sourceSong.parent_id && !s.is_clone);
+
+        if (existingMaster) {
+            // Ρωτάμε τον Θεό αν θέλει να το πατήσει
+            if (confirm(`Το τραγούδι "${sourceSong.title}" υπάρχει ήδη ως κεντρικό (Master) στη μπάντα.\n\nΘέλετε να το ΑΝΤΙΚΑΤΑΣΤΗΣΕΤΕ με τη δική σας προσωπική έκδοση;`)) {
+                
+                // Το "κόλπο": Δίνουμε στο νέο τραγούδι το ID του παλιού!
+                newSongData.id = existingMaster.id; 
+                console.log("🔄 [TRANSFER] Επιλέχθηκε αντικατάσταση Master.");
+            }
+        }
+    }
+    // --------------------------------------------------------
+
     try {
-        if (targetContext !== 'personal' && currentRole !== 'admin' && currentRole !== 'owner') {
+        // Χρησιμοποιούμε τον πραγματικό ρόλο για να δούμε αν θα πάει για Proposal
+        if (targetContext !== 'personal' && !isGodInTarget) {
             await submitProposal(newSongData, targetContext);
             showToast("Η πρόταση στάλθηκε στον Maestro! 📩");
         } else {
-            // Χρησιμοποιούμε insert αντί για upsert για απόλυτη ασφάλεια
-            const { error } = await supabaseClient.from('songs').insert([newSongData]);
+            // ✨ ΑΛΛΑΓΗ: Βάζουμε upsert αντί για insert!
+            // Γιατί; Αν έχει νέο ID (νέο τραγούδι) θα λειτουργήσει σαν insert. 
+            // Αν του δώσαμε το ID του Master, θα κάνει update (overwrite) χωρίς να χτυπήσει error η βάση!
+            const { error } = await supabaseClient.from('songs').upsert([newSongData]);
             if (error) throw error;
             
             await migrateAttachmentsToOverrides(sourceSong, targetContext);
-            showToast("Αντιγράφηκε επιτυχώς στη Μπάντα! ✅");
+            showToast(newSongData.id === newId ? "Αντιγράφηκε επιτυχώς στη Μπάντα! ✅" : "Το κεντρικό τραγούδι της μπάντας ενημερώθηκε! 🔄");
         }
         await loadContextData(); // Επαναφόρτωση για να δεις το αποτέλεσμα
     } catch (err) {
@@ -1849,19 +1878,21 @@ async function revertClone(cloneSong) {
  * Φορτώνει τα δεδομένα της Μπάντας στον Editor του χρήστη για έλεγχο.
  */
 async function syncEditorFromBand() {
-    if (currentGroupId !== 'personal' || !currentSongId) {
-        showToast("Ο συγχρονισμός αφορά τραγούδια μπάντας στην προσωπική βιβλιοθήκη.", "info");
-        return;
-    }
+    if (currentGroupId !== 'personal' || !currentSongId) return;
 
     try {
+        const localSong = library.find(s => s.id === currentSongId);
+        if (!localSong) return;
+
+        // ✨ DNA SEARCH: Ψάχνουμε τον "πατέρα" στη μπάντα, όχι το ID του κλώνου
+        const searchId = localSong.parent_id || currentSongId;
+
         showToast("Αναζήτηση ενημερώσεων στη Μπάντα... 🔍");
 
-        // 1. Αναζήτηση του Master στη Supabase (σε οποιοδήποτε group)
         const { data: masterSong, error } = await supabaseClient
             .from('songs')
             .select('*')
-            .eq('id', currentSongId)
+            .eq('id', searchId)
             .not('group_id', 'is', null)
             .maybeSingle();
 
@@ -1870,21 +1901,17 @@ async function syncEditorFromBand() {
             return;
         }
 
-        // 2. Σύγκριση Timestamps
-        const localSong = library.find(s => s.id === currentSongId);
-        const localTime = new Date(localSong?.updated_at || 0).getTime();
+        // Σύγκριση & Φόρτωση (όπως το είχες, αλλά με το σωστό masterSong)
+        const localTime = new Date(localSong.updated_at || 0).getTime();
         const masterTime = new Date(masterSong.updated_at).getTime();
 
-        let confirmMsg = `🔄 Βρέθηκε έκδοση στη Μπάντα. Θέλετε να τη φορτώσετε στον Editor;`;
-        
+        let confirmMsg = `🔄 Βρέθηκε νέα έκδοση στη Μπάντα. Θέλετε να τη φορτώσετε στον Editor;`;
         if (localTime > masterTime) {
-            confirmMsg = `⚠️ ΠΡΟΣΟΧΗ: Το δικό σου τραγούδι είναι πιο πρόσφατο.\n\nΕίσαι σίγουρος ότι θέλεις να το αντικαταστήσεις με την έκδοση της Μπάντας;`;
+            confirmMsg = `⚠️ ΠΡΟΣΟΧΗ: Το δικό σου τραγούδι είναι πιο πρόσφατο.\n\nΘέλεις να το αντικαταστήσεις με την έκδοση της Μπάντας;`;
         }
 
         if (!confirm(confirmMsg)) return;
 
-        // 3. ΕΝΗΜΕΡΩΣΗ ΠΕΔΙΩΝ EDITOR (Χωρίς Save)
-        // Επιτρέπουμε στον χρήστη να δει τις αλλαγές πριν τις οριστικοποιήσει
         document.getElementById('inpTitle').value = masterSong.title;
         document.getElementById('inpArtist').value = masterSong.artist || "";
         document.getElementById('inpKey').value = masterSong.key || "";
@@ -1892,7 +1919,7 @@ async function syncEditorFromBand() {
         document.getElementById('inpIntro').value = masterSong.intro || "";
         document.getElementById('inpInter').value = masterSong.interlude || "";
         
-        showToast("Τα δεδομένα φορτώθηκαν! Πατήστε Αποθήκευση για να οριστικοποιηθούν. ✅");
+        showToast("Τα δεδομένα φορτώθηκαν! Πατήστε Αποθήκευση για οριστικοποίηση. ✅");
 
     } catch (err) {
         console.error("❌ Sync Editor Error:", err);

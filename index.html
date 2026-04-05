@@ -6,7 +6,7 @@
     <title data-i18n="app_title">mNotes Pro</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="icon-192.png">
-    <meta name="theme-coloφr" content="#121212">activeRhythmBox
+    <meta name="theme-color" content="#121212">activeRhythmBox
     <link rel="stylesheet" href="fa/css/all.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
@@ -476,21 +476,13 @@
             
             <label style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                 <span data-i18n="lbl_theme">Theme:</span> 
-                <select id="setTheme" onchange="toggleCustomColors(this.value)" class="inp" style="width: auto;">
-                    <option value="theme-dark">Dark</option>
-                    <option value="theme-light">Light</option>
-                    <option value="theme-slate">Slate selected</option>
-                    <option value="theme-custom">Custom</option>
+                <select id="setTheme" class="set-control" onchange="applyTheme()">
+                    <option value="theme-dark">Deep Night</option>
+                    <option value="theme-slate">Slate Gray</option>
+                    <option value="theme-light">Paper Light</option>
                 </select>
             </label>
-                                                                                
-            <div id="customColorArea" style="display:none; border:1px solid #444; padding:10px; margin-bottom:10px; border-radius: 6px;">
-                <label style="display: flex; justify-content: space-between; margin-bottom: 5px;">Bg: <input type="color" id="colBgMain" value="#000000"></label>
-                <label style="display: flex; justify-content: space-between; margin-bottom: 5px;">Text: <input type="color" id="colTextMain" value="#ffffff"></label>
-                <label style="display: flex; justify-content: space-between; margin-bottom: 5px;">Accent: <input type="color" id="colAccent" value="#00ff00"></label>
-                <label style="display: flex; justify-content: space-between;">Chord: <input type="color" id="colChord" value="#ffff00"></label>
-            </div>
-
+        
             <label class="setting-checkbox-label" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer;">
                 <input type="checkbox" id="setDisableSplit">
                 <span data-i18n="opt_disable_split">Ενιαία προβολή κειμένου (Όχι Split)</span>

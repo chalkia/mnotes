@@ -1578,7 +1578,11 @@ function refreshSyncButtonVisibility(song) {
     // Εμφάνιση αν: Προσωπική Βιβλιοθήκη + Το ID υπάρχει σε κάποια μπάντα
     if (currentGroupId === 'personal' && song && song.id) {
         let isShared = false;
-        myGroups.forEach(g => {
+        
+        // Ψάχνουμε το Master ID (είτε το ίδιο το ID, είτε τον πατέρα του αν είναι κλώνος)
+        const dnaId = song.parent_id || song.id;
+       
+       myGroups.forEach(g => {
             const bandData = JSON.parse(localStorage.getItem('mnotes_band_' + g.group_id) || "[]");
             if (bandData.some(s => s.id === song.id)) isShared = true;
         });

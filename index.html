@@ -512,15 +512,6 @@
                 <input type="range" id="setChordDist" min="-10" max="20" step="1" value="0" style="width: 50%;">
             </label>
 
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-                <span data-i18n="lbl_chord_color">Χρώμα:</span>
-                <label style="font-size: 0.8rem; color: var(--text-muted); display: flex; align-items: center; gap: 5px; cursor: pointer;">
-                    <input type="checkbox" id="chkDefaultColor" onchange="document.getElementById('setChordColor').disabled = this.checked; document.getElementById('setChordColor').style.opacity = this.checked ? '0.3' : '1';">
-                    Από Θέμα
-                </label>
-            </div>
-            <input type="color" id="setChordColor" value="#ffb74d" style="width: 100%; height: 35px; border: none; border-radius: 4px; cursor: pointer; margin-bottom: 15px;">
-
             <label class="setting-checkbox-label" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer;">
                 <input type="checkbox" id="setShowChords" checked onchange="GuitarChordsUI.toggleVisibility(this.checked)"> 
                 <span data-i18n="lbl_show_chords">🎸 Εμφάνιση Συγχορδιών (Κιθάρα)</span>

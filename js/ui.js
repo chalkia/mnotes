@@ -2287,7 +2287,7 @@ function renderAttachmentsList(docs = []) {
         // Κωδικοποίηση για να περάσει το αντικείμενο με ασφάλεια στη συνάρτηση
         const safeObjStr = encodeURIComponent(JSON.stringify(doc));
 
-        // Κουμπί Share/Propose: Μόνο για private αρχεία, όταν βρισκόμαστε σε μπάντα!
+        // Κουμπί Share/Propose
         let promoteBtnHtml = '';
         if (isPrivate && typeof currentGroupId !== 'undefined' && currentGroupId !== 'personal') {
             promoteBtnHtml = `<button onclick="promoteItem('${currentSongId}', 'attachments', &quot;${safeObjStr}&quot;)" style="background:none; border:none; color:var(--accent); cursor:pointer; padding:0 8px; font-size:1.1rem;" title="Share / Propose"><i class="fas fa-bullhorn"></i></button>`;
@@ -2301,12 +2301,15 @@ function renderAttachmentsList(docs = []) {
         if (canDelete) {
             deleteBtnHtml = `<button onclick="deleteMediaItem('${currentSongId}', 'attachments', ${index})" style="background:none; border:none; color:var(--danger); cursor:pointer; padding:0 5px;" title="Delete"><i class="fas fa-times"></i></button>`;
         }
-        const fileType = (doc.type && doc.type.toLowerCase().includes('image')) ? 'image' : 'pdf';
+
+        // ✨ ΔΙΟΡΘΩΣΗ: Ορισμός του τύπου αρχείου μία φορά
+        const docFileType = (doc.type && doc.type.toLowerCase().includes('image')) ? 'image' : 'pdf';
+        
+        // Κουμπί Download
         let downloadBtnHtml = `<button onclick="downloadAssetLocal('${doc.url}', '${doc.name}')" style="background:none; border:none; color:#28a745; cursor:pointer; padding:0 8px; font-size:1rem;" title="Download"><i class="fas fa-download"></i></button>`;
 
-        const fileType = (doc.type && doc.type.toLowerCase().includes('image')) ? 'image' : 'pdf';
         el.innerHTML = `
-            <div onclick="FloatingTools.loadContent('${doc.url}', '${fileType}')" style="cursor:pointer; flex:1; display:flex; align-items:center; overflow:hidden;" title="${tooltip}">
+            <div onclick="FloatingTools.loadContent('${doc.url}', '${docFileType}')" style="cursor:pointer; flex:1; display:flex; align-items:center; overflow:hidden;" title="${tooltip}">
                 <i class="${iconClass}" style="color:${borderColor}; margin-right:8px;"></i>
                 <span style="font-size:0.85rem; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${doc.name}</span>
             </div>

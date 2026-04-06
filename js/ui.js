@@ -2242,14 +2242,19 @@ function renderRecordingsList(recs = []) {
         if (canDelete) {
             deleteBtnHtml = `<button onclick="deleteMediaItem('${currentSongId}', 'recordings', ${index})" style="background:none; border:none; color:var(--danger); cursor:pointer; padding:0 5px;" title="Delete"><i class="fas fa-times"></i></button>`;
         }
-
-        el.innerHTML = `
+         
+        let downloadBtnHtml = `<button onclick="downloadAssetLocal('${rec.url}', '${rec.name || rec.label}')" style="background:none; border:none; color:#28a745; cursor:pointer; padding:0 8px; font-size:1rem;" title="Download"><i class="fas fa-download"></i></button>`;
+        
+       el.innerHTML = `
             <div onclick="playAudio('${rec.url}')" style="cursor:pointer; flex:1; display:flex; align-items:center; overflow:hidden;" title="${tooltip}">
                 <i class="${iconClass}" style="color:${colorVar}; margin-right:8px;"></i>
                 <span style="font-size:0.85rem; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${rec.name || rec.label}</span>
             </div>
-            ${promoteBtnHtml}
-            ${deleteBtnHtml}
+            <div style="display:flex; align-items:center;">
+                ${downloadBtnHtml}
+                ${promoteBtnHtml}
+                ${deleteBtnHtml}
+            </div>
         `;
         listEl.appendChild(el); 
         hasItems = true;
@@ -2297,13 +2302,19 @@ function renderAttachmentsList(docs = []) {
             deleteBtnHtml = `<button onclick="deleteMediaItem('${currentSongId}', 'attachments', ${index})" style="background:none; border:none; color:var(--danger); cursor:pointer; padding:0 5px;" title="Delete"><i class="fas fa-times"></i></button>`;
         }
         const fileType = (doc.type && doc.type.toLowerCase().includes('image')) ? 'image' : 'pdf';
+        let downloadBtnHtml = `<button onclick="downloadAssetLocal('${doc.url}', '${doc.name}')" style="background:none; border:none; color:#28a745; cursor:pointer; padding:0 8px; font-size:1rem;" title="Download"><i class="fas fa-download"></i></button>`;
+
+        const fileType = (doc.type && doc.type.toLowerCase().includes('image')) ? 'image' : 'pdf';
         el.innerHTML = `
             <div onclick="FloatingTools.loadContent('${doc.url}', '${fileType}')" style="cursor:pointer; flex:1; display:flex; align-items:center; overflow:hidden;" title="${tooltip}">
                 <i class="${iconClass}" style="color:${borderColor}; margin-right:8px;"></i>
                 <span style="font-size:0.85rem; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${doc.name}</span>
             </div>
-            ${promoteBtnHtml}
-            ${deleteBtnHtml}
+            <div style="display:flex; align-items:center;">
+                ${downloadBtnHtml}
+                ${promoteBtnHtml}
+                ${deleteBtnHtml}
+            </div>
         `;
         listEl.appendChild(el);
         hasItems = true;
@@ -3558,12 +3569,17 @@ function renderRhythmsList(rhythms = []) {
         const canDelete = currentGroupId === 'personal' || isOwnerOrAdmin;
         let deleteBtnHtml = canDelete ? `<button onclick="deleteMediaItem('${currentSongId}', 'rhythms', ${index})" style="background:none; border:none; color:var(--danger); cursor:pointer; padding:0 5px;" title="Delete"><i class="fas fa-times"></i></button>` : '';
 
+        let downloadBtnHtml = `<button onclick="downloadAssetLocal('${rhythm.url}', '${rhythm.name}')" style="background:none; border:none; color:#28a745; cursor:pointer; padding:0 8px; font-size:1rem;" title="Download"><i class="fas fa-download"></i></button>`;
+
         el.innerHTML = `
             <div onclick="activateSongRhythm('${rhythm.url}', '${rhythm.name}')" style="cursor:pointer; flex:1; display:flex; align-items:center; overflow:hidden;" title="Φόρτωση ρυθμού">
                 <i class="fas fa-drum" style="color:var(--accent); margin-right:8px;"></i>
                 <span style="font-size:0.85rem; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${rhythm.name}</span>
             </div>
-            ${deleteBtnHtml}
+            <div style="display:flex; align-items:center;">
+                ${downloadBtnHtml}
+                ${deleteBtnHtml}
+            </div>
         `;
         listEl.appendChild(el); 
         hasItems = true;

@@ -240,36 +240,43 @@ async function processAssetAttachment(targetSongId, type, name, url) {
     }
 }
 
-// 6. Οριστική Διαγραφή (Hard Delete)
+// 6. Διαγραφή (Με υποστήριξη κοινόχρηστων αρχείων)
 async function deleteAssetFromLibrary(assetId, fileUrl, assetName) {
-    if (!confirm(`Οριστική διαγραφή του "${assetName}" από το Cloud; Η ενέργεια δεν αναιρείται! \n\nPermanently delete from Cloud? This cannot be undone!`)) return;
+    if (!confirm(`Οριστική διαγραφή του "${assetName}"`)) return;
 
-    console.log(`[AssetManager] Ξεκινάει οριστική διαγραφή για: ${assetName}`);
-    
     try {
-        // Βήμα Α: Εξαγωγή του σωστού path από το public URL
-        const urlParts = fileUrl.split('/audio_files/');
-        if (urlParts.length === 2) {
-            const filePath = urlParts[1];
-            console.log("[AssetManager] Αίτημα διαγραφής από Storage:", filePath);
-            const { error: storageErr } = await supabaseClient.storage.from('audio_files').remove([filePath]);
-            if (storageErr) console.warn("[AssetManager] Σφάλμα Storage (μπορεί να έχει ήδη διαγραφεί):", storageErr);
-        }
-
-        // Βήμα Β: Διαγραφή από τον πίνακα user_assets
-        const { error: dbErr } = await supabaseClient.from('user_assets').delete().eq('id', assetId);
+        // 1. Διαγράφουμε μόνο τη δική μας "αναφορά" (link) στη βάση
+        const { error: dbErr } = await supabaseClient
+            .from('user_assets')
+            .delete()
+            .eq('id', assetId);
+        
         if (dbErr) throw dbErr;
 
-        console.log("[AssetManager] Η διαγραφή ολοκληρώθηκε επιτυχώς.");
-        showToast("Το αρχείο διαγράφηκε οριστικά. / File permanently deleted.");
-        
-        // Ανανέωση της λίστας στο Modal
+        // 2. Ελέγχουμε αν υπάρχει ΕΣΤΩ ΚΑΙ ΕΝΑΣ ΑΛΛΟΣ που έχει το ίδιο αρχείο
+        const { data: others, error: checkErr } = await supabaseClient
+            .from('user_assets')
+            .select('id')
+            .eq('file_url', fileUrl);
+
+        // 3. Αν δεν έμεινε κανείς, τότε και μόνο τότε σβήνουμε το φυσικό αρχείο από το Storage
+        if (!checkErr && (!others || others.length === 0)) {
+            console.log("🗑️ Κανένας άλλος ιδιοκτήτης. Διαγραφή από το Storage...");
+            const urlParts = fileUrl.split('/audio_files/');
+            if (urlParts.length === 2) {
+                await supabaseClient.storage.from('audio_files').remove([urlParts[1]]);
+            }
+        } else {
+            console.log(`🛡️ Το φυσικό αρχείο παραμένει στο Storage για τους υπόλοιπους κατόχους.`);
+        }
+
+        showToast("Το αρχείο αφαιρέθηκε.");
         const assetType = document.getElementById('assetManagerCurrentType').value;
         loadUserAssets(assetType);
 
     } catch (err) {
-        console.error("[AssetManager] Σφάλμα οριστικής διαγραφής:", err);
-        showToast("Αποτυχία διαγραφής. / Delete failed.", "error");
+        console.error("Delete error:", err);
+        showToast("Αποτυχία διαγραφής.", "error");
     }
 }
 // 7. Λήψη αρχείου τοπικά στη συσκευή του χρήστη (Force Download)

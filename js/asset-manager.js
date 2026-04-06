@@ -269,3 +269,45 @@ async function deleteAssetFromLibrary(assetId, fileUrl, assetName) {
         showToast("Αποτυχία διαγραφής. / Delete failed.", "error");
     }
 }
+// 7. Λήψη αρχείου τοπικά στη συσκευή του χρήστη (Force Download)
+async function downloadAssetLocal(fileUrl, fileName) {
+    if (!fileUrl) return;
+    
+    if (typeof showToast === 'function') showToast("Η λήψη ξεκίνησε... / Downloading...", "info");
+
+    try {
+        console.log(`[AssetManager] Εκκίνηση λήψης για: ${fileName}`);
+        
+        // Κατεβάζουμε τα δεδομένα του αρχείου ως Blob
+        const response = await fetch(fileUrl);
+        if (!response.ok) throw new Error("Αποτυχία δικτύου κατά τη λήψη.");
+        
+        const blob = await response.blob();
+        
+        // Εξάγουμε την κατάληξη (π.χ. .mp3, .pdf) από το URL για να τη βάλουμε στο όνομα
+        const extMatch = fileUrl.match(/\.([a-zA-Z0-9]+)(?:\?|$)/);
+        const ext = extMatch ? `.${extMatch[1]}` : '';
+        const finalName = fileName.endsWith(ext) ? fileName : `${fileName}${ext}`;
+
+        // Δημιουργία προσωρινού τοπικού συνδέσμου
+        const blobUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = blobUrl;
+        a.download = finalName;
+        
+        // Προσομοίωση κλικ και καθαρισμός
+        document.body.appendChild(a);
+        a.click();
+        
+        setTimeout(() => {
+            window.URL.revokeObjectURL(blobUrl);
+            document.body.removeChild(a);
+        }, 100);
+        
+    } catch (err) {
+        console.error("[AssetManager] Σφάλμα λήψης:", err);
+        showToast("Αποτυχία. Άνοιγμα σε νέα καρτέλα... / Opening in new tab...", "warning");
+        window.open(fileUrl, '_blank'); // Αν μπλοκαριστεί από CORS, απλά το ανοίγει
+    }
+}

@@ -56,6 +56,10 @@ async function loadUserAssets(type) {
                     <i class="${iconClass}" style="margin-right:5px; color:var(--accent);"></i> ${asset.custom_name}
                 </span>
                 <div style="display:flex; gap: 8px;">
+                    <button onclick="downloadAssetLocal('${asset.file_url}', '${asset.custom_name}')" class="play-mini-btn" title="Λήψη / Download" style="color: #28a745; border-color: #28a745;">
+                        <i class="fas fa-download"></i>
+                    </button>
+                    
                     <button onclick="attachExistingAsset('${asset.custom_name}', '${asset.file_url}')" class="add-mini-btn" title="Σύνδεση με το τραγούδι / Attach to song">
                         <i class="fas fa-link"></i>
                     </button>
@@ -71,7 +75,6 @@ async function loadUserAssets(type) {
         listContainer.innerHTML = `<div class="empty-state" style="color:red;">Σφάλμα / Error: ${err.message}</div>`;
     }
 }
-
 // 3. Η Καρδιά του Συστήματος: Background Upload με τη μέθοδο της "Σφραγίδας"
 async function handleGlobalUpload(inputElement) {
     // 1. Έλεγχος Δικαιώματος (Feature Check)

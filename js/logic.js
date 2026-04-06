@@ -357,6 +357,10 @@ async function switchContext(targetId) {
     if (typeof loadBandDashboard === 'function') {
         loadBandDashboard();
     }
+   // Αυτόματος συγχρονισμός ρεπερτορίου στο background
+    if (targetId !== 'personal' && typeof autoImportBandSongs === 'function') {
+        autoImportBandSongs(targetId);
+    }
 }
 
 /**
@@ -366,45 +370,49 @@ function updateUIForRole() {
     const btnDel = document.getElementById('btnDelSetlist'); 
     const btnAdd = document.getElementById('btnAddSong');
     const btnClone = document.getElementById('btnCloneToPersonal');
-    const btnTabLibrary = document.getElementById('btnTabLibrary'); // ΝΕΟ: Για έλεγχο Viewer
+    const btnTabLibrary = document.getElementById('btnTabLibrary');
 
     // 1. Έλεγχος για το κουμπί Clone (Αντιγραφή στα Προσωπικά)
     if (btnClone) {
         btnClone.style.display = (currentGroupId !== 'personal' && typeof currentSongId !== 'undefined' && currentSongId) ? 'inline-block' : 'none';
     }
 
-    const isLeader = (currentRole === 'admin' || currentRole === 'owner');
+    const isLeader = (currentRole === 'admin' || currentRole === 'owner' || currentRole === 'maestro');
     const isViewer = (currentRole === 'viewer');
 
-    // 2. ΝΕΟ: Περιορισμοί του Viewer (Βλέπει ΜΟΝΟ Setlists)
+    // 2. Περιορισμοί του Viewer (Βλέπει ΜΟΝΟ Setlists)
     if (isViewer) {
         if (btnTabLibrary) btnTabLibrary.style.display = 'none';
         if (typeof switchSidebarTab === 'function') switchSidebarTab('setlist');
-        
-        if(btnDel) btnDel.style.display = 'none';
-        if(btnAdd) btnAdd.style.display = 'none';
     } else {
         if (btnTabLibrary) btnTabLibrary.style.display = 'inline-block';
-        
-        // 3. Έλεγχος για δικαιώματα διαχείρισης (Viewer vs Admin vs Member)
-        if (currentGroupId !== 'personal' && !isLeader) {
-            console.log("🔒 [UI] Περιορισμός Δικαιωμάτων: Απόκρυψη κουμπιών Add/Delete για το απλό μέλος.");
-            if(btnDel) btnDel.style.display = 'none';
-            if(btnAdd) btnAdd.style.display = 'none';
+    }
+
+    // 3. Δικαιώματα διαγραφής Setlist (Μόνο Leaders στα Bands, ή στα Προσωπικά)
+    if (btnDel) {
+        if (currentGroupId === 'personal' || isLeader) {
+            btnDel.style.display = 'inline-block';
         } else {
-            if(btnDel) btnDel.style.display = 'inline-block';
-            if(btnAdd) btnAdd.style.display = 'flex'; // ή inline-block ανάλογα με το αρχικό σου CSS
+            btnDel.style.display = 'none'; // Απλά μέλη/viewers δεν σβήνουν λίστες της μπάντας
+        }
+    }
+
+    // 4. ΝΕΟΣ ΚΑΝΟΝΑΣ: Το "+" (Νέο Τραγούδι) εμφανίζεται ΑΥΣΤΗΡΑ ΚΑΙ ΜΟΝΟ στα Προσωπικά
+    if (btnAdd) {
+        if (currentGroupId === 'personal') {
+            btnAdd.style.display = ''; // Εμφανίζεται κανονικά
+        } else {
+            btnAdd.style.display = 'none'; // Εξαφανίζεται μέσα στη μπάντα για ΟΛΟΥΣ
         }
     }
     
-    // 4. Ενημέρωση του Header (Τίτλος Μπάντας vs My Songs)
+    // 5. Ενημέρωση του Header (Τίτλος Μπάντας vs My Songs) & Dashboard
     if (typeof refreshHeaderUI === 'function') refreshHeaderUI();
     
     if (typeof loadBandDashboard === 'function') {
         loadBandDashboard();
     }
 }
-
 /* =========================================
    DATA LOADING & SYNC (OFFLINE-FIRST)
    ========================================= */
@@ -944,7 +952,7 @@ async function fetchBandSongs(groupId) {
 /**
  * Κεντρική συνάρτηση αποθήκευσης τραγουδιού
  */
-async function saveSong() {
+  async function saveSong() {
     console.log(`📝 [SAVE] Ξεκινάει η αποθήκευση. SongID: ${currentSongId || 'NEW'}, Context: ${currentGroupId}`);
 
     const titleInp = document.getElementById('inpTitle');
@@ -987,62 +995,42 @@ async function saveSong() {
 
     try {
         if (currentGroupId === 'personal') {
+            // ==========================================
+            // 🏠 ΣΕΝΑΡΙΟ Α: ΠΡΟΣΩΠΙΚΗ ΒΙΒΛΙΟΘΗΚΗ
+            // ==========================================
             if (typeof saveToLocalStorage === 'function') saveToLocalStorage(songData);
-            if (typeof canUserPerform === 'function' && canUserPerform('USE_SUPABASE')) {
+            if (typeof canUserPerform === 'function' && canUserPerform('USE_SUPABASE') && navigator.onLine) {
                 await saveToCloud(songData, null);
                 showToast("Αποθηκεύτηκε στο Cloud! ☁️");
             } else {
                 showToast("Αποθηκεύτηκε Τοπικά! 💾");
             }
-        }
+        } 
         else {
-            const safeRole = String(currentRole).toLowerCase();
-            const isGod = ['admin', 'owner', 'maestro'].includes(safeRole);
-            const hasBaseChanges = isNewSong || checkBaseChanges(songData, existingSong);
+            // ==========================================
+            // 🎸 ΣΕΝΑΡΙΟ Β: ΒΙΒΛΙΟΘΗΚΗ ΜΠΑΝΤΑΣ
+            // ==========================================
+            
+            if (isNewSong) {
+                // ΚΑΝΟΝΑΣ 1: ΑΠΑΓΟΡΕΥΕΤΑΙ Η ΔΗΜΙΟΥΡΓΙΑ ΝΕΟΥ ΤΡΑΓΟΥΔΙΟΥ ΣΤΗ ΜΠΑΝΤΑ (Ακόμα και για τον Owner)
+                showToast("Τα νέα τραγούδια δημιουργούνται στην Προσωπική Βιβλιοθήκη και μετά κοινοποιούνται στη Μπάντα.", "error");
+                return; // Σταματάμε την αποθήκευση
+            }
+
+            const hasBaseChanges = checkBaseChanges(songData, existingSong);
          
             if (hasBaseChanges) {
-                const saveMasterToBand = async () => {
-                    let bandLocalKey = 'mnotes_band_' + currentGroupId;
-                    let localBandData = JSON.parse(localStorage.getItem(bandLocalKey) || "[]");
-                    let idx = localBandData.findIndex(s => s.id === currentSongId);
-                    if (idx > -1) localBandData[idx] = songData;
-                    else localBandData.push(songData);
-                    localStorage.setItem(bandLocalKey, JSON.stringify(localBandData));
-                    await saveToCloud(songData, currentGroupId);
-                    showToast("Η βιβλιοθήκη της μπάντας ενημερώθηκε! 🎸");
-                };
-
-                if (isNewSong) {
-                    if (isGod) {
-                        await saveMasterToBand();
-                    } else {
-                        // 🛡️ ΠΡΟΣΤΑΣΙΑ: Αποτροπή crash. Απλά μέλη ΔΕΝ φτιάχνουν νέα τραγούδια στη μπάντα.
-                        showToast("Μόνο οι διαχειριστές μπορούν να προσθέσουν νέα τραγούδια στη μπάντα.", "error");
-                        return; 
-                    }
-                } else if (existingSong && existingSong.is_clone) {
-                    await createOrUpdateClone(songData, existingSong);
-                } else {
-                    if (isGod) {
-                        // ✨ ΝΕΟΣ, ΑΥΣΤΗΡΟΣ ΚΑΝΟΝΑΣ OWNER
-                        const userAgreed = confirm("Το τραγούδι θα αποθηκευτεί σαν προσωπικός κλώνος.\n\nΑν επιθυμείτε να κάνετε μετατροπές σε κοινό τραγούδι (της μπάντας) θα πρέπει να το επεξεργαστείτε στην Προσωπική σας Βιβλιοθήκη και στη συνέχεια να επιλέξετε 'Κοινοποίηση στη Μπάντα' για να γίνει αντικατάσταση.\n\nΘέλετε να συνεχίσετε με τη δημιουργία του προσωπικού κλώνου;");
-                        
-                        if (!userAgreed) {
-                            console.log("🚫 [SAVE] Η αποθήκευση ακυρώθηκε από τον χρήστη.");
-                            return; 
-                        }
-                    }
-                    // Αν φτάσαμε εδώ, είτε είναι God που πάτησε ΟΚ, είτε Member. Πάμε για κλώνο!
-                    await createOrUpdateClone(songData, existingSong);
-                }
+                // ΚΑΝΟΝΑΣ 2: Οποιαδήποτε αλλαγή στον "κορμό", πάει σε Κλώνο (χωρίς ερωτήσεις)
+                await createOrUpdateClone(songData, existingSong);
             } else {
+                // ΚΑΝΟΝΑΣ 3: Αλλαγή μόνο σε Τόνο/Σημειώσεις, πάει σε Overrides
                 if (typeof saveAsOverride === 'function') await saveAsOverride({ ...songData });
                 showToast("Προσωπικές ρυθμίσεις αποθηκεύτηκαν.");
             }
         }
          
-        // UI & NAVIGATION REFRESH
-        const targetId = currentSongId; // Παίρνει σωστά το νέο ID αν άλλαξε στην createOrUpdateClone
+        // --- UI & NAVIGATION REFRESH ---
+        const targetId = currentSongId; 
         if (typeof loadContextData === 'function') await loadContextData(); 
 
         if (typeof displaySong === 'function') displaySong(targetId); 
@@ -1057,8 +1045,7 @@ async function saveSong() {
         console.error("❌ [SAVE ERROR]:", err);
         showToast("Σφάλμα κατά την αποθήκευση", "error");
     }
-}
-      
+}  
 /**
  * Υποστηρικτική: Αποθήκευση στη Supabase (Πίνακας 'songs')
  */
@@ -1695,16 +1682,39 @@ async function redeemGiftCode() {
 async function deleteCurrentSong() {
     if (!currentSongId) return;
    
-    if (currentGroupId !== 'personal' && (currentRole !== 'owner' && currentRole !== 'admin')) {
-        showToast("Δεν έχετε δικαίωμα διαγραφής σε αυτή τη μπάντα.", "error");
-        return;
-    }
-    
+    // Πρώτα βρίσκουμε το τραγούδι για να ξέρουμε τι είναι (Master ή Clone)
     const s = library.find(x => x.id === currentSongId);
     if (!s) return;
 
-    if (!confirm(`Οριστική διαγραφή του "${s.title}";`)) return;
+    // --- ΑΝΑΓΝΩΡΙΣΗ ΚΑΤΑΣΤΑΣΗΣ & ΡΟΛΩΝ ---
+    const isMyClone = s.is_clone && s.user_id === currentUser?.id;
+    const isBandMaster = currentGroupId !== 'personal' && !s.is_clone;
+    // Θεωρούμε "God" τον owner, admin και τον maestro
+    const isGod = currentRole === 'owner' || currentRole === 'admin' || currentRole === 'maestro';
 
+    // --- 1. ΕΛΕΓΧΟΣ ΔΙΚΑΙΩΜΑΤΩΝ ---
+    if (isBandMaster && !isGod) {
+        showToast("Δεν έχετε δικαίωμα διαγραφής του κεντρικού τραγουδιού.", "error");
+        return;
+    }
+    if (currentGroupId !== 'personal' && s.is_clone && !isMyClone) {
+        showToast("Δεν μπορείτε να διαγράψετε τον κλώνο άλλου χρήστη.", "error");
+        return;
+    }
+    
+    // --- 2. ΔΥΝΑΜΙΚΑ ΜΗΝΥΜΑΤΑ ΕΠΙΒΕΒΑΙΩΣΗΣ ---
+    let confirmMsg = `Οριστική διαγραφή του "${s.title}";`;
+    
+    if (isBandMaster) {
+        // Η κρίσιμη προειδοποίηση για τους God Users!
+        confirmMsg = `⚠️ ΚΡΙΣΙΜΗ ΠΡΟΕΙΔΟΠΟΙΗΣΗ ⚠️\n\nΠρόκειται να διαγράψετε το κεντρικό τραγούδι "${s.title}" από την ΚΟΙΝΗ βιβλιοθήκη της Μπάντας!\n\nΑυτό θα αφαιρέσει το τραγούδι από όλα τα μέλη. Είστε ΑΠΟΛΥΤΑ σίγουροι;`;
+    } else if (isMyClone) {
+        confirmMsg = `Οριστική διαγραφή του προσωπικού σας κλώνου για το "${s.title}";`;
+    }
+
+    if (!confirm(confirmMsg)) return;
+
+    // --- 3. ΕΚΤΕΛΕΣΗ ΔΙΑΓΡΑΦΗΣ (Ο δικός σου κώδικας, άθικτος) ---
     try {
         console.log(`🗑️ [DELETE] Εκκίνηση διαγραφής για: ${s.title}`);
 
@@ -1728,7 +1738,9 @@ async function deleteCurrentSong() {
 
         currentSongId = null;
         renderSidebar(); 
-        showToast("Το τραγούδι διαγράφηκε.");
+        
+        // Ενημερώνουμε το Toast ανάλογα με το τι σβήσαμε
+        showToast(isBandMaster ? "Το κεντρικό τραγούδι διαγράφηκε από τη μπάντα." : "Το τραγούδι διαγράφηκε.");
 
         if (library.length > 0) loadSong(library[0].id);
         else if (typeof toEditor === 'function') toEditor();

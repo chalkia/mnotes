@@ -137,8 +137,14 @@ async function loadBandDashboard() {
                             <i class="${promoIcon}"></i>
                         </button>`;
                 }
-                
-                // 3. Κουμπί Αποβολής (Blacklist)
+                // 3. Κουμπί Μεταβίβασης Ηγεσίας (Make Owner & Transfer Assets)
+                if (currentRole === 'owner' && (m.role === 'member' || m.role === 'admin')) {
+                    html += `
+                        <button onclick="transferBandLeadership('${m.user_id}')" class="icon-btn" title="Μεταβίβαση Ηγεσίας (Make Owner)" style="padding:2px 6px; font-size:0.8rem; color:#ffc107; border:1px solid #ffc107; margin-left:2px;">
+                            <i class="fas fa-crown"></i>
+                        </button>`;
+                }
+                //  4. Κουμπί Αποβολής (Blacklist)
                 if (currentRole === 'owner') {
                     html += `
                         <button onclick="expelMember('${currentGroupId}', '${m.user_id}')" class="icon-btn danger" title="Αποβολή" style="padding:2px 6px; font-size:0.8rem;">

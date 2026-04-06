@@ -411,3 +411,15 @@ async function deleteBand() {
         window.location.reload();
     }
 }
+// Ανοίγει το παράθυρο διαχείρισης και φορτώνει τα δεδομένα
+function showBandManagerModal() {
+    const modal = document.getElementById('bandManagerModal');
+    if (modal) {
+        modal.style.display = 'flex';
+        // Καλεί τη δική σου συνάρτηση που ήδη έχεις γράψει!
+        if (typeof loadBandDashboard === 'function') {
+            loadBandDashboard();
+        }
+    }
+}
+

@@ -1938,3 +1938,60 @@ async function syncEditorFromBand() {
         showToast("Σφάλμα κατά τον συγχρονισμό", "error");
     }
 }
+/**
+ * Μεταβιβάζει την ηγεσία της μπάντας και τα δικαιώματα των αρχείων στον νέο Leader.
+ * @param {string} targetUserId - Το ID του μέλους που αναλαμβάνει.
+ */
+async function transferBandLeadership(targetUserId) {
+    // 1. Βασικοί έλεγχοι
+    if (currentRole !== 'leader' && currentRole !== 'owner') {
+        showToast("Μόνο ο Leader μπορεί να μεταβιβάσει την ηγεσία.", "error");
+        return;
+    }
+
+    const successor = bandMembers.find(m => m.user_id === targetUserId);
+    if (!successor) {
+        showToast("Ο διάδοχος πρέπει να είναι μέλος της μπάντας.", "error");
+        return;
+    }
+
+    if (!confirm(`👑 ΜΕΤΑΒΙΒΑΣΗ ΗΓΕΣΙΑΣ\n\nΘα παραδώσετε την ηγεσία στον/στην ${successor.profiles.full_name}.\nΤα αρχεία σας θα παραμείνουν στη μπάντα υπό τη διαχείριση του νέου Leader.\n\nΕίστε σίγουροι;`)) return;
+
+    try {
+        showToast("Εκτέλεση μεταβίβασης...", "info");
+
+        // Α. Ενημέρωση Ρόλων στη Βάση
+        await supabaseClient.from('group_members').update({ role: 'leader' }).eq('group_id', currentGroupId).eq('user_id', targetUserId);
+        await supabaseClient.from('group_members').update({ role: 'member' }).eq('group_id', currentGroupId).eq('user_id', currentUser.id);
+        await supabaseClient.from('groups').update({ owner_id: targetUserId }).eq('id', currentGroupId);
+
+        // Β. Μεταβίβαση "Κλειδιών" Αρχείων (Shared Ownership)
+        // Παίρνουμε όλα τα αρχεία που έχει ο τρέχων Leader για αυτή τη μπάντα
+        const { data: currentAssets } = await supabaseClient
+            .from('user_assets')
+            .select('*')
+            .eq('user_id', currentUser.id)
+            .eq('group_id', currentGroupId);
+
+        if (currentAssets && currentAssets.length > 0) {
+            // Δημιουργούμε νέες εγγραφές για τον διάδοχο που δείχνουν στα ΙΔΙΑ αρχεία
+            const sharedAssets = currentAssets.map(asset => ({
+                user_id: targetUserId,
+                group_id: currentGroupId,
+                custom_name: asset.custom_name,
+                file_url: asset.file_url,
+                file_type: asset.file_type
+            }));
+
+            const { error: assetErr } = await supabaseClient.from('user_assets').insert(sharedAssets);
+            if (assetErr) console.error("Asset transfer error:", assetErr);
+        }
+
+        showToast("Η μεταβίβαση ολοκληρώθηκε! 🤝");
+        setTimeout(() => window.location.reload(), 1500);
+
+    } catch (err) {
+        console.error("Transfer error:", err);
+        showToast("Σφάλμα κατά τη μεταβίβαση.", "error");
+    }
+}

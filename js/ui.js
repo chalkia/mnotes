@@ -1293,11 +1293,19 @@ function printSetlistPDF() {
 function switchToEditor() {
     // Αποθήκευση κατάστασης: Είμαστε στον Editor
    localStorage.setItem('mnotes_view_state', 'editor');
-    // ✨ ΕΛΕΓΧΟΣ ΔΙΚΑΙΩΜΑΤΩΝ
-    if (typeof currentGroupId !== 'undefined' && currentGroupId !== 'personal') {
-        if (typeof currentRole !== 'undefined' && currentRole !== 'admin' && currentRole !== 'owner') {
-            showToast("Μόνο οι διαχειριστές μπορούν να επεξεργαστούν τα τραγούδια της μπάντας. Κάντε 'Clone' για δική σας χρήση!", "error");
-            return; 
+   
+   // ✨ ΕΛΕΓΧΟΣ ΔΙΚΑΙΩΜΑΤΩΝ
+    if (typeof currentGroupId !== 'undefined' && currentGroupId !== 'personal' && currentSongId) {
+        let s = library.find(x => x.id === currentSongId);
+        
+        if (s && !s.is_clone) {
+            const existingClone = library.find(c => c.is_clone && c.parent_id === s.id && c.user_id === currentUser?.id);
+            if (existingClone) {
+                alert("Υπάρχει ήδη προσωπικός κλώνος για αυτό το τραγούδι.\nΘα μεταφερθείτε αυτόματα σε αυτόν για επεξεργασία.");
+                currentSongId = existingClone.id; // 🎯 Αλλάζουμε στόχο στον κλώνο
+            } else {
+                alert("ΠΡΟΣΟΧΗ: Επεξεργάζεστε το κοινό τραγούδι της μπάντας.\n\nΟποιαδήποτε αλλαγή αποθηκευτεί, θα δημιουργήσει αυτόματα έναν 'Προσωπικό Κλώνο' σας, αφήνοντας το αρχικό τραγούδι άθικτο.");
+            }
         }
     }
     
@@ -1577,25 +1585,13 @@ function refreshSyncButtonVisibility(song) {
     if (!btnSync) return;
 
     btnSync.style.display = 'none';
-
-    // Εμφάνιση αν: Προσωπική Βιβλιοθήκη + Το ID υπάρχει σε κάποια μπάντα
-    if (currentGroupId === 'personal' && song && song.id) {
-        let isShared = false;
-        
-        // Ψάχνουμε το Master ID (είτε το ίδιο το ID, είτε τον πατέρα του αν είναι κλώνος)
-        const dnaId = song.parent_id || song.id;
-       
-       myGroups.forEach(g => {
-            const bandData = JSON.parse(localStorage.getItem('mnotes_band_' + g.group_id) || "[]");
-            if (bandData.some(s => s.id === song.id)) isShared = true;
-        });
-
-        if (isShared) {
-            btnSync.style.display = 'inline-block';
-            btnSync.title = "Συγχρονισμός από Μπάντα 🔄";
-        }
+    // Εμφάνιση ΜΟΝΟ αν είμαστε στη Μπάντα ΚΑΙ το τραγούδι είναι Κλώνος
+    if (currentGroupId !== 'personal' && song && song.is_clone) {
+        btnSync.style.display = 'inline-block';
+        btnSync.title = "Συγχρονισμός Κλώνου με Προσωπική Βιβλιοθήκη 🏠";
     }
 }
+
 // Σώζει αυτόματα ένα προσωρινό αντίγραφο καθώς πληκτρολογείς
 function autoSaveDraft() {
     if (!currentSongId) return;

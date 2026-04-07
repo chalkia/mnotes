@@ -3614,11 +3614,29 @@ window.activeRhythmType = 'metronome';
 
 // --- 2. ΦΟΡΤΩΣΗ ΤΟΥ ΡΥΘΜΟΥ ΣΤΗ ΜΗΧΑΝΗ (PREMIUM FEATURE) ---
 async function activateSongRhythm(url, name) {
-    // 1. ΕΛΕΓΧΟΣ PAYWALL: Οι Free χρήστες μένουν στον μετρονόμο!
+    // 1. ΕΛΕΓΧΟΣ PAYWALL
     if (typeof canUserPerform === 'function' && !canUserPerform('USE_RHYTHMS')) {
         if (typeof promptUpgrade === 'function') promptUpgrade('Επαγγελματικοί Ρυθμοί');
         else if (typeof showToast === 'function') showToast("Αυτή η λειτουργία απαιτεί Pro συνδρομή.", "warning");
         return;
+    }
+
+    // 2. ΑΜΕΣΟ INIT ΤΟΥ ΗΧΟΥ (Για να μην μας μπλοκάρει ο browser)
+    if (window.mRhythm) {
+        try {
+            await window.mRhythm.init(); 
+            window.mRhythm.stop();       
+        } catch (e) {
+            console.warn("[RHYTHM] Audio init warning:", e);
+        }
+    }
+
+    // 3. ΑΣΦΑΛΗΣ ΕΛΕΓΧΟΣ ΜΕΤΡΟΝΟΜΟΥ
+    if (typeof BasicMetronome !== 'undefined') {
+        const isMetroPlaying = typeof BasicMetronome.isPlaying === 'function' ? BasicMetronome.isPlaying() : BasicMetronome.isPlaying;
+        if (isMetroPlaying === true) {
+            BasicMetronome.toggle(); 
+        }
     }
 
     try {
@@ -3627,40 +3645,29 @@ async function activateSongRhythm(url, name) {
         if (!response.ok) throw new Error("Αποτυχία λήψης αρχείου");
         const rhythmData = await response.json();
 
-        // 2. Ενημέρωση του UI (Αλλαγή ταμπέλας)
+        // 4. Ενημέρωση UI
         const nameDisplay = document.getElementById('seq-current-name');
         if (nameDisplay) {
             nameDisplay.innerText = name || rhythmData.metadata?.name || "Custom Rhythm";
             nameDisplay.style.color = "var(--accent)"; 
         }
 
-        // 3. Σταματάμε τον απλό μετρονόμο αν έπαιζε
-        if (typeof BasicMetronome !== 'undefined' && BasicMetronome.isPlaying) {
-            BasicMetronome.toggle(); 
-        }
-
-        // 4. Φόρτωση στη Νέα Μηχανή (mNotesRhythmRuntime)
+        // 5. Φόρτωση στη Νέα Μηχανή
         if (window.mRhythm) {
-            // Αρχικοποίηση AudioContext (απαραίτητο πριν την πρώτη αναπαραγωγή)
-            await window.mRhythm.init(); 
-            
-            window.mRhythm.stop(); // Σιγουριά ότι σταματάει το προηγούμενο pattern
-            
-            // Το wrapper της ομάδας διαβάζει κατευθείαν το object
             await window.mRhythm.loadFromObject(rhythmData);
             window.activeRhythmType = 'sequencer'; 
             
             if (typeof showToast === 'function') showToast(`Ο ρυθμός φορτώθηκε! 🥁`);
         } else {
             console.warn("[RHYTHM] Δεν βρέθηκε το window.mRhythm.");
-            window.activeRhythmType = 'metronome'; // Fallback
+            window.activeRhythmType = 'metronome';
         }
     } catch (error) {
         console.error("[RHYTHM ERROR]:", error);
+        window.activeRhythmType = 'metronome'; 
         if (typeof showToast === 'function') showToast("Σφάλμα φόρτωσης ρυθμού.", "error");
     }
 }
-
 // --- ΤΟ ΕΞΥΠΝΟ PLAY/STOP BUTTON ---
 function toggleMasterRhythm() {
     const icon = document.getElementById('iconPlayRhythm');

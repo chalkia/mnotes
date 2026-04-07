@@ -560,6 +560,26 @@ async function importFromURL() {
 // ===========================================================
 
 function loadSong(id) {
+   // ✨ ΝΕΟ: Σταματάμε τον ρυθμό (ή τον μετρονόμο) του προηγούμενου τραγουδιού
+    if (window.mRhythm && window.isRhythmPlaying) {
+        window.mRhythm.stop();
+        console.log("[Player] Ο ρυθμός σταμάτησε λόγω αλλαγής τραγουδιού.");
+    }
+    if (typeof BasicMetronome !== 'undefined' && BasicMetronome.isPlaying) {
+        BasicMetronome.toggle();
+    }
+
+    // Επαναφορά του εικονιδίου Play/Stop
+    const icon = document.getElementById('iconPlayRhythm');
+    if (icon) { icon.classList.remove('fa-stop'); icon.classList.add('fa-play'); }
+
+    // Επαναφορά της ταμπέλας του ρυθμού στο προεπιλεγμένο
+    window.activeRhythmType = 'metronome';
+    const nameDisplay = document.getElementById('seq-current-name');
+    if (nameDisplay) {
+        nameDisplay.innerText = (typeof t === 'function') ? t('metronome') : "Metronome";
+        nameDisplay.style.color = "var(--text-muted)";
+    }
     // 1. Σταμάτημα Auto Scroll αν τρέχει
     if(typeof scrollTimer !== 'undefined' && scrollTimer) toggleAutoScroll();
     
@@ -3592,39 +3612,48 @@ function renderRhythmsList(rhythms = []) {
 // Global μεταβλητή για να ξέρουμε τι παίζει
 window.activeRhythmType = 'metronome'; 
 
-// --- 2. ΦΟΡΤΩΣΗ ΤΟΥ ΡΥΘΜΟΥ ΣΤΗ ΜΗΧΑΝΗ (Όταν τον κλικάρεις) ---
+// --- 2. ΦΟΡΤΩΣΗ ΤΟΥ ΡΥΘΜΟΥ ΣΤΗ ΜΗΧΑΝΗ (PREMIUM FEATURE) ---
 async function activateSongRhythm(url, name) {
+    // 1. ΕΛΕΓΧΟΣ PAYWALL: Οι Free χρήστες μένουν στον μετρονόμο!
+    if (typeof canUserPerform === 'function' && !canUserPerform('USE_RHYTHMS')) {
+        if (typeof promptUpgrade === 'function') promptUpgrade('Επαγγελματικοί Ρυθμοί');
+        else if (typeof showToast === 'function') showToast("Αυτή η λειτουργία απαιτεί Pro συνδρομή.", "warning");
+        return;
+    }
+
     try {
-        console.log(`[RHYTHM] Κατέβασμα αρχείου .nmr από: ${url}`);
+        console.log(`[RHYTHM] Κατέβασμα αρχείου .mnr από: ${url}`);
         const response = await fetch(url);
         if (!response.ok) throw new Error("Αποτυχία λήψης αρχείου");
         const rhythmData = await response.json();
 
-        // Ενημέρωση του UI (Αλλαγή ταμπέλας)
+        // 2. Ενημέρωση του UI (Αλλαγή ταμπέλας)
         const nameDisplay = document.getElementById('seq-current-name');
         if (nameDisplay) {
             nameDisplay.innerText = name || rhythmData.metadata?.name || "Custom Rhythm";
             nameDisplay.style.color = "var(--accent)"; 
         }
 
-        // ΔΙΟΡΘΩΣΗ 1: Ασφαλές σταμάτημα του παλιού μετρονόμου
+        // 3. Σταματάμε τον απλό μετρονόμο αν έπαιζε
         if (typeof BasicMetronome !== 'undefined' && BasicMetronome.isPlaying) {
-            BasicMetronome.toggle(); // Χρησιμοποιούμε το toggle αντί για stop!
+            BasicMetronome.toggle(); 
         }
 
-        // ΔΙΟΡΘΩΣΗ 2: Ασφαλής έλεγχος για το AudioEngine της άλλης ομάδας
-        if (typeof AudioEngine !== 'undefined') {
-            if (typeof AudioEngine.loadPattern === 'function') {
-                AudioEngine.loadPattern(rhythmData);
-            } else if (typeof AudioEngine.loadRhythm === 'function') {
-                AudioEngine.loadRhythm(rhythmData);
-            }
+        // 4. Φόρτωση στη Νέα Μηχανή (mNotesRhythmRuntime)
+        if (window.mRhythm) {
+            // Αρχικοποίηση AudioContext (απαραίτητο πριν την πρώτη αναπαραγωγή)
+            await window.mRhythm.init(); 
+            
+            window.mRhythm.stop(); // Σιγουριά ότι σταματάει το προηγούμενο pattern
+            
+            // Το wrapper της ομάδας διαβάζει κατευθείαν το object
+            await window.mRhythm.loadFromObject(rhythmData);
             window.activeRhythmType = 'sequencer'; 
-            if (typeof showToast === 'function') showToast(`Ο ρυθμός ${name} φορτώθηκε! 🥁`);
+            
+            if (typeof showToast === 'function') showToast(`Ο ρυθμός φορτώθηκε! 🥁`);
         } else {
-            console.warn("[RHYTHM] Προσοχή: Δεν βρέθηκε το αντικείμενο AudioEngine.");
-            window.activeRhythmType = 'metronome'; // Fallback για να μην σπάσει το κουμπί Play
-            if (typeof showToast === 'function') showToast(`Ο ρυθμός φορτώθηκε στο UI, αλλά λείπει η μηχανή αναπαραγωγής!`, "warning");
+            console.warn("[RHYTHM] Δεν βρέθηκε το window.mRhythm.");
+            window.activeRhythmType = 'metronome'; // Fallback
         }
     } catch (error) {
         console.error("[RHYTHM ERROR]:", error);
@@ -3632,29 +3661,87 @@ async function activateSongRhythm(url, name) {
     }
 }
 
-// --- 3. ΤΟ ΕΞΥΠΝΟ PLAY BUTTON ---
+// --- ΤΟ ΕΞΥΠΝΟ PLAY/STOP BUTTON ---
 function toggleMasterRhythm() {
     const icon = document.getElementById('iconPlayRhythm');
+    const bpmSlider = document.getElementById('rngBpm');
+    const currentBpm = bpmSlider ? parseInt(bpmSlider.value) : 100;
 
-    if (window.activeRhythmType === 'sequencer' && typeof AudioEngine !== 'undefined') {
-        // Ελέγχουμε την AudioEngine
-        if (AudioEngine.isPlaying) {
-            AudioEngine.stop();
+    // ΠΕΡΙΠΤΩΣΗ Α: Ο χρήστης είναι Pro και έχει φορτώσει ρυθμό (.mnr)
+    if (window.activeRhythmType === 'sequencer' && window.mRhythm) {
+        
+        if (window.isRhythmPlaying) {
+            // Σταματάμε τον ρυθμό
+            window.mRhythm.stop();
             if (icon) { icon.classList.remove('fa-stop'); icon.classList.add('fa-play'); }
         } else {
-            AudioEngine.play();
+            // Πριν ξεκινήσουμε, βεβαιωνόμαστε ότι το BPM είναι συγχρονισμένο με το UI
+            window.mRhythm.setBpm(currentBpm);
+            
+            // Ξεκινάμε τον ρυθμό
+            window.mRhythm.play();
             if (icon) { icon.classList.remove('fa-play'); icon.classList.add('fa-stop'); }
         }
-    } else {
-        // Fallback: Απλός Μετρονόμος
+        
+    } 
+    // ΠΕΡΙΠΤΩΣΗ Β: Free χρήστες Ή Pro χρήστες που δεν έχουν φορτώσει ρυθμό (Fallback Μετρονόμου)
+    else {
         if (typeof BasicMetronome !== 'undefined') {
-            BasicMetronome.toggle();
-            // Αλλαγή εικονιδίου για τον απλό μετρονόμο
-            if (BasicMetronome.isPlaying && icon) {
-                icon.classList.remove('fa-play'); icon.classList.add('fa-stop');
-            } else if (icon) {
-                icon.classList.remove('fa-stop'); icon.classList.add('fa-play');
+            // Συγχρονίζουμε το BPM και στον μετρονόμο (αν η κλάση σου έχει τέτοια μέθοδο)
+            if (typeof BasicMetronome.setBpm === 'function') {
+                BasicMetronome.setBpm(currentBpm);
             }
+            
+            BasicMetronome.toggle();
+            
+            // Αλλαγή εικονιδίου για τον μετρονόμο
+            if (BasicMetronome.isPlaying) {
+                if (icon) { icon.classList.remove('fa-play'); icon.classList.add('fa-stop'); }
+            } else {
+                if (icon) { icon.classList.remove('fa-stop'); icon.classList.add('fa-play'); }
+            }
+        } else {
+            console.warn("⚠️ Προσοχή: Ο BasicMetronome δεν βρέθηκε.");
+            if (typeof showToast === 'function') showToast("Ο μετρονόμος δεν είναι διαθέσιμος.", "error");
         }
+    }
+}
+// --- ΑΛΛΑΓΗ ΕΝΤΑΣΗΣ (VOLUME) ΣΕ ΠΡΑΓΜΑΤΙΚΟ ΧΡΟΝΟ ---
+function changeRhythmVolume(value) {
+    // Υποθέτουμε ότι το slider δίνει τιμές από 0 έως 100. Το μετατρέπουμε σε 0.0 έως 1.0
+    const normalizedVol = parseInt(value) / 100;
+    
+    // 1. Ενημέρωση της νέας μηχανής (.mnr)
+    if (window.mRhythm) {
+        // Ελέγχουμε αν το wrapper έχει μέθοδο, αλλιώς "μιλάμε" κατευθείαν στην engine
+        if (typeof window.mRhythm.setMasterVolume === 'function') {
+            window.mRhythm.setMasterVolume(normalizedVol);
+        } else if (window.mRhythm.engine) {
+            window.mRhythm.engine.masterVolume = normalizedVol;
+        }
+    }
+    
+    // 2. Ενημέρωση του απλού μετρονόμου (Free έκδοση)
+    if (typeof BasicMetronome !== 'undefined' && typeof BasicMetronome.setVolume === 'function') {
+        BasicMetronome.setVolume(normalizedVol);
+    }
+}
+
+// --- ΑΛΛΑΓΗ ΤΑΧΥΤΗΤΑΣ (BPM) ΣΕ ΠΡΑΓΜΑΤΙΚΟ ΧΡΟΝΟ ---
+function changeRhythmBpm(value) {
+    const newBpm = parseInt(value);
+    
+    // 1. Οπτική ενημέρωση του νούμερου δίπλα στο slider (π.χ. 120)
+    const dispBpm = document.getElementById('dispBpm');
+    if (dispBpm) dispBpm.innerText = newBpm;
+
+    // 2. Ενημέρωση της νέας μηχανής (.mnr)
+    if (window.mRhythm) {
+        window.mRhythm.setBpm(newBpm);
+    }
+    
+    // 3. Ενημέρωση του απλού μετρονόμου
+    if (typeof BasicMetronome !== 'undefined' && typeof BasicMetronome.setBpm === 'function') {
+        BasicMetronome.setBpm(newBpm);
     }
 }

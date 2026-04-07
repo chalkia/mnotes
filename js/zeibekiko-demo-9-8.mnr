@@ -1,0 +1,401 @@
+{
+  "assetType": "mGroove",
+  "schemaVersion": 2,
+  "metadata": {
+    "id": "rthm_demo_zeibekiko_001",
+    "name": "Zeibekiko Demo 9-8",
+    "authorId": "demo_local",
+    "timeSignature": "9/8",
+    "defaultBpm": 65,
+    "preferredKit": "oriental_kit_01"
+  },
+  "pattern": {
+    "stepCount": 18,
+    "voices": {
+      "v1": [
+        {
+          "on": true,
+          "velocity": 0.95,
+          "offset": 0.0,
+          "chance": 1.0
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": true,
+          "velocity": 0.82,
+          "offset": 0.0,
+          "chance": 1.0
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": true,
+          "velocity": 0.95,
+          "offset": 0.0,
+          "chance": 1.0
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": true,
+          "velocity": 0.82,
+          "offset": 0.0,
+          "chance": 1.0
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        }
+      ],
+      "v2": [
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        }
+      ],
+      "v3": [
+        {
+          "on": false
+        },
+        {
+          "on": true,
+          "velocity": 0.48,
+          "offset": -0.02,
+          "chance": 0.7
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": true,
+          "velocity": 0.48,
+          "offset": -0.02,
+          "chance": 0.7
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        }
+      ],
+      "v4": [
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": true,
+          "velocity": 0.78,
+          "offset": 0.0,
+          "chance": 1.0
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": true,
+          "velocity": 0.78,
+          "offset": -0.01,
+          "chance": 1.0
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": true,
+          "velocity": 0.78,
+          "offset": 0.0,
+          "chance": 1.0
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": true,
+          "velocity": 0.78,
+          "offset": -0.01,
+          "chance": 1.0
+        },
+        {
+          "on": false
+        }
+      ],
+      "v5": [
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": true,
+          "velocity": 0.72,
+          "offset": 0.0,
+          "chance": 1.0
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": true,
+          "velocity": 0.72,
+          "offset": 0.0,
+          "chance": 1.0
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        }
+      ],
+      "v6": [
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": true,
+          "velocity": 0.55,
+          "offset": 0.01,
+          "chance": 0.85
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": true,
+          "velocity": 0.55,
+          "offset": 0.01,
+          "chance": 0.85
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": true,
+          "velocity": 0.55,
+          "offset": 0.01,
+          "chance": 0.85
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        },
+        {
+          "on": true,
+          "velocity": 0.55,
+          "offset": 0.01,
+          "chance": 0.85
+        },
+        {
+          "on": false
+        },
+        {
+          "on": false
+        }
+      ]
+    }
+  }
+}

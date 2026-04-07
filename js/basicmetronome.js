@@ -6,6 +6,7 @@ const BasicMetronome = {
     isPlaying: false,
     bpm: 100,
     pitch: 800, // Προεπιλεγμένη συχνότητα (σε Hz)
+    volume: 0.8, // ✨ ΝΕΟ: Προεπιλεγμένη ένταση (0.0 έως 1.0)
     timerID: null,
     nextNoteTime: 0,
     audioCtx: null,
@@ -15,19 +16,21 @@ const BasicMetronome = {
             this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         }
         
+        const icon = document.getElementById('iconPlayRhythm');
+
         if (this.isPlaying) {
             // Σταμάτημα
             clearTimeout(this.timerID);
             this.isPlaying = false;
-            document.getElementById('btnPlayRhythm').innerHTML = '<i class="fas fa-play"></i>';
+            if (icon) { icon.classList.remove('fa-stop'); icon.classList.add('fa-play'); }
             console.log("⏹️ [BasicMetronome] Σταμάτησε.");
         } else {
             // Ξεκίνημα
             if (this.audioCtx.state === 'suspended') this.audioCtx.resume();
             this.nextNoteTime = this.audioCtx.currentTime + 0.05;
             this.isPlaying = true;
-            document.getElementById('btnPlayRhythm').innerHTML = '<i class="fas fa-stop"></i>';
-            console.log(`▶️ [BasicMetronome] Ξεκίνησε στα ${this.bpm} BPM με συχνότητα ${this.pitch}Hz.`);
+            if (icon) { icon.classList.remove('fa-play'); icon.classList.add('fa-stop'); }
+            console.log(`▶️ [BasicMetronome] Ξεκίνησε στα ${this.bpm} BPM | ${this.pitch}Hz | Ένταση: ${this.volume}`);
             this.schedule();
         }
     },
@@ -44,6 +47,9 @@ const BasicMetronome = {
     },
 
     playClick: function(time) {
+        // ✨ ΝΕΟ: Αν το volume είναι κλειστό, δεν παράγουμε ήχο
+        if (this.volume <= 0.01) return;
+
         const osc = this.audioCtx.createOscillator();
         const gain = this.audioCtx.createGain();
         
@@ -54,8 +60,8 @@ const BasicMetronome = {
         osc.frequency.value = this.pitch;
         osc.type = 'sine'; // Ήχος καθαρού ημιτόνου
         
-        // Envelope για κοφτό percussive ήχο
-        gain.gain.setValueAtTime(1, time);
+        // ✨ ΝΕΟ: Envelope που σέβεται την ένταση του χρήστη
+        gain.gain.setValueAtTime(this.volume, time);
         gain.gain.exponentialRampToValueAtTime(0.001, time + 0.05); 
         
         osc.start(time);
@@ -71,6 +77,12 @@ const BasicMetronome = {
 
     setPitch: function(val) {
         this.pitch = parseInt(val);
-        console.log(`🎚️ [BasicMetronome] Αλλαγή Συχνότητας (Pitch): ${this.pitch}Hz`);
+        console.log(`🎚️ [BasicMetronome] Αλλαγή Pitch: ${this.pitch}Hz`);
+    },
+
+    // ✨ ΝΕΟ: Η συνάρτηση που έψαχνε το slider για την ένταση
+    setVolume: function(val) {
+        this.volume = parseFloat(val);
+        console.log(`🔊 [BasicMetronome] Αλλαγή Έντασης: ${this.volume}`);
     }
 };

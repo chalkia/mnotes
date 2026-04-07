@@ -1,8 +1,10 @@
 /* =========================================
    MAIN APPLICATION LOGIC - mNotes v2.0 (Clean)
    ========================================= */
-
 var hasUnsavedChanges = false;
+window.mRhythm = null;
+window.isRhythmPlaying = false;
+
 window.addEventListener('load', function() {
     console.log("🚀 mNotes Pro v2.1 Initializing...");
     if (typeof requestWakeLock === 'function') requestWakeLock();
@@ -17,9 +19,26 @@ window.addEventListener('load', function() {
 
     setupDirtyListeners();
 
-   if (typeof setupGestures === 'function') setupGestures();
-    
-    // Ασφαλής εκκίνηση των Resizers (Προστασία από καθυστερήσεις της Cache/Login)
+    if (typeof setupGestures === 'function') setupGestures();
+   
+    // 🥁 ΑΡΧΙΚΟΠΟΙΗΣΗ ΡΥΘΜΩΝ (Απευθείας μέσα στο load)
+    if (typeof MNotesRhythmRuntime !== 'undefined') {
+        window.mRhythm = new MNotesRhythmRuntime();
+        console.log("🥁 [RHYTHM] Το mNotes Rhythm Runtime φορτώθηκε επιτυχώς.");
+        
+        // Συνδέουμε τα events για να ξέρουμε πότε παίζει και πότε σταματάει
+        window.mRhythm.onPlaybackStarted = () => { window.isRhythmPlaying = true; };
+        window.mRhythm.onPlaybackStopped = () => { window.isRhythmPlaying = false; };
+        
+        // ΣΗΜΕΙΩΣΗ: Αν η μηχανή χρειάζεται init(), μπορείς να το καλέσεις εδώ, 
+        // αν και συχνά το AudioContext απαιτεί κλικ από τον χρήστη πρώτα.
+        // Αν χρειαστεί, βάζεις: window.mRhythm.init().catch(e => console.warn(e));
+
+    } else {
+        console.warn("⚠️ [RHYTHM] Το MNotesRhythmRuntime δεν βρέθηκε. Ελέγξτε τη σειρά των <script>.");
+    }
+   
+   // Ασφαλής εκκίνηση των Resizers (Προστασία από καθυστερήσεις της Cache/Login)
     if (typeof initResizers === 'function') {
         initResizers();
     } else {
@@ -28,10 +47,9 @@ window.addEventListener('load', function() {
         setTimeout(() => {
             if (typeof initResizers === 'function') initResizers();
         }, 500);
-    }
-
-    console.log("✅ App Ready");
+    } console.log("✅ App Ready");
 });
+
 /**
  * Παρακολουθεί τα inputs του editor για αλλαγές
  */

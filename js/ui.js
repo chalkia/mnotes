@@ -27,6 +27,9 @@ var currentRecordedBlob = null;
 var recTimerInterval = null;
 var recStartTime = 0;
 
+// Global μεταβλητή για να ξέρουμε τι παίζει
+window.activeRhythmType = 'metronome'; 
+
 // Setlists Global
 var liveSetlist = JSON.parse(localStorage.getItem('mnotes_setlist')) || [];
 var allSetlists = {}; 
@@ -3576,6 +3579,7 @@ function refreshSyncButtonVisibility(song) {
     }
 }
 // --- 1. ΕΜΦΑΝΙΣΗ ΡΥΘΜΩΝ ΤΡΑΓΟΥΔΙΟΥ (Ζωγραφίζει τη λίστα) ---
+// --- 1. ΕΜΦΑΝΙΣΗ ΡΥΘΜΩΝ ΤΡΑΓΟΥΔΙΟΥ (Ζωγραφίζει τη λίστα) ---
 function renderRhythmsList(rhythms = []) {
     const listEl = document.getElementById('list-rhythms'); 
     if (!listEl) return;
@@ -3590,7 +3594,9 @@ function renderRhythmsList(rhythms = []) {
         
         const isOwnerOrAdmin = (typeof currentRole !== 'undefined' && (currentRole === 'owner' || currentRole === 'admin'));
         const canDelete = currentGroupId === 'personal' || isOwnerOrAdmin;
-        let deleteBtnHtml = canDelete ? `<button onclick="deleteMediaItem('${currentSongId}', 'rhythms', ${index})" style="background:none; border:none; color:var(--danger); cursor:pointer; padding:0 5px;" title="Delete"><i class="fas fa-times"></i></button>` : '';
+        
+        // ✨ ΑΛΛΑΓΗ ΕΔΩ: Καλούμε τη δική μας ενδιάμεση συνάρτηση handleDeleteRhythm
+        let deleteBtnHtml = canDelete ? `<button onclick="handleDeleteRhythm('${currentSongId}', ${index})" style="background:none; border:none; color:var(--danger); cursor:pointer; padding:0 5px;" title="Delete"><i class="fas fa-times"></i></button>` : '';
 
         let downloadBtnHtml = `<button onclick="downloadAssetLocal('${rhythm.url}', '${rhythm.name}')" style="background:none; border:none; color:#28a745; cursor:pointer; padding:0 8px; font-size:1rem;" title="Download"><i class="fas fa-download"></i></button>`;
 
@@ -3609,8 +3615,31 @@ function renderRhythmsList(rhythms = []) {
     });
 }
 
-// Global μεταβλητή για να ξέρουμε τι παίζει
-window.activeRhythmType = 'metronome'; 
+// ✨ ΝΕΑ ΣΥΝΑΡΤΗΣΗ: "Πιάνει" το κλικ διαγραφής, σταματάει τον ήχο και μετά διαγράφει το αρχείο
+function handleDeleteRhythm(songId, index) {
+    // 1. Σταματάμε τη μηχανή αν έπαιζε ο ρυθμός
+    if (window.mRhythm && window.activeRhythmType === 'sequencer') {
+        window.mRhythm.stop();
+    }
+    
+    // 2. Επαναφέρουμε το UI στον Μετρονόμο
+    window.activeRhythmType = 'metronome';
+    const icon = document.getElementById('iconPlayRhythm');
+    if (icon) { icon.classList.remove('fa-stop'); icon.classList.add('fa-play'); }
+    
+    const nameDisplay = document.getElementById('seq-current-name');
+    if (nameDisplay) {
+        nameDisplay.innerText = "Απλός Μετρονόμος (Tick)";
+        nameDisplay.style.color = "var(--text-main)"; 
+    }
+
+    console.log("🧹 [RHYTHM] Ο ρυθμός σταμάτησε λόγω διαγραφής από τη λίστα.");
+
+    // 3. Προχωράμε στην κανονική διαγραφή από τη βάση/λίστα χρησιμοποιώντας την έτοιμη υποδομή σου!
+    if (typeof deleteMediaItem === 'function') {
+        deleteMediaItem(songId, 'rhythms', index);
+    }
+}
 
 // --- 2. ΦΟΡΤΩΣΗ ΤΟΥ ΡΥΘΜΟΥ ΣΤΗ ΜΗΧΑΝΗ (PREMIUM FEATURE) ---
 async function activateSongRhythm(url, name) {

@@ -31,7 +31,9 @@ const TIER_CONFIG = {
         hasAdvancedDrums: false,   
         canPrint: false,           
         storageLimitMB: 0,
-        includedBandMates: 0
+        includedBandMates: 0,
+        useRhythms: false,   
+        useMStudio: false    
     },
     solo_pro: { 
         label: "Plus",
@@ -48,7 +50,9 @@ const TIER_CONFIG = {
         hasAdvancedDrums: true,    
         canPrint: true,            
         storageLimitMB: 50,
-        includedBandMates: 0
+        includedBandMates: 0,
+        useRhythms: true,   
+        useMStudio: false
     },
     band_mate: { 
         label: "Mate",
@@ -65,7 +69,9 @@ const TIER_CONFIG = {
         hasAdvancedDrums: true, 
         canPrint: true,
         storageLimitMB: 500,
-        includedBandMates: 0
+        includedBandMates: 0,
+        useRhythms: true,   
+        useMStudio: true
     },
     band_leader: { 
         label: "Leader",
@@ -82,7 +88,9 @@ const TIER_CONFIG = {
         hasAdvancedDrums: true, 
         canPrint: true,
         storageLimitMB: 1500,
-        includedBandMates: 0      // 🌟 Έτοιμο για add-ons
+        includedBandMates: 0,      // 🌟 Έτοιμο για add-ons
+        useRhythms: true,   
+        useMStudio: true
     },
     band_maestro: { 
         label: "Maestro",
@@ -99,7 +107,9 @@ const TIER_CONFIG = {
         use_sequencer: true,
         canPrint: true,
         storageLimitMB: 4500,
-        includedBandMates: 0      // 🌟 Έτοιμο για add-ons
+        includedBandMates: 0,      // 🌟 Έτοιμο για add-ons
+        useRhythms: true,   
+        useMStudio: true
     },
     ensemble: { 
         label: "Ensemble",
@@ -119,7 +129,9 @@ const TIER_CONFIG = {
         // --- ENSEMBLE SPECIFIC LIMITS ---
         allowsDelegatedAdmin: true, // ✅ Επιτρέπει σε άλλον να είναι ο Μαέστρος
         includedBandMates: 9,       // ✅ 9 προπληρωμένες θέσεις Premium (συν τον Admin = 10)
-        allowsFreeViewers: true     // ✅ Επιτρέπει Solo Free χρήστες
+        allowsFreeViewers: true,     // ✅ Επιτρέπει Solo Free χρήστες
+        useRhythms: true,   
+        useMStudio: true
     }
 };
 // --- ΥΠΟΛΟΓΙΣΜΟΣ ΠΡΑΓΜΑΤΙΚΩΝ ΟΡΙΩΝ (Βάση Πακέτου + Add-ons) ---
@@ -187,7 +199,11 @@ function canUserPerform (action, currentCount=0) {
             return currentCount < limits.maxBandsOwned; // 🌟 ΝΕΟ: Ελέγχει αν μπορεί να φτιάξει κι άλλη μπάντα
         case 'ADD_BAND_MATE':
             return currentCount < limits.includedBandMates; // 🌟 ΝΕΟ: Ελέγχει τις θέσεις (slots) που έχει
-        default:
+        case 'USE_RHYTHMS':
+            return limits.useRhythms;  // Ελέγχει αν έχει δικαίωμα να φορτώσει .mnr
+        case 'USE_MSTUDIO':
+            return limits.useMStudio;  // Ελέγχει αν έχει δικαίωμα να μπει στο mStudio
+       default:
             return false;
     }
 }

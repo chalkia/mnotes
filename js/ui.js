@@ -3819,3 +3819,26 @@ function changeRhythmBpm(value) {
         BasicMetronome.setBpm(newBpm);
     }
 }
+// --- ΑΠΟΦΟΡΤΩΣΗ ΡΥΘΜΟΥ (ΕΠΙΣΤΡΟΦΗ ΣΕ ΜΕΤΡΟΝΟΜΟ) ---
+function clearActiveRhythm() {
+    // 1. Σταματάμε τη μηχανή αν παίζει
+    if (window.mRhythm && window.activeRhythmType === 'sequencer') {
+        window.mRhythm.stop();
+    }
+    
+    // 2. Επαναφορά στο UI
+    window.activeRhythmType = 'metronome';
+    
+    // Επαναφορά Κουμπιού Play/Stop
+    const icon = document.getElementById('iconPlayRhythm');
+    if (icon) { icon.classList.remove('fa-stop'); icon.classList.add('fa-play'); }
+
+    // Επαναφορά Ταμπέλας Ονόματος
+    const nameDisplay = document.getElementById('seq-current-name');
+    if (nameDisplay) {
+        nameDisplay.innerText = "Απλός Μετρονόμος (Tick)";
+        nameDisplay.style.color = "var(--text-main)"; 
+    }
+
+    console.log("🧹 [RHYTHM] Ο ρυθμός αποφορτώθηκε. Επιστροφή στον μετρονόμο.");
+}

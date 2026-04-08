@@ -75,7 +75,37 @@ function applyTheme() {
 function loadLibrary() {
     initSetlists();
     populateTags();
-    
+   
+   function applyDrawerStates() {
+   const savedStates = JSON.parse(localStorage.getItem('mnotes_drawer_states')) || {};
+       
+       // Ψάχνουμε όλα τα details με κλάση tool-group
+       document.querySelectorAll('details.tool-group').forEach(details => {
+           const id = details.id;
+           if (id && savedStates[id] !== undefined) {
+               details.open = savedStates[id];
+           }
+       });
+       console.log("📂 [UI] Η κατάσταση των Drawers αποκαταστάθηκε.");
+   }
+   
+   // 2. Παρακολούθηση των αλλαγών (Event Listener)
+   function setupDrawerPersistence() {
+       document.querySelectorAll('details.tool-group').forEach(details => {
+           details.addEventListener('toggle', () => {
+               // Διαβάζουμε το τρέχον map από το localStorage
+               const states = JSON.parse(localStorage.getItem('mnotes_drawer_states')) || {};
+               
+               // Ενημερώνουμε την τιμή για το συγκεκριμένο ID
+               if (details.id) {
+                   states[details.id] = details.open;
+                   localStorage.setItem('mnotes_drawer_states', JSON.stringify(states));
+               }
+           });
+       });
+   }
+
+   
     // 1. Συγχρονισμός με το window
     library = window.library;
 

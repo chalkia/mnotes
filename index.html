@@ -261,12 +261,19 @@
                 <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 5px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all 0.2s;">
                     <span id="recTimer" class="rec-timer" style="font-size: 0.85rem; margin-bottom: 8px; color: var(--text-muted); font-family: monospace;">00:00</span>
                     <div style="display: flex; gap: 8px;">
-                        <button id="btnRecord" onclick="toggleRecording()" class="action-btn-circle" title="Record" style="background: var(--bg-main); color: #ff4757; border: 1px solid #ff4757; width: 38px; height: 38px; border-radius: 50%; cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
-                            <i class="fas fa-circle"></i>
-                        </button>
-                        <button id="btnLinkRec" onclick="uploadAndLinkCurrent()" class="action-btn-circle" style="display:none; background: #4db6ac; color: #000; border: none; width: 38px; height: 38px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;" title="Save to Song">
-                            <i class="fas fa-cloud-upload-alt"></i>
-                        </button>
+                       <div style="display: flex; gap: 8px;">
+                            <button id="btnRecord" onclick="toggleRecording()" class="action-btn-circle" title="Record" style="background: var(--bg-main); color: #ff4757; border: 1px solid #ff4757; width: 38px; height: 38px; border-radius: 50%; cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+                                <i class="fas fa-circle"></i>
+                            </button>
+                            
+                            <button id="btnDiscardRec" onclick="discardCurrentRecording()" class="action-btn-circle" style="display:none; background: #dc3545; color: #fff; border: none; width: 38px; height: 38px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;" title="Ακύρωση Εγγραφής">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        
+                            <button id="btnLinkRec" onclick="uploadAndLinkCurrent()" class="action-btn-circle" style="display:none; background: #4db6ac; color: #000; border: none; width: 38px; height: 38px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;" title="Save to Song">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
 

@@ -196,9 +196,14 @@ async function processAssetAttachment(targetSongId, type, name, url) {
         console.error(`[AssetManager] Το τραγούδι με ID ${targetSongId} δεν βρέθηκε πλέον στη βιβλιοθήκη!`);
         return;
     }
+// Βρίσκουμε το τρέχον BPM από το slider
+    let currentBpm = 100;
+    const bpmSlider = document.getElementById('rngBpm');
+    if (bpmSlider) currentBpm = parseInt(bpmSlider.value);
 
-    const newAssetObj = { id: Date.now(), name: name, url: url, date: Date.now() };
-
+    // Σώζουμε και το bpm στο αντικείμενο!
+    const newAssetObj = { id: Date.now(), name: name, url: url, date: Date.now(), bpm: currentBpm };
+   
     if (type === 'audio') {
         if (!targetSong.recordings) targetSong.recordings = [];
         targetSong.recordings.push(newAssetObj);

@@ -2607,6 +2607,39 @@ async function savePerformanceNotes() {
 // 11. MOBILE NAVIGATION & DRAWER
 // ===========================================================
 
+// --- PERSISTENT DRAWERS UI LOGIC ---
+
+function setupDrawerPersistence() {
+    // 1. Επαναφορά από τη μνήμη κατά την εκκίνηση
+    const savedStates = getSavedDrawerStates(); // Κλήση από storage.js
+    
+    document.querySelectorAll('details.tool-group').forEach(details => {
+        const id = details.id;
+        // Αν υπάρχει σωσμένη κατάσταση, την εφαρμόζουμε
+        if (id && savedStates[id] !== undefined) {
+            details.open = savedStates[id];
+        }
+
+        // 2. Παρακολούθηση αλλαγών (Toggle Event)
+        details.addEventListener('toggle', () => {
+            if (details.id) {
+                saveDrawerState(details.id, details.open); // Κλήση από storage.js
+            }
+        });
+    });
+}
+// --- ΔΙΑΧΕΙΡΙΣΗ ΚΑΤΑΣΤΑΣΗΣ DRAWERS ---
+
+function saveDrawerState(drawerId, isOpen) {
+    const states = JSON.parse(localStorage.getItem('mnotes_drawer_states')) || {};
+    states[drawerId] = isOpen;
+    localStorage.setItem('mnotes_drawer_states', JSON.stringify(states));
+    console.log(`💾 [Storage] Κατάσταση ${drawerId}: ${isOpen ? 'Ανοιχτό' : 'Κλειστό'}`);
+}
+
+function getSavedDrawerStates() {
+    return JSON.parse(localStorage.getItem('mnotes_drawer_states')) || {};
+}
 function setupEvents() {
     const fileInput = document.getElementById('hiddenFileInput');
     if(fileInput) {

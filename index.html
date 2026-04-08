@@ -289,7 +289,15 @@
                 <span id="uploadText" data-i18n="msg_uploading" style="font-size:0.7rem; color:#888;">Uploading...</span>
             </div>
 
-            <audio id="masterAudio" controls class="master-player" style="width: 100%; height: 40px; border-radius: 8px; color-scheme: dark; margin-bottom: 15px; outline: none; background: #111;"></audio>
+            <audio id="masterAudio"></audio>
+            <div id="customPlayerUI" style="display: none; align-items: center; gap: 10px; background: var(--bg-panel, rgba(0,0,0,0.2)); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 15px; width: 100%; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <button id="cpPlayBtn" onclick="toggleCustomPlayer()" style="background: var(--accent); color: #000; border: none; width: 35px; height: 35px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem; transition: 0.2s transform;">
+                    <i class="fas fa-play" id="cpPlayIcon"></i>
+                </button>
+                <span id="cpCurrentTime" style="font-size: 0.75rem; color: var(--text-main); font-family: monospace; min-width: 35px;">0:00</span>
+                <input type="range" id="cpSeekbar" value="0" max="100" oninput="seekCustomPlayer(this.value)" style="flex: 1; accent-color: var(--accent); height: 4px; cursor: pointer;">
+                <span id="cpDuration" style="font-size: 0.75rem; color: var(--text-muted); font-family: monospace; min-width: 35px;">0:00</span>
+            </div>
             
             <div id="audio-tools-panel" style="display:none; margin-bottom:15px; padding: 10px; background: rgba(0,0,0,0.1); border-radius: 8px; border: 1px solid var(--border-color);">
                 <div style="font-size: 0.8rem; font-weight: bold; margin-bottom: 10px; color: var(--text-muted);">

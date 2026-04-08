@@ -3579,7 +3579,6 @@ function refreshSyncButtonVisibility(song) {
     }
 }
 // --- 1. ΕΜΦΑΝΙΣΗ ΡΥΘΜΩΝ ΤΡΑΓΟΥΔΙΟΥ (Ζωγραφίζει τη λίστα) ---
-// --- 1. ΕΜΦΑΝΙΣΗ ΡΥΘΜΩΝ ΤΡΑΓΟΥΔΙΟΥ (Ζωγραφίζει τη λίστα) ---
 function renderRhythmsList(rhythms = []) {
     const listEl = document.getElementById('list-rhythms'); 
     if (!listEl) return;
@@ -3595,17 +3594,27 @@ function renderRhythmsList(rhythms = []) {
         const isOwnerOrAdmin = (typeof currentRole !== 'undefined' && (currentRole === 'owner' || currentRole === 'admin'));
         const canDelete = currentGroupId === 'personal' || isOwnerOrAdmin;
         
-        // ✨ ΑΛΛΑΓΗ ΕΔΩ: Καλούμε τη δική μας ενδιάμεση συνάρτηση handleDeleteRhythm
         let deleteBtnHtml = canDelete ? `<button onclick="handleDeleteRhythm('${currentSongId}', ${index})" style="background:none; border:none; color:var(--danger); cursor:pointer; padding:0 5px;" title="Delete"><i class="fas fa-times"></i></button>` : '';
 
         let downloadBtnHtml = `<button onclick="downloadAssetLocal('${rhythm.url}', '${rhythm.name}')" style="background:none; border:none; color:#28a745; cursor:pointer; padding:0 8px; font-size:1rem;" title="Download"><i class="fas fa-download"></i></button>`;
 
+        // ✨ ΝΕΟ 1: Εικονίδιο Δισκέτας (Save) για αποθήκευση του νέου BPM
+        let updateBpmBtnHtml = canDelete ? `<button onclick="updateRhythmBpm('${currentSongId}', ${index})" style="background:none; border:none; color:var(--accent); cursor:pointer; padding:0 8px;" title="Αποθήκευση Τρέχουσας Ταχύτητας (BPM)"><i class="fas fa-save"></i></button>` : '';
+
+        // ✨ ΝΕΟ 2: Διαβάζουμε το σωσμένο BPM (ή βάζουμε 100 ως προεπιλογή)
+        const savedBpm = rhythm.bpm || 100;
+
+        // ✨ ΝΕΟ 3: Εμφανίζουμε το BPM κάτω από το όνομα και το περνάμε στην activateSongRhythm
         el.innerHTML = `
-            <div onclick="activateSongRhythm('${rhythm.url}', '${rhythm.name}')" style="cursor:pointer; flex:1; display:flex; align-items:center; overflow:hidden;" title="Φόρτωση ρυθμού">
+            <div onclick="activateSongRhythm('${rhythm.url}', '${rhythm.name}', ${savedBpm})" style="cursor:pointer; flex:1; display:flex; align-items:center; overflow:hidden;" title="Φόρτωση ρυθμού">
                 <i class="fas fa-drum" style="color:var(--accent); margin-right:8px;"></i>
-                <span style="font-size:0.85rem; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${rhythm.name}</span>
+                <div style="display:flex; flex-direction:column; overflow:hidden;">
+                    <span style="font-size:0.85rem; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${rhythm.name}</span>
+                    <span style="font-size:0.65rem; color:var(--text-muted);"><i class="fas fa-tachometer-alt"></i> ${savedBpm} BPM</span>
+                </div>
             </div>
             <div style="display:flex; align-items:center;">
+                ${updateBpmBtnHtml}
                 ${downloadBtnHtml}
                 ${deleteBtnHtml}
             </div>
@@ -3615,6 +3624,24 @@ function renderRhythmsList(rhythms = []) {
     });
 }
 
+// ✨ ΝΕΑ ΣΥΝΑΡΤΗΣΗ: Ενημερώνει το αποθηκευμένο BPM ενός ρυθμού στο τραγούδι
+function updateRhythmBpm(songId, rhythmIndex) {
+    // 1. Βρίσκουμε το τραγούδι στη βιβλιοθήκη
+    const targetSong = library.find(s => s.id === songId);
+    if (!targetSong || !targetSong.rhythms || !targetSong.rhythms[rhythmIndex]) return;
+
+    // 2. Παίρνουμε την τρέχουσα ταχύτητα από το slider
+    const currentBpm = document.getElementById('rngBpm') ? parseInt(document.getElementById('rngBpm').value) : 100;
+    
+    // 3. Ανανεώνουμε την ταχύτητα στο αντικείμενο του ρυθμού
+    targetSong.rhythms[rhythmIndex].bpm = currentBpm;
+    
+    // 4. Σώζουμε το τραγούδι και ξαναζωγραφίζουμε τη λίστα για να φανεί η αλλαγή
+    if (typeof saveSong === 'function') saveSong(targetSong);
+    renderRhythmsList(targetSong.rhythms); 
+    
+    if (typeof showToast === 'function') showToast(`Η ταχύτητα αποθηκεύτηκε στα ${currentBpm} BPM!`);
+}
 // ✨ ΝΕΑ ΣΥΝΑΡΤΗΣΗ: "Πιάνει" το κλικ διαγραφής, σταματάει τον ήχο και μετά διαγράφει το αρχείο
 function handleDeleteRhythm(songId, index) {
     // 1. Σταματάμε τη μηχανή αν έπαιζε ο ρυθμός
@@ -3642,7 +3669,8 @@ function handleDeleteRhythm(songId, index) {
 }
 
 // --- 2. ΦΟΡΤΩΣΗ ΤΟΥ ΡΥΘΜΟΥ ΣΤΗ ΜΗΧΑΝΗ (PREMIUM FEATURE) ---
-async function activateSongRhythm(url, name) {
+
+async function activateSongRhythm(url, name, savedBpm = null) {
     // 1. ΕΛΕΓΧΟΣ PAYWALL
     if (typeof canUserPerform === 'function' && !canUserPerform('USE_RHYTHMS')) {
         if (typeof promptUpgrade === 'function') promptUpgrade('Επαγγελματικοί Ρυθμοί');
@@ -3674,19 +3702,29 @@ async function activateSongRhythm(url, name) {
         if (!response.ok) throw new Error("Αποτυχία λήψης αρχείου");
         const rhythmData = await response.json();
 
-        // 4. Ενημέρωση UI
+        // 4. Ενημέρωση UI (Όνομα Ρυθμού)
         const nameDisplay = document.getElementById('seq-current-name');
         if (nameDisplay) {
             nameDisplay.innerText = name || rhythmData.metadata?.name || "Custom Rhythm";
             nameDisplay.style.color = "var(--accent)"; 
         }
 
-        // 5. Φόρτωση στη Νέα Μηχανή
+        // 5: Εφαρμογή του αποθηκευμένου BPM στο Slider και στη Μηχανή
+        if (savedBpm) {
+            const rngBpm = document.getElementById('rngBpm');
+            if (rngBpm) rngBpm.value = savedBpm;
+            
+            // Καλούμε τη συνάρτηση που φτιάξαμε για να ενημερωθεί το νούμερο οπτικά και η ταχύτητα!
+            if (typeof changeRhythmBpm === 'function') changeRhythmBpm(savedBpm);
+        }
+
+        // 6. Φόρτωση στη Νέα Μηχανή
         if (window.mRhythm) {
             await window.mRhythm.loadFromObject(rhythmData);
             window.activeRhythmType = 'sequencer'; 
             
-            if (typeof showToast === 'function') showToast(`Ο ρυθμός φορτώθηκε! 🥁`);
+            // ΝΕΟ: Ενημέρωση του μηνύματος (Toast) για να δείχνει τη σωστή ταχύτητα
+            if (typeof showToast === 'function') showToast(`Ο ρυθμός φορτώθηκε στα ${savedBpm || 100} BPM! 🥁`);
         } else {
             console.warn("[RHYTHM] Δεν βρέθηκε το window.mRhythm.");
             window.activeRhythmType = 'metronome';

@@ -1741,7 +1741,27 @@ async function saveEdit() {
     console.log("[SaveEdit] Τα προσωρινά Drafts καθαρίστηκαν.");
 }
 function fixTrailingChords(text) { let lines = text.split('\n'); return lines.map(line => { const trailingChordRegex = /![A-G][b#]?[m]?[maj7|sus4|7|add9|dim|0-9]*(\/[A-G][b#]?)?\s*$/; if (line.match(trailingChordRegex)) return line.trimEnd() + "    "; return line; }).join('\n'); }
-function createNewSong() { currentSongId = null; document.querySelectorAll('.inp').forEach(e => e.value = ""); editorTags = []; if(typeof renderTagChips === 'function') renderTagChips(); document.getElementById('view-player').classList.remove('active-view'); document.getElementById('view-editor').classList.add('active-view'); if (typeof applyEditorPlaceholders === 'function') {applyEditorPlaceholders();}}
+function createNewSong() { 
+    // 1. Καθαρισμός δεδομένων
+    currentSongId = null; 
+    document.querySelectorAll('.inp').forEach(e => e.value = ""); 
+    editorTags = []; 
+    if (typeof renderTags === 'function') renderTags(); // Ή renderTagChips ανάλογα πώς την έχεις ονομάσει
+    
+    // 2. Εναλλαγή προβολής από Player σε Editor
+    document.getElementById('view-player').classList.remove('active-view'); 
+    document.getElementById('view-editor').classList.add('active-view'); 
+    
+    if (typeof applyEditorPlaceholders === 'function') {
+        applyEditorPlaceholders();
+    }
+
+    // ✨ ΝΕΟ 3: Οπτική μεταφορά στη Σκηνή για τα κινητά!
+    if (window.innerWidth <= 1024 && typeof switchMobileTab === 'function') {
+        switchMobileTab('stage');
+        console.log("📱 [Mobile] Αυτόματη μεταφορά στον Editor (Stage)");
+    }
+}
 function exitEditor() { 
    // 0. Αποθήκευση κατάστασης: Γυρίσαμε στον Player
     localStorage.setItem('mnotes_view_state', 'player');

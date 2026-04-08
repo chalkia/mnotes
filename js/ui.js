@@ -804,13 +804,12 @@ function renderPlayer(s) {
     const vidBox = document.getElementById('video-sidebar-container');
     const embedBox = document.getElementById('video-embed-box');
     if (vidBox && embedBox) {
-        if (s.video) {
-            const ytId = getYoutubeId(s.video);
-            if (ytId) {
-                embedBox.innerHTML = `<iframe src="https://www.youtube.com/embed/${ytId}" frameborder="0" allowfullscreen style="width:100%; height:100%; position:absolute; top:0; left:0; border-radius: 8px;"></iframe>`;
-                vidBox.style.display = 'block';
-            } else { vidBox.style.display = 'none'; }
-        } else { vidBox.style.display = 'none'; }
+        if (s.video && s.video.trim() !== '') {
+            embedBox.innerHTML = getMediaEmbedHtml(s.video);
+            vidBox.style.display = 'block';
+        } else { 
+            vidBox.style.display = 'none'; 
+        }
     }
 
     if(typeof renderRecordingsList === 'function') renderRecordingsList(s.recordings || [], []); 
@@ -840,78 +839,171 @@ function renderPlayer(s) {
         GuitarChordsUI.scanAndRender();
     }
 }
+// --- Συνάρτηση που αναγνωρίζει την πηγή και φτιάχνει τον σωστό Player ---
+function getMediaEmbedHtml(url) {
+       if (!url) return '';
+   
+       // 1. Έλεγχος για YouTube
+       if (typeof getYoutubeId === 'function') {
+           const ytId = getYoutubeId(url);
+           if (ytId) {
+               return `<iframe src="https://www.youtube.com/embed/${ytId}" frameborder="0" allowfullscreen style="width:100%; height:100%; position:absolute; top:0; left:0; border-radius: 8px;"></iframe>`;
+           }
+       }
+   
+       // 2. Έλεγχος για Spotify (Τραγούδι, Album ή Playlist)
+       const spotifyRegex = /spotify\.com\/(track|album|playlist)\/([a-zA-Z0-9]+)/;
+       const spotMatch = url.match(spotifyRegex);
+       if (spotMatch) {
+           const type = spotMatch[1];
+           const id = spotMatch[2];
+           return `<iframe src="https://open.spotify.com/embed/${type}/${id}" width="100%" height="100%" frameborder="0" allowtransparency="true" allow="encrypted-media" style="border-radius: 8px; position:absolute; top:0; left:0;"></iframe>`;
+       }
+   
+       // 3. Έλεγχος για SoundCloud (Ιδανικό για Demos & Πρόβες)
+       if (url.includes('soundcloud.com')) {
+           const encodedUrl = encodeURIComponent(url);
+           // Το visual=true δίνει το μεγάλο όμορφο player με το εξώφυλλο
+           return `<iframe width="100%" height="100%" scrolling="no" frameborder="no" allow="autoplay" src="https://w.soundcloud.com/player/?url=${encodedUrl}&color=%23ff5500&auto_play=false&hide_related=true&show_comments=false&show_user=false&show_reposts=false&show_teaser=false&visual=true" style="border-radius: 8px; position:absolute; top:0; left:0;"></iframe>`;
+       }
+   
+       // 4.  Έλεγχος για Apple Music
+       if (url.includes('music.apple.com')) {
+           const appleUrl = url.replace('music.apple.com', 'embed.music.apple.com');
+           return `<iframe allow="autoplay *; encrypted-media *; fullscreen *; clipboard-write" frameborder="0" height="100%" style="width:100%; overflow:hidden; background:transparent; border-radius:8px; position:absolute; top:0; left:0;" sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation-by-user-activation" src="${appleUrl}"></iframe>`;
+       }
+   
+       // 5. Fallback: Αν είναι απλό/άγνωστο Link, φτιάχνουμε το δικό μας όμορφο κουμπί
+       return `
+           <div style="display:flex; align-items:center; justify-content:center; height:100%; width:100%; position:absolute; top:0; left:0; background:rgba(0,0,0,0.2); border-radius:8px; border: 1px dashed var(--border-color);">
+               <a href="${url}" target="_blank" style="color:var(--accent); text-decoration:none; font-weight:bold; font-size: 0.9rem; padding: 10px 20px; border: 1px solid var(--accent); border-radius: 20px; transition: 0.2s transform;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                   <i class="fas fa-external-link-alt"></i> Άνοιγμα Εξωτερικού Σύνδεσμου
+               </a>
+           </div>
+       `;
+   }
 
-function renderArea(elemId, text) { 
-    var container = document.getElementById(elemId); 
-    if (!container) return; 
+// ===========================================================
+// CUSTOM AUDIO PLAYER LOGIC
+// ===========================================================
+function toggleCustomPlayer() {
+    const audioCore = document.getElementById('masterAudio');
+    const icon = document.getElementById('cpPlayIcon');
+    if (!audioCore) return;
     
-    container.innerHTML = ""; 
-    if (!text) return;
-
-    const chordRx = "([A-G][b#]?[a-zA-Z0-9#\\/+-]*|[a-g][b#]?)(?![a-z])";
-    text = text.replace(new RegExp(`\\[${chordRx}\\]`, 'g'), "!$1 ");
-    text = text.replace(new RegExp(`!${chordRx}!`, 'g'), "!$1 ");
-
-    var lines = text.split('\n'); 
-    
-    lines.forEach((line, index) => { 
-        var row = document.createElement('div'); 
-        
-        if (line.trim() === '') {
-            row.className = 'line-row'; 
-            row.innerHTML = `<span class="lyric">&nbsp;</span>`;
-            container.appendChild(row);
-            return;
-        }
-
-        // --- Η ΜΑΓΕΙΑ ΞΕΚΙΝΑΕΙ ΕΔΩ ---
-        // Αφαιρούμε τα ακόρντα για να δούμε τι μένει ως "στίχος"
-        let rawLyrics = line.replace(new RegExp(`!${chordRx}!?`, 'g'), '');
-        
-        // Ελέγχουμε αν έχουν μείνει καθόλου Γράμματα (\p{L}) ή Αριθμοί (\p{N})
-        let hasText = /[\p{L}]/u.test(rawLyrics); 
-        let isChordsOnly = !hasText; // Αν είναι true, η γραμμή έχει μόνο σύμβολα ( | - { } κενά)
-        
-        row.className = isChordsOnly ? 'line-row chords-only-row' : 'line-row';
-
-        if (line.indexOf('!') === -1 || (typeof isLyricsMode !== 'undefined' && isLyricsMode)) { 
-            let pureText = line;
-            if (typeof isLyricsMode !== 'undefined' && isLyricsMode) {
-                pureText = rawLyrics.replace(/\s{2,}/g, ' ').trim(); 
-            }
-            
-            // Προστασία όλων των κενών με &nbsp; για να μην καταρρέουν
-            let safeText = pureText.replace(/ /g, '&nbsp;');
-            row.innerHTML = `<span class="lyric">${(safeText && safeText.length > 0) ? safeText : "&nbsp;"}</span>`; 
-        } else { 
-            var parts = line.split('!'); 
-            if (parts[0]) row.appendChild(createToken("", parts[0], isChordsOnly)); 
-            
-            for (var i = 1; i < parts.length; i++) { 
-                var m = parts[i].match(new RegExp(`^${chordRx}\\s?(.*)`)); 
-                
-                if (m) {
-                    let chordRaw = m[1];
-                    let lyricsRaw = m[2] || ""; 
-                    let noteDisp = chordRaw;
-                    
-                    try {
-                        if (typeof getNote === 'function' && typeof state !== 'undefined') {
-                            noteDisp = getNote(chordRaw, state.t - state.c);
-                        }
-                    } catch (err) {
-                        console.error(`[RENDER] Σφάλμα στο transpose (Γραμμή ${index+1})`);
-                    }
-                    
-                    row.appendChild(createToken(noteDisp, lyricsRaw, isChordsOnly)); 
-                } else {
-                    row.appendChild(createToken("", parts[i] || "", isChordsOnly)); 
-                }
-            } 
-        } 
-        container.appendChild(row); 
-    }); 
+    if (audioCore.paused) {
+        audioCore.play();
+        if (icon) { icon.classList.remove('fa-play'); icon.classList.add('fa-pause'); }
+    } else {
+        audioCore.pause();
+        if (icon) { icon.classList.remove('fa-pause'); icon.classList.add('fa-play'); }
+    }
 }
+
+   function seekCustomPlayer(val) {
+          const audioCore = document.getElementById('masterAudio');
+          if (!audioCore || !audioCore.duration) return;
+          audioCore.currentTime = audioCore.duration * (val / 100);
+      }
+      
+      // Αυτόματη ενημέρωση μπάρας & χρόνου
+      document.addEventListener('DOMContentLoaded', () => {
+          const audioCore = document.getElementById('masterAudio');
+          if (audioCore) {
+              audioCore.addEventListener('timeupdate', () => {
+                  const seekbar = document.getElementById('cpSeekbar');
+                  const currTime = document.getElementById('cpCurrentTime');
+                  if (audioCore.duration && seekbar) seekbar.value = (audioCore.currentTime / audioCore.duration) * 100;
+                  const mins = Math.floor(audioCore.currentTime / 60);
+                  const secs = Math.floor(audioCore.currentTime % 60).toString().padStart(2, '0');
+                  if (currTime) currTime.innerText = `${mins}:${secs}`;
+              });
+              audioCore.addEventListener('loadedmetadata', () => {
+                  const durTime = document.getElementById('cpDuration');
+                  const mins = Math.floor(audioCore.duration / 60);
+                  const secs = Math.floor(audioCore.duration % 60).toString().padStart(2, '0');
+                  if (durTime) durTime.innerText = `${mins}:${secs}`;
+              });
+              audioCore.addEventListener('ended', () => {
+                  const icon = document.getElementById('cpPlayIcon');
+                  const seekbar = document.getElementById('cpSeekbar');
+                  if (icon) { icon.classList.remove('fa-pause'); icon.classList.add('fa-play'); }
+                  if (seekbar) seekbar.value = 0;
+              });
+          }
+      });
+      
+   function renderArea(elemId, text) { 
+          var container = document.getElementById(elemId); 
+          if (!container) return; 
+          
+          container.innerHTML = ""; 
+          if (!text) return;
+      
+          const chordRx = "([A-G][b#]?[a-zA-Z0-9#\\/+-]*|[a-g][b#]?)(?![a-z])";
+          text = text.replace(new RegExp(`\\[${chordRx}\\]`, 'g'), "!$1 ");
+          text = text.replace(new RegExp(`!${chordRx}!`, 'g'), "!$1 ");
+      
+          var lines = text.split('\n'); 
+          
+          lines.forEach((line, index) => { 
+              var row = document.createElement('div'); 
+              
+              if (line.trim() === '') {
+                  row.className = 'line-row'; 
+                  row.innerHTML = `<span class="lyric">&nbsp;</span>`;
+                  container.appendChild(row);
+                  return;
+              }
+      
+              // --- Η ΜΑΓΕΙΑ ΞΕΚΙΝΑΕΙ ΕΔΩ ---
+              // Αφαιρούμε τα ακόρντα για να δούμε τι μένει ως "στίχος"
+              let rawLyrics = line.replace(new RegExp(`!${chordRx}!?`, 'g'), '');
+              
+              // Ελέγχουμε αν έχουν μείνει καθόλου Γράμματα (\p{L}) ή Αριθμοί (\p{N})
+              let hasText = /[\p{L}]/u.test(rawLyrics); 
+              let isChordsOnly = !hasText; // Αν είναι true, η γραμμή έχει μόνο σύμβολα ( | - { } κενά)
+              
+              row.className = isChordsOnly ? 'line-row chords-only-row' : 'line-row';
+      
+              if (line.indexOf('!') === -1 || (typeof isLyricsMode !== 'undefined' && isLyricsMode)) { 
+                  let pureText = line;
+                  if (typeof isLyricsMode !== 'undefined' && isLyricsMode) {
+                      pureText = rawLyrics.replace(/\s{2,}/g, ' ').trim(); 
+                  }
+                  
+                  // Προστασία όλων των κενών με &nbsp; για να μην καταρρέουν
+                  let safeText = pureText.replace(/ /g, '&nbsp;');
+                  row.innerHTML = `<span class="lyric">${(safeText && safeText.length > 0) ? safeText : "&nbsp;"}</span>`; 
+              } else { 
+                  var parts = line.split('!'); 
+                  if (parts[0]) row.appendChild(createToken("", parts[0], isChordsOnly)); 
+                  
+                  for (var i = 1; i < parts.length; i++) { 
+                      var m = parts[i].match(new RegExp(`^${chordRx}\\s?(.*)`)); 
+                      
+                      if (m) {
+                          let chordRaw = m[1];
+                          let lyricsRaw = m[2] || ""; 
+                          let noteDisp = chordRaw;
+                          
+                          try {
+                              if (typeof getNote === 'function' && typeof state !== 'undefined') {
+                                  noteDisp = getNote(chordRaw, state.t - state.c);
+                              }
+                          } catch (err) {
+                              console.error(`[RENDER] Σφάλμα στο transpose (Γραμμή ${index+1})`);
+                          }
+                          
+                          row.appendChild(createToken(noteDisp, lyricsRaw, isChordsOnly)); 
+                      } else {
+                          row.appendChild(createToken("", parts[i] || "", isChordsOnly)); 
+                      }
+                  } 
+              } 
+              container.appendChild(row); 
+          }); 
+      }
 
 // Προσθέσαμε την παράμετρο isChordsOnly 
 function createToken(c, l, isChordsOnly) { 
@@ -1827,8 +1919,29 @@ async function toggleRecording() {
 
         mediaRecorder.ondataavailable = event => { audioChunks.push(event.data); };
         mediaRecorder.onstop = () => {
+            // 1. Δημιουργία του αρχείου
             currentRecordedBlob = new Blob(audioChunks, { type: 'audio/webm' });
-            if (currentSongId && typeof currentUser !== 'undefined' && currentUser) { btnLink.style.display = 'inline-block'; }
+            
+            // ✨ ΝΕΟ 2: Προβολή στον Master Player για προεπισκόπηση!
+            const audioUrl = URL.createObjectURL(currentRecordedBlob);
+            const masterPlayer = document.getElementById('masterAudio');
+            if (masterPlayer) {
+                masterPlayer.src = audioUrl;
+                const customUI = document.getElementById('customPlayerUI');
+                if (customUI) customUI.style.display = 'flex'; 
+            }
+
+            // ✨ ΝΕΟ 3: Εμφάνιση Κουμπιών (Upload & Κάδος)
+            const btnLink = document.getElementById('btnLinkRec');
+            const btnDiscard = document.getElementById('btnDiscardRec');
+            
+            // Το Upload εμφανίζεται μόνο αν είμαστε σε τραγούδι και logged in (η παλιά σου λογική)
+            if (currentSongId && typeof currentUser !== 'undefined' && currentUser) { 
+                if (btnLink) btnLink.style.display = 'flex'; 
+            }
+            
+            // Ο Κάδος εμφανίζεται πάντα, ώστε να μπορείς να πετάξεις την εγγραφή
+            if (btnDiscard) btnDiscard.style.display = 'flex';
         };
         mediaRecorder.start();
         btn.classList.add('recording-active'); btn.innerHTML = '<i class="fas fa-stop"></i>'; timer.style.color = "var(--danger)"; 
@@ -1836,6 +1949,35 @@ async function toggleRecording() {
     } catch (err) { alert("Microphone Error: " + err.message); }
 }
 
+// --- ΑΚΥΡΩΣΗ & ΚΑΘΑΡΙΣΜΟΣ ΕΓΓΡΑΦΗΣ ---
+function discardCurrentRecording() {
+    // 1. Καθαρίζουμε τον Player
+    const masterPlayer = document.getElementById('masterAudio');
+    if (masterPlayer) {
+        masterPlayer.src = "";
+        }
+       const customUI = document.getElementById('customPlayerUI');
+       if (customUI) customUI.style.display = 'none';
+    
+    // 2. Κρύβουμε τα κουμπιά
+    const btnLink = document.getElementById('btnLinkRec');
+    const btnDiscard = document.getElementById('btnDiscardRec');
+    if (btnLink) btnLink.style.display = 'none';
+    if (btnDiscard) btnDiscard.style.display = 'none';
+    
+    // 3. Μηδενίζουμε το Timer
+    const recTimer = document.getElementById('recTimer');
+    if (recTimer) recTimer.innerText = "00:00";
+    
+    // 4. Αδειάζουμε τη μνήμη
+    if (typeof audioChunks !== 'undefined') {
+        audioChunks = [];
+    }
+    currentRecordedBlob = null;
+    
+    if (typeof showToast === 'function') showToast("Η εγγραφή ακυρώθηκε. Δεν ανέβηκε τίποτα.");
+}
+// Ανέβασμα στο Cloud
 async function uploadAndLinkCurrent() {
     if (!currentRecordedBlob) { showToast("No recording!"); return; }
     if (!currentSongId) { showToast("Select song!"); return; }
@@ -1905,6 +2047,17 @@ async function uploadAndLinkCurrent() {
         currentRecordedBlob = null;
         btnLink.innerHTML = '<i class="fas fa-cloud-upload-alt"></i>';
         btnLink.style.opacity = '1';
+        
+       // Κρύβουμε τον Κάδο και καθαρίζουμε τον Player μετά από επιτυχές (ή αποτυχημένο) upload
+        const btnDiscard = document.getElementById('btnDiscardRec');
+        if (btnDiscard) btnDiscard.style.display = 'none';
+        
+        const masterPlayer = document.getElementById('masterAudio');
+        if (masterPlayer) {
+            masterPlayer.src = "";
+            const customUI = document.getElementById('customPlayerUI');
+            if (customUI) customUI.style.display = 'none';
+        }
     }
 }
 // ===========================================================

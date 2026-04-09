@@ -35,7 +35,7 @@ const TIER_CONFIG = {
         useRhythms: false,   
         useMStudio: false    
     },
-    solo_pro: { 
+    solo_plus: { 
         label: "Plus",
         billing: "One-Time",
         canCloudSync: true, 
@@ -146,7 +146,7 @@ function getUserLimits() {
 
     const tierMapping = {
         'free': 'solo_free',
-        'solo': 'solo_pro',
+        'solo': 'solo_plus',
         'member': 'band_mate',
         'owner': 'band_leader',
         'maestro': 'band_maestro'
@@ -251,7 +251,8 @@ async function initUserData() {
                      let rawTier = profile.subscription_tier.toLowerCase().replace(/[^a-z_]/g, '');
                      
                      const tierMap = { 
-                         'free': 'solo_free', 'solo': 'solo_pro', 'pro': 'solo_pro',
+                         'free': 'solo_free', 
+                         'solo': 'solo_plus', 'solo_pro': 'solo_plus', 'solo':'solo_plus' 
                          'member': 'band_mate', 'bandmate': 'band_mate',
                          'owner': 'band_leader', 'bandleader': 'band_leader',
                          'maestro': 'band_maestro', 'bandmaestro': 'band_maestro',

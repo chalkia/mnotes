@@ -431,3 +431,68 @@ window.promptUpgrade = function(featureName) {
         alert("Απαιτείται αναβάθμιση λογαριασμού για: " + featureName);
     }
 };
+// Ανοίγει το Account Modal και το γεμίζει με τα πραγματικά δεδομένα
+window.openAccountModal = function() {
+    if (!currentUser) return; // Αν δεν είναι συνδεδεμένος, δεν κάνει τίποτα
+    
+    // 1. Βάζουμε το Email
+    document.getElementById('accUserEmail').innerText = currentUser.email;
+    
+    // 2. Στοιχεία DOM
+    const tierBadge = document.getElementById('accUserTier');
+    const syncStatus = document.getElementById('accSyncStatus');
+    const songCount = document.getElementById('accSongCount');
+    
+    // 3. ΔΙΑΒΑΖΟΥΜΕ ΟΛΑ ΤΑ ΟΡΙΑ (Και τα Add-ons!) από τη δική σου συνάρτηση
+    const limits = typeof getUserLimits === 'function' ? getUserLimits() : null;
+    const tierKey = (typeof userProfile !== 'undefined' && userProfile) ? userProfile.subscription_tier : 'solo_free';
+    
+    if (limits) {
+        // --- ΔΥΝΑΜΙΚΗ ΤΑΜΠΕΛΑ ΣΥΝΔΡΟΜΗΣ (Από το TIER_CONFIG σου) ---
+        let icon = "fa-star";
+        let color = "#ffb74d";
+        
+        // Χρωματική λογική ανάλογα με το Tier (ακολουθώντας τα δικά σου χρώματα του Pricing)
+        switch(tierKey) {
+            case 'solo_free':   icon = "fa-seedling"; color = "#a0aec0"; break; // Γκρι
+            case 'solo_pro':    icon = "fa-star";     color = "#ffb74d"; break; // Πορτοκαλί-Χρυσό
+            case 'band_mate':   icon = "fa-guitar";   color = "#4db6ac"; break; // Τιρκουάζ
+            case 'band_leader': icon = "fa-crown";    color = "#ff7043"; break; // Έντονο Πορτοκαλί
+            case 'band_maestro':icon = "fa-music";    color = "#f06292"; break; // Ροζ-Μοβ
+            case 'ensemble':    icon = "fa-building"; color = "#9c27b0"; break; // Βαθύ Μοβ
+        }
+
+        tierBadge.innerHTML = `<i class="fas ${icon}"></i> ${limits.label.toUpperCase()}`;
+        tierBadge.style.color = color;
+        tierBadge.style.borderColor = color;
+        
+        // Μετατροπή hex σε rgba για το φόντο
+        let rgb = "rgba(255, 183, 77, 0.15)";
+        if (color === "#a0aec0") rgb = "rgba(160, 174, 192, 0.15)";
+        if (color === "#4db6ac") rgb = "rgba(77, 182, 172, 0.15)";
+        if (color === "#ff7043") rgb = "rgba(255, 112, 67, 0.15)";
+        if (color === "#f06292") rgb = "rgba(240, 98, 146, 0.15)";
+        if (color === "#9c27b0") rgb = "rgba(156, 39, 176, 0.15)";
+        tierBadge.style.background = rgb;
+
+        // --- ΔΥΝΑΜΙΚΟ CLOUD SYNC ΚΑΙ STORAGE ---
+        if (limits.canCloudSync) {
+            // Αν έχει Cloud, του δείχνουμε και τον χώρο του (π.χ. "Ενεργό (50MB)")
+            syncStatus.innerText = `Ενεργό (${limits.storageLimitMB}MB)`;
+            syncStatus.style.color = "#4db6ac";
+        } else {
+            syncStatus.innerText = "Ανενεργό (Τοπικά)";
+            syncStatus.style.color = "#888";
+        }
+    }
+    
+    // 4. Υπολογισμός Προσωπικών Τραγουδιών
+    if (typeof library !== 'undefined') {
+        const personalSongs = library.filter(s => !s.group_id).length;
+        let limitText = limits && limits.maxSetlists === 0 ? " (Απεριόριστα)" : ""; // Αν θες να δείχνεις όριο
+        songCount.innerText = `${personalSongs}`;
+    }
+    
+    // Εμφάνιση του Modal
+    document.getElementById('accountModal').style.display = 'flex';
+};

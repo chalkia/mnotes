@@ -252,7 +252,7 @@ async function initUserData() {
                      
                      const tierMap = { 
                          'free': 'solo_free', 
-                         'solo': 'solo_plus', 'solo_pro': 'solo_plus', 'solo':'solo_plus' 
+                         'solo': 'solo_plus', 'pro': 'solo_plus', 'plus': 'solo_plus',
                          'member': 'band_mate', 'bandmate': 'band_mate',
                          'owner': 'band_leader', 'bandleader': 'band_leader',
                          'maestro': 'band_maestro', 'bandmaestro': 'band_maestro',

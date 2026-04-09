@@ -61,7 +61,7 @@ async function doLogin() {
         document.getElementById('authModal').style.display = 'none';
         msg.innerText = ""; 
         showToast("Επιτυχής σύνδεση! 🎉");
-        updateAuthUI(true);
+        UI(true);
         if (typeof initUserData === 'function') initUserData(); 
         
     } catch (err) {
@@ -124,7 +124,7 @@ async function doLogout() {
     currentGroupId = 'personal'; 
     currentRole = 'owner';
     
-    updateAuthUI(false);
+    UI(false);
     showToast("Logged out");
     
     // Φόρτωση των τοπικών δεδομένων ξανά
@@ -144,7 +144,7 @@ function updateAuthUI(isLoggedIn) {
             btn.innerHTML = '<i class="fas fa-user-check"></i> Account';
             btn.style.color = 'var(--accent)';
             btn.onclick = function() { 
-                if(confirm(`Log out from ${currentUser.email}?`)) doLogout(); 
+                if (typeof openAccountModal === 'function') openAccountModal();
             };
         } else {
             // ΑΠΟΣΥΝΔΕΔΕΜΕΝΟΣ

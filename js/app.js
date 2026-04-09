@@ -254,9 +254,9 @@ function createDebugPanel() {
             <label>Subscription Tier:</label>
             <select id="debugTier" class="debug-select">
                 <option value="solo_free">Solo Free</option>
-                <option value="solo_pro">Solo Pro</option>
-                <option value="band_leader">BandLeader</option>
-                <option value="band_maestro">BandMaestro</option>
+                <option value="solo_plus">Solo Plus</option>
+                <option value="band_leader">Band Leader</option>
+                <option value="band_maestro">Band Maestro</option>
                 <option value="ensemble">Ensemble</option>
             </select>
         </div>
@@ -265,10 +265,10 @@ function createDebugPanel() {
             <label>Current Role (Context):</label>
             <select id="debugTier" class="debug-select">
                 <option value="solo_free">Solo Free</option>
-                <option value="solo_pro">Solo Pro</option>
-                <option value="band_mate">BandMate</option>
-                <option value="band_leader">BandLeader</option>
-                <option value="band_maestro">BandMaestro</option>
+                <option value="solo_plus">Solo Plus</option>
+                <option value="band_mate">Band Mate</option>
+                <option value="band_leader">Band Leader</option>
+                <option value="band_maestro">Band Maestro</option>
                 <option value="ensemble">Ensemble</option>
              </select>
         </div>
@@ -294,7 +294,7 @@ function createDebugPanel() {
             </select>
             
             <label style="display:block; font-size:0.75rem; color:#aaa; margin-bottom:5px; text-transform:uppercase;">Αξια Δωρου:</label>
-            <input type="text" id="adminPromoValue" placeholder="solo_pro, band_leader ή ensemble" class="debug-select" style="margin-bottom:5px; width:100%; box-sizing:border-box; text-align:center; font-weight:bold; color:var(--accent);">
+            <input type="text" id="adminPromoValue" placeholder="solo_plus, band_leader ή ensemble" class="debug-select" style="margin-bottom:5px; width:100%; box-sizing:border-box; text-align:center; font-weight:bold; color:var(--accent);">
         </div>
         
         <button onclick="generatePromoCode()" class="debug-btn" style="background:#28a745; margin-bottom:15px; font-weight:bold;">ΔΗΜΙΟΥΡΓΙΑ ΚΩΔΙΚΟΥ</button>
@@ -379,7 +379,7 @@ async function generatePromoCode() {
         const randomString = Math.random().toString(36).substring(2, 8).toUpperCase();
         
      // Προθέματα ανάλογα με το δώρο
-    if (valInp === 'solo_pro') codeInp = `SOLO-${randomString}`;
+    if (valInp === 'solo_plus') codeInp = `SOLO-${randomString}`;
     else if (valInp === 'band_maestro') codeInp = `MAESTRO-${randomString}`;
     else codeInp = `GIFT-${randomString}`;
     }

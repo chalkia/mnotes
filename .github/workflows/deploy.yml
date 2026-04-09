@@ -1,0 +1,16 @@
+name: Χειροκίνητη Ενημέρωση Live (Production)
+on:
+  workflow_dispatch: # Αυτό ενεργοποιεί το κουμπί για χειροκίνητη εκτέλεση
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Κατέβασμα νέου κώδικα
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Αποστολή στον Πληρωμένο Λογαριασμό (mnotes.gr)
+        run: |
+          git remote add production https://${{ secrets.MNOTESSEC}}@github.com/conchalk/mnotes.git
+          git push production main:main --force

@@ -261,7 +261,7 @@ function createDebugPanel() {
             </select>
         </div>
 
-        <div class="debug-row">
+        <div class="debugRole">
             <label>Current Role (Context):</label>
             <select id="debugTier" class="debug-select">
                 <option value="solo_free">Solo Free</option>

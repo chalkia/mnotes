@@ -167,10 +167,10 @@ async function loadBandDashboard() {
                     </button>
                 </div>
             `;
-            if (currentRole === 'owner') {
+        if (currentRole === 'owner') {
                 html += `
-                    <button onclick="deleteBand()" class="footer-btn danger-v2" style="width:100%; margin-top:15px;">
-                        <i class="fas fa-bomb"></i> DISBAND GROUP
+                    <button onclick="showLeaderExitModal()" class="footer-btn danger-v2" style="width:100%; margin-top:15px;">
+                        <i class="fas fa-sign-out-alt"></i> ΔΙΑΧΕΙΡΙΣΗ ΑΠΟΧΩΡΗΣΗΣ
                     </button>
                 `;
             }
@@ -279,14 +279,20 @@ async function expelMember(groupId, userIdToKick) {
 }
 
 /**
- * 5. Οικειοθελής Αποχώρηση
+ * 5. Οικειοθελής Αποχώρηση - με έλεγχο Leader
  */
 async function leaveBand() {
-    if(!confirm(currentLang === 'en' ? "Leave band permanently?" : "Θέλετε οριστικά να αποχωρήσετε από την μπάντα;")) return;
-    await supabaseClient.from('group_members').delete().eq('group_id', currentGroupId).eq('user_id', currentUser.id);
-    window.location.reload();
-}
+    // 1. ΑΠΛΑ ΜΕΛΗ (Members / Admins / Viewers) - Φεύγουν ελεύθερα
+    if (currentRole !== 'owner') {
+        if(!confirm(currentLang === 'en' ? "Leave band permanently?" : "Θέλετε οριστικά να αποχωρήσετε από την μπάντα;")) return;
+        await supabaseClient.from('group_members').delete().eq('group_id', currentGroupId).eq('user_id', currentUser.id);
+        window.location.reload();
+        return;
+    }
 
+    // 2. LEADERS / OWNERS - Μπαίνουν στη διαδικασία "Διαχείρισης Αποχώρησης"
+    showLeaderExitModal();
+}
 /**
  * 6. Δημιουργία Μπάντας
  */
@@ -401,6 +407,24 @@ async function fetchInviteCode() {
     }
 }
 
+async function executeBandDisband() {
+    const conf = prompt(currentLang === 'en' ? "Type 'DELETE' to confirm disbanding the band:" : "Γράψτε 'DELETE' για να διαλύσετε τη μπάντα:");
+    if (conf !== 'DELETE') return;
+
+    try {
+        console.log(`💣 [DISBAND] Διάλυση μπάντας: ${currentGroupId}`);
+        showToast("Η μπάντα διαλύεται...", "info");
+        
+        await supabaseClient.from('groups').delete().eq('id', currentGroupId);
+        
+        showToast("Η μπάντα διαλύθηκε επιτυχώς.");
+        setTimeout(() => window.location.reload(), 1500);
+    } catch (err) {
+        console.error("Disband Error:", err);
+        showToast("Σφάλμα κατά τη διάλυση.", "error");
+    }
+}
+
 function copyInviteCode() {
     const codeEl = document.getElementById('invCodeDisp');
     if (!codeEl) return;
@@ -409,14 +433,6 @@ function copyInviteCode() {
     if (typeof showToast === 'function') showToast("Invite Link Copied! 📋");
 }
 
-async function deleteBand() {
-    const conf = prompt(currentLang === 'en' ? "WARNING: All band data will be deleted.\nType 'DELETE' to confirm:" : "ΠΡΟΣΟΧΗ: Θα διαγραφούν ΟΛΑ τα δεδομένα της μπάντας.\nΓράψτε 'DELETE' για επιβεβαίωση:");
-    if(conf === 'DELETE') {
-        console.log(`💣 [DISBAND] Διαγραφή της μπάντας: ${currentGroupId}`);
-        await supabaseClient.from('groups').delete().eq('id', currentGroupId);
-        window.location.reload();
-    }
-}
 // Ανοίγει το παράθυρο διαχείρισης και φορτώνει τα δεδομένα
 function showBandManagerModal() {
     const modal = document.getElementById('bandManagerModal');
@@ -428,4 +444,240 @@ function showBandManagerModal() {
         }
     }
 }
+// ==========================================
+// ΕΚΤΕΛΕΣΗ 1: ΟΡΙΣΤΙΚΗ ΔΙΑΛΥΣΗ (DISBAND)
+// ==========================================
+async function executeBandDisband() {
+    const conf = prompt(currentLang === 'en' ? "Type 'DELETE' to confirm disbanding the band:" : "Γράψτε 'DELETE' για να διαλύσετε τη μπάντα:");
+    if (conf !== 'DELETE') return;
 
+    try {
+        console.log(`💣 [DISBAND] Διάλυση μπάντας: ${currentGroupId}`);
+        showToast("Η μπάντα διαλύεται...", "info");
+        
+        // Σβήνουμε μόνο το Group. 
+        // 1. Τα φυσικά αρχεία (Storage) μένουν άθικτα στον φάκελο του καθενός!
+        // 2. Οι Κλώνοι των μελών (songs) θα διασωθούν μέσω του Μηχανισμού Διάσωσης
+        // την επόμενη φορά που θα μπουν στην εφαρμογή (επειδή δεν θα βρουν το Master).
+        await supabaseClient.from('groups').delete().eq('id', currentGroupId);
+        
+        showToast("Η μπάντα διαλύθηκε επιτυχώς.");
+        setTimeout(() => window.location.reload(), 1500);
+    } catch (err) {
+        console.error("Disband Error:", err);
+        showToast("Σφάλμα κατά τη διάλυση.", "error");
+    }
+}
+
+// ==========================================
+// ΕΚΤΕΛΕΣΗ 2: ΜΕΤΑΒΙΒΑΣΗ ΗΓΕΣΙΑΣ (TRANSFER)
+// ==========================================
+
+async function executeLeadershipTransfer() {
+    const successorId = document.getElementById('selSuccessor').value;
+    const transferAssets = document.getElementById('cbTransferAssets').checked;
+
+    if (!successorId) {
+        showToast("Παρακαλώ επιλέξτε διάδοχο.", "error");
+        return;
+    }
+
+    if (!confirm("Είστε σίγουροι για τη μεταβίβαση της ηγεσίας;")) return;
+
+    try {
+        showToast("Εκτέλεση μεταβίβασης... Μην κλείσετε το παράθυρο.", "info");
+
+        // 1. Αλλαγή Ρόλων
+        await supabaseClient.from('group_members').update({ role: 'owner' }).eq('group_id', currentGroupId).eq('user_id', successorId);
+        await supabaseClient.from('group_members').update({ role: 'member' }).eq('group_id', currentGroupId).eq('user_id', currentUser.id);
+        await supabaseClient.from('groups').update({ owner_id: successorId }).eq('id', currentGroupId);
+
+        // 2. Μεταφορά Αρχείων (Storage & URLs)
+        if (transferAssets) {
+            console.log("📦 Μετακίνηση φυσικών αρχείων στον νέο Leader...");
+            
+            const { data: myAssets } = await supabaseClient
+                .from('user_assets') 
+                .select('*')
+                .eq('user_id', currentUser.id)
+                .eq('group_id', currentGroupId); 
+
+            if (myAssets && myAssets.length > 0) {
+                for (let asset of myAssets) {
+                    let fileName = asset.file_url.split('/').pop(); 
+                    let oldPath = `${currentUser.id}/${fileName}`; 
+                    let newPath = `${successorId}/${fileName}`;
+                    let newFileUrl = asset.file_url.replace(currentUser.id, successorId);
+
+                    const { error: moveErr } = await supabaseClient.storage.from('user_assets').move(oldPath, newPath);
+                    
+                    if (!moveErr) {
+                        await supabaseClient.from('user_assets')
+                            .update({ user_id: successorId, file_url: newFileUrl })
+                            .eq('id', asset.id);
+                    } else {
+                        console.warn(`⚠️ Αποτυχία μετακίνησης:`, moveErr);
+                    }
+                }
+            }
+        } else {
+            console.log("🔒 Ο χρήστης πήρε τα αρχεία του πίσω.");
+            await supabaseClient.from('user_assets').update({ group_id: null }).eq('user_id', currentUser.id).eq('group_id', currentGroupId);
+        }
+
+        showToast("Η μεταβίβαση ολοκληρώθηκε! 🤝");
+        setTimeout(() => window.location.reload(), 2000);
+
+    } catch (err) {
+        console.error("Transfer Error:", err);
+        showToast("Σφάλμα κατά τη μεταβίβαση.", "error");
+    }
+}
+ΒΗΜΑ 3: Αλλαγές στο αρχείο για το Import
+Στη συνάρτηση importJSON(), αντικατάστησε ολόκληρο τον κορμό της με την αναβαθμισμένη έκδοση που κάνει: Α) Έλεγχο καταλήξεων, και Β) Ομαδικό Upload (Batching) για να μην μπλοκάρει η Supabase.
+
+JavaScript
+async function importJSON(input) {
+    const file = input.files[0];
+    if(!file) return;
+
+    // ✨ 1. ΕΛΕΓΧΟΣ ΚΑΤΑΛΗΞΗΣ (Απορρίπτει λάθος αρχεία)
+    const validExtensions = ['.mnote', '.mnotes', '.json'];
+    const fileName = file.name.toLowerCase();
+    const isValid = validExtensions.some(ext => fileName.endsWith(ext));
+
+    if (!isValid) {
+        alert("Λάθος τύπος αρχείου! Παρακαλώ επιλέξτε ένα αρχείο .mnote ή .json");
+        input.value = ''; 
+        return;
+    }
+
+    const isBandContext = (typeof currentGroupId !== 'undefined' && currentGroupId !== 'personal');
+
+    if (isBandContext) {
+        const isGod = (typeof currentRole !== 'undefined') && (currentRole === 'admin' || currentRole === 'owner' || currentRole === 'maestro');
+        if (!isGod) {
+            alert("Μόνο οι διαχειριστές της μπάντας μπορούν να κάνουν μαζική εισαγωγή αρχείων.");
+            input.value = '';
+            return;
+        }
+    }
+
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+        try {
+            const imported = JSON.parse(e.target.result);
+            let importedSongs = [];
+
+            if (imported.app_version && imported.songs) {
+                importedSongs = imported.songs;
+            } else {
+                importedSongs = Array.isArray(imported) ? imported : [imported];
+            }
+
+            let confirmMsg = isBandContext 
+                ? `⚠️ ΠΡΟΣΟΧΗ! ⚠️\n\nΠάτε να εισάγετε ${importedSongs.length} τραγούδια στην ΚΟΙΝΗ βιβλιοθήκη της Μπάντας!\nΑυτό θα επηρεάσει όλα τα μέλη.\n\nΘέλετε σίγουρα να συνεχίσετε;`
+                : `Βρέθηκαν ${importedSongs.length} τραγούδια.\nΘέλετε να τα εισάγετε στην Προσωπική σας Βιβλιοθήκη;`;
+
+            if (!confirm(confirmMsg)) {
+                input.value = ''; return;
+            }
+
+            console.log("📥 [IMPORT] Ξεκινάει ο έξυπνος έλεγχος διπλοεγγραφών...");
+
+            let addedCount = 0;
+            let updatedCount = 0;
+            let skippedCount = 0;
+            
+            // ✨ 2. ΚΑΛΑΘΙΑ ΟΜΑΔΙΚΟΥ UPLOAD (Batching)
+            let batchCloudPayloads = []; 
+            let batchOfflineQueue = [];
+
+            for (let song of importedSongs) {
+                if (typeof convertBracketsToBang === 'function' && song.body) {
+                    song.body = convertBracketsToBang(song.body);
+                }
+                
+                let safeSong = typeof ensureSongStructure === 'function' ? ensureSongStructure(song) : song;
+                
+                safeSong.group_id = isBandContext ? currentGroupId : null;
+                safeSong.user_id = (typeof currentUser !== 'undefined' && currentUser) ? currentUser.id : safeSong.user_id;
+                safeSong.attachments = [];
+                safeSong.recordings = [];
+
+                const idxById = library.findIndex(x => x.id === safeSong.id);
+                const safeTitle = (safeSong.title || "").toLowerCase().trim();
+                const safeArtist = (safeSong.artist || "").toLowerCase().trim();
+                const idxByContent = library.findIndex(x => 
+                    (x.title || "").toLowerCase().trim() === safeTitle && 
+                    (x.artist || "").toLowerCase().trim() === safeArtist
+                );
+
+                let needsCloudSync = false;
+
+                if (idxById !== -1) {
+                    const existingSong = library[idxById];
+                    const importedTime = new Date(safeSong.updated_at || 0).getTime();
+                    const existingTime = new Date(existingSong.updated_at || 0).getTime();
+
+                    if (importedTime > existingTime) {
+                        library[idxById] = safeSong;
+                        updatedCount++;
+                        needsCloudSync = true;
+                    } else {
+                        skippedCount++;
+                    }
+                } 
+                else if (idxByContent !== -1) {
+                    skippedCount++;
+                } 
+                else {
+                    safeSong.id = "s_" + Date.now() + Math.random().toString(16).slice(2);
+                    library.push(safeSong);
+                    addedCount++;
+                    needsCloudSync = true;
+                }
+
+                // Προσθήκη στο καλάθι (Αντί για 1-1 upload)
+                if (needsCloudSync) {
+                    const userIdToUse = (typeof currentUser !== 'undefined' && currentUser) ? currentUser.id : 'offline';
+                    const safePayload = window.sanitizeForDatabase(safeSong, userIdToUse, safeSong.group_id);
+                    
+                    if (navigator.onLine && typeof supabaseClient !== 'undefined' && currentUser) {
+                        batchCloudPayloads.push(safePayload);
+                    } else {
+                        batchOfflineQueue.push(safePayload);
+                    }
+                }
+            }
+
+            // ✨ 3. ΟΜΑΔΙΚΟ UPLOAD ΣΤΗ SUPABASE
+            if (batchCloudPayloads.length > 0) {
+                console.log(`☁️ Ομαδικό ανέβασμα ${batchCloudPayloads.length} τραγουδιών...`);
+                await supabaseClient.from('songs').upsert(batchCloudPayloads);
+            }
+            
+            if (batchOfflineQueue.length > 0 && typeof addToSyncQueue === 'function') {
+                batchOfflineQueue.forEach(payload => addToSyncQueue('SAVE_SONG', payload));
+            }
+
+            saveToLocal();
+            
+            if (typeof loadContextData === 'function') {
+                await loadContextData(); 
+            } else {
+                if(typeof updatePlaylistDropdown === 'function') updatePlaylistDropdown();
+                if(typeof applyFilters === 'function') applyFilters();
+            }
+            
+            const resultMsg = `Η Εισαγωγή Ολοκληρώθηκε!\n\nΝέα: ${addedCount}\nΕνημερώθηκαν: ${updatedCount}\nΠαραλείφθηκαν (Διπλά): ${skippedCount}`;
+            alert(resultMsg);
+            
+        } catch(err) {
+            console.error("❌ [IMPORT ERROR]", err);
+            alert("Σφάλμα στην ανάγνωση του αρχείου ❌");
+        }
+    };
+    reader.readAsText(file);
+    input.value = ''; 
+}

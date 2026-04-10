@@ -533,7 +533,7 @@ async function executeLeadershipTransfer() {
         showToast("Σφάλμα κατά τη μεταβίβαση.", "error");
     }
 }
-ΒΗΜΑ 3: Αλλαγές στο αρχείο για το Import
+//ΒΗΜΑ 3: Αλλαγές στο αρχείο για το Import
 Στη συνάρτηση importJSON(), αντικατάστησε ολόκληρο τον κορμό της με την αναβαθμισμένη έκδοση που κάνει: Α) Έλεγχο καταλήξεων, και Β) Ομαδικό Upload (Batching) για να μην μπλοκάρει η Supabase.
 
 JavaScript

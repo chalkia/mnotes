@@ -533,8 +533,8 @@ async function executeLeadershipTransfer() {
         showToast("Σφάλμα κατά τη μεταβίβαση.", "error");
     }
 }
+
 //ΒΗΜΑ 3: Αλλαγές στο αρχείο για το Import
-JavaScript
 async function importJSON(input) {
     const file = input.files[0];
     if(!file) return;

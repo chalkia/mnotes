@@ -650,22 +650,18 @@ async function loadContextData() {
 // ==========================================
 // IMPORT ΛΕΙΤΟΥΡΓΙΑ (SMART MERGE ΜΕ ΕΓΚΡΙΣΗ ΧΡΗΣΤΗ)
 // ==========================================
+
 window.processImportedData = async function(data) {
     console.log("📥 Import Started (Forced Personal Context)...");
     if (!data) return;
     
-    // 1. ✨ ΕΠΙΒΟΛΗ CONTEXT (ΓΙΑ ΟΛΟΥΣ): Γυρνάμε ΠΑΝΤΑ στα Προσωπικά πριν την επεξεργασία
+    // 1. ΕΠΙΒΟΛΗ CONTEXT (ΓΙΑ ΟΛΟΥΣ)
     if (typeof currentGroupId !== 'undefined' && currentGroupId !== 'personal') {
         console.log("🔄 Context Switch: Μεταφορά στην Προσωπική Βιβλιοθήκη για την εισαγωγή.");
-        if (typeof switchContext === 'function') {
-            await switchContext('personal');
-        }
+        if (typeof switchContext === 'function') await switchContext('personal');
     }
 
-    // 2. ✨ ΕΠΙΒΟΛΗ UI: Εξασφαλίζουμε ότι βλέπουμε το Library Tab και όχι το Setlist Tab
-    if (typeof switchSidebarTab === 'function') {
-        switchSidebarTab('library');
-    }
+    if (typeof switchSidebarTab === 'function') switchSidebarTab('library');
     
     let newSongs = Array.isArray(data) ? data : (data.songs ? data.songs : [data]);
     let importCount = 0;
@@ -673,85 +669,79 @@ window.processImportedData = async function(data) {
 
     if (!window.library) window.library = [];
 
+    // ✨ 2. ΚΑΛΑΘΙΑ ΟΜΑΔΙΚΟΥ UPLOAD (BATCHING)
+    let batchCloudPayloads = []; 
+    let batchOfflineQueue = [];
+
     for (let song of newSongs) {
         let cleanSong = typeof ensureSongStructure === 'function' ? ensureSongStructure(song) : song;
         
-        // Καθαρισμός ID αν είναι demo ή λείπει
         if (!cleanSong.id || String(cleanSong.id).startsWith('demo')) {
             cleanSong.id = "s_" + Date.now() + Math.random().toString(16).slice(2);
         }
 
         const existingIndex = window.library.findIndex(s => s.id === cleanSong.id);
+        let needsSync = false;
 
         if (existingIndex !== -1) {
-            // --- ΣΥΓΚΡΟΥΣΗ ΒΡΕΘΗΚΕ: ΕΛΕΓΧΟΣ ΗΜΕΡΟΜΗΝΙΩΝ ---
+            // --- ΣΥΓΚΡΟΥΣΗ ΒΡΕΘΗΚΕ ---
             const existingSong = window.library[existingIndex];
             const importedTime = new Date(cleanSong.updated_at || 0).getTime();
             const localTime = new Date(existingSong.updated_at || 0).getTime();
 
-            // Αν είναι ακριβώς το ίδιο αρχείο, το προσπερνάμε αθόρυβα 
             if (importedTime === localTime) {
                 console.log(`| Skip: ${cleanSong.title} (Same version)`);
                 continue; 
             }
 
-            // Καθορισμός του λεκτικού (Νεότερη/Παλαιότερη)
             const ageStatus = importedTime > localTime ? "ΝΕΟΤΕΡΗ" : "ΠΑΛΑΙΟΤΕΡΗ";
-            const confirmMsg = `Στη βιβλιοθήκη σας βρέθηκε μια ${ageStatus} έκδοση του τραγουδιού με τίτλο "${cleanSong.title}" που προσπαθείτε να εισάγετε.\n\nΝα γίνει αντικατάσταση; (OK = Ναι, Ακύρωση = Όχι)`;
-            
-            const userAgrees = confirm(confirmMsg);
+            const userAgrees = confirm(`Στη βιβλιοθήκη σας βρέθηκε μια ${ageStatus} έκδοση του τραγουδιού με τίτλο "${cleanSong.title}".\n\nΝα γίνει αντικατάσταση;`);
 
             if (userAgrees) {
-                console.log(`🔄 Εγκρίθηκε: Αντικατάσταση για το "${cleanSong.title}".`);
-                
-                // Πάντρεμα (Smart Merge): Κρατάμε ηχητικά/αρχεία από το παλιό
                 cleanSong.recordings = existingSong.recordings || [];
                 cleanSong.attachments = existingSong.attachments || [];
-                
                 window.library[existingIndex] = cleanSong;
                 updateCount++;
-                
-                // Cloud Sync
-                if (typeof canUserPerform === 'function' && canUserPerform('USE_SUPABASE') && currentUser) {
-                    if (typeof window.sanitizeForDatabase === 'function') {
-                        const safePayload = window.sanitizeForDatabase(cleanSong, currentUser.id, null);
-                        if (typeof supabaseClient !== 'undefined') {
-                            await supabaseClient.from('songs').upsert(safePayload);
-                        }
-                    }
-                }
-            } else {
-                console.log(`🚫 Ακυρώθηκε: Απορρίφθηκε η αντικατάσταση για το "${cleanSong.title}".`);
+                needsSync = true;
             }
-
         } else {
             // --- ΝΕΟ ΤΡΑΓΟΥΔΙ ---
-            console.log(`✨ Προσθήκη νέου: "${cleanSong.title}"`);
-            
             if (!cleanSong.updated_at) cleanSong.updated_at = new Date().toISOString();
-
             window.library.push(cleanSong);
             importCount++;
-            
-            // Cloud Sync
-            if (typeof canUserPerform === 'function' && canUserPerform('USE_SUPABASE') && currentUser) {
-                if (typeof window.sanitizeForDatabase === 'function') {
-                    const safePayload = window.sanitizeForDatabase(cleanSong, currentUser.id, null);
-                    if (typeof supabaseClient !== 'undefined') {
-                        await supabaseClient.from('songs').upsert(safePayload);
-                    }
-                }
+            needsSync = true;
+        }
+
+        // ✨ 3. Προσθήκη στο καλάθι (Αντί για 1-1 upload)
+        if (needsSync && typeof canUserPerform === 'function' && canUserPerform('USE_SUPABASE') && currentUser) {
+            const safePayload = typeof window.sanitizeForDatabase === 'function' ? window.sanitizeForDatabase(cleanSong, currentUser.id, null) : cleanSong;
+            if (navigator.onLine) {
+                batchCloudPayloads.push(safePayload);
+            } else {
+                batchOfflineQueue.push(safePayload);
             }
         }
+    }
+
+    // ✨ 4. ΟΜΑΔΙΚΟ UPLOAD ΣΤΗ SUPABASE (Εκτός της λούπας!)
+    if (batchCloudPayloads.length > 0 && typeof supabaseClient !== 'undefined') {
+        console.log(`☁️ Ομαδικό ανέβασμα ${batchCloudPayloads.length} τραγουδιών...`);
+        try {
+            await supabaseClient.from('songs').upsert(batchCloudPayloads);
+        } catch (err) {
+            console.error("Batch Upsert Error:", err);
+        }
+    }
+    
+    if (batchOfflineQueue.length > 0 && typeof addToSyncQueue === 'function') {
+        batchOfflineQueue.forEach(payload => addToSyncQueue('SAVE_SONG', payload));
     }
 
     // --- ΤΕΛΙΚΗ ΕΝΗΜΕΡΩΣΗ UI ---
     let finalTargetId = null;
 
     if (importCount > 0 || updateCount > 0) {
-        // Ενημερώνουμε την τοπική αναφορά
         library = window.library; 
-        
         if (typeof saveData === 'function') saveData(); 
         if (typeof applySortAndRender === 'function') applySortAndRender(); 
         
@@ -760,18 +750,12 @@ window.processImportedData = async function(data) {
         if (updateCount > 0) msg += `${updateCount} Ενημερώθηκαν 🔄`;
         if (typeof showToast === 'function') showToast(msg.trim());
         
-        // Βρίσκουμε το ID του τραγουδιού
-        if (newSongs.length > 0) {
-             finalTargetId = newSongs[newSongs.length - 1].id; 
-        } else if (window.library.length > 0) {
-             finalTargetId = window.library[window.library.length - 1].id;
-        }
+        if (newSongs.length > 0) finalTargetId = newSongs[newSongs.length - 1].id; 
+        else if (window.library.length > 0) finalTargetId = window.library[window.library.length - 1].id;
 
         if (finalTargetId && typeof loadSong === 'function') {
             currentSongId = finalTargetId;
             loadSong(finalTargetId);
-            
-            // ✅ UX: Στο Desktop πάμε Stage, στο κινητό πάμε στο Stage tab
             if (window.innerWidth > 1024) {
                 if (typeof toViewer === 'function') toViewer(true);
             } else {
@@ -779,10 +763,10 @@ window.processImportedData = async function(data) {
             }
         }
     } else {
-        console.log("ℹ️ Η εισαγωγή ολοκληρώθηκε χωρίς αλλαγές.");
         if (typeof showToast === 'function') showToast("Δεν έγιναν νέες εισαγωγές ή αντικαταστάσεις.");
     }
 };
+
 
 // --- AUDIO & ATTACHMENT RECORDING SAVING ---
 async function addRecordingToCurrentSong(newRec) {

@@ -679,3 +679,107 @@ async function importJSON(input) {
     reader.readAsText(file);
     input.value = ''; 
 }
+// ==========================================
+// ΟΡΙΣΤΙΚΗ ΔΙΑΓΡΑΦΗ ΛΟΓΑΡΙΑΣΜΟΥ (Από τον Χρήστη)
+// ==========================================
+async function deleteMyAccount() {
+    if (!currentUser) return;
+
+    // ✨ ΝΕΟΣ ΕΛΕΓΧΟΣ ΑΣΦΑΛΕΙΑΣ: Είναι ο χρήστης Leader σε κάποια μπάντα;
+    if (typeof myGroups !== 'undefined') {
+        const ownedBands = myGroups.filter(g => g.role === 'owner');
+        if (ownedBands.length > 0) {
+            alert("⚠️ Είστε Ιδρυτής/Leader σε τουλάχιστον μία μπάντα!\n\nΠρέπει πρώτα να μεταβιβάσετε την ηγεσία ή να διαλύσετε τη μπάντα σας (από το Band Manager) πριν μπορέσετε να διαγράψετε οριστικά τον λογαριασμό σας.");
+            document.getElementById('accountModal').style.display = 'none';
+            return; // Σταματάμε τη διαγραφή!
+        }
+    }
+
+    // Το κλασικό confirm (Αν δεν είναι Leader, προχωράει κανονικά)
+    if (confirm("ΠΡΟΣΟΧΗ: Είστε σίγουροι; Αυτή η ενέργεια θα διαγράψει τον λογαριασμό σας, όλα σας τα τραγούδια, τους ρυθμούς και τα αρχεία σας ΟΡΙΣΤΙΚΑ!")) {
+        
+        console.log("🗑️ Εκκίνηση διαδικασίας διαγραφής λογαριασμού...");
+        if (typeof showToast === 'function') showToast("Γίνεται διαγραφή δεδομένων... Παρακαλώ περιμένετε.", "info");
+
+        try {
+            // 1. Καθαρίζουμε τα "παιδιά" (Ρυθμούς και Τραγούδια)
+            console.log("Διαγραφή ρυθμών...");
+            await supabaseClient.from('rhythms').delete().eq('owner_id', currentUser.id);
+            
+            console.log("Διαγραφή τραγουδιών...");
+            await supabaseClient.from('songs').delete().eq('user_id', currentUser.id);
+
+            // 2. Σβήνουμε το Προφίλ
+            console.log("Διαγραφή προφίλ...");
+            await supabaseClient.from('profiles').delete().eq('id', currentUser.id);
+
+            if (typeof showToast === 'function') showToast("Τα δεδομένα σας διαγράφηκαν επιτυχώς. Αντίο! 👋");
+            
+            // 3. Τον πετάμε έξω (Logout & Reload)
+            if (typeof doLogout === 'function') {
+                await doLogout();
+            } else {
+                await supabaseClient.auth.signOut();
+                window.location.reload();
+            }
+
+        } catch (err) {
+            console.error("❌ Σφάλμα κατά τη διαγραφή:", err.message);
+            alert("Υπήρξε ένα σφάλμα κατά τη διαγραφή των δεδομένων σας: " + err.message);
+        }
+    } else {
+        console.log("ℹ️ Η διαγραφή ακυρώθηκε από τον χρήστη.");
+    }
+}
+// ==========================================
+// ΟΡΙΣΤΙΚΗ ΔΙΑΓΡΑΦΗ ΛΟΓΑΡΙΑΣΜΟΥ (Από τον Χρήστη)
+// ==========================================
+async function deleteMyAccount() {
+    if (!currentUser) return;
+
+    // ✨ ΝΕΟΣ ΕΛΕΓΧΟΣ ΑΣΦΑΛΕΙΑΣ: Είναι ο χρήστης Leader σε κάποια μπάντα;
+    if (typeof myGroups !== 'undefined') {
+        const ownedBands = myGroups.filter(g => g.role === 'owner');
+        if (ownedBands.length > 0) {
+            alert("⚠️ Είστε Ιδρυτής/Leader σε τουλάχιστον μία μπάντα!\n\nΠρέπει πρώτα να μεταβιβάσετε την ηγεσία ή να διαλύσετε τη μπάντα σας (από το Band Manager) πριν μπορέσετε να διαγράψετε οριστικά τον λογαριασμό σας.");
+            document.getElementById('accountModal').style.display = 'none';
+            return; // Σταματάμε τη διαγραφή!
+        }
+    }
+
+    // Το κλασικό confirm (Αν δεν είναι Leader, προχωράει κανονικά)
+    if (confirm("ΠΡΟΣΟΧΗ: Είστε σίγουροι; Αυτή η ενέργεια θα διαγράψει τον λογαριασμό σας, όλα σας τα τραγούδια, τους ρυθμούς και τα αρχεία σας ΟΡΙΣΤΙΚΑ!")) {
+        
+        console.log("🗑️ Εκκίνηση διαδικασίας διαγραφής λογαριασμού...");
+        if (typeof showToast === 'function') showToast("Γίνεται διαγραφή δεδομένων... Παρακαλώ περιμένετε.", "info");
+
+        try {
+            // 1. Καθαρίζουμε τα "παιδιά" (Ρυθμούς και Τραγούδια)
+            console.log("Διαγραφή ρυθμών...");
+            await supabaseClient.from('rhythms').delete().eq('owner_id', currentUser.id);
+            
+            console.log("Διαγραφή τραγουδιών...");
+            await supabaseClient.from('songs').delete().eq('user_id', currentUser.id);
+
+            // 2. Σβήνουμε το Προφίλ
+            console.log("Διαγραφή προφίλ...");
+            await supabaseClient.from('profiles').delete().eq('id', currentUser.id);
+
+            if (typeof showToast === 'function') showToast("Τα δεδομένα σας διαγράφηκαν επιτυχώς. Αντίο! 👋");
+            
+            // 3. Τον πετάμε έξω (Logout & Reload)
+            if (typeof doLogout === 'function') {
+                await doLogout();
+            } else {
+                await supabaseClient.auth.signOut();
+                window.location.reload();
+            }
+
+        } catch (err) {
+            console.error("❌ Σφάλμα κατά τη διαγραφή:", err.message);
+            alert("Υπήρξε ένα σφάλμα κατά τη διαγραφή των δεδομένων σας: " + err.message);
+        }
+    } else {
+        console.log("ℹ️ Η διαγραφή ακυρώθηκε από τον χρήστη.");
+    }
+}

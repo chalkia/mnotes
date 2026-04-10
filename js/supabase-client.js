@@ -58,10 +58,14 @@ async function doLogin() {
         if (error) throw error;
 
         currentUser = data.user;
+        console.log(`[AUTH] Επιτυχής είσοδος. User ID: ${currentUser.id}`);
+        
         document.getElementById('authModal').style.display = 'none';
         msg.innerText = ""; 
         showToast("Επιτυχής σύνδεση! 🎉");
-        UI(true);
+        
+        // ✨ ΔΙΕΓΡΑΦΗ: Το UI(true) αφαιρέθηκε για να μην προκαλέσει ReferenceError.
+        
         if (typeof initUserData === 'function') initUserData(); 
         
     } catch (err) {
@@ -90,19 +94,28 @@ async function doSignUp() {
     msg.innerText = "Creating account... / Δημιουργία λογαριασμού...";
 
     try {
+        // ✨ Η ΔΙΟΡΘΩΣΗ ΓΙΑ ΤΟ EMAIL: Παίρνουμε το καθαρό URL
+        const cleanUrl = window.location.origin + window.location.pathname;
+        console.log(`[AUTH] Το email redirect ορίστηκε στο: ${cleanUrl}`);
+
         const { data, error } = await supabaseClient.auth.signUp({
             email: email,
             password: password,
+            // ✨ Ενημερώνουμε τη Supabase πού να επιστρέψει τον χρήστη
+            options: {
+                emailRedirectTo: cleanUrl
+            }
         });
 
         if (error) throw error;
 
-        console.log("[AUTH] Επιτυχής Εγγραφή:", data);
+        console.log("[AUTH] Επιτυχής Εγγραφή. Δεδομένα Supabase:", data);
         document.getElementById('authModal').style.display = 'none';
         msg.innerText = ""; 
         
         // Έλεγχος αν απαιτείται επιβεβαίωση email
         if (data.user && data.user.identities && data.user.identities.length === 0) {
+            console.warn(`[AUTH] Το email ${email} χρησιμοποιείται ήδη.`);
             showToast("Αυτό το email χρησιμοποιείται ήδη.", "error");
             msg.innerText = "Το email χρησιμοποιείται ήδη.";
         } else if (data.session) {
@@ -159,41 +172,46 @@ function updateAuthUI(isLoggedIn) {
     });
 }
 
-// --- UPLOAD FUNCTION (LEGACY / HELPER) ---
-// Σημείωση: Η κύρια λειτουργία upload είναι πλέον στο audio.js
-async function uploadAudioToCloud(audioBlob, filename) {
+// --- ΓΕΝΙΚΗ ΣΥΝΑΡΤΗΣΗ UPLOAD (Για Ήχο, PDF, Εικόνες κλπ) ---
+async function uploadFileToCloud(fileBlob, filename, bucketName = 'user_assets') {
     if (!currentUser) {
-        alert("Please Login to upload!");
+        alert("Παρακαλώ συνδεθείτε για να ανεβάσετε αρχεία!");
         document.getElementById('authModal').style.display = 'flex';
         return null;
     }
 
-    showToast("Uploading... ☁️");
+    // Το Λουκέτο του Πορτιέρη για τα συνημμένα
+    if (typeof canUserPerform === 'function' && !canUserPerform('SAVE_ATTACHMENTS')) {
+        if (typeof promptUpgrade === 'function') promptUpgrade('Cloud Storage');
+        return null;
+    }
 
+    showToast("Ανέβασμα αρχείου... ☁️");
+
+    // Αποθηκεύουμε τα αρχεία στον ατομικό φάκελο του χρήστη
     const filePath = `${currentUser.id}/${filename}`;
     
-    // ΔΙΟΡΘΩΣΗ: Χρήση του σωστού bucket name 'audio_files'
+    // Ανεβάζουμε στο δυναμικό Bucket (προεπιλογή: user_assets)
     const { data, error } = await supabaseClient.storage
-        .from('audio_files')
-        .upload(filePath, audioBlob, {
+        .from(bucketName)
+        .upload(filePath, fileBlob, {
             cacheControl: '3600',
             upsert: true
         });
 
     if (error) {
-        alert("Upload Failed: " + error.message);
+        alert("Το ανέβασμα απέτυχε: " + error.message);
         console.error(error);
         return null;
     }
 
-    // Λήψη του Public URL
+    // Παίρνουμε το Public Link
     const { data: urlData } = supabaseClient.storage
-        .from('audio_files')
+        .from(bucketName)
         .getPublicUrl(filePath);
 
     return urlData.publicUrl;
 }
-
 // --- OAUTH LOGINS (Google, Apple, Facebook, Spotify) ---
 // Μία έξυπνη συνάρτηση για όλους τους παρόχους
 async function loginWith(providerName) {

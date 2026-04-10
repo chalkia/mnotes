@@ -117,18 +117,20 @@ async function doSignUp() {
 }
 
 async function doLogout() {
-    await supabaseClient.auth.signOut();
-    currentUser = null;
-    userProfile = null;      // Reset profile
-    myGroups = [];           // Reset bands
-    currentGroupId = 'personal'; 
-    currentRole = 'owner';
-    
-    UI(false);
-    showToast("Logged out");
-    
-    // Φόρτωση των τοπικών δεδομένων ξανά
-    if (typeof loadContextData === 'function') loadContextData();
+    try {
+        console.log("🚪 [AUTH] Εκκίνηση αποσύνδεσης...");
+        
+        // Ζητάμε από τη Supabase να κλείσει το session
+        await supabaseClient.auth.signOut();
+        
+        // Ο Κεντρικός Ελεγκτής (onAuthStateChange) θα πιάσει το SIGNED_OUT
+        // Αλλά για απόλυτη ασφάλεια και άδειασμα της μνήμης (cache/variables),
+        // κάνουμε ένα σκληρό reload της σελίδας.
+        window.location.reload(); 
+        
+    } catch (err) {
+        console.error("❌ Logout Error:", err);
+    }
 }
 
 function updateAuthUI(isLoggedIn) {

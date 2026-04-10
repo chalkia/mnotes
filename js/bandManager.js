@@ -534,8 +534,6 @@ async function executeLeadershipTransfer() {
     }
 }
 //ΒΗΜΑ 3: Αλλαγές στο αρχείο για το Import
-Στη συνάρτηση importJSON(), αντικατάστησε ολόκληρο τον κορμό της με την αναβαθμισμένη έκδοση που κάνει: Α) Έλεγχο καταλήξεων, και Β) Ομαδικό Upload (Batching) για να μην μπλοκάρει η Supabase.
-
 JavaScript
 async function importJSON(input) {
     const file = input.files[0];

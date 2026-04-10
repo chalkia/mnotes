@@ -942,7 +942,49 @@
         </div>
     </div>
 </div>
-
+    <div id="leaderExitModal" class="modal-overlay" style="display:none; z-index: 6000;">
+        <div class="modal-box" style="width: 95%; max-width: 500px; padding: 25px; background: var(--bg-main);">
+            <h2 style="color: var(--danger); margin-top: 0; border-bottom: 1px solid #444; padding-bottom: 10px;">
+                <i class="fas fa-exclamation-triangle"></i> Αποχώρηση Leader
+            </h2>
+            <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 25px;">
+                Ως ιδρυτής της μπάντας, δεν μπορείτε απλά να αποχωρήσετε. Επιλέξτε πώς θα διαχειριστείτε το μέλλον της μπάντας και τα αρχεία σας.
+            </p>
+    
+            <div style="background: var(--bg-panel); border: 1px solid var(--accent); border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+                <h4 style="margin: 0 0 10px 0; color: var(--accent);"><i class="fas fa-crown"></i> 1. Μεταβίβαση Ηγεσίας</h4>
+                <p style="font-size: 0.85rem; color: #ccc; margin-bottom: 15px;">
+                    Επιλέξτε τον διάδοχό σας. Η μπάντα θα συνεχίσει να λειτουργεί κανονικά υπό τη νέα του ηγεσία.
+                </p>
+                <select id="selSuccessor" class="inp" style="width: 100%; margin-bottom: 15px; background: #222;">
+                    <option value="">-- Επιλέξτε Διάδοχο --</option>
+                </select>
+                
+                <label style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 15px; font-size: 0.85rem; color: var(--text-main); cursor: pointer;">
+                    <input type="checkbox" id="cbTransferAssets" style="margin-top: 3px;" checked>
+                    <span><b>Αφήνω τα αρχεία μου στη μπάντα:</b> Μεταβιβάζω την ιδιοκτησία των MP3/PDF που ανέβασα εγώ στον νέο Leader. <i>(Αν ξε-τσεκαριστεί, τα αρχεία σας αφαιρούνται από τη μπάντα, αλλά παραμένουν στον Προσωπικό σας λογαριασμό).</i></span>
+                </label>
+    
+                <button onclick="executeLeadershipTransfer()" class="fs-btn-primary" style="width: 100%; padding: 12px; font-size: 1rem;">
+                    <i class="fas fa-check"></i> Επιβεβαίωση Μεταβίβασης
+                </button>
+            </div>
+    
+            <div style="background: rgba(220, 53, 69, 0.05); border: 1px solid var(--danger); border-radius: 8px; padding: 15px;">
+                <h4 style="margin: 0 0 10px 0; color: var(--danger);"><i class="fas fa-bomb"></i> 2. Οριστική Διάλυση</h4>
+                <p style="font-size: 0.85rem; color: #ccc; margin-bottom: 15px;">
+                    Η μπάντα διαγράφεται οριστικά. <b>Τα αρχεία σας είναι ασφαλή</b> και παραμένουν στον Προσωπικό σας λογαριασμό. Τα μέλη διατηρούν πρόσβαση μόνο στους στίχους/συγχορδίες τους.
+                </p>
+                <button onclick="executeBandDisband()" class="fs-btn-danger" style="width: 100%; padding: 12px; font-size: 1rem;">
+                    <i class="fas fa-trash-alt"></i> Διάλυση Μπάντας
+                </button>
+            </div>
+    
+            <button onclick="document.getElementById('leaderExitModal').style.display='none'" class="text-btn" style="width: 100%; margin-top: 15px; color: #888; padding: 10px;">
+                Ακύρωση
+            </button>
+        </div>
+    </div>
     <script src="js/sortable.min.js"></script>
     <script src="js/config.js?v=0.50.0"></script>
     <script src="js/supabase.min.js"></script>

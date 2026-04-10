@@ -293,6 +293,47 @@ async function leaveBand() {
     // 2. LEADERS / OWNERS - Μπαίνουν στη διαδικασία "Διαχείρισης Αποχώρησης"
     showLeaderExitModal();
 }
+async function showLeaderExitModal() {
+    const modal = document.getElementById('leaderExitModal');
+    const select = document.getElementById('selSuccessor');
+    if (!modal || !select) return;
+
+    select.innerHTML = '<option value="">-- Επιλέξτε Διάδοχο --</option>';
+
+    try {
+        const { data: members, error } = await supabaseClient
+            .from('group_members')
+            .select(`user_id, role, profiles (username, email)`)
+            .eq('group_id', currentGroupId)
+            .is('is_banned', false);
+
+        if (error) throw error;
+
+        let hasCandidates = false;
+        members.forEach(m => {
+            if (m.user_id !== currentUser.id && m.role !== 'viewer') {
+                const displayName = m.profiles?.username || m.profiles?.email || `User ${m.user_id.slice(0,4)}`;
+                const opt = document.createElement('option');
+                opt.value = m.user_id;
+                opt.innerText = `${displayName} (${m.role.toUpperCase()})`;
+                select.appendChild(opt);
+                hasCandidates = true;
+            }
+        });
+
+        if (!hasCandidates) select.innerHTML = '<option value="" disabled>Δεν υπάρχουν άλλα ενεργά μέλη.</option>';
+
+        // Κλείνουμε το από πίσω modal αν είναι ανοιχτό
+        const bandModal = document.getElementById('bandManagerModal');
+        if (bandModal) bandModal.style.display = 'none';
+
+        // Εμφανίζουμε το σωστό modal
+        modal.style.display = 'flex';
+
+    } catch (err) {
+        console.error("Σφάλμα στο showLeaderExitModal:", err);
+    }
+}
 /**
  * 6. Δημιουργία Μπάντας
  */

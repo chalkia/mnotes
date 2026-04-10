@@ -945,7 +945,31 @@ function toggleCustomPlayer() {
               });
           }
       });
-      
+   // ==========================================
+   // ✨ SMART STRUMMING RENDERER
+   // Μετατρέπει το "!strum: D U X!" σε γραφικά
+   // ==========================================
+   function formatStrumming(text) {
+       if (!text) return text;
+       
+       // Ψάχνει το !strum: και σταματάει στο ! ή στην αλλαγή γραμμής
+       let processed = text.replace(/!strum:\s*(.*?)(?=!|$|\n)/gi, function(match, pattern) {
+           let visualStrum = pattern.trim().toUpperCase().split('').map(char => {
+               if (char === 'D') return '<span style="margin:0 2px; font-weight:900;">↓</span>';
+               if (char === 'U') return '<span style="margin:0 2px; font-weight:900;">↑</span>';
+               if (char === 'X' || char === '*') return '<span style="margin:0 2px; color:var(--danger, #dc3545); font-weight:900;">✖</span>';
+               if (char === ' ') return '<span style="margin:0 4px;"></span>'; // Κενό για παύσεις
+               return `<span style="margin:0 2px; font-weight:bold;">${char}</span>`;
+           }).join('');
+           
+           return `<span class="strum-inline" style="display:inline-block; background:var(--bg-panel, #eee); border:1px solid var(--border-color, #ccc); padding:2px 8px; border-radius:6px; margin:2px 5px; color:var(--text-main, #000); font-size:0.9rem; font-family:sans-serif; transform:translateY(-2px);"><i class="fas fa-guitar" style="color:var(--accent, #00ff00); margin-right:5px;"></i>${visualStrum}</span>`;
+       });
+       
+       // Καθαρίζει το "!" αν ο χρήστης το έβαλε στο τέλος ως κλείσιμο του tag
+       processed = processed.replace(/<\/span>!/g, '</span>');
+       return processed;
+   }  
+
    function renderArea(elemId, text) { 
           var container = document.getElementById(elemId); 
           if (!container) return; 
@@ -1226,7 +1250,9 @@ function printSetlistPDF() {
 
         title = title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
 
-        // 3. Προετοιμασία κειμένου (ChordPro)
+        // 3. Προετοιμασία κειμένου (ChordPro) 
+        
+        bodyRaw = formatStrumming(bodyRaw);
         const chordRx = "([A-G][b#]?[a-zA-Z0-9#\\/+-]*|[a-g][b#]?)(?![a-z])";
         bodyRaw = bodyRaw.replace(new RegExp(`\\[${chordRx}\\]`, 'g'), "!$1 ");
         bodyRaw = bodyRaw.replace(new RegExp(`!${chordRx}!`, 'g'), "!$1 ");

@@ -15,7 +15,7 @@ async function importJSON(input) {
     const file = input.files[0];
     if(!file) return;
 
-    // ✨ 1. ΕΛΕΓΧΟΣ ΚΑΤΑΛΗΞΗΣ (Απορρίπτει λάθος αρχεία και δέχεται τα .mnote)
+    // ✨ 1. ΕΛΕΓΧΟΣ ΚΑΤΑΛΗΞΗΣ (Απορρίπτει λάθος αρχεία)
     const validExtensions = ['.mnote', '.mnotes', '.json'];
     const fileName = file.name.toLowerCase();
     const isValid = validExtensions.some(ext => fileName.endsWith(ext));
@@ -28,7 +28,6 @@ async function importJSON(input) {
 
     const isBandContext = (typeof currentGroupId !== 'undefined' && currentGroupId !== 'personal');
 
-    // Έλεγχος Δικαιωμάτων
     if (isBandContext) {
         const isGod = (typeof currentRole !== 'undefined') && (currentRole === 'admin' || currentRole === 'owner' || currentRole === 'maestro');
         if (!isGod) {
@@ -64,7 +63,7 @@ async function importJSON(input) {
             let updatedCount = 0;
             let skippedCount = 0;
             
-            // ✨ 2. ΚΑΛΑΘΙΑ ΟΜΑΔΙΚΟΥ UPLOAD (Batching για τεράστια ταχύτητα)
+            // ✨ 2. ΚΑΛΑΘΙΑ ΟΜΑΔΙΚΟΥ UPLOAD (Batching)
             let batchCloudPayloads = []; 
             let batchOfflineQueue = [];
 
@@ -113,7 +112,7 @@ async function importJSON(input) {
                     needsCloudSync = true;
                 }
 
-                // ✨ Προσθήκη στο καλάθι (Αντί για 1-1 upload μέσα στη λούπα)
+                // Προσθήκη στο καλάθι (Αντί για 1-1 upload)
                 if (needsCloudSync) {
                     const userIdToUse = (typeof currentUser !== 'undefined' && currentUser) ? currentUser.id : 'offline';
                     const safePayload = window.sanitizeForDatabase(safeSong, userIdToUse, safeSong.group_id);
@@ -126,7 +125,7 @@ async function importJSON(input) {
                 }
             }
 
-            // ✨ 3. ΟΜΑΔΙΚΟ UPLOAD ΣΤΗ SUPABASE (Εκτός της λούπας, στέλνει τα πάντα με 1 κίνηση!)
+            // ✨ 3. ΟΜΑΔΙΚΟ UPLOAD ΣΤΗ SUPABASE
             if (batchCloudPayloads.length > 0) {
                 console.log(`☁️ Ομαδικό ανέβασμα ${batchCloudPayloads.length} τραγουδιών...`);
                 await supabaseClient.from('songs').upsert(batchCloudPayloads);

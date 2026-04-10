@@ -223,24 +223,7 @@ function applySortAndRender() {
     if(sortSel) sortLibrary(sortSel.value);
 }
 
-function clearLibrary() {
-    if(confirm(window.t ? t('msg_confirm_clear') : "Διαγραφή όλων των δεδομένων;")) {
-        // Επαναφορά όλων των Demos από το data.js με φρέσκα IDs
-        library = DEFAULT_DEMO_SONGS.map((ds, idx) => ({ ...ds, id: "s_" + Date.now() + idx }));
-        liveSetlist = [];
-        
-        localStorage.setItem('mnotes_setlist', JSON.stringify(liveSetlist));
-        
-        if (typeof canUserPerform === 'function' && !canUserPerform('USE_SUPABASE')) {
-            saveData(); 
-        }
-        
-        document.getElementById('searchInp').value = "";
-        applyFilters();
-        loadSong(library[0].id);
-        showToast("Η βιβλιοθήκη καθαρίστηκε και επανήλθαν τα Demos.");
-    }
-}
+
 /* ===========================================================
    RENDER SIDEBAR (FINAL THEME-DRIVEN VERSION)
    =========================================================== */
@@ -2674,41 +2657,7 @@ function setupEvents() {
     const fileInput = document.getElementById('hiddenFileInput');
     if(fileInput) {
         console.log("✅ Event Listener attached to #hiddenFileInput");
-        
-        fileInput.addEventListener('change', function(e) {
-            console.log("📂 File selected from disk!");
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = async function(ex) {
-                try {
-                    console.log("📄 Reading file content...");
-                    const imported = JSON.parse(ex.target.result);
-                    
-                    // ✨ ΕΔΩ ΕΙΝΑΙ Η ΑΛΛΑΓΗ: Καλούμε ρητά τη συνάρτηση του logic.js μέσω window
-                    if (typeof window.processImportedData === 'function') {
-                        console.log("🚀 Calling window.processImportedData...");
-                        await window.processImportedData(imported);
-                    } else if (typeof processImportedData === 'function') {
-                        console.log("🚀 Calling local processImportedData...");
-                        await processImportedData(imported);
-                    } else {
-                        console.error("❌ ERROR: processImportedData NOT FOUND ANYWHERE!");
-                        alert("Σφάλμα: Η λειτουργία εισαγωγής δεν βρέθηκε.");
-                    }
-
-                    const modal = document.getElementById('importChoiceModal');
-                    if(modal) modal.style.display = 'none';
-                } catch(err) {
-                    console.error("❌ JSON PARSE ERROR:", err);
-                    alert("Το αρχείο δεν είναι έγκυρο mNotes format.");
-                }
-            };
-            reader.readAsText(file);
-            fileInput.value = ''; // Reset για επόμενη χρήση
-        });
-    } else {
+       } else {
         console.error("❌ CRITICAL: #hiddenFileInput NOT FOUND IN DOM!");
     }
 
@@ -3488,10 +3437,15 @@ function showTransferModal() {
 }
 window.processFileDirectly = async function(input) {
     console.log("🔥 DIRECT HTML TRIGGER: Αρχείο επιλέχθηκε!");
-    
     const file = input.files[0];
-    if (!file) {
-        console.log("Δεν επιλέχθηκε αρχείο.");
+    if (!file) return;
+
+    // ✨ ΕΛΕΓΧΟΣ ΚΑΤΑΛΗΞΗΣ (Ασφάλεια για τα .mnote)
+    const validExtensions = ['.mnote', '.mnotes', '.json'];
+    const fileName = file.name.toLowerCase();
+    if (!validExtensions.some(ext => fileName.endsWith(ext))) {
+        alert("Λάθος τύπος αρχείου! Παρακαλώ επιλέξτε ένα αρχείο .mnote ή .json");
+        input.value = '';
         return;
     }
 
@@ -3512,12 +3466,10 @@ window.processFileDirectly = async function(input) {
             if(modal) modal.style.display = 'none';
         } catch(err) {
             console.error("❌ Σφάλμα ανάγνωσης:", err);
-            alert("Το αρχείο δεν είναι έγκυρο.");
+            alert("Το αρχείο δεν είναι έγκυρο mNotes format.");
         }
     };
     reader.readAsText(file);
-    
-    // Καθαρίζουμε το input για να μπορούμε να ξαναδιαλέξουμε το ίδιο αρχείο
     input.value = ''; 
 };
 // ===========================================================

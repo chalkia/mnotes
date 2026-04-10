@@ -15,9 +15,20 @@ async function importJSON(input) {
     const file = input.files[0];
     if(!file) return;
 
+    // ✨ 1. ΕΛΕΓΧΟΣ ΚΑΤΑΛΗΞΗΣ (Απορρίπτει λάθος αρχεία και δέχεται τα .mnote)
+    const validExtensions = ['.mnote', '.mnotes', '.json'];
+    const fileName = file.name.toLowerCase();
+    const isValid = validExtensions.some(ext => fileName.endsWith(ext));
+
+    if (!isValid) {
+        alert("Λάθος τύπος αρχείου! Παρακαλώ επιλέξτε ένα αρχείο .mnote ή .json");
+        input.value = ''; 
+        return;
+    }
+
     const isBandContext = (typeof currentGroupId !== 'undefined' && currentGroupId !== 'personal');
 
-    // Έλεγχος Δικαιωμάτων: Στη μπάντα, ΜΟΝΟ ο Admin/Owner/Maestro μπορεί να κάνει Import
+    // Έλεγχος Δικαιωμάτων
     if (isBandContext) {
         const isGod = (typeof currentRole !== 'undefined') && (currentRole === 'admin' || currentRole === 'owner' || currentRole === 'maestro');
         if (!isGod) {
@@ -39,13 +50,9 @@ async function importJSON(input) {
                 importedSongs = Array.isArray(imported) ? imported : [imported];
             }
 
-            // ✨ ΠΡΟΣΑΡΜΟΣΜΕΝΗ ΚΑΙ ΕΝΤΟΝΗ ΠΡΟΕΙΔΟΠΟΙΗΣΗ
-            let confirmMsg = "";
-            if (isBandContext) {
-                confirmMsg = `⚠️ ΠΡΟΣΟΧΗ! ⚠️\n\nΠάτε να εισάγετε ${importedSongs.length} τραγούδια στην ΚΟΙΝΗ βιβλιοθήκη της Μπάντας!\nΑυτό θα επηρεάσει όλα τα μέλη.\n\nΘέλετε σίγουρα να συνεχίσετε;`;
-            } else {
-                confirmMsg = `Βρέθηκαν ${importedSongs.length} τραγούδια.\nΘέλετε να τα εισάγετε στην Προσωπική σας Βιβλιοθήκη;`;
-            }
+            let confirmMsg = isBandContext 
+                ? `⚠️ ΠΡΟΣΟΧΗ! ⚠️\n\nΠάτε να εισάγετε ${importedSongs.length} τραγούδια στην ΚΟΙΝΗ βιβλιοθήκη της Μπάντας!\nΑυτό θα επηρεάσει όλα τα μέλη.\n\nΘέλετε σίγουρα να συνεχίσετε;`
+                : `Βρέθηκαν ${importedSongs.length} τραγούδια.\nΘέλετε να τα εισάγετε στην Προσωπική σας Βιβλιοθήκη;`;
 
             if (!confirm(confirmMsg)) {
                 input.value = ''; return;
@@ -56,6 +63,10 @@ async function importJSON(input) {
             let addedCount = 0;
             let updatedCount = 0;
             let skippedCount = 0;
+            
+            // ✨ 2. ΚΑΛΑΘΙΑ ΟΜΑΔΙΚΟΥ UPLOAD (Batching για τεράστια ταχύτητα)
+            let batchCloudPayloads = []; 
+            let batchOfflineQueue = [];
 
             for (let song of importedSongs) {
                 if (typeof convertBracketsToBang === 'function' && song.body) {
@@ -102,15 +113,27 @@ async function importJSON(input) {
                     needsCloudSync = true;
                 }
 
+                // ✨ Προσθήκη στο καλάθι (Αντί για 1-1 upload μέσα στη λούπα)
                 if (needsCloudSync) {
-                    if (navigator.onLine && typeof supabaseClient !== 'undefined' && typeof currentUser !== 'undefined') {
-                        const safePayload = window.sanitizeForDatabase(safeSong, currentUser.id, safeSong.group_id);
-                        await supabaseClient.from('songs').upsert(safePayload);
-                    } else if (typeof addToSyncQueue === 'function') {
-                        const safePayload = window.sanitizeForDatabase(safeSong, typeof currentUser !== 'undefined' ? currentUser.id : 'offline', safeSong.group_id);
-                        addToSyncQueue('SAVE_SONG', safePayload);
+                    const userIdToUse = (typeof currentUser !== 'undefined' && currentUser) ? currentUser.id : 'offline';
+                    const safePayload = window.sanitizeForDatabase(safeSong, userIdToUse, safeSong.group_id);
+                    
+                    if (navigator.onLine && typeof supabaseClient !== 'undefined' && currentUser) {
+                        batchCloudPayloads.push(safePayload);
+                    } else {
+                        batchOfflineQueue.push(safePayload);
                     }
                 }
+            }
+
+            // ✨ 3. ΟΜΑΔΙΚΟ UPLOAD ΣΤΗ SUPABASE (Εκτός της λούπας, στέλνει τα πάντα με 1 κίνηση!)
+            if (batchCloudPayloads.length > 0) {
+                console.log(`☁️ Ομαδικό ανέβασμα ${batchCloudPayloads.length} τραγουδιών...`);
+                await supabaseClient.from('songs').upsert(batchCloudPayloads);
+            }
+            
+            if (batchOfflineQueue.length > 0 && typeof addToSyncQueue === 'function') {
+                batchOfflineQueue.forEach(payload => addToSyncQueue('SAVE_SONG', payload));
             }
 
             saveToLocal();
@@ -127,7 +150,7 @@ async function importJSON(input) {
             
         } catch(err) {
             console.error("❌ [IMPORT ERROR]", err);
-            alert("Σφάλμα στην ανάγνωση του αρχείου .mnote ❌");
+            alert("Σφάλμα στην ανάγνωση του αρχείου ❌");
         }
     };
     reader.readAsText(file);

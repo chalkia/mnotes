@@ -161,7 +161,12 @@ const TRANSLATIONS = {
         btn_revert_clone: "Revert to Band Version",
         msg_clone_created: "Personal version created (Clone) 🧬",
         msg_clone_reverted: "Clone deleted. Reverted to band song.",
-        msg_personal_settings_saved: "Personal settings saved! 👤"
+        msg_personal_settings_saved: "Personal settings saved! 👤",
+        btn_forgot_pass: "Forgot password?",
+        title_new_password: "New Password",
+        desc_new_password: "Enter your new password below.",
+        ph_new_password: "New Password (min 6 chars)",
+        btn_save_password: "Save Password"
 
     },
 
@@ -328,6 +333,12 @@ const TRANSLATIONS = {
         msg_clone_created: "Δημιουργήθηκε δική σας έκδοση (Κλώνος) 🧬",
         msg_clone_reverted: "Ο κλώνος ακυρώθηκε. Επιστροφή στο κοινό τραγούδι.",
         msg_personal_settings_saved: "Οι προσωπικές ρυθμίσεις αποθηκεύτηκαν! 👤",
+        btn_forgot_pass: "Ξεχάσατε τον κωδικό σας;",
+        title_new_password: "Νέος Κωδικός",
+        desc_new_password: "Εισάγετε τον νέο σας κωδικό πρόσβασης παρακάτω.",
+        ph_new_password: "Νέος κωδικός (τουλ. 6 χαρακτήρες)",
+        btn_save_password: "Αποθήκευση"
+        
     }
 };
 

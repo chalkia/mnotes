@@ -145,6 +145,50 @@ async function doLogout() {
         console.error("❌ Logout Error:", err);
     }
 }
+//   Password Recovery Functions
+// 1. Στέλνει το Email ανάκτησης
+async function sendPasswordReset() {
+    const email = document.getElementById('authEmail').value.trim();
+    if (!email) {
+        showToast("Παρακαλώ γράψτε το email σας στο πεδίο πάνω και ξαναπατήστε το.", "warning");
+        return;
+    }
+
+    const cleanUrl = window.location.origin + window.location.pathname;
+    
+    try {
+        const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+            redirectTo: cleanUrl,
+        });
+        if (error) throw error;
+        
+        showToast("Σας στείλαμε email με οδηγίες επαναφοράς! 📩", "info");
+        document.getElementById('authModal').style.display = 'none';
+    } catch (err) {
+        console.error("Reset Error:", err);
+        showToast("Σφάλμα: " + err.message, "error");
+    }
+}
+
+// 2. Αποθηκεύει τον νέο κωδικό
+async function updateNewPassword() {
+    const newPass = document.getElementById('newAuthPass').value;
+    if (newPass.length < 6) {
+        document.getElementById('resetMsg').innerText = "Τουλάχιστον 6 χαρακτήρες.";
+        return;
+    }
+
+    try {
+        const { error } = await supabaseClient.auth.updateUser({ password: newPass });
+        if (error) throw error;
+
+        showToast("Ο κωδικός σας άλλαξε επιτυχώς! ✅");
+        document.getElementById('resetPasswordModal').style.display = 'none';
+    } catch (err) {
+        console.error("Update Pass Error:", err);
+        document.getElementById('resetMsg').innerText = "Σφάλμα: " + err.message;
+    }
+}
 
 function updateAuthUI(isLoggedIn) {
     // ΔΙΟΡΘΩΣΗ: Προστέθηκε το 'btnAuthDrawer' για το κινητό

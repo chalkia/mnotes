@@ -246,19 +246,27 @@ async function initUserData() {
 
         let isTierChanged = false;
          if (profile) {
-                     // ✨ Ο ΑΠΟΛΥΤΟΣ ΜΕΤΑΦΡΑΣΤΗΣ: 
-                     // Ό,τι κι αν γράφει η βάση (bandLeader, owner, κλπ), το κάνει σωστό κλειδί!
-                     let rawTier = profile.subscription_tier.toLowerCase().replace(/[^a-z_]/g, '');
-                     
-                     const tierMap = { 
-                         'free': 'solo_free', 
-                         'solo': 'solo_plus', 'pro': 'solo_plus', 'plus': 'solo_plus',
-                         'member': 'band_mate', 'bandmate': 'band_mate',
-                         'owner': 'band_leader', 'bandleader': 'band_leader',
-                         'maestro': 'band_maestro', 'bandmaestro': 'band_maestro',
-                         'ensemble': 'ensemble'
-                     };
-                     
+             // 1. Κανονικοποίηση (Normalization)
+             let rawTier = profile.subscription_tier.toLowerCase().trim();
+             
+             // 2. Εμπλουτισμένο mapping για να πιάνει κάθε πιθανή γραφή από τη βάση
+             const tierMap = { 
+                 'free': 'solo_free', 'solo_free': 'solo_free',
+                 'solo': 'solo_plus', 'plus': 'solo_plus', 'soloplus': 'solo_plus', 'solo_plus': 'solo_plus',
+                 'member': 'band_mate', 'band_mate': 'band_mate',
+                 'leader': 'band_leader', 'band_leader': 'band_leader',
+                 'maestro': 'band_maestro', 'band_maestro': 'band_maestro',
+                 'ensemble': 'ensemble'
+             };
+             
+             userProfile = profile;
+             userProfile.subscription_tier = tierMap[rawTier] || 'solo_free';
+         } else {
+             const newProfile = { id: currentUser.id, email: currentUser.email, subscription_tier: 'solo_free' };
+             // Χρήση UPSERT αντί για INSERT για αποφυγή του 409 Conflict
+             await supabaseClient.from('profiles').upsert([newProfile], { onConflict: 'id' });
+             userProfile = newProfile;
+         }
                      const fetchedTier = tierMap[rawTier] || rawTier;
          
                      if (!userProfile || userProfile.subscription_tier !== fetchedTier) {

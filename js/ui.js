@@ -3089,18 +3089,31 @@ async function saveSettings() {
            // 1. Εμφανίζουμε το παράθυρο
            modal.style.display = 'flex'; 
            
-           // 2. Ενημερώνουμε το UI (email, tier, κλπ) αν χρειάζεται
-           const emailEl = document.getElementById('accUserEmail');
-           if (emailEl && currentUser) emailEl.innerText = currentUser.email;
-           
-           // 3. Ξεκινάμε τον υπολογισμό του χώρου (Storage)
-           if (typeof updateStorageUI === 'function') {
-               updateStorageUI();
-           }
-       } else {
-           console.warn("⚠️ Το accountModal δεν βρέθηκε στο HTML!");
-       }
-   };
+          // 2. Ενημερώνουμε το Email
+        const emailEl = document.getElementById('accUserEmail');
+        if (emailEl && currentUser) emailEl.innerText = currentUser.email;
+        
+          // 3. ✨ Ενημερώνουμε ΔΥΝΑΜΙΚΑ το πακέτο (Tier)
+        if (userProfile && userProfile.subscription_tier) {
+            const tierKey = userProfile.subscription_tier;
+            // Διαβάζει το label από το TIER_CONFIG σου
+            const label = TIER_CONFIG[tierKey]?.label || "Free";
+            
+            const tierEl = document.getElementById('accUserTier');
+            if (tierEl) {
+                tierEl.innerText = `⭐ ${label.toUpperCase()}`;
+            }
+        }
+        
+        // 4. Ξεκινάμε τον υπολογισμό του χώρου (Storage)
+        if (typeof updateStorageUI === 'function') {
+            updateStorageUI();
+        }
+    } else {
+        console.warn("⚠️ Το accountModal δεν βρέθηκε στο HTML!");
+    }
+};
+
    // ===========================================================
 // 14. TRANSPOSITION & CAPO CONTROLS (THE MISSING LINK)
 // ===========================================================

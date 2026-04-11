@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+    <meta charset="UTF-8">
+    <title>mNotes Admin Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/config.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; background: #1e1e1e; color: #fff; padding: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #2a2a2a; }
+        th, td { padding: 12px; border: 1px solid #444; text-align: left; }
+        th { background: #333; color: #4db6ac; }
+        select, button { padding: 8px; border-radius: 4px; border: none; }
+        button { background: #ffb74d; cursor: pointer; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <h1><i class="fas fa-cogs"></i> mNotes Admin Panel</h1>
+    <div id="status">Φόρτωση δεδομένων...</div>
+
+    <table id="usersTable" style="display: none;">
+        <thead>
+            <tr>
+                <th>Email</th>
+                <th>Πακέτο (Tier)</th>
+                <th>Bands (Έξτρα)</th>
+                <th>Χώρος (Έξτρα)</th>
+                <th>Ενέργειες</th>
+            </tr>
+        </thead>
+        <tbody id="usersBody"></tbody>
+    </table>
+
+<script>
+    const supabaseClient = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
+
+    async function initAdmin() {
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        
+        if (!user || user.email !== 'chalkia.duck@gmail.com') {
+            document.getElementById('status').innerText = "Πρόσβαση Αρνήθηκε. Παρακαλώ συνδεθείτε από την κύρια εφαρμογή.";
+            return;
+        }
+
+        document.getElementById('status').innerText = "Καλωσήρθες, Admin! Φόρτωση χρηστών...";
+        loadUsers();
+    }
+
+    async function loadUsers() {
+        // Καλούμε την πύλη που φτιάξαμε στην SQL!
+        const { data: users, error } = await supabaseClient.rpc('get_admin_users_list');
+        
+        if (error) {
+            document.getElementById('status').innerText = "Σφάλμα: " + error.message;
+            return;
+        }
+
+        const tbody = document.getElementById('usersBody');
+        tbody.innerHTML = '';
+
+        users.forEach(u => {
+            const unlocks = u.special_unlocks || {};
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${u.email}</td>
+                <td>
+                    <select id="tier_${u.id}">
+                        <option value="solo_free" ${u.subscription_tier === 'solo_free' ? 'selected' : ''}>Free</option>
+                        <option value="solo_plus" ${u.subscription_tier === 'solo_plus' ? 'selected' : ''}>Plus</option>
+                        <option value="band_mate" ${u.subscription_tier === 'band_mate' ? 'selected' : ''}>Mate</option>
+                        <option value="band_leader" ${u.subscription_tier === 'band_leader' ? 'selected' : ''}>Leader</option>
+                        <option value="band_maestro" ${u.subscription_tier === 'band_maestro' ? 'selected' : ''}>Maestro</option>
+                    </select>
+                </td>
+                <td>+${unlocks.extra_bands || 0}</td>
+                <td>+${unlocks.extra_storage_mb || 0} MB</td>
+                <td>
+                    <button onclick="changeTier('${u.id}')">Αποθήκευση</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        document.getElementById('status').style.display = 'none';
+        document.getElementById('usersTable').style.display = 'table';
+    }
+
+    async function changeTier(userId) {
+        const newTier = document.getElementById(`tier_${userId}`).value;
+        const { error } = await supabaseClient.rpc('admin_update_user_tier', {
+            target_user_id: userId,
+            new_tier: newTier
+        });
+
+        if (error) alert("Σφάλμα: " + error.message);
+        else alert("Ο χρήστης αναβαθμίστηκε επιτυχώς!");
+    }
+
+    // Ξεκινάμε
+    initAdmin();
+</script>
+</body>
+</html>

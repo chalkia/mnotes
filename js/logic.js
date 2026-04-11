@@ -268,7 +268,7 @@ async function initUserData() {
                      userProfile.subscription_tier = fetchedTier;
                  } else {
                      const newProfile = { id: currentUser.id, email: currentUser.email, subscription_tier: 'solo_free' };
-                     await supabaseClient.from('profiles').insert([newProfile]);
+                     await supabaseClient.from('profiles').upsert([newProfile], { onConflict: 'id' });
                      userProfile = newProfile;
                      isTierChanged = true;
                  }
@@ -286,31 +286,31 @@ async function initUserData() {
                      showToast(`Σύνδεση ως ${tierLabel} ✅`);
                  }
 
-        // 2. Groups (Bands) - Με σωστό Join και Error Handling
-        const { data: groups, error: gError } = await supabaseClient
-            .from('group_members')
-            .select(`group_id, role, groups!group_members_group_id_fkey (name, owner_id)`)
-            .eq('user_id', currentUser.id);
-
-        if (gError) {
-               const { data: simpleGroups } = await supabaseClient
-                .from('group_members') .select('group_id, role') .eq('user_id', currentUser.id);
-            myGroups = simpleGroups || [];
-        } else {
-            myGroups = groups || [];
-           }
-
-        // Ενημέρωση UI Dropdown
-        if (typeof updateGroupDropdown === 'function') updateGroupDropdown();
-
-        // 3. Αρχικοποίηση Context (Προσωπική Βιβλιοθήκη)
-        await switchContext('personal');
-
-    } catch (err) {
-        console.error("❌ Critical Init Error:", err);
-        if (typeof showToast === 'function') showToast("Λειτουργία Offline.", "error");
-  }
-}
+                 // 2. Groups (Bands) - Με σωστό Join και Error Handling
+                    const { data: groups, error: gError } = await supabaseClient
+                        .from('group_members')
+                        .select(`group_id, role, groups!group_members_group_id_fkey (name, owner_id)`)
+                        .eq('user_id', currentUser.id);
+            
+                    if (gError) {
+                           const { data: simpleGroups } = await supabaseClient
+                            .from('group_members') .select('group_id, role') .eq('user_id', currentUser.id);
+                        myGroups = simpleGroups || [];
+                    } else {
+                        myGroups = groups || [];
+                       }
+            
+                    // Ενημέρωση UI Dropdown
+                    if (typeof updateGroupDropdown === 'function') updateGroupDropdown();
+            
+                    // 3. Αρχικοποίηση Context (Προσωπική Βιβλιοθήκη)
+                    await switchContext('personal');
+            
+                } catch (err) {
+                    console.error("❌ Critical Init Error:", err);
+                    if (typeof showToast === 'function') showToast("Λειτουργία Offline.", "error");
+              }
+            }
 /**
  * Εναλλαγή περιβάλλοντος εργασίας (Personal vs Band) με έλεγχο Πορτιέρη
  */

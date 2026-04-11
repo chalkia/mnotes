@@ -949,26 +949,36 @@ function toggleCustomPlayer() {
    // ✨ SMART STRUMMING RENDERER
    // Μετατρέπει το "!strum: D U X!" σε γραφικά
    // ==========================================
+     // Μια global μεταβλητή για να κρατάμε τα προσωρινά HTML
+   let strumDictionary = {};
+   let strumCounter = 0;
+   
    function formatStrumming(text) {
        if (!text) return text;
+       strumDictionary = {}; // Μηδενισμός σε κάθε νέο render
        
-       // Ψάχνει το !strum: και σταματάει στο ! ή στην αλλαγή γραμμής
        let processed = text.replace(/!strum:\s*(.*?)(?=!|$|\n)/gi, function(match, pattern) {
            let visualStrum = pattern.trim().toUpperCase().split('').map(char => {
                if (char === 'D') return '<span style="margin:0 2px; font-weight:900;">↓</span>';
                if (char === 'U') return '<span style="margin:0 2px; font-weight:900;">↑</span>';
                if (char === 'X' || char === '*') return '<span style="margin:0 2px; color:var(--danger, #dc3545); font-weight:900;">✖</span>';
-               if (char === ' ') return '<span style="margin:0 4px;"></span>'; // Κενό για παύσεις
+               if (char === ' ') return '<span style="margin:0 4px;"></span>'; 
                return `<span style="margin:0 2px; font-weight:bold;">${char}</span>`;
            }).join('');
            
-           return `<span class="strum-inline" style="display:inline-block; background:var(--bg-panel, #eee); border:1px solid var(--border-color, #ccc); padding:2px 8px; border-radius:6px; margin:2px 5px; color:var(--text-main, #000); font-size:0.9rem; font-family:sans-serif; transform:translateY(-2px);"><i class="fas fa-guitar" style="color:var(--accent, #00ff00); margin-right:5px;"></i>${visualStrum}</span>`;
+           let finalHtml = `<span class="strum-inline" style="display:inline-block; background:var(--bg-panel, #eee); border:1px solid var(--border-color, #ccc); padding:2px 8px; border-radius:6px; margin:2px 5px; color:var(--text-main, #000); font-size:0.9rem; font-family:sans-serif; transform:translateY(-2px);"><i class="fas fa-guitar" style="color:var(--accent, #00ff00); margin-right:5px;"></i>${visualStrum}</span>`;
+           
+           // Φτιάχνουμε μια μοναδική σφραγίδα (χωρίς κενά!)
+           let placeholderId = `___STRUM_${strumCounter++}___`;
+           strumDictionary[placeholderId] = finalHtml;
+           
+           return placeholderId;
        });
        
-       // Καθαρίζει το "!" αν ο χρήστης το έβαλε στο τέλος ως κλείσιμο του tag
-       processed = processed.replace(/<\/span>!/g, '</span>');
+       // Καθαρίζει το "!" αν ο χρήστης το έβαλε στο τέλος
+       processed = processed.replace(/___STRUM_\d+___!/g, match => match.slice(0, -1));
        return processed;
-   }  
+   }
 
    function renderArea(elemId, text) { 
           var container = document.getElementById(elemId); 
@@ -976,7 +986,7 @@ function toggleCustomPlayer() {
           
           container.innerHTML = ""; 
           if (!text) return;
-      
+          text = formatStrumming(text);
           const chordRx = "([A-G][b#]?[a-zA-Z0-9#\\/+-]*|[a-g][b#]?)(?![a-z])";
           text = text.replace(new RegExp(`\\[${chordRx}\\]`, 'g'), "!$1 ");
           text = text.replace(new RegExp(`!${chordRx}!`, 'g'), "!$1 ");
@@ -1040,6 +1050,11 @@ function toggleCustomPlayer() {
               } 
               container.appendChild(row); 
           }); 
+            let finalHtmlContent = container.innerHTML;
+            Object.keys(strumDictionary).forEach(placeholder => {
+          finalHtmlContent = finalHtmlContent.replace(placeholder, strumDictionary[placeholder]);
+      });
+      container.innerHTML = finalHtmlContent;
       }
 
 // Προσθέσαμε την παράμετρο isChordsOnly 
@@ -1349,6 +1364,7 @@ function printSetlistPDF() {
         .chords-only-row { display: none !important; }
         .meta-container { display: none !important; } 
         .intro-section { display: none !important; } 
+        .strum-inline { display: none !important; }
     ` : "";
 
     var css = `

@@ -2964,9 +2964,9 @@ return `<span class="chord" style="display:inline; position:static; font-size:in
     });
 }
 
-// ===========================================================
-// 13. SETTINGS & MODAL LOGIC (ADD THIS TO THE END)
-// ===========================================================
+// =============================
+// 13. SETTINGS & MODAL LOGIC 
+// ==============================
 function openSettings() {
     const modal = document.getElementById('settingsModal');
     if (!modal) return;
@@ -3082,7 +3082,26 @@ async function saveSettings() {
     }
 }
 
-// ===========================================================
+   window.openAccountModal = function() {
+       const modal = document.getElementById('accountModal');
+       
+       if (modal) {
+           // 1. Εμφανίζουμε το παράθυρο
+           modal.style.display = 'flex'; 
+           
+           // 2. Ενημερώνουμε το UI (email, tier, κλπ) αν χρειάζεται
+           const emailEl = document.getElementById('accUserEmail');
+           if (emailEl && currentUser) emailEl.innerText = currentUser.email;
+           
+           // 3. Ξεκινάμε τον υπολογισμό του χώρου (Storage)
+           if (typeof updateStorageUI === 'function') {
+               updateStorageUI();
+           }
+       } else {
+           console.warn("⚠️ Το accountModal δεν βρέθηκε στο HTML!");
+       }
+   };
+   // ===========================================================
 // 14. TRANSPOSITION & CAPO CONTROLS (THE MISSING LINK)
 // ===========================================================
 

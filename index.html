@@ -583,16 +583,37 @@
              </div>
              
              <button onclick="loginWithGoogle()" class="google-btn">
-                <img src="https://www.svgrepo.com/show/475656/google-color.svg" width="20"> 
+                <img src="https://www.svgrepo.com/show/475656/google-color.svg" width="25"> 
                 <span data-i18n="btn_google_login">Sign in with Google</span>
              </button>
+             
              <div class="auth-sep"><div class="sep-line"></div><span data-i18n="lbl_or_email">OR EMAIL</span><div class="sep-line"></div></div>
+             
              <input type="email" id="authEmail" class="inp" data-i18n="ph_email" placeholder="Email">
              <input type="password" id="authPass" class="inp" data-i18n="ph_password" placeholder="Password">
+             
+             <div style="text-align: right; margin-bottom: 15px; padding-right: 5px;">
+                 <a href="#" onclick="sendPasswordReset()" style="color: var(--accent); font-size: 0.85rem; text-decoration: none;" data-i18n="btn_forgot_pass">Forgot password?</a>
+             </div>
+
              <button onclick="doLogin()" class="modal-btn accent" data-i18n="btn_login"><i class="fas fa-sign-in-alt"></i> Login</button>
              <button onclick="doSignUp()" class="modal-btn" data-i18n="btn_signup"><i class="fas fa-user-plus"></i> Sign Up</button>
              <button onclick="document.getElementById('authModal').style.display='none'" class="modal-btn cancel" data-i18n="btn_close"><i class="fas fa-times"></i> Close</button>
+             
              <div id="authMsg" class="auth-error-msg"></div>
+        </div>
+    </div>
+
+    <div id="resetPasswordModal" class="modal-overlay" style="display:none;">
+        <div class="modal-box">
+             <h3 data-i18n="title_new_password"><i class="fas fa-key"></i> New Password</h3>
+             
+             <p style="font-size: 0.9rem; color: var(--text-muted); text-align: center; margin-bottom: 15px;" data-i18n="desc_new_password">Enter your new password below.</p>
+             
+             <input type="password" id="newAuthPass" class="inp" data-i18n="ph_new_password" placeholder="New Password (min 6)">
+             
+             <button onclick="updateNewPassword()" class="modal-btn accent" data-i18n="btn_save_password"><i class="fas fa-save"></i> Save</button>
+             <div id="resetMsg" class="auth-error-msg" style="margin-top:10px;"></div>
         </div>
     </div>
     <div id="accountModal" class="modal-overlay" style="display:none; z-index: 3000;">

@@ -245,80 +245,75 @@ async function initUserData() {
         if (pError && pError.code !== 'PGRST116') throw pError;
 
         let isTierChanged = false;
-         if (profile) {
-             // 1. Κανονικοποίηση (Normalization)
-             let rawTier = profile.subscription_tier.toLowerCase().trim();
-             
-             // 2. Εμπλουτισμένο mapping για να πιάνει κάθε πιθανή γραφή από τη βάση
-             const tierMap = { 
-                 'free': 'solo_free', 'solo_free': 'solo_free',
-                 'solo': 'solo_plus', 'plus': 'solo_plus', 'soloplus': 'solo_plus', 'solo_plus': 'solo_plus',
-                 'member': 'band_mate', 'band_mate': 'band_mate',
-                 'leader': 'band_leader', 'band_leader': 'band_leader',
-                 'maestro': 'band_maestro', 'band_maestro': 'band_maestro',
-                 'ensemble': 'ensemble'
-             };
-             
-             userProfile = profile;
-             userProfile.subscription_tier = tierMap[rawTier] || 'solo_free';
-         } else {
-             const newProfile = { id: currentUser.id, email: currentUser.email, subscription_tier: 'solo_free' };
-             // Χρήση UPSERT αντί για INSERT για αποφυγή του 409 Conflict
-             await supabaseClient.from('profiles').upsert([newProfile], { onConflict: 'id' });
-             userProfile = newProfile;
-         }
-                     const fetchedTier = tierMap[rawTier] || rawTier;
-         
-                     if (!userProfile || userProfile.subscription_tier !== fetchedTier) {
-                         isTierChanged = true;
-                     }
-                     userProfile = profile;
-                     userProfile.subscription_tier = fetchedTier;
-                 } else {
-                     const newProfile = { id: currentUser.id, email: currentUser.email, subscription_tier: 'solo_free' };
-                     await supabaseClient.from('profiles').upsert([newProfile], { onConflict: 'id' });
-                     userProfile = newProfile;
-                     isTierChanged = true;
-                 }
-         
-                 // Αποθήκευση για την επόμενη φορά
-                 localStorage.setItem(cacheKey, JSON.stringify(userProfile));
-         
-                 if (isTierChanged || !cachedProfile) {
-                     if (typeof refreshUIByTier === 'function') refreshUIByTier();
-                 }
-         
-                 // 📢 ΕΝΔΕΙΞΗ ΣΥΝΔΕΣΗΣ: Διαβάζει κατευθείαν το καθαρό Label από το TIER_CONFIG
-                 if (typeof showToast === 'function') {
-                     const tierLabel = TIER_CONFIG[userProfile.subscription_tier]?.label || "User";
-                     showToast(`Σύνδεση ως ${tierLabel} ✅`);
-                 }
+        
+        if (profile) {
+            // 1. Κανονικοποίηση (Normalization)
+            let rawTier = profile.subscription_tier.toLowerCase().trim();
+            
+            // 2. Εμπλουτισμένο mapping για να πιάνει κάθε πιθανή γραφή από τη βάση
+            const tierMap = { 
+                'free': 'solo_free', 'solo_free': 'solo_free',
+                'solo': 'solo_plus', 'plus': 'solo_plus', 'soloplus': 'solo_plus', 'solo_plus': 'solo_plus',
+                'member': 'band_mate', 'band_mate': 'band_mate',
+                'leader': 'band_leader', 'band_leader': 'band_leader',
+                'maestro': 'band_maestro', 'band_maestro': 'band_maestro',
+                'ensemble': 'ensemble'
+            };
+            
+            const fetchedTier = tierMap[rawTier] || 'solo_free';
 
-                 // 2. Groups (Bands) - Με σωστό Join και Error Handling
-                    const { data: groups, error: gError } = await supabaseClient
-                        .from('group_members')
-                        .select(`group_id, role, groups!group_members_group_id_fkey (name, owner_id)`)
-                        .eq('user_id', currentUser.id);
-            
-                    if (gError) {
-                           const { data: simpleGroups } = await supabaseClient
-                            .from('group_members') .select('group_id, role') .eq('user_id', currentUser.id);
-                        myGroups = simpleGroups || [];
-                    } else {
-                        myGroups = groups || [];
-                       }
-            
-                    // Ενημέρωση UI Dropdown
-                    if (typeof updateGroupDropdown === 'function') updateGroupDropdown();
-            
-                    // 3. Αρχικοποίηση Context (Προσωπική Βιβλιοθήκη)
-                    await switchContext('personal');
-            
-                } catch (err) {
-                    console.error("❌ Critical Init Error:", err);
-                    if (typeof showToast === 'function') showToast("Λειτουργία Offline.", "error");
-              }
+            if (!userProfile || userProfile.subscription_tier !== fetchedTier) {
+                isTierChanged = true;
             }
+            userProfile = profile;
+            userProfile.subscription_tier = fetchedTier;
+
+        } else {
+            // Δεν βρέθηκε προφίλ. Δημιουργία νέου μέσω JS με UPSERT
+            const newProfile = { id: currentUser.id, email: currentUser.email, subscription_tier: 'solo_free' };
+            await supabaseClient.from('profiles').upsert([newProfile], { onConflict: 'id' });
+            userProfile = newProfile;
+            isTierChanged = true;
+        }
+
+        // Αποθήκευση για την επόμενη φορά
+        localStorage.setItem(cacheKey, JSON.stringify(userProfile));
+
+        if (isTierChanged || !cachedProfile) {
+            if (typeof refreshUIByTier === 'function') refreshUIByTier();
+        }
+
+        // 📢 ΕΝΔΕΙΞΗ ΣΥΝΔΕΣΗΣ: Διαβάζει κατευθείαν το καθαρό Label από το TIER_CONFIG
+        if (typeof showToast === 'function') {
+            const tierLabel = TIER_CONFIG[userProfile.subscription_tier]?.label || "User";
+            showToast(`Σύνδεση ως ${tierLabel} ✅`);
+        }
+
+        // 2. Groups (Bands) - Με σωστό Join και Error Handling
+        const { data: groups, error: gError } = await supabaseClient
+            .from('group_members')
+            .select(`group_id, role, groups!group_members_group_id_fkey (name, owner_id)`)
+            .eq('user_id', currentUser.id);
+
+        if (gError) {
+            const { data: simpleGroups } = await supabaseClient
+                .from('group_members') .select('group_id, role') .eq('user_id', currentUser.id);
+            myGroups = simpleGroups || [];
+        } else {
+            myGroups = groups || [];
+        }
+
+        // Ενημέρωση UI Dropdown
+        if (typeof updateGroupDropdown === 'function') updateGroupDropdown();
+
+        // 3. Αρχικοποίηση Context (Προσωπική Βιβλιοθήκη)
+        await switchContext('personal');
+
+    } catch (err) {
+        console.error("❌ Critical Init Error:", err);
+        if (typeof showToast === 'function') showToast("Λειτουργία Offline.", "error");
+    }
+}
 /**
  * Εναλλαγή περιβάλλοντος εργασίας (Personal vs Band) με έλεγχο Πορτιέρη
  */

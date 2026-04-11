@@ -267,6 +267,15 @@ async function initUserData() {
             }
             userProfile = profile;
             userProfile.subscription_tier = fetchedTier;
+            // ✨ Ο ΚΟΡΙΟΣ (DEBUGGER) ΞΕΚΙΝΑΕΙ ΕΔΩ ✨
+             console.log("====================================");
+             console.log("🕵️‍♂️ [GOD MODE DETECTOR] Ας δούμε την αλήθεια:");
+             console.log("1. Το κείμενο στη Βάση Δεδομένων (profiles):", profile.subscription_tier);
+             console.log("2. Πώς το 'μετέφρασε' το app (Tier Key):", fetchedTier);
+             console.log("3. Τα MB που σου δίνει (getUserLimits):", typeof getUserLimits === 'function' ? getUserLimits().storageLimitMB : 'Άγνωστο');
+             console.log("4. Ο Ρόλος σου (currentRole):", currentRole);
+             console.log("====================================");
+             // ✨ ΤΕΛΟΣ ΚΟΡΙΟΥ ✨
 
         } else {
             // Δεν βρέθηκε προφίλ. Δημιουργία νέου μέσω JS με UPSERT

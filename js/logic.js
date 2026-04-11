@@ -147,9 +147,13 @@ function getUserLimits() {
     const tierMapping = {
         'free': 'solo_free',
         'solo': 'solo_plus',
+        'plus': 'solo_plus',
+        'pro': 'solo_plus',      
+        'solo_pro': 'solo_plus', 
         'member': 'band_mate',
         'owner': 'band_leader',
         'maestro': 'band_maestro'
+    };
     };
 
     if (tierMapping[tierKey]) tierKey = tierMapping[tierKey];
@@ -252,12 +256,13 @@ async function initUserData() {
             
             // 2. Εμπλουτισμένο mapping για να πιάνει κάθε πιθανή γραφή από τη βάση
             const tierMap = { 
-                'free': 'solo_free', 'solo_free': 'solo_free',
-                'solo': 'solo_plus', 'plus': 'solo_plus', 'soloplus': 'solo_plus', 'solo_plus': 'solo_plus',
-                'member': 'band_mate', 'band_mate': 'band_mate',
-                'leader': 'band_leader', 'band_leader': 'band_leader',
-                'maestro': 'band_maestro', 'band_maestro': 'band_maestro',
-                'ensemble': 'ensemble'
+                 'free': 'solo_free', 'solo_free': 'solo_free',
+                 'solo': 'solo_plus', 'plus': 'solo_plus', 'soloplus': 'solo_plus', 'solo_plus': 'solo_plus',
+                 'pro': 'solo_plus', 'solopro': 'solo_plus', 'solo_pro': 'solo_plus', 
+                 'member': 'band_mate', 'bandmate': 'band_mate', 'band_mate': 'band_mate',
+                 'owner': 'band_leader', 'leader': 'band_leader', 'bandleader': 'band_leader', 'band_leader': 'band_leader',
+                 'maestro': 'band_maestro', 'bandmaestro': 'band_maestro', 'band_maestro': 'band_maestro',
+                 'ensemble': 'ensemble'
             };
             
             const fetchedTier = tierMap[rawTier] || 'solo_free';
@@ -1651,34 +1656,77 @@ async function redeemGiftCode() {
             return;
         }
 
+        // ✨ 1. ΕΛΕΓΧΟΣ ΑΝ ΕΧΕΙ ΛΗΞΕΙ ΤΟ ΙΔΙΟ ΤΟ ΚΟΥΠΟΝΙ ΗΜΕΡΟΛΟΓΙΑΚΑ
+        if (codeObj.expires_at) {
+            const codeExpiration = new Date(codeObj.expires_at);
+            const now = new Date();
+            if (now > codeExpiration) {
+                alert("Λυπούμαστε, αυτός ο κωδικός προσφοράς έχει λήξει!");
+                return;
+            }
+        }
+
         let currentUnlocks = userProfile.special_unlocks || {};
 
         if (codeObj.reward_type === 'extra_bands') {
             const currentExtra = currentUnlocks.extra_bands || 0;
             currentUnlocks.extra_bands = currentExtra + parseInt(codeObj.reward_value, 10);
-            showToast(`Συγχαρητήρια! Κερδίσατε δικαίωμα για +${codeObj.reward_value} μπάντα! 🎉`);
+            if (typeof showToast === 'function') showToast(`Συγχαρητήρια! Κερδίσατε δικαίωμα για +${codeObj.reward_value} μπάντα! 🎉`);
         } 
         else if (codeObj.reward_type === 'tier_upgrade') {
-            userProfile.subscription_tier = codeObj.reward_value;
-            await supabaseClient.from('profiles').update({ subscription_tier: codeObj.reward_value }).eq('id', currentUser.id);
-            showToast(`Συγχαρητήρια! Το προφίλ σας αναβαθμίστηκε σε ${codeObj.reward_value}! 🚀`);
+            // ✨ 2. ΔΙΧΤΥ ΑΣΦΑΛΕΙΑΣ ΓΙΑ ΠΑΛΙΟΥΣ ΚΩΔΙΚΟΥΣ (solo_pro -> solo_plus)
+            let upgradedTier = codeObj.reward_value;
+            if (upgradedTier === 'solo_pro' || upgradedTier === 'pro') {
+                upgradedTier = 'solo_plus';
+                console.log("♻️ [PROMO] Ο παλιός (ή λάθος) κωδικός μετατράπηκε αυτόματα σε solo_plus.");
+            }
+
+            userProfile.subscription_tier = upgradedTier;
+            let updatePayload = { subscription_tier: upgradedTier };
+
+            // ✨ 3. ΕΛΕΓΧΟΣ ΗΜΕΡΟΜΗΝΙΑΣ ΛΗΞΗΣ ΤΟΥ ΠΑΚΕΤΟΥ (Time-limited Promos)
+            if (codeObj.duration_days && parseInt(codeObj.duration_days, 10) > 0) {
+                 let expDate = new Date();
+                 expDate.setDate(expDate.getDate() + parseInt(codeObj.duration_days, 10)); // Προσθέτει τις μέρες
+                 updatePayload.tier_expires_at = expDate.toISOString();
+                 console.log(`⏱️ [PROMO] Το πακέτο θα λήξει στις: ${expDate.toLocaleDateString()}`);
+            } else {
+                 // Μόνιμο δώρο, καθαρίζουμε τυχόν παλιά ημερομηνία λήξης που είχε ο χρήστης
+                 updatePayload.tier_expires_at = null;
+            }
+
+            // Αποθηκεύουμε το νέο tier (και τη λήξη του) στη Supabase
+            await supabaseClient.from('profiles').update(updatePayload).eq('id', currentUser.id);
+            
+            // Ενημερώνουμε τον χρήστη ανάλογα με τον τύπο του δώρου!
+            if (typeof showToast === 'function') {
+                if (codeObj.duration_days && parseInt(codeObj.duration_days, 10) > 0) {
+                    showToast(`Το προφίλ σας αναβαθμίστηκε σε ${upgradedTier} για ${codeObj.duration_days} ημέρες! ⏱️`);
+                } else {
+                    showToast(`Συγχαρητήρια! Το προφίλ σας αναβαθμίστηκε σε ${upgradedTier}! 🚀`);
+                }
+            }
         }
         else if (codeObj.reward_type === 'extra_storage') {
             const currentStorage = currentUnlocks.extra_storage_mb || 0;
             currentUnlocks.extra_storage_mb = currentStorage + parseInt(codeObj.reward_value, 10);
-            showToast(`Κερδίσατε +${codeObj.reward_value}MB έξτρα χώρο στο Cloud! 💾`);
+            if (typeof showToast === 'function') showToast(`Κερδίσατε +${codeObj.reward_value}MB έξτρα χώρο στο Cloud! 💾`);
         }
         else if (codeObj.reward_type === 'rhythm_credits') {
             const currentCredits = currentUnlocks.rhythm_credits || 0;
             currentUnlocks.rhythm_credits = currentCredits + parseInt(codeObj.reward_value, 10);
-            showToast(`Κερδίσατε ${codeObj.reward_value} δωρεάν ρυθμούς (Beats) για το Drum Store! 🥁`);
+            if (typeof showToast === 'function') showToast(`Κερδίσατε ${codeObj.reward_value} δωρεάν ρυθμούς (Beats) για το Drum Store! 🥁`);
         }
 
-        // Αποθήκευση των νέων unlocks στο προφίλ του χρήστη
+        // Αποθήκευση των νέων unlocks στο προφίλ του χρήστη (αν υπήρχαν)
         await supabaseClient.from('profiles').update({ special_unlocks: currentUnlocks }).eq('id', currentUser.id);
         
         // Σήμανση του κωδικού ως χρησιμοποιημένου
-        await supabaseClient.from('gift_codes').update({ is_used: true, used_by: currentUser.id, used_at: new Date().toISOString() }).eq('id', codeObj.id);
+        await supabaseClient.from('gift_codes').update({ 
+            is_used: true, 
+            used_by: currentUser.id, 
+            used_at: new Date().toISOString() 
+        }).eq('id', codeObj.id);
         
         // Ενημέρωση της τοπικής μνήμης και του UI
         userProfile.special_unlocks = currentUnlocks;

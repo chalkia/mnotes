@@ -344,3 +344,73 @@ window.sanitizeForDatabase = function(song, userId, groupId = null) {
         updated_at: new Date().toISOString()
     };
 };
+async function updateStorageUI() {
+    if (!currentUser) return;
+
+    const storageText = document.getElementById('storageText');
+    const storageBar = document.getElementById('storageBar');
+    
+    if (storageText) storageText.innerText = "Υπολογισμός... ⏳";
+
+    try {
+        // 1. Παίρνουμε το όριο του χρήστη από την TIER_CONFIG
+        const limits = typeof getUserLimits === 'function' ? getUserLimits() : { storageLimitMB: 0 };
+        const maxMB = limits.storageLimitMB;
+
+        // 2. Αν είναι Free και έχει 0 όριο
+        if (maxMB === 0) {
+            if (storageText) storageText.innerText = "0 MB / 0 MB (Αναβαθμίστε)";
+            if (storageBar) storageBar.style.width = '0%';
+            return;
+        }
+
+        // 3. Διαβάζουμε τα αρχεία του από το Bucket (στον προσωπικό του φάκελο)
+        const { data: files, error } = await supabaseClient.storage
+            .from('user_assets') // Βάλε το σωστό bucket αν το έχεις αλλάξει
+            .list(currentUser.id, {
+                limit: 1000,
+                offset: 0
+            });
+
+        if (error) throw error;
+
+        // 4. Υπολογισμός μεγέθους σε Bytes
+        let totalBytes = 0;
+        if (files && files.length > 0) {
+            files.forEach(file => {
+                // To metadata.size επιστρέφει bytes (αγνοούμε τυχόν κενούς φακέλους)
+                if (file.metadata && file.metadata.size) {
+                    totalBytes += file.metadata.size;
+                }
+            });
+        }
+
+        // Μετατροπή σε Megabytes (με 1 δεκαδικό)
+        const usedMB = (totalBytes / (1024 * 1024)).toFixed(1);
+
+        // 5. Ενημέρωση του UI
+        if (storageText) {
+            storageText.innerText = `${usedMB} MB / ${maxMB} MB`;
+        }
+        
+        if (storageBar) {
+            let percent = (usedMB / maxMB) * 100;
+            if (percent > 100) percent = 100; // Για να μην βγει η μπάρα έξω από το div!
+            
+            storageBar.style.width = `${percent}%`;
+            
+            // Αλλάζουμε χρώμα ανάλογα με την πληρότητα
+            if (percent > 90) {
+                storageBar.style.background = '#ff4444'; // Κόκκινο (Κίνδυνος)
+            } else if (percent > 75) {
+                storageBar.style.background = '#ffbb33'; // Κίτρινο/Πορτοκαλί (Προειδοποίηση)
+            } else {
+                storageBar.style.background = 'var(--accent)'; // Κανονικό χρώμα
+            }
+        }
+
+    } catch (err) {
+        console.error("❌ Σφάλμα υπολογισμού χώρου:", err);
+        if (storageText) storageText.innerText = "Σφάλμα υπολογισμού";
+    }
+}

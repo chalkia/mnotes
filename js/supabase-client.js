@@ -287,7 +287,14 @@ function loginWithGoogle() {
 // --- GLOBAL AUTH STATE LISTENER ---
 supabaseClient.auth.onAuthStateChange((event, session) => {
     console.log("Auth Event:", event);
-    
+   
+   if (event === 'PASSWORD_RECOVERY') {
+        // Κλείνουμε τυχόν άλλα modals και ανοίγουμε αυτό της επαναφοράς
+        document.getElementById('authModal').style.display = 'none';
+        document.getElementById('resetPasswordModal').style.display = 'flex';
+        return;
+    }
+
     if (session) {
         currentUser = session.user;
         updateAuthUI(true);

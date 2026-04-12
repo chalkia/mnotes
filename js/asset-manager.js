@@ -22,53 +22,94 @@ function closeAssetManager() {
 }
 
 // 2. Φόρτωση Αρχείων από τον πίνακα user_assets (Supabase)
+// 2. Φόρτωση Αρχείων από τον πίνακα user_assets (Supabase)
 async function loadUserAssets(type) {
     const listContainer = document.getElementById('assetManagerList');
     listContainer.innerHTML = `<div class="empty-state">Φόρτωση αρχείων... / Loading...</div>`;
 
+    // ✨ ΕΛΕΓΧΟΣ DOWNGRADE (Λειτουργία Read-Only / Παγωμένο Αρχείο)
+    const isReadOnly = (typeof canUserPerform === 'function' && !canUserPerform('SAVE_ATTACHMENTS'));
+
     try {
-        console.log(`[AssetManager] Αναζήτηση αρχείων τύπου: ${type} για τον χρήστη: ${currentUser.id}`);
+        console.log(`[AssetManager] Αναζήτηση αρχείων τύπου: ${type} για context: ${currentGroupId}`);
         
-        const { data, error } = await supabaseClient
-            .from('user_assets')
-            .select('*')
-            .eq('user_id', currentUser.id)
-            .eq('file_type', type)
-            .order('created_at', { ascending: false });
+        // ✨ ΔΥΝΑΜΙΚΟ QUERY: Φέρνει είτε τα Προσωπικά, είτε ΟΛΑ τα αρχεία της τρέχουσας Μπάντας
+        let query = supabaseClient.from('user_assets').select('*').eq('file_type', type);
+        
+        if (currentGroupId === 'personal') {
+            query = query.eq('user_id', currentUser.id).is('group_id', null);
+        } else {
+            query = query.eq('group_id', currentGroupId);
+        }
+
+        const { data, error } = await query.order('created_at', { ascending: false });
 
         if (error) throw error;
+
+        // ✨ BANNER ΠΑΓΩΜΕΝΟΥ ΧΩΡΟΥ (Αν έχει γίνει Downgrade)
+        let vaultBanner = '';
+        if (isReadOnly && data && data.length > 0) {
+            vaultBanner = `
+                <div style="background: rgba(255, 193, 7, 0.15); border: 1px solid #ffc107; color: #ffc107; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 0.85rem; text-align: center;">
+                    <i class="fas fa-snowflake"></i> <b>Παγωμένος Χώρος:</b> Το πακέτο σας άλλαξε σε Free. 
+                    Τα αρχεία σας είναι ασφαλή, μπορείτε να τα κατεβάσετε, αλλά δεν μπορείτε να τα προσθέσετε σε νέα τραγούδια.
+                </div>
+            `;
+            // Κρύβουμε και την περιοχή του Upload!
+            const uploadSection = document.getElementById('assetUploadSection'); 
+            if (uploadSection) uploadSection.style.display = 'none';
+        } else {
+            const uploadSection = document.getElementById('assetUploadSection'); 
+            if (uploadSection) uploadSection.style.display = 'block';
+        }
 
         if (!data || data.length === 0) {
             listContainer.innerHTML = `<div class="empty-state">Δεν βρέθηκαν αρχεία / No files found.</div>`;
             return;
         }
 
-        // Επιλογή εικονιδίου ανάλογα με τον τύπο
         let iconClass = 'fas fa-file';
         if (type === 'audio') iconClass = 'fas fa-music';
         else if (type === 'document') iconClass = 'fas fa-file-pdf';
-        else if (type === 'rhythm') iconClass = 'fas fa-drum'; // ΝΕΟ!
+        else if (type === 'rhythm') iconClass = 'fas fa-drum';
 
         // Σχεδιάζουμε τη λίστα
-        listContainer.innerHTML = data.map(asset => `
+        const listHtml = data.map(asset => {
+            // Δείχνουμε ποιος το ανέβασε αν είμαστε στη Μπάντα
+            const ownerTag = (currentGroupId !== 'personal' && asset.user_id === currentUser.id) 
+                ? '<span style="font-size:0.65rem; color:var(--accent); margin-left:5px;">(Εσύ)</span>' : '';
+
+            // Αν είναι ReadOnly, το κουμπί Σύνδεσης εξαφανίζεται!
+            const attachBtn = isReadOnly ? '' : `
+                <button onclick="attachExistingAsset('${asset.custom_name}', '${asset.file_url}')" class="add-mini-btn" title="Σύνδεση με το τραγούδι / Attach to song">
+                    <i class="fas fa-link"></i>
+                </button>
+            `;
+
+            // Μόνο ο Uploader ή ο Admin της μπάντας μπορεί να διαγράψει το αρχείο από το Cloud
+            const canDelete = asset.user_id === currentUser.id || currentRole === 'owner' || currentRole === 'admin' || currentRole === 'maestro';
+            const deleteBtn = canDelete ? `
+                <button onclick="deleteAssetFromLibrary('${asset.id}', '${asset.file_url}', '${asset.custom_name}')" class="play-mini-btn" style="color: #dc3545; border-color: #dc3545;" title="Οριστική Διαγραφή / Delete">
+                    <i class="fas fa-trash"></i>
+                </button>
+            ` : '';
+
+            return `
             <div style="display:flex; justify-content:space-between; align-items:center; padding:8px; border-bottom:1px solid var(--border-color);">
                 <span style="font-size:0.85rem; word-break:break-all;">
-                    <i class="${iconClass}" style="margin-right:5px; color:var(--accent);"></i> ${asset.custom_name}
+                    <i class="${iconClass}" style="margin-right:5px; color:var(--accent);"></i> ${asset.custom_name} ${ownerTag}
                 </span>
                 <div style="display:flex; gap: 8px;">
                     <button onclick="downloadAssetLocal('${asset.file_url}', '${asset.custom_name}')" class="play-mini-btn" title="Λήψη / Download" style="color: #28a745; border-color: #28a745;">
                         <i class="fas fa-download"></i>
                     </button>
-                    
-                    <button onclick="attachExistingAsset('${asset.custom_name}', '${asset.file_url}')" class="add-mini-btn" title="Σύνδεση με το τραγούδι / Attach to song">
-                        <i class="fas fa-link"></i>
-                    </button>
-                    <button onclick="deleteAssetFromLibrary('${asset.id}', '${asset.file_url}', '${asset.custom_name}')" class="play-mini-btn" style="color: #dc3545; border-color: #dc3545;" title="Οριστική Διαγραφή / Delete">
-                        <i class="fas fa-trash"></i>
-                    </button>
+                    ${attachBtn}
+                    ${deleteBtn}
                 </div>
             </div>
-        `).join('');
+        `}).join('');
+
+        listContainer.innerHTML = vaultBanner + listHtml;
 
     } catch (err) {
         console.error("[AssetManager] Σφάλμα φόρτωσης αρχείων:", err);
@@ -152,11 +193,12 @@ async function handleGlobalUpload(inputElement) {
         const { data: { publicUrl } } = supabaseClient.storage.from('audio_files').getPublicUrl(`${currentUser.id}/${filename}`);
         console.log("[AssetManager] Το αρχείο ανέβηκε επιτυχώς στο Storage:", publicUrl);
 
-        // Βήμα Β: Αποθήκευση στην παγκόσμια βιβλιοθήκη του χρήστη (user_assets)
+       // ✨ Βήμα Β: Αποθήκευση στη Βάση (Με Δίκαιη Χρέωση & Shared Access)
         const { error: dbErr } = await supabaseClient
             .from('user_assets')
             .insert([{
-                user_id: currentUser.id,
+                user_id: currentUser.id,    // Χρεώνεται στον Uploader
+                group_id: currentGroupId === 'personal' ? null : currentGroupId, // Συνδέεται με τη μπάντα!
                 custom_name: customTrackName,
                 file_url: publicUrl,
                 file_type: assetType

@@ -230,8 +230,8 @@
                             <input id="inpTags" type="hidden">
                         </div>
                     </div>
-                    <input id="inpIntro" class="inp" data-i18n="inp_intro oninput="autoSaveDraft()">
-                    <input id="inpInter" class="inp" data-i18n="inp_inter oninput="autoSaveDraft()">
+                    <input id="inpIntro" class="inp" data-i18n="inp_intro" oninput="autoSaveDraft()">
+                    <input id="inpInter" class="inp" data-i18n="inp_inter" oninput="autoSaveDraft()">
                     <textarea id="inpBody" class="inp txt-area" data-i18n="inp_body" oninput="autoSaveDraft()"></textarea>
                 </div>
                
@@ -444,15 +444,16 @@
             <button onclick="document.getElementById('importChoiceModal').style.display='none'" class="modal-btn cancel" data-i18n="btn_cancel">Cancel</button>
         </div>
     </div>
-
     <div id="assetManagerModal" class="modal" style="display:none;">
-        <div class="modal-content" style="max-width: 500px; width: 95%;">
+    <div class="modal-content" style="max-width: 500px; width: 95%;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
                 <h3 style="margin:0;"><i class="fas fa-photo-video"></i> <span data-i18n="title_media_library">My Media Library</span></h3>
                 <button onclick="closeAssetManager()" class="text-btn"><i class="fas fa-times"></i></button>
             </div>
             
-            <div style="margin-bottom: 15px; text-align: center;">
+            <div id="vaultStatusMessage"></div>
+    
+            <div id="assetUploadSection" style="margin-bottom: 15px; text-align: center;">
                 <input type="file" id="inpGlobalUpload" style="display:none;" accept=".mp3, .wav, .m4a, .webm, audio/mpeg, audio/wav, audio/mp4, audio/webm, .pdf, application/pdf, .png, .jpg, .jpeg, image/png, image/jpeg, .mnr, .mnrythm, .nmr" onchange="handleGlobalUpload(this)">
                 <button onclick="document.getElementById('inpGlobalUpload').click()" class="highlight-btn" style="width:100%; padding:10px; font-size:1rem;">
                     <i class="fas fa-cloud-upload-alt"></i> <span data-i18n="btn_upload_new">Upload New File</span>
@@ -461,13 +462,13 @@
             
             <label class="list-label" data-i18n="lbl_my_files">MY UPLOADED FILES:</label>
             <div class="asset-list-container" style="max-height: 250px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; background: rgba(0,0,0,0.05);">
-                <div id="assetManagerList" class="compact-list">
-                    </div>
+                <div id="assetManagerList" class="compact-list"></div>
             </div>
             
             <input type="hidden" id="assetManagerCurrentType" value="audio">
         </div>
-    </div> 
+    </div>
+
     
     <div id="settingsModal" class="modal" style="display:none;">
     <div class="modal-content settings-content">
@@ -573,34 +574,38 @@
 
   <input type="file" id="hiddenFileInput" style="display:none;" accept=".json, .mnote, .mnotes" onchange="processFileDirectly(this)" style="display: none;" >
     
-    <div id="authModal" class="modal-overlay" style="display:none;">
+     <div id="authModal" class="modal-overlay" style="display:none;">
         <div class="modal-box">
-             <h3 data-i18n="title_login"><i class="fas fa-sign-in-alt"></i> Login / Sign Up</h3>
-             
-             <div style="background: rgba(255, 193, 7, 0.1); border: 1px solid #ffc107; color: #ffbc00; padding: 10px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 15px; text-align: center; line-height: 1.4;">
-                 <i class="fas fa-info-circle"></i> <b data-i18n="lbl_beta_title">BETA VERSION</b><br>
-                 <span data-i18n="lbl_beta_desc">Η εφαρμογή βρίσκεται σε δοκιμαστική φάση. Προς το παρόν υποστηρίζονται μόνο δωρεάν εγγραφές.</span>
-             </div>
-             
-             <button onclick="loginWithGoogle()" class="google-btn">
+            <h3 data-i18n="title_login" style="margin-bottom: 10px;"><i class="fas fa-sign-in-alt"></i> Login / Sign Up</h3>
+            
+            <div style="background: rgba(255, 193, 7, 0.1); border: 1px solid #ffc107; color: #ffbc00; padding: 10px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 15px; text-align: center; line-height: 1.4;">
+                <i class="fas fa-gift"></i> <b>EARLY ACCESS</b><br>
+                Η εφαρμογή είναι σε περίοδο Early Access. Τα Premium πακέτα ξεκλειδώνονται προς το παρόν <b>μόνο με Κωδικούς Δώρου</b>.
+            </div>
+            
+            <p id="authMsg" style="font-size: 0.95rem; color: #ccc; margin-bottom: 20px; line-height: 1.5; text-align: center;">
+                Δημιουργήστε έναν <b>ΔΩΡΕΑΝ</b> λογαριασμό για να ξεκλειδώσετε απεριόριστα τραγούδια, να ενεργοποιήσετε το Backup Cloud και να μη χάσετε ποτέ τη δουλειά σας!
+            </p>
+            
+            <button onclick="loginWithGoogle()" class="google-btn">
                 <img src="https://www.svgrepo.com/show/475656/google-color.svg" width="25"> 
-                <span data-i18n="btn_google_login">Sign in with Google</span>
-             </button>
-             
-             <div class="auth-sep"><div class="sep-line"></div><span data-i18n="lbl_or_email">OR EMAIL</span><div class="sep-line"></div></div>
-             
-             <input type="email" id="authEmail" class="inp" data-i18n="ph_email" placeholder="Email">
-             <input type="password" id="authPass" class="inp" data-i18n="ph_password" placeholder="Password">
-             
-             <div style="text-align: right; margin-bottom: 15px; padding-right: 5px;">
-                 <a href="#" onclick="sendPasswordReset()" style="color: var(--accent); font-size: 0.85rem; text-decoration: none;" data-i18n="btn_forgot_pass">Forgot password?</a>
-             </div>
-
-             <button onclick="doLogin()" class="modal-btn accent" data-i18n="btn_login"><i class="fas fa-sign-in-alt"></i> Login</button>
-             <button onclick="doSignUp()" class="modal-btn" data-i18n="btn_signup"><i class="fas fa-user-plus"></i> Sign Up</button>
-             <button onclick="document.getElementById('authModal').style.display='none'" class="modal-btn cancel" data-i18n="btn_close"><i class="fas fa-times"></i> Close</button>
-             
-             <div id="authMsg" class="auth-error-msg"></div>
+                <span data-i18n="btn_google_login">Σύνδεση με Google</span>
+            </button>
+            
+            <div class="auth-sep"><div class="sep-line"></div><span data-i18n="lbl_or_email">Ή ΜΕ EMAIL</span><div class="sep-line"></div></div>
+            
+            <input type="email" id="authEmail" class="inp" data-i18n="ph_email" placeholder="Email">
+            <input type="password" id="authPass" class="inp" data-i18n="ph_password" placeholder="Κωδικός / Password">
+            
+            <div style="text-align: right; margin-bottom: 15px; padding-right: 5px;">
+                <a href="#" onclick="sendPasswordReset()" style="color: var(--accent); font-size: 0.85rem; text-decoration: none;" data-i18n="btn_forgot_pass">Ξεχάσατε τον κωδικό;</a>
+            </div>
+    
+            <button onclick="doLogin()" class="modal-btn accent" data-i18n="btn_login" style="margin-bottom: 10px; justify-content: center;"><i class="fas fa-sign-in-alt"></i> Είσοδος (Login)</button>
+            <button onclick="doSignUp()" class="modal-btn" data-i18n="btn_signup" style="margin-bottom: 10px; justify-content: center; background: transparent; border: 1px solid var(--accent); color: var(--accent);"><i class="fas fa-user-plus"></i> Εγγραφή (Sign Up)</button>
+            <button onclick="document.getElementById('authModal').style.display='none'" class="text-btn" data-i18n="btn_close" style="width: 100%; justify-content: center; color: #888;">Κλείσιμο</button>
+            
+            <div id="authStatus" style="color: var(--danger); font-size: 0.85rem; text-align: center; margin-top: 10px;"></div>
         </div>
     </div>
 
@@ -820,22 +825,8 @@
                 </div>
                 <ul class="p-features">
                     <li><i class="fas fa-check"></i> <b>500MB Cloud Sync</b></li>
-                    <li><i class="fas fa-check"></i> <b>Συμμετοχή Παντού</b></li>
-                    <li><i class="fas fa-check"></i> 50 Setlists</li>
-                    <li><i class="fas fa-check"></i> Πλήρη Εργαλεία Ήχου</li>
-                </ul>
-                <button onclick="document.getElementById('pricingModal').style.display='none'; openSettings();" class="p-btn" data-i18n="btn_req_gift">Requires Gift Code</button>
-            </div>
-
-            <div class="pricing-card">
-                <div class="p-header">
-                    <h3>Band Leader</h3>
-                    <div class="price">Τριμηνιαία</div>
-                </div>
-                <ul class="p-features">
-                    <li><i class="fas fa-check"></i> <b>1.5GB Cloud Sync</b></li>
-                    <li><i class="fas fa-check"></i> <b>1 Μπάντα (Ιδιοκτήτης)</b></li>
-                    <li><i class="fas fa-check"></i> 150 Setlists</li>
+                    <li><i class="fas fa-check"></i> <b>Ίδρυση 1 μπάντας</b></li>
+                    <li><i class="fas fa-check"></i> <b>Συμμετοχή σε έως 2 Μπάντες</b> </li> 
                     <li><i class="fas fa-check"></i> Πλήρη Εργαλεία Ήχου</li>
                 </ul>
                 <button onclick="document.getElementById('pricingModal').style.display='none'; openSettings();" class="p-btn" data-i18n="btn_req_gift">Requires Gift Code</button>
@@ -849,7 +840,7 @@
                 <ul class="p-features">
                     <li><i class="fas fa-check"></i> <b>4.5GB Cloud Sync</b></li>
                     <li><i class="fas fa-check"></i> <b>Έως 5 Μπάντες</b></li>
-                    <li><i class="fas fa-check"></i> 500 Setlists</li>
+                    <li><i class="fas fa-check"></i> Συμμετοχή σε έως 10 Μπάντες</li>
                     <li><i class="fas fa-check"></i> Οργάνωση & Στατιστικά</li>
                 </ul>
                 <button onclick="document.getElementById('pricingModal').style.display='none'; openSettings();" class="p-btn" data-i18n="btn_req_gift">Requires Gift Code</button>
@@ -897,13 +888,12 @@
     
     <div style="margin-bottom:10px;">
         <label style="display:block; font-size:0.8rem; color:#aaa; margin-bottom:3px;">Subscription Tier:</label>
-        <select id="debugTier" style="width:100%; padding:8px; border-radius:6px; background:#000; color:#fff; border:1px solid #555;">
-            <option value="solo_free">Solo Free</option>
+       <select id="debugTier" style="padding: 5px; background: #333; color: #fff; border: 1px solid #555; border-radius: 4px;">
+            <option value="solo_free">Solo Free (Guest/Free)</option>
             <option value="solo_plus">Solo Plus</option>
-            <option value="band_mate">Band Mate</option>
-            <option value="band_leader">Band Leader</option>
-            <option value="band_maestro">Band Maestro</option>
-            <option value="ensemble">Ensemble</option>
+            <option value="band_mate">Band Mate (1 Band Owner)</option>
+            <option value="band_maestro">Band Maestro (5 Bands Owner)</option>
+            <option value="ensemble">Ensemble (Enterprise)</option>
         </select>
     </div>
 
@@ -973,49 +963,38 @@
         </div>
     </div>
 </div>
-    <div id="leaderExitModal" class="modal-overlay" style="display:none; z-index: 6000;">
-        <div class="modal-box" style="width: 95%; max-width: 500px; padding: 25px; background: var(--bg-main);">
-            <h2 style="color: var(--danger); margin-top: 0; border-bottom: 1px solid #444; padding-bottom: 10px;">
-                <i class="fas fa-exclamation-triangle"></i> Αποχώρηση Leader
-            </h2>
-            <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 25px;">
-                Ως ιδρυτής της μπάντας, δεν μπορείτε απλά να αποχωρήσετε. Επιλέξτε πώς θα διαχειριστείτε το μέλλον της μπάντας και τα αρχεία σας.
-            </p>
-    
-            <div style="background: var(--bg-panel); border: 1px solid var(--accent); border-radius: 8px; padding: 15px; margin-bottom: 20px;">
-                <h4 style="margin: 0 0 10px 0; color: var(--accent);"><i class="fas fa-crown"></i> 1. Μεταβίβαση Ηγεσίας</h4>
-                <p style="font-size: 0.85rem; color: #ccc; margin-bottom: 15px;">
-                    Επιλέξτε τον διάδοχό σας. Η μπάντα θα συνεχίσει να λειτουργεί κανονικά υπό τη νέα του ηγεσία.
-                </p>
-                <select id="selSuccessor" class="inp" style="width: 100%; margin-bottom: 15px; background: #222;">
-                    <option value="">-- Επιλέξτε Διάδοχο --</option>
+    <div id="leaderExitModal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; justify-content: center; align-items: center;">
+    <div style="background: var(--bg-panel); padding: 25px; border-radius: 12px; width: 90%; max-width: 400px; border: 1px solid var(--border-color); box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+        
+        <h3 style="color: var(--danger, #ff4444); margin-top: 0; border-bottom: 1px solid #333; padding-bottom: 10px;">
+            <i class="fas fa-crown"></i> Διαχείριση Ηγεσίας
+        </h3>
+        
+        <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 20px;">
+            Ως Ιδρυτής, μπορείτε να μεταβιβάσετε την ηγεσία σε άλλο μέλος ή να διαλύσετε τη μπάντα. Τα αρχεία παραμένουν στους ιδιοκτήτες τους.
+        </p>
+
+        <div style="background: rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+            <label style="display: block; font-size: 0.85rem; color: #aaa; margin-bottom: 5px;">Επιλογή Νέου Leader:</label>
+            <select id="selSuccessor" style="width: 100%; padding: 10px; border-radius: 6px; background: #111; color: #fff; border: 1px solid #444; margin-bottom: 15px;">
                 </select>
-                
-                <label style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 15px; font-size: 0.85rem; color: var(--text-main); cursor: pointer;">
-                    <input type="checkbox" id="cbTransferAssets" style="margin-top: 3px;" checked>
-                    <span><b>Αφήνω τα αρχεία μου στη μπάντα:</b> Μεταβιβάζω την ιδιοκτησία των MP3/PDF που ανέβασα εγώ στον νέο Leader. <i>(Αν ξε-τσεκαριστεί, τα αρχεία σας αφαιρούνται από τη μπάντα, αλλά παραμένουν στον Προσωπικό σας λογαριασμό).</i></span>
-                </label>
-    
-                <button onclick="executeLeadershipTransfer()" class="fs-btn-primary" style="width: 100%; padding: 12px; font-size: 1rem;">
-                    <i class="fas fa-check"></i> Επιβεβαίωση Μεταβίβασης
-                </button>
-            </div>
-    
-            <div style="background: rgba(220, 53, 69, 0.05); border: 1px solid var(--danger); border-radius: 8px; padding: 15px;">
-                <h4 style="margin: 0 0 10px 0; color: var(--danger);"><i class="fas fa-bomb"></i> 2. Οριστική Διάλυση</h4>
-                <p style="font-size: 0.85rem; color: #ccc; margin-bottom: 15px;">
-                    Η μπάντα διαγράφεται οριστικά. <b>Τα αρχεία σας είναι ασφαλή</b> και παραμένουν στον Προσωπικό σας λογαριασμό. Τα μέλη διατηρούν πρόσβαση μόνο στους στίχους/συγχορδίες τους.
-                </p>
-                <button onclick="executeBandDisband()" class="fs-btn-danger" style="width: 100%; padding: 12px; font-size: 1rem;">
-                    <i class="fas fa-trash-alt"></i> Διάλυση Μπάντας
-                </button>
-            </div>
-    
-            <button onclick="document.getElementById('leaderExitModal').style.display='none'" class="text-btn" style="width: 100%; margin-top: 15px; color: #888; padding: 10px;">
-                Ακύρωση
+            
+            <button onclick="executeLeadershipTransfer()" class="modal-btn accent" style="width: 100%; justify-content: center; padding: 12px; font-weight: bold;">
+                <i class="fas fa-exchange-alt"></i> Παράδοση Ηγεσίας
             </button>
         </div>
+
+        <div style="text-align: center; margin: 10px 0; color: #666; font-size: 0.8rem;">— Ή —</div>
+
+        <button onclick="executeBandDisband()" class="modal-btn" style="width: 100%; justify-content: center; background: transparent; border: 1px solid var(--danger); color: var(--danger); padding: 10px;">
+            <i class="fas fa-bomb"></i> Οριστική Διάλυση Μπάντας
+        </button>
+
+        <button onclick="document.getElementById('leaderExitModal').style.display='none'" class="text-btn" style="width: 100%; margin-top: 15px; color: #888;">
+            Ακύρωση
+        </button>
     </div>
+</div>
     <script src="js/sortable.min.js"></script>
     <script src="js/config.js?v=0.50.0"></script>
     <script src="js/supabase.min.js"></script>

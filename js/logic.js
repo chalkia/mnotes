@@ -667,122 +667,142 @@ async function loadContextData() {
 // IMPORT ΛΕΙΤΟΥΡΓΙΑ (SMART MERGE ΜΕ ΕΓΚΡΙΣΗ ΧΡΗΣΤΗ)
 // ==========================================
 
+
 window.processImportedData = async function(data) {
-    console.log("📥 Import Started (Forced Personal Context)...");
-    if (!data) return;
-    
-    // 1. ΕΠΙΒΟΛΗ CONTEXT (ΓΙΑ ΟΛΟΥΣ)
-    if (typeof currentGroupId !== 'undefined' && currentGroupId !== 'personal') {
-        console.log("🔄 Context Switch: Μεταφορά στην Προσωπική Βιβλιοθήκη για την εισαγωγή.");
-        if (typeof switchContext === 'function') await switchContext('personal');
-    }
-
-    if (typeof switchSidebarTab === 'function') switchSidebarTab('library');
-    
-    let newSongs = Array.isArray(data) ? data : (data.songs ? data.songs : [data]);
-    let importCount = 0;
-    let updateCount = 0;
-
-    if (!window.library) window.library = [];
-
-    // ✨ 2. ΚΑΛΑΘΙΑ ΟΜΑΔΙΚΟΥ UPLOAD (BATCHING)
-    let batchCloudPayloads = []; 
-    let batchOfflineQueue = [];
-
-    for (let song of newSongs) {
-        let cleanSong = typeof ensureSongStructure === 'function' ? ensureSongStructure(song) : song;
-        
-        if (!cleanSong.id || String(cleanSong.id).startsWith('demo')) {
-            cleanSong.id = "s_" + Date.now() + Math.random().toString(16).slice(2);
-        }
-
-        const existingIndex = window.library.findIndex(s => s.id === cleanSong.id);
-        let needsSync = false;
-
-        if (existingIndex !== -1) {
-            // --- ΣΥΓΚΡΟΥΣΗ ΒΡΕΘΗΚΕ ---
-            const existingSong = window.library[existingIndex];
-            const importedTime = new Date(cleanSong.updated_at || 0).getTime();
-            const localTime = new Date(existingSong.updated_at || 0).getTime();
-
-            if (importedTime === localTime) {
-                console.log(`| Skip: ${cleanSong.title} (Same version)`);
-                continue; 
-            }
-
-            const ageStatus = importedTime > localTime ? "ΝΕΟΤΕΡΗ" : "ΠΑΛΑΙΟΤΕΡΗ";
-            const userAgrees = confirm(`Στη βιβλιοθήκη σας βρέθηκε μια ${ageStatus} έκδοση του τραγουδιού με τίτλο "${cleanSong.title}".\n\nΝα γίνει αντικατάσταση;`);
-
-            if (userAgrees) {
-                cleanSong.recordings = existingSong.recordings || [];
-                cleanSong.attachments = existingSong.attachments || [];
-                window.library[existingIndex] = cleanSong;
-                updateCount++;
-                needsSync = true;
-            }
-        } else {
-            // --- ΝΕΟ ΤΡΑΓΟΥΔΙ ---
-            if (!cleanSong.updated_at) cleanSong.updated_at = new Date().toISOString();
-            window.library.push(cleanSong);
-            importCount++;
-            needsSync = true;
-        }
-
-        // ✨ 3. Προσθήκη στο καλάθι (Αντί για 1-1 upload)
-        if (needsSync && typeof canUserPerform === 'function' && canUserPerform('USE_SUPABASE') && currentUser) {
-            const safePayload = typeof window.sanitizeForDatabase === 'function' ? window.sanitizeForDatabase(cleanSong, currentUser.id, null) : cleanSong;
-            if (navigator.onLine) {
-                batchCloudPayloads.push(safePayload);
-            } else {
-                batchOfflineQueue.push(safePayload);
-            }
-        }
-    }
-
-    // ✨ 4. ΟΜΑΔΙΚΟ UPLOAD ΣΤΗ SUPABASE (Εκτός της λούπας!)
-    if (batchCloudPayloads.length > 0 && typeof supabaseClient !== 'undefined') {
-        console.log(`☁️ Ομαδικό ανέβασμα ${batchCloudPayloads.length} τραγουδιών...`);
-        try {
-            await supabaseClient.from('songs').upsert(batchCloudPayloads);
-        } catch (err) {
-            console.error("Batch Upsert Error:", err);
-        }
-    }
-    
-    if (batchOfflineQueue.length > 0 && typeof addToSyncQueue === 'function') {
-        batchOfflineQueue.forEach(payload => addToSyncQueue('SAVE_SONG', payload));
-    }
-
-    // --- ΤΕΛΙΚΗ ΕΝΗΜΕΡΩΣΗ UI ---
-    let finalTargetId = null;
-
-    if (importCount > 0 || updateCount > 0) {
-        library = window.library; 
-        if (typeof saveData === 'function') saveData(); 
-        if (typeof applySortAndRender === 'function') applySortAndRender(); 
-        
-        let msg = "";
-        if (importCount > 0) msg += `${importCount} Νέα ✅ `;
-        if (updateCount > 0) msg += `${updateCount} Ενημερώθηκαν 🔄`;
-        if (typeof showToast === 'function') showToast(msg.trim());
-        
-        if (newSongs.length > 0) finalTargetId = newSongs[newSongs.length - 1].id; 
-        else if (window.library.length > 0) finalTargetId = window.library[window.library.length - 1].id;
-
-        if (finalTargetId && typeof loadSong === 'function') {
-            currentSongId = finalTargetId;
-            loadSong(finalTargetId);
-            if (window.innerWidth > 1024) {
-                if (typeof toViewer === 'function') toViewer(true);
-            } else {
-                if (typeof switchDrawerTab === 'function') switchDrawerTab('stage'); 
-            }
-        }
-    } else {
-        if (typeof showToast === 'function') showToast("Δεν έγιναν νέες εισαγωγές ή αντικαταστάσεις.");
-    }
-};
-
+       console.log("📥 Import Started (Forced Personal Context)...");
+       if (!data) return;
+       
+       let newSongs = Array.isArray(data) ? data : (data.songs ? data.songs : [data]);
+   
+       // ✨ ΝΕΟ: ΕΛΕΓΧΟΣ ΟΡΙΟΥ GUEST ΓΙΑ ΤΟ IMPORT (Το παραθυράκι έκλεισε!)
+       if (typeof currentUser === 'undefined' || !currentUser) {
+           const userSongs = (window.library || []).filter(s => !String(s.id).includes('demo'));
+           const guestLimit = typeof getUserLimits === 'function' ? (getUserLimits().maxGuestSongs || 5) : 5;
+           
+           // Ελέγχουμε αν το άθροισμα (αυτά που έχει + αυτά που φέρνει) ξεπερνάει το 5
+           if (userSongs.length + newSongs.length > guestLimit) {
+               if (typeof showToast === 'function') showToast("Η εισαγωγή ξεπερνάει το όριο επισκεπτών! (5/5)", "warning");
+               
+               const authMsg = document.getElementById('authMsg');
+               if (authMsg) authMsg.innerText = "Δημιουργήστε έναν ΔΩΡΕΑΝ λογαριασμό για να εισάγετε απεριόριστα τραγούδια!";
+               
+               const authModal = document.getElementById('authModal');
+               if (authModal) authModal.style.display = 'flex';
+               
+               return; // ⛔ Μπλοκάρουμε το Import!
+           }
+       }
+   
+       // 1. ΕΠΙΒΟΛΗ CONTEXT (ΓΙΑ ΟΛΟΥΣ)
+       if (typeof currentGroupId !== 'undefined' && currentGroupId !== 'personal') {
+           console.log("🔄 Context Switch: Μεταφορά στην Προσωπική Βιβλιοθήκη για την εισαγωγή.");
+           if (typeof switchContext === 'function') await switchContext('personal');
+       }
+   
+       if (typeof switchSidebarTab === 'function') switchSidebarTab('library');
+       
+       let importCount = 0;
+       let updateCount = 0;
+   
+       if (!window.library) window.library = [];
+   
+       // ✨ 2. ΚΑΛΑΘΙΑ ΟΜΑΔΙΚΟΥ UPLOAD (BATCHING)
+       let batchCloudPayloads = []; 
+       let batchOfflineQueue = [];
+   
+       for (let song of newSongs) {
+           let cleanSong = typeof ensureSongStructure === 'function' ? ensureSongStructure(song) : song;
+           
+           if (!cleanSong.id || String(cleanSong.id).startsWith('demo')) {
+               cleanSong.id = "s_" + Date.now() + Math.random().toString(16).slice(2);
+           }
+   
+           const existingIndex = window.library.findIndex(s => s.id === cleanSong.id);
+           let needsSync = false;
+   
+           if (existingIndex !== -1) {
+               // --- ΣΥΓΚΡΟΥΣΗ ΒΡΕΘΗΚΕ ---
+               const existingSong = window.library[existingIndex];
+               const importedTime = new Date(cleanSong.updated_at || 0).getTime();
+               const localTime = new Date(existingSong.updated_at || 0).getTime();
+   
+               if (importedTime === localTime) {
+                   console.log(`| Skip: ${cleanSong.title} (Same version)`);
+                   continue; 
+               }
+   
+               const ageStatus = importedTime > localTime ? "ΝΕΟΤΕΡΗ" : "ΠΑΛΑΙΟΤΕΡΗ";
+               const userAgrees = confirm(`Στη βιβλιοθήκη σας βρέθηκε μια ${ageStatus} έκδοση του τραγουδιού με τίτλο "${cleanSong.title}".\n\nΝα γίνει αντικατάσταση;`);
+   
+               if (userAgrees) {
+                   cleanSong.recordings = existingSong.recordings || [];
+                   cleanSong.attachments = existingSong.attachments || [];
+                   window.library[existingIndex] = cleanSong;
+                   updateCount++;
+                   needsSync = true;
+               }
+           } else {
+               // --- ΝΕΟ ΤΡΑΓΟΥΔΙ ---
+               if (!cleanSong.updated_at) cleanSong.updated_at = new Date().toISOString();
+               window.library.push(cleanSong);
+               importCount++;
+               needsSync = true;
+           }
+   
+           // ✨ 3. Προσθήκη στο καλάθι (Αντί για 1-1 upload)
+           if (needsSync && typeof canUserPerform === 'function' && canUserPerform('USE_SUPABASE') && currentUser) {
+               const safePayload = typeof window.sanitizeForDatabase === 'function' ? window.sanitizeForDatabase(cleanSong, currentUser.id, null) : cleanSong;
+               if (navigator.onLine) {
+                   batchCloudPayloads.push(safePayload);
+               } else {
+                   batchOfflineQueue.push(safePayload);
+               }
+           }
+       }
+   
+       // ✨ 4. ΟΜΑΔΙΚΟ UPLOAD ΣΤΗ SUPABASE (Εκτός της λούπας!)
+       if (batchCloudPayloads.length > 0 && typeof supabaseClient !== 'undefined') {
+           console.log(`☁️ Ομαδικό ανέβασμα ${batchCloudPayloads.length} τραγουδιών...`);
+           try {
+               await supabaseClient.from('songs').upsert(batchCloudPayloads);
+           } catch (err) {
+               console.error("Batch Upsert Error:", err);
+           }
+       }
+       
+       if (batchOfflineQueue.length > 0 && typeof addToSyncQueue === 'function') {
+           batchOfflineQueue.forEach(payload => addToSyncQueue('SAVE_SONG', payload));
+       }
+   
+       // --- ΤΕΛΙΚΗ ΕΝΗΜΕΡΩΣΗ UI ---
+       let finalTargetId = null;
+   
+       if (importCount > 0 || updateCount > 0) {
+           library = window.library; 
+           if (typeof saveData === 'function') saveData(); 
+           if (typeof applySortAndRender === 'function') applySortAndRender(); 
+           
+           let msg = "";
+           if (importCount > 0) msg += `${importCount} Νέα ✅ `;
+           if (updateCount > 0) msg += `${updateCount} Ενημερώθηκαν 🔄`;
+           if (typeof showToast === 'function') showToast(msg.trim());
+           
+           if (newSongs.length > 0) finalTargetId = newSongs[newSongs.length - 1].id; 
+           else if (window.library.length > 0) finalTargetId = window.library[window.library.length - 1].id;
+   
+           if (finalTargetId && typeof loadSong === 'function') {
+               currentSongId = finalTargetId;
+               loadSong(finalTargetId);
+               if (window.innerWidth > 1024) {
+                   if (typeof toViewer === 'function') toViewer(true);
+               } else {
+                   if (typeof switchDrawerTab === 'function') switchDrawerTab('stage'); 
+               }
+           }
+       } else {
+           if (typeof showToast === 'function') showToast("Δεν έγιναν νέες εισαγωγές ή αντικαταστάσεις.");
+       }
+   };
 
 // --- AUDIO & ATTACHMENT RECORDING SAVING ---
 async function addRecordingToCurrentSong(newRec) {

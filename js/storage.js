@@ -157,6 +157,20 @@ async function importJSON(input) {
 }
 
 function exportJSON() {
+   // ✨ ΝΕΟ: ΕΛΕΓΧΟΣ EXPORT ΓΙΑ ΕΠΙΣΚΕΠΤΕΣ (GUEST Auth-Wall)
+    if (typeof currentUser === 'undefined' || !currentUser) {
+        if (typeof canUserPerform === 'function' && !canUserPerform('GUEST_EXPORT')) {
+            if (typeof showToast === 'function') showToast("Η Εξαγωγή απαιτεί εγγραφή.", "warning");
+            
+            const authMsg = document.getElementById('authMsg');
+            if (authMsg) authMsg.innerText = "Δημιουργήστε έναν ΔΩΡΕΑΝ λογαριασμό για να ξεκλειδώσετε την Εξαγωγή (Backup) των τραγουδιών σας!";
+            
+            const authModal = document.getElementById('authModal');
+            if (authModal) authModal.style.display = 'flex';
+            
+            return; // ⛔ Σταματάει η εξαγωγή αμέσως!
+        }
+    }
     const isPersonal = (typeof currentGroupId === 'undefined' || currentGroupId === 'personal');
     
     // ✨ ΜΑΓΕΙΑ W.Y.S.I.W.Y.G: Παίρνουμε Ο,ΤΙ ΒΛΕΠΕΙ Ο ΧΡΗΣΤΗΣ στη Sidebar!

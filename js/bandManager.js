@@ -476,79 +476,97 @@ async function executeBandDisband() {
 
     try {
         console.log(`💣 [DISBAND] Διάλυση μπάντας: ${currentGroupId}`);
-        showToast("Η μπάντα διαλύεται...", "info");
+        if (typeof showToast === 'function') showToast("Η μπάντα διαλύεται...", "info");
         
-        // Σβήνουμε μόνο το Group. 
-        // 1. Τα φυσικά αρχεία (Storage) μένουν άθικτα στον φάκελο του καθενός!
-        // 2. Οι Κλώνοι των μελών (songs) θα διασωθούν μέσω του Μηχανισμού Διάσωσης
+        // ✨ ΦΑΣΗ 3: SOFT-COPY ΑΡΧΕΙΩΝ & ΔΙΑΣΩΣΗ
+        // Όλα τα αρχεία της μπάντας (user_assets) που ανέβασαν τα μέλη, αποσυνδέονται 
+        // από τη μπάντα (group_id = null) και επιστρέφουν οριστικά στα Προσωπικά τους.
+        console.log("📦 Επιστροφή των αρχείων στους δημιουργούς τους...");
+        const { error: assetErr } = await supabaseClient
+            .from('user_assets')
+            .update({ group_id: null })
+            .eq('group_id', currentGroupId);
+            
+        if (assetErr) console.warn("⚠️ Πρόβλημα κατά τη διάσωση αρχείων:", assetErr);
+
+        // Σβήνουμε το Group (Η Supabase θα διαγράψει αυτόματα τα τραγούδια του μέσω Cascade)
+        // Οι Κλώνοι των μελών στα Προσωπικά τους, ΔΕΝ επηρεάζονται γιατί έχουν group_id = null.
         await supabaseClient.from('groups').delete().eq('id', currentGroupId);
         
-        showToast("Η μπάντα διαλύθηκε επιτυχώς.");
+        if (typeof showToast === 'function') showToast("Η μπάντα διαλύθηκε. Τα αρχεία επεστράφησαν στους ιδιοκτήτες τους.");
         setTimeout(() => window.location.reload(), 1500);
     } catch (err) {
         console.error("Disband Error:", err);
-        showToast("Σφάλμα κατά τη διάλυση.", "error");
+        if (typeof showToast === 'function') showToast("Σφάλμα κατά τη διάλυση.", "error");
     }
 }
 
 async function executeLeadershipTransfer() {
     const successorId = document.getElementById('selSuccessor').value;
-    const transferAssets = document.getElementById('cbTransferAssets').checked;
 
     if (!successorId) {
-        showToast("Παρακαλώ επιλέξτε διάδοχο.", "error");
+        if (typeof showToast === 'function') showToast("Παρακαλώ επιλέξτε διάδοχο.", "error");
         return;
     }
 
     if (!confirm("Είστε σίγουροι για τη μεταβίβαση της ηγεσίας;")) return;
 
     try {
-        showToast("Εκτέλεση μεταβίβασης... Μην κλείσετε το παράθυρο.", "info");
+        if (typeof showToast === 'function') showToast("Εκτέλεση μεταβίβασης... Μην κλείσετε το παράθυρο.", "info");
 
-        // 1. Αλλαγή Ρόλων
+        // 1. Αλλαγή Ρόλων στον πίνακα Members
         await supabaseClient.from('group_members').update({ role: 'owner' }).eq('group_id', currentGroupId).eq('user_id', successorId);
         await supabaseClient.from('group_members').update({ role: 'member' }).eq('group_id', currentGroupId).eq('user_id', currentUser.id);
+        
+        // 2. Αλλαγή Ιδιοκτήτη (Owner) στον πίνακα Groups
         await supabaseClient.from('groups').update({ owner_id: successorId }).eq('id', currentGroupId);
 
-        // 2. Μεταφορά Αρχείων (Storage & URLs)
-        if (transferAssets) {
-            console.log("📦 Μετακίνηση φυσικών αρχείων στον νέο Leader...");
-            
-            const { data: myAssets } = await supabaseClient
-                .from('user_assets') 
-                .select('*')
-                .eq('user_id', currentUser.id)
-                .eq('group_id', currentGroupId); 
+        // ✨ ΦΑΣΗ 3: ΑΠΛΟΠΟΙΗΣΗ! 
+        // Αφαιρέσαμε όλον τον παλιό κώδικα με το cbTransferAssets και το supabase.storage.move.
+        // Γιατί; Επειδή πλέον τα αρχεία ανήκουν στα μέλη που τα ανέβασαν! Ο νέος Leader 
+        // δεν χρειάζεται να "υιοθετήσει" τα δικά σου αρχεία. Απλά αναλαμβάνει τον συντονισμό.
+        console.log("🔄 Η ηγεσία μεταβιβάστηκε επιτυχώς. Τα δικαιώματα αρχείων παρέμειναν στους δημιουργούς τους.");
 
-            if (myAssets && myAssets.length > 0) {
-                for (let asset of myAssets) {
-                    let fileName = asset.file_url.split('/').pop(); 
-                    let oldPath = `${currentUser.id}/${fileName}`; 
-                    let newPath = `${successorId}/${fileName}`;
-                    let newFileUrl = asset.file_url.replace(currentUser.id, successorId);
-
-                    const { error: moveErr } = await supabaseClient.storage.from('user_assets').move(oldPath, newPath);
-                    
-                    if (!moveErr) {
-                        await supabaseClient.from('user_assets')
-                            .update({ user_id: successorId, file_url: newFileUrl })
-                            .eq('id', asset.id);
-                    } else {
-                        console.warn(`⚠️ Αποτυχία μετακίνησης:`, moveErr);
-                    }
-                }
-            }
-        } else {
-            console.log("🔒 Ο χρήστης πήρε τα αρχεία του πίσω.");
-            await supabaseClient.from('user_assets').update({ group_id: null }).eq('user_id', currentUser.id).eq('group_id', currentGroupId);
-        }
-
-        showToast("Η μεταβίβαση ολοκληρώθηκε! 🤝");
+        if (typeof showToast === 'function') showToast("Η μεταβίβαση ολοκληρώθηκε! 🤝");
         setTimeout(() => window.location.reload(), 2000);
 
     } catch (err) {
         console.error("Transfer Error:", err);
-        showToast("Σφάλμα κατά τη μεταβίβαση.", "error");
+        if (typeof showToast === 'function') showToast("Σφάλμα κατά τη μεταβίβαση.", "error");
+    }
+}
+async function executeLeadershipTransfer() {
+    const successorId = document.getElementById('selSuccessor').value;
+
+    if (!successorId) {
+        if (typeof showToast === 'function') showToast("Παρακαλώ επιλέξτε διάδοχο.", "error");
+        return;
+    }
+
+    if (!confirm("Είστε σίγουροι για τη μεταβίβαση της ηγεσίας;")) return;
+
+    try {
+        if (typeof showToast === 'function') showToast("Εκτέλεση μεταβίβασης... Μην κλείσετε το παράθυρο.", "info");
+
+        // 1. Αλλαγή Ρόλων στον πίνακα Members
+        await supabaseClient.from('group_members').update({ role: 'owner' }).eq('group_id', currentGroupId).eq('user_id', successorId);
+        await supabaseClient.from('group_members').update({ role: 'member' }).eq('group_id', currentGroupId).eq('user_id', currentUser.id);
+        
+        // 2. Αλλαγή Ιδιοκτήτη (Owner) στον πίνακα Groups
+        await supabaseClient.from('groups').update({ owner_id: successorId }).eq('id', currentGroupId);
+
+        // ✨ ΦΑΣΗ 3: ΑΠΛΟΠΟΙΗΣΗ! 
+        // Αφαιρέσαμε όλον τον παλιό κώδικα με το cbTransferAssets και το supabase.storage.move.
+        // Γιατί; Επειδή πλέον τα αρχεία ανήκουν στα μέλη που τα ανέβασαν! Ο νέος Leader 
+        // δεν χρειάζεται να "υιοθετήσει" τα δικά σου αρχεία. Απλά αναλαμβάνει τον συντονισμό.
+        console.log("🔄 Η ηγεσία μεταβιβάστηκε επιτυχώς. Τα δικαιώματα αρχείων παρέμειναν στους δημιουργούς τους.");
+
+        if (typeof showToast === 'function') showToast("Η μεταβίβαση ολοκληρώθηκε! 🤝");
+        setTimeout(() => window.location.reload(), 2000);
+
+    } catch (err) {
+        console.error("Transfer Error:", err);
+        if (typeof showToast === 'function') showToast("Σφάλμα κατά τη μεταβίβαση.", "error");
     }
 }
 

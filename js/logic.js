@@ -22,116 +22,92 @@ const TIER_CONFIG = {
         canCloudSync: false, 
         useSupabase: false, 
         useDrive: false, 
-        canJoinBands: false,       // 🔒 Μόνο ως Viewer σε Ensemble
+        canJoinBands: false,       
         maxBandsOwned: 0,
+        maxBandsJoined: 0,
         maxSetlists: 0, 
         canSaveAttachments: false,
         use_audio: true,
-        use_sequencer: false,    // Για μελλοντική Χρήση. Δεν χρησιμοποιείται για την ώρα και ταυτίζεται με το hasAdvancedDrums
+        use_sequencer: false,    
         hasAdvancedDrums: false,   
         canPrint: false,           
         storageLimitMB: 0,
         includedBandMates: 0,
-        useRhythms: false,   
-        useMStudio: false    
+        // ✨ ΝΕΟ: Όρια Επισκέπτη (Guest)
+        maxGuestSongs: 5,        
+        canGuestExport: false 
     },
     solo_plus: { 
         label: "Plus",
-        billing: "One-Time",
+        billing: "Premium",
         canCloudSync: true, 
         useSupabase: true, 
         useDrive: false,
-        maxSetlists: 1, 
-        canJoinBands: false,       // 🔒 Αποκλειστικά Solo/Viewer σε Ensemble
-        maxBandsOwned: 0,          
+        canJoinBands: false,       
+        maxBandsOwned: 0,
+        maxBandsJoined: 0,
+        maxSetlists: 10, 
         canSaveAttachments: true,
         use_audio: true,
-        use_sequencer: true,
+        use_sequencer: false,
         hasAdvancedDrums: true,    
         canPrint: true,            
         storageLimitMB: 50,
-        includedBandMates: 0,
-        useRhythms: true,   
-        useMStudio: false
+        includedBandMates: 0
     },
     band_mate: { 
         label: "Mate",
-        billing: "Quarterly",
+        billing: "Premium",
         canCloudSync: true, 
         useSupabase: true, 
         useDrive: false,
-        maxSetlists: 50, 
-        canJoinBands: true,        // ✅ Μπαίνει παντού ελεύθερα
-        maxBandsOwned: 0,          
+        canJoinBands: true,        
+        maxBandsOwned: 1,        // ✨ Μπορεί να ιδρύσει 1 μπάντα
+        maxBandsJoined: 2,       // ✨ Μπορεί να συμμετέχει σε έως 2
+        maxSetlists: 20, 
         canSaveAttachments: true,
         use_audio: true,
-        use_sequencer: true,
-        hasAdvancedDrums: true, 
-        canPrint: true,
-        storageLimitMB: 500,
-        includedBandMates: 0,
-        useRhythms: true,   
-        useMStudio: true
-    },
-    band_leader: { 
-        label: "Leader",
-        billing: "Quarterly",
-        canCloudSync: true, 
-        useSupabase: true, 
-        useDrive: false,
-        maxSetlists: 150, 
-        canJoinBands: true, 
-        maxBandsOwned: 1,          
-        canSaveAttachments: true,
-        use_audio: true,
-        use_sequencer: true,
-        hasAdvancedDrums: true, 
-        canPrint: true,
-        storageLimitMB: 1500,
-        includedBandMates: 0,      // 🌟 Έτοιμο για add-ons
-        useRhythms: true,   
-        useMStudio: true
+        use_sequencer: false,
+        hasAdvancedDrums: true,    
+        canPrint: true,            
+        storageLimitMB: 200,     
+        includedBandMates: 0
     },
     band_maestro: { 
         label: "Maestro",
-        billing: "Quarterly",
+        billing: "Premium",
         canCloudSync: true, 
         useSupabase: true, 
         useDrive: false,
-        maxSetlists: 500, 
-        canJoinBands: true, 
-        maxBandsOwned: 5,          
-        canSaveAttachments: true, 
-        hasAdvancedDrums: true,
+        canJoinBands: true,        
+        maxBandsOwned: 5,        
+        maxBandsJoined: 10,
+        maxSetlists: 999, 
+        canSaveAttachments: true,
         use_audio: true,
-        use_sequencer: true,
-        canPrint: true,
+        use_sequencer: false,
+        hasAdvancedDrums: true,    
+        canPrint: true,            
         storageLimitMB: 4500,
-        includedBandMates: 0,      // 🌟 Έτοιμο για add-ons
-        useRhythms: true,   
-        useMStudio: true
+        includedBandMates: 0
     },
     ensemble: { 
         label: "Ensemble",
-        billing: "Yearly",
+        billing: "Enterprise",
         canCloudSync: true, 
         useSupabase: true, 
-        useDrive: false, 
-        canJoinBands: true, 
-        maxBandsOwned: 10,
-        maxSetlists: 1000,
-        canSaveAttachments: true, 
-        hasAdvancedDrums: true,
+        useDrive: false,
+        canJoinBands: true,        
+        maxBandsOwned: 15,       
+        maxBandsJoined: 20,
+        maxSetlists: 999, 
+        canSaveAttachments: true,
         use_audio: true,
-        use_sequencer: true,
-        canPrint: true,
-        storageLimitMB: 4500,
-        // --- ENSEMBLE SPECIFIC LIMITS ---
-        allowsDelegatedAdmin: true, // ✅ Επιτρέπει σε άλλον να είναι ο Μαέστρος
-        includedBandMates: 9,       // ✅ 9 προπληρωμένες θέσεις Premium (συν τον Admin = 10)
-        allowsFreeViewers: true,     // ✅ Επιτρέπει Solo Free χρήστες
-        useRhythms: true,   
-        useMStudio: true
+        use_sequencer: false,
+        hasAdvancedDrums: true,    
+        canPrint: true,            
+        storageLimitMB: 15000,
+        includedBandMates: 10
     }
 };
 // --- ΥΠΟΛΟΓΙΣΜΟΣ ΠΡΑΓΜΑΤΙΚΩΝ ΟΡΙΩΝ (Βάση Πακέτου + Add-ons) ---
@@ -144,17 +120,21 @@ function getUserLimits() {
         tierKey = currentTier;
     }
 
-    const tierMapping = {
-        'free': 'solo_free',
-        'solo': 'solo_plus',
-        'plus': 'solo_plus',
-        'pro': 'solo_plus',      
-        'solo_pro': 'solo_plus', 
-        'member': 'band_mate',
-        'owner': 'band_leader',
-        'maestro': 'band_maestro'
-    };
-    };
+      const tierMapping = {
+           'free': 'solo_free',
+           'solo': 'solo_plus',
+           'plus': 'solo_plus',
+           'pro': 'solo_plus',      
+           'solo_pro': 'solo_plus', 
+           'member': 'band_mate',
+           // ✨ Οι παλιοί leaders γίνονται αυτόματα maestro
+           'owner': 'band_maestro',
+           'leader': 'band_maestro',
+           'band_leader': 'band_maestro',
+           'maestro': 'band_maestro',
+           'ensemble': 'ensemble'
+       };
+   // };  --> Μήπως χρειάζεται?
 
     if (tierMapping[tierKey]) tierKey = tierMapping[tierKey];
     if (!TIER_CONFIG || !TIER_CONFIG[tierKey]) tierKey = 'solo_free';
@@ -176,16 +156,17 @@ function getUserLimits() {
         includedBandMates: (baseConfig.includedBandMates || 0) + extraMates
     };
 }
+
 // --- Ο ΠΟΡΤΙΕΡΗΣ (Ελεγκτής Δικαιωμάτων) v2.2 --- Ισως ΧΡΕΙΑΖΕΤΑΙ ΠΡΟΣΘΗΚΗ ΤΟΥ ΕΝSEMBLE
-// --- Ο ΠΟΡΤΙΕΡΗΣ (Ελεγκτής Δικαιωμάτων) v2.3 ---
 function canUserPerform (action, currentCount=0) {
     const limits = getUserLimits();
 
     switch(action) {
+        // --- ΥΠΑΡΧΟΝΤΑ ΔΙΚΑΙΩΜΑΤΑ (Διατηρούνται ανέπαφα) ---
         case 'USE_SUPABASE':
         case 'CLOUD_SYNC':
             return limits.canCloudSync;
-        case 'JOIN_BANDS':
+        case 'JOIN_BANDS': // Ελέγχει γενικά αν του επιτρέπεται (boolean)
             return limits.canJoinBands;
         case 'SAVE_ATTACHMENTS':
             return limits.canSaveAttachments;
@@ -200,17 +181,35 @@ function canUserPerform (action, currentCount=0) {
         case 'CREATE_SETLIST':
             return currentCount < limits.maxSetlists;
         case 'CREATE_BAND':
-            return currentCount < limits.maxBandsOwned; // 🌟 ΝΕΟ: Ελέγχει αν μπορεί να φτιάξει κι άλλη μπάντα
+            return currentCount < (limits.maxBandsOwned || 0); 
         case 'ADD_BAND_MATE':
-            return currentCount < limits.includedBandMates; // 🌟 ΝΕΟ: Ελέγχει τις θέσεις (slots) που έχει
+            return currentCount < limits.includedBandMates; 
         case 'USE_RHYTHMS':
-            return limits.useRhythms;  // Ελέγχει αν έχει δικαίωμα να φορτώσει .mnr
+            return limits.useRhythms;  
         case 'USE_MSTUDIO':
-            return limits.useMStudio;  // Ελέγχει αν έχει δικαίωμα να μπει στο mStudio
-       default:
+            return limits.useMStudio;  
+          
+        // --- ✨ ΝΕΑ ΔΙΚΑΙΩΜΑΤΑ (Guest & Όρια Μπάντας) ---
+        
+        case 'JOIN_BAND_LIMIT': 
+            // 🌟 ΝΕΟ: Ελέγχει αν έχει ξεπεράσει τον αριθμό των bands που μπορεί να συμμετέχει (π.χ. 2 για Mate)
+            return currentCount < (limits.maxBandsJoined || 0);
+
+        case 'CREATE_GUEST_SONG': 
+            // 🌟 ΝΕΟ: Ελέγχει αν ο επισκέπτης ξεπέρασε τα 5 δωρεάν τραγούδια
+            if (typeof currentUser !== 'undefined' && currentUser) return true;
+            return currentCount < (limits.maxGuestSongs || 5);
+            
+        case 'GUEST_EXPORT': 
+            // 🌟 ΝΕΟ: Απαγορεύει την εξαγωγή αν δεν είναι συνδεδεμένος
+            if (typeof currentUser !== 'undefined' && currentUser) return true;
+            return limits.canGuestExport || false;
+
+        default:
             return false;
     }
 }
+
 // Helper translation function
 if (typeof window.t === 'undefined') {
     window.t = function(key) {
@@ -255,16 +254,16 @@ async function initUserData() {
             let rawTier = profile.subscription_tier.toLowerCase().trim();
             
             // 2. Εμπλουτισμένο mapping για να πιάνει κάθε πιθανή γραφή από τη βάση
+      
             const tierMap = { 
                  'free': 'solo_free', 'solo_free': 'solo_free',
-                 'solo': 'solo_plus', 'plus': 'solo_plus', 'soloplus': 'solo_plus', 'solo_plus': 'solo_plus',
-                 'pro': 'solo_plus', 'solopro': 'solo_plus', 'solo_pro': 'solo_plus', 
+                 'solo': 'solo_plus', 'plus': 'solo_plus', 'soloplus': 'solo_plus', 'solo_plus': 'solo_plus', 'pro': 'solo_plus', 'solo_pro': 'solo_plus',
                  'member': 'band_mate', 'bandmate': 'band_mate', 'band_mate': 'band_mate',
-                 'owner': 'band_leader', 'leader': 'band_leader', 'bandleader': 'band_leader', 'band_leader': 'band_leader',
+                 // ✨ Οι παλιοί leaders γίνονται αυτόματα maestro
+                 'owner': 'band_maestro', 'leader': 'band_maestro', 'bandleader': 'band_maestro', 'band_leader': 'band_maestro',
                  'maestro': 'band_maestro', 'bandmaestro': 'band_maestro', 'band_maestro': 'band_maestro',
                  'ensemble': 'ensemble'
-            };
-            
+             };
             const fetchedTier = tierMap[rawTier] || 'solo_free';
 
             if (!userProfile || userProfile.subscription_tier !== fetchedTier) {

@@ -356,7 +356,26 @@
                             <button class="play-mini-btn" onclick="ChromaticTuner.changeRefFreq(1)" style="width: 20px; height: 20px; padding: 0;">+</button>
                             <span>Hz</span>
                         </div>
-            
+                        <div style="display: flex; justify-content: center; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 0.75rem; color: var(--text-muted);">
+                            <span>A4 =</span>
+                            <button class="play-mini-btn" onclick="ChromaticTuner.changeRefFreq(-1)" style="width: 20px; height: 20px; padding: 0;">-</button>
+                            <span id="tunerRefValue" style="font-weight: bold; color: var(--text-main); width: 28px;">440</span>
+                            <button class="play-mini-btn" onclick="ChromaticTuner.changeRefFreq(1)" style="width: 20px; height: 20px; padding: 0;">+</button>
+                            <span>Hz</span>
+                        </div>
+
+                        <div style="margin-bottom: 20px;">
+                            <select id="tunerInstrument" onchange="ChromaticTuner.setInstrument(this.value)" style="width: 100%; padding: 8px; border-radius: 6px; background: rgba(0,0,0,0.2); color: var(--text-main); border: 1px solid var(--border-color); font-size: 0.85rem; text-align: center; cursor: pointer;">
+                                <option value="chromatic">🎛️ Χρωματικό (Όλες οι συχνότητες)</option>
+                                <option value="guitar">🎸 Κιθάρα (70Hz - 1200Hz)</option>
+                                <option value="bass">🎸 Μπάσο (30Hz - 500Hz)</option>
+                                <option value="bouzouki">🪕 Μπουζούκι (120Hz - 1500Hz)</option>
+                                <option value="lyra">🎻 Κρητική Λύρα (180Hz - 1500Hz)</option>
+                                <option value="violin">🎻 Βιολί (180Hz - 3500Hz)</option>
+                                <option value="mandolin">🪕 Μαντολίνο (180Hz - 1500Hz)</option>
+                                <option value="oud">🪕 Ούτι (50Hz - 800Hz)</option>
+                            </select>
+                        </div>
                         <div style="margin-bottom: 10px;">
                             <div id="tunerNote" style="font-size: 3.8rem; font-weight: 900; line-height: 1; color: var(--text-muted);">-</div>
                             <div id="tunerHz" style="font-size: 1.1rem; font-weight: bold; font-family: monospace; color: var(--text-muted); margin-top: 5px;">0.0 Hz</div>

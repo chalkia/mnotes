@@ -69,21 +69,24 @@ window.ChromaticTuner = {
         }
     },
 
-    stop: function() {
-        this.isRunning = false;
-        if (this.rafId) cancelAnimationFrame(this.rafId);
-        if (this.audioCtx) this.audioCtx.close();
-        if (this.micStream) this.micStream.getTracks().forEach(t => t.stop());
-
-        this.elBtn.innerHTML = `<i class="fas fa-power-off"></i>`;
-        this.elBtn.style.color = "var(--accent)";
-        this.elBtn.style.borderColor = "var(--accent)";
-        this.elStatus.innerText = (typeof t === 'function') ? t('tuner_off') : "Ανενεργό";
-        this.elNote.innerText = "-";
-        this.elCents.innerText = "0¢";
-        this.elBar.style.left = "50%";
-        this.elBar.style.backgroundColor = "#888";
-    },
+      stop: function() {
+           this.isRunning = false;
+           if (this.rafId) cancelAnimationFrame(this.rafId);
+           if (this.audioCtx) this.audioCtx.close();
+           if (this.micStream) this.micStream.getTracks().forEach(t => t.stop());
+   
+           this.elBtn.innerHTML = `<i class="fas fa-power-off"></i>`;
+           this.elBtn.style.color = "var(--accent)";
+           this.elBtn.style.borderColor = "var(--accent)";
+           this.elStatus.innerText = (typeof t === 'function') ? t('tuner_off') : "Ανενεργό";
+           this.elNote.innerText = "-";
+           this.elNote.style.color = "var(--text-muted)";
+           this.elCents.innerText = "0¢";
+           
+           // Μηδενισμός Μπάρας
+           this.elBar.style.width = "0%";
+           this.elBar.style.backgroundColor = "#888";
+       },
 
     detectPitch: function() {
         if (!this.isRunning) return;
@@ -114,19 +117,34 @@ window.ChromaticTuner = {
         this.elNote.innerText = note;
         this.elCents.innerText = (displayCents > 0 ? "+" : "") + displayCents + "¢";
 
-        // Υπολογισμός θέσης της βελόνας (0% έως 100%)
-        let positionPercent = ((displayCents + 50) / 100) * 100;
-        this.elBar.style.left = `${positionPercent}%`;
+        // Υπολογισμός ποσοστού γεμίσματος (0% έως 100%)
+        // -50 cents = 0% | 0 cents = 50% | +50 cents = 100%
+        let fillPercent = displayCents + 50; 
+        this.elBar.style.width = `${fillPercent}%`; 
 
-        // Χρώματα: Πράσινο (Τέλειο), Πορτοκαλί/Κόκκινο (Φάλτσο)
-        if (Math.abs(displayCents) <= 3) {
-            this.elBar.style.backgroundColor = "#28a745"; // Πράσινο
+        // Χρώματα εναρμονισμένα με το θέμα
+        const absCents = Math.abs(displayCents);
+
+        if (absCents <= 3) {
+            // 🎯 ΤΕΛΕΙΑ: Χρώμα θέματος (Πράσινο/Accent)
+            this.elBar.style.backgroundColor = "var(--accent)"; 
             this.elStatus.innerText = (typeof t === 'function') ? t('tuner_perfect') : "Τέλεια!";
-            this.elNote.style.color = "#28a745";
-        } else {
-            this.elBar.style.backgroundColor = displayCents < 0 ? "#ffb74d" : "#dc3545"; // Χαμηλό/Ψηλό
+            this.elNote.style.color = "var(--accent)";
+            this.elStatus.style.color = "var(--accent)";
+        } 
+        else if (absCents <= 15) {
+            // ⚠️ ΚΟΝΤΑ: Πορτοκαλί προειδοποίηση
+            this.elBar.style.backgroundColor = "#ffb74d"; 
             this.elStatus.innerText = displayCents < 0 ? ((typeof t === 'function') ? t('tuner_flat') : "Χαμηλό (Σφίξε)") : ((typeof t === 'function') ? t('tuner_sharp') : "Ψηλό (Χαλάρωσε)");
             this.elNote.style.color = "var(--text-main)";
+            this.elStatus.style.color = "#ffb74d";
+        } 
+        else {
+            // ❌ ΦΑΛΤΣΟ: Χρώμα κινδύνου (Κόκκινο/Danger)
+            this.elBar.style.backgroundColor = "var(--danger)"; 
+            this.elStatus.innerText = displayCents < 0 ? ((typeof t === 'function') ? t('tuner_flat') : "Πολύ Χαμηλό") : ((typeof t === 'function') ? t('tuner_sharp') : "Πολύ Ψηλό");
+            this.elNote.style.color = "var(--danger)";
+            this.elStatus.style.color = "var(--danger)";
         }
     },
 

@@ -237,20 +237,20 @@
                
             </div>
         </main>
-<div class="resizer" id="dragMeRight"></div>
-<aside class="col-tools" id="rhythmTools">
-    <div class="sidebar-header-tools">
-        <span data-i18n="title_tools" style="font-weight:bold; color:var(--text-muted); font-size:0.9rem;">TOOLS & ASSETS</span>
-    </div>
-
-    <div id="video-sidebar-container" style="display:none; padding: 10px; border-bottom: 1px solid var(--border-color); background: rgba(0,0,0,0.1);">
-        <div id="video-embed-box" class="video-responsive" style="position:relative; padding-bottom:56.25%; height:0; overflow:hidden; border-radius:8px; background:transparent;">
-        </div>
-    </div>
-
-    <div class="tool-panel">
+        <div class="resizer" id="dragMeRight"></div>
+        <aside class="col-tools" id="rhythmTools">
+            <div class="sidebar-header-tools">
+                <span data-i18n="title_tools" style="font-weight:bold; color:var(--text-muted); font-size:0.9rem;">TOOLS & ASSETS</span>
+            </div>
         
-        <div class="tool-section">
+            <div id="video-sidebar-container" style="display:none; padding: 10px; border-bottom: 1px solid var(--border-color); background: rgba(0,0,0,0.1);">
+                <div id="video-embed-box" class="video-responsive" style="position:relative; padding-bottom:56.25%; height:0; overflow:hidden; border-radius:8px; background:transparent;">
+                </div>
+            </div>
+        
+            <div class="tool-panel">
+                
+                <div class="tool-section">
             <div class="section-title">
                 <i class="fas fa-microphone-alt" style="color:var(--accent);"></i> 
                 <span data-i18n="title_audio_hub">AUDIO HUB</span>
@@ -343,8 +343,44 @@
             </div>
         </details>
         
-             
+         <hr class="sep">
+            <details class="tool-group" id="tunerGroup">
+                <summary><i class="fas fa-wave-square" style="color:var(--accent);"></i> <span data-i18n="sum_tuner">CHROMATIC TUNER</span></summary>
+                <div class="group-content">
+                    
+                    <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color); text-align: center; margin-top: 5px;">
+                        
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; font-size: 0.8rem; color: var(--text-muted);">
+                            <span>A4 =</span>
+                            <div style="display: flex; gap: 5px; align-items: center;">
+                                <button class="play-mini-btn" onclick="ChromaticTuner.changeRefFreq(-1)" style="padding: 2px 8px;">-</button>
+                                <span id="tunerRefValue" style="font-weight: bold; color: var(--text-main); width: 30px;">440</span><span>Hz</span>
+                                <button class="play-mini-btn" onclick="ChromaticTuner.changeRefFreq(1)" style="padding: 2px 8px;">+</button>
+                            </div>
+                        </div>
             
+                        <div style="margin-bottom: 10px; position: relative;">
+                            <div id="tunerNote" style="font-size: 3.5rem; font-weight: 900; line-height: 1; margin-bottom: 5px; transition: color 0.2s;">-</div>
+                            <div id="tunerCents" style="font-size: 0.9rem; color: var(--text-muted); font-family: monospace;">0¢</div>
+                        </div>
+            
+                        <div style="position: relative; height: 20px; background: rgba(255,255,255,0.05); border-radius: 10px; margin: 15px 0; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);">
+                            <div style="position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background: rgba(255,255,255,0.3); transform: translateX(-50%);"></div>
+                            <div id="tunerIndicator" style="position: absolute; left: 50%; top: 0; bottom: 0; width: 6px; background: #888; border-radius: 3px; transform: translateX(-50%); transition: left 0.1s ease-out, background-color 0.2s;"></div>
+                        </div>
+            
+                        <div id="tunerStatus" style="font-size: 0.85rem; font-weight: bold; color: var(--text-muted); margin-bottom: 15px;">Ανενεργό</div>
+            
+                        <button id="btnToggleTuner" onclick="ChromaticTuner.toggle()" class="action-btn-circle" style="background: var(--bg-main); color: var(--accent); border: 1px solid var(--accent); width: 50px; height: 50px; border-radius: 50%; cursor: pointer; transition: 0.3s; display: inline-flex; align-items: center; justify-content: center; font-size: 1.2rem; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
+                            <i class="fas fa-power-off"></i>
+                        </button>
+                        
+                    </div>
+                    
+                </div>
+            </details>    
+           
+       
         <hr class="sep">
         <details class="tool-group" id="rhythmsMetronomeGroup" open>
                 <summary><i class="fas fa-drum"></i> <span data-i18n="sum_rhythms">RHYTHMS & METRONOME</span></summary>
@@ -1015,6 +1051,7 @@
     <script src="js/bandManager.js?v=0.60.0"></script>
     <script src="js/asset-manager.js?v=0.55.0"></script>
     <script src="js/floating-tools.js?v=0.55.0"></script>
+    <script src="js/tuner.js?v=0.1.0"></script>
     <script src="js/ui.js?v=0.60.0"></script>
     <script src="js/chords.js?v=0.27.0"></script> 
     

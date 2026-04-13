@@ -349,21 +349,6 @@
                 <div class="group-content">
                     <div style="background: var(--bg-panel); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color); text-align: center;">
                         
-                        <div style="display: flex; justify-content: center; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 0.75rem; color: var(--text-muted);">
-                            <span>A4 =</span>
-                            <button class="play-mini-btn" onclick="ChromaticTuner.changeRefFreq(-1)" style="width: 20px; height: 20px; padding: 0;">-</button>
-                            <span id="tunerRefValue" style="font-weight: bold; color: var(--text-main); width: 28px;">440</span>
-                            <button class="play-mini-btn" onclick="ChromaticTuner.changeRefFreq(1)" style="width: 20px; height: 20px; padding: 0;">+</button>
-                            <span>Hz</span>
-                        </div>
-                        <div style="display: flex; justify-content: center; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 0.75rem; color: var(--text-muted);">
-                            <span>A4 =</span>
-                            <button class="play-mini-btn" onclick="ChromaticTuner.changeRefFreq(-1)" style="width: 20px; height: 20px; padding: 0;">-</button>
-                            <span id="tunerRefValue" style="font-weight: bold; color: var(--text-main); width: 28px;">440</span>
-                            <button class="play-mini-btn" onclick="ChromaticTuner.changeRefFreq(1)" style="width: 20px; height: 20px; padding: 0;">+</button>
-                            <span>Hz</span>
-                        </div>
-
                         <div style="margin-bottom: 20px;">
                             <select id="tunerInstrument" onchange="ChromaticTuner.setInstrument(this.value)" style="width: 100%; padding: 8px; border-radius: 6px; background: rgba(0,0,0,0.2); color: var(--text-main); border: 1px solid var(--border-color); font-size: 0.85rem; text-align: center; cursor: pointer;">
                                 <option value="chromatic">🎛️ Χρωματικό (Όλες οι συχνότητες)</option>
@@ -546,11 +531,15 @@
                 <input type="checkbox" id="setWakeLock"> 
                 <span data-i18n="lbl_keep_screen">Keep Screen On</span>
             </label>
-
-            <label class="setting-checkbox-label" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer;">
-                <input type="checkbox" id="setHideDemo"> 
-                <span data-i18n="lbl_hide_demo">Hide Demo Songs</span>
+            
+            <label style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <span>Συχνότητα Αναφοράς (A4):</span> 
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <input type="number" id="setRefFreq" value="440" min="415" max="465" class="inp" style="width: 65px; text-align: center; padding: 4px;">
+                    <span style="font-size: 0.8rem; color: var(--text-muted);">Hz</span>
+                </div>
             </label>
+
         </div>
 
         <div class="settings-group" style="margin-top: 20px; border-top: 1px solid rgba(150,150,150,0.2); padding-top: 15px;">
@@ -585,7 +574,9 @@
                 <input type="checkbox" id="chkAutoSaveCapo">
                 <span style="color: var(--accent);">Απομνημόνευση Capo (Auto-Save)</span>
             </label>
+            
         </div>
+        
 
         <div class="settings-group" style="margin-top: 20px; border-top: 1px solid rgba(150,150,150,0.2); padding-top: 15px;">
             <h4 style="color: var(--accent); margin-bottom: 15px; text-transform: uppercase; font-size: 0.85em; opacity: 0.9;">Auto-Scroll</h4>

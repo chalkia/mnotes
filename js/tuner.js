@@ -1,3 +1,7 @@
+/* ===========================================================
+   CHROMATIC TUNER MODULE - mNotes Pro
+   =========================================================== */
+
 window.ChromaticTuner = {
     isRunning: false,
     audioCtx: null,
@@ -5,9 +9,12 @@ window.ChromaticTuner = {
     micStream: null,
     rafId: null,
     refFreq: 440,
-    NOTES: ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'],
+    
+    // ✨ Κυλιόμενος Μέσος Όρος (Smoothing)
+    freqBuffer: [],    
+    bufferSize: 5,     
 
-    // ✨ ΝΕΟ: Λεξικό Ορίων Συχνοτήτων ανά Όργανο
+    // ✨ Λεξικό Ορίων Συχνοτήτων ανά Όργανο (Φίλτρο Αρμονικών)
     currentInstrument: 'chromatic',
     RANGES: {
         'chromatic': { min: 30, max: 4000 },
@@ -20,24 +27,23 @@ window.ChromaticTuner = {
         'oud': { min: 50, max: 800 }         // C2 (~65Hz) - C5
     },
 
+    NOTES: ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'],
+
     // UI Elements Cache
-    elNote: null, elHz: null, elBar: null, elStatus: null, elRef: null, elBtn: null,
+    elNote: null, 
+    elHz: null, 
+    elBar: null, 
+    elStatus: null, 
+    elBtn: null,
 
     initUI: function() {
         this.elNote = document.getElementById('tunerNote');
         this.elHz = document.getElementById('tunerHz');
         this.elBar = document.getElementById('tunerIndicator');
         this.elStatus = document.getElementById('tunerStatus');
-        this.elRef = document.getElementById('tunerRefValue');
         this.elBtn = document.getElementById('btnToggleTuner');
     },
 
-    changeRefFreq: function(delta) {
-        this.refFreq = Math.max(415, Math.min(465, this.refFreq + delta));
-        if (this.elRef) this.elRef.innerText = this.refFreq;
-    },
-
-    // ✨ ΝΕΟ: Αλλαγή Οργάνου από το Dropdown
     setInstrument: function(inst) {
         if (this.RANGES[inst]) {
             this.currentInstrument = inst;
@@ -52,18 +58,31 @@ window.ChromaticTuner = {
 
     start: async function() {
         try {
+            // Φόρτωση του A4 από τις γενικές ρυθμίσεις του mNotes
+            const settings = JSON.parse(localStorage.getItem('mnotes_settings') || "{}");
+            this.refFreq = parseInt(settings.refFreq) || 440;
+            
             this.micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
             this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             const source = this.audioCtx.createMediaStreamSource(this.micStream);
             this.analyser = this.audioCtx.createAnalyser();
             this.analyser.fftSize = 2048; 
             source.connect(this.analyser);
+            
             this.isRunning = true;
+            this.freqBuffer = []; // Καθαρισμός ιστορικού
+            
             this.elBtn.innerHTML = `<i class="fas fa-stop"></i>`;
             this.elBtn.style.color = "var(--danger)";
             this.elBtn.style.borderColor = "var(--danger)";
+            this.elStatus.innerText = "Ακούω...";
+            
+            console.log(`[Tuner] Started with A4 = ${this.refFreq}Hz`);
             this.detect();
-        } catch (e) { console.error(e); }
+        } catch (e) { 
+            console.error("Tuner Mic Error:", e);
+            if (typeof showToast === 'function') showToast("Δεν δόθηκε άδεια για το μικρόφωνο.", "error");
+        }
     },
 
     stop: function() {
@@ -71,6 +90,9 @@ window.ChromaticTuner = {
         if (this.rafId) cancelAnimationFrame(this.rafId);
         if (this.audioCtx) this.audioCtx.close();
         if (this.micStream) this.micStream.getTracks().forEach(t => t.stop());
+        
+        this.freqBuffer = []; // Καθαρισμός ιστορικού
+        
         this.elBtn.innerHTML = `<i class="fas fa-power-off"></i>`;
         this.elBtn.style.color = "var(--accent)";
         this.elBtn.style.borderColor = "var(--accent)";
@@ -87,16 +109,39 @@ window.ChromaticTuner = {
         if (!this.isRunning) return;
         const buffer = new Float32Array(this.analyser.fftSize);
         this.analyser.getFloatTimeDomainData(buffer);
-        const freq = this.autoCorrelate(buffer, this.audioCtx.sampleRate);
+        const rawFreq = this.autoCorrelate(buffer, this.audioCtx.sampleRate);
 
-        if (freq !== -1) {
-            const n = 12 * Math.log2(freq / this.refFreq) + 69;
+        if (rawFreq !== -1) {
+            // ✨ Smoothing: Κυλιόμενος Μέσος Όρος (Sliding Window)
+            this.freqBuffer.push(rawFreq);
+            if (this.freqBuffer.length > this.bufferSize) {
+                this.freqBuffer.shift(); // Πετάμε την παλαιότερη μέτρηση
+            }
+
+            // Υπολογισμός μέσου όρου
+            let sum = 0;
+            for (let i = 0; i < this.freqBuffer.length; i++) {
+                sum += this.freqBuffer[i];
+            }
+            const activeFreq = sum / this.freqBuffer.length;
+
+            const n = 12 * Math.log2(activeFreq / this.refFreq) + 69;
             const midi = Math.round(n);
-            const note = this.NOTES[((midi % 12) + 12) % 12];
+            
+            // ✨ Υπολογισμός Νότας ΚΑΙ Οκτάβας
+            const noteIndex = ((midi % 12) + 12) % 12;
+            const octave = Math.floor(midi / 12) - 1; // Ο υπολογισμός για C4 = Middle C
+            const noteName = `${this.NOTES[noteIndex]}${octave}`; // Εμφάνιση π.χ. E2, G4, A4
+
             const expected = this.refFreq * Math.pow(2, (midi - 69) / 12);
-            const cents = 1200 * Math.log2(freq / expected);
-            this.updateUI(note, freq, cents);
+            const cents = 1200 * Math.log2(activeFreq / expected);
+            
+            this.updateUI(noteName, activeFreq, cents);
+        } else {
+            // Απόλυτη ησυχία -> Αδειάζουμε το "καλάθι" του μέσου όρου
+            this.freqBuffer = [];
         }
+
         this.rafId = requestAnimationFrame(this.detect.bind(this));
     },
 
@@ -104,6 +149,7 @@ window.ChromaticTuner = {
         this.elNote.innerText = note;
         this.elHz.innerText = hz.toFixed(1) + " Hz";
         
+        // Bar Width: Left (Flat) to Right (Sharp) | 50% = Perfect
         const fill = Math.max(0, Math.min(100, cents + 50));
         this.elBar.style.width = fill + "%";
 
@@ -136,12 +182,12 @@ window.ChromaticTuner = {
 
         let bestOffset = -1, maxCorr = 0;
         
-        // ✨ Η ΜΑΓΕΙΑ ΕΔΩ: Υπολογίζουμε το offset με βάση τα όρια του οργάνου!
+        // ✨ Φίλτρο Αρμονικών βάσει επιλεγμένου Οργάνου
         const range = this.RANGES[this.currentInstrument];
-        const minOffset = Math.floor(sampleRate / range.max); // π.χ. Αν max=1200Hz -> minOffset=40
-        const maxOffset = Math.floor(sampleRate / range.min); // π.χ. Αν min=70Hz -> maxOffset=685
+        const minOffset = Math.floor(sampleRate / range.max); 
+        const maxOffset = Math.floor(sampleRate / range.min); 
 
-        // Ο αλγόριθμος τώρα θα ψάξει ΜΟΝΟ μέσα στα όρια της χορδής που παίζεις.
+        // Ψάχνει συχνότητες ΜΟΝΟ μέσα στα όρια που του έχουμε θέσει
         for (let offset = minOffset; offset < maxOffset; offset++) {
             let corr = 0;
             for (let i = 0; i < buffer.length - offset; i++) {

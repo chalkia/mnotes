@@ -954,40 +954,6 @@ async function saveAsOverride(songData) {
 }
 
 /**
- * Ανάκτηση κοινών τραγουδιών (Master) ΚΑΙ των δικών σου Κλώνων για τη Μπάντα
- */
-async function fetchBandSongs(groupId, lastSyncISO) {
-    console.log(`📥 [FETCH] Ανάκτηση τραγουδιών μπάντας: ${groupId} ${lastSyncISO ? '(Μόνο Αλλαγές)' : '(Πλήρης)'}`);
-    
-    let query = supabaseClient
-        .from('songs')
-        .select('*')
-        .eq('group_id', groupId)
-        .order('title', { ascending: true });
-
-    // ✨ Η ΝΕΑ ΠΡΟΣΘΗΚΗ: Αν υπάρχει ρολόι, φέρε μόνο τα πιο πρόσφατα!
-    if (lastSyncISO) {
-        query = query.gt('updated_at', lastSyncISO);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-        console.error("❌ Error fetching band songs:", error);
-        return [];
-    }
-
-    // ✨ ΦΙΛΤΡΑΡΙΣΜΑ ΑΣΦΑΛΕΙΑΣ: Κρατάμε τα Master ΚΑΙ μόνο τους δικούς ΜΑΣ κλώνους (ΑΘΙΚΤΟ!)
-    const filteredData = data.filter(s => {
-        if (!s.is_clone) return true; // Είναι Master, το κρατάμε
-        if (s.is_clone && s.user_id === currentUser.id) return true; // Είναι δικός μου κλώνος, το κρατάμε
-        return false; // Είναι κλώνος αλλουνού, το κόβουμε!
-    });
-
-    console.log(`📥 [FETCH] Βρέθηκαν ${filteredData.length} τραγούδια/αλλαγές για τη μπάντα (Master + Οι κλώνοι μου)`);
-    return filteredData.map(s => ensureSongStructure(s));
-}
-/**
  * Κεντρική συνάρτηση αποθήκευσης τραγουδιού
  */
   async function saveSong() {

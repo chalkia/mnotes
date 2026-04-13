@@ -345,38 +345,34 @@
         
          <hr class="sep">
             <details class="tool-group" id="tunerGroup">
-                <summary><i class="fas fa-wave-square" style="color:var(--accent);"></i> <span data-i18n="sum_tuner">CHROMATIC TUNER</span></summary>
+                 <summary><i class="fas fa-wave-square" style="color:var(--accent);"></i> <span data-i18n="sum_tuner">CHROMATIC TUNER</span></summary>
                 <div class="group-content">
-                    
-                    <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color); text-align: center; margin-top: 5px;">
+                    <div style="background: var(--bg-panel); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color); text-align: center;">
                         
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; font-size: 0.8rem; color: var(--text-muted);">
+                        <div style="display: flex; justify-content: center; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 0.75rem; color: var(--text-muted);">
                             <span>A4 =</span>
-                            <div style="display: flex; gap: 5px; align-items: center;">
-                                <button class="play-mini-btn" onclick="ChromaticTuner.changeRefFreq(-1)" style="padding: 2px 8px;">-</button>
-                                <span id="tunerRefValue" style="font-weight: bold; color: var(--text-main); width: 30px;">440</span><span>Hz</span>
-                                <button class="play-mini-btn" onclick="ChromaticTuner.changeRefFreq(1)" style="padding: 2px 8px;">+</button>
-                            </div>
+                            <button class="play-mini-btn" onclick="ChromaticTuner.changeRefFreq(-1)" style="width: 20px; height: 20px; padding: 0;">-</button>
+                            <span id="tunerRefValue" style="font-weight: bold; color: var(--text-main); width: 28px;">440</span>
+                            <button class="play-mini-btn" onclick="ChromaticTuner.changeRefFreq(1)" style="width: 20px; height: 20px; padding: 0;">+</button>
+                            <span>Hz</span>
                         </div>
             
-                        <div style="margin-bottom: 10px; position: relative;">
-                            <div id="tunerNote" style="font-size: 3.5rem; font-weight: 900; line-height: 1; margin-bottom: 5px; transition: color 0.2s;">-</div>
-                            <div id="tunerCents" style="font-size: 0.9rem; color: var(--text-muted); font-family: monospace;">0¢</div>
+                        <div style="margin-bottom: 10px;">
+                            <div id="tunerNote" style="font-size: 3.8rem; font-weight: 900; line-height: 1; color: var(--text-muted);">-</div>
+                            <div id="tunerHz" style="font-size: 1.1rem; font-weight: bold; font-family: monospace; color: var(--text-muted); margin-top: 5px;">0.0 Hz</div>
                         </div>
             
-                        <div style="position: relative; height: 20px; background: rgba(255,255,255,0.05); border-radius: 10px; margin: 15px 0; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);">
-                            <div style="position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background: rgba(255,255,255,0.3); transform: translateX(-50%);"></div>
-                            <div id="tunerIndicator" style="position: absolute; left: 50%; top: 0; bottom: 0; width: 6px; background: #888; border-radius: 3px; transform: translateX(-50%); transition: left 0.1s ease-out, background-color 0.2s;"></div>
+                        <div style="position: relative; height: 20px; background: rgba(0,0,0,0.25); border-radius: 10px; margin: 15px 0; overflow: hidden; border: 1px solid var(--border-color);">
+                            <div style="position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background: var(--text-main); z-index: 2; opacity: 0.6;"></div>
+                            <div id="tunerIndicator" style="height: 100%; width: 0%; background: #888; transition: width 0.08s ease-out, background-color 0.2s;"></div>
                         </div>
             
-                        <div id="tunerStatus" style="font-size: 0.85rem; font-weight: bold; color: var(--text-muted); margin-bottom: 15px;">Ανενεργό</div>
+                        <div id="tunerStatus" style="font-size: 0.8rem; font-weight: bold; color: var(--text-muted); margin-bottom: 15px;">Ανενεργό</div>
             
-                        <button id="btnToggleTuner" onclick="ChromaticTuner.toggle()" class="action-btn-circle" style="background: var(--bg-main); color: var(--accent); border: 1px solid var(--accent); width: 50px; height: 50px; border-radius: 50%; cursor: pointer; transition: 0.3s; display: inline-flex; align-items: center; justify-content: center; font-size: 1.2rem; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
+                        <button id="btnToggleTuner" onclick="ChromaticTuner.toggle()" class="action-btn-circle" style="background: var(--bg-main); color: var(--accent); border: 2px solid var(--accent); width: 50px; height: 50px; border-radius: 50%; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-size: 1.3rem;">
                             <i class="fas fa-power-off"></i>
                         </button>
-                        
                     </div>
-                    
                 </div>
             </details>    
            

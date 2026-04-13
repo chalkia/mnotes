@@ -3029,6 +3029,8 @@ function openSettings() {
         'setChordSize': userSettings.chordSize || 1,
         'setChordDist': userSettings.chordDist || 0,
         'setScrollSpeed': userSettings.scrollSpeed || 50
+        'setRefFreq': userSettings.refFreq || 440 // ✨ ΝΕΟ: Φόρτωση της συχνότητας αναφοράς
+    };
     };
 
     for (let id in values) {
@@ -3038,10 +3040,8 @@ function openSettings() {
 
     // ✨ ΤΟ ΣΚΟΥΠΙΣΜΑ: 
     // Αφαιρέθηκε όλο το μπλοκ if(colInp && chkDef) { ... } 
-    // Πλέον η εφαρμογή δεν ασχολείται με μεμονωμένα χρώματα συγχορδιών.
-
-    modal.style.display = 'flex';
-    console.log("⚙️ [SETTINGS] Clean Settings Modal Opened.");
+   
+   modal.style.display = 'flex';
 }
 
 function closeSettings() {
@@ -3083,10 +3083,12 @@ async function saveSettings() {
     const sizeInp = document.getElementById('setChordSize');
     const distInp = document.getElementById('setChordDist');
     const speedInp = document.getElementById('setScrollSpeed');
+    const refFreqInp = document.getElementById('setRefFreq'); // ✨ ΝΕΟ: Πεδίο Κουρδιστηριού 
 
     if (sizeInp) userSettings.chordSize = parseFloat(sizeInp.value);
     if (distInp) userSettings.chordDist = parseInt(distInp.value);
     if (speedInp) userSettings.scrollSpeed = parseInt(speedInp.value);
+    if (refFreqInp) userSettings.refFreq = parseInt(refFreqInp.value) || 440; // ✨ ΝΕΟ: Αποθήκευση A4
 
     // ✨ ΤΟ ΣΚΟΥΠΙΣΜΑ: Αφαιρέθηκε όλο το logic για chkDef και colInp.
     // Πλέον δεν αποθηκεύουμε custom χρώματα συγχορδιών.

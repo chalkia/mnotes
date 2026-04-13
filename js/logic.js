@@ -449,177 +449,141 @@ function updateUIForRole() {
 /* =========================================
    DATA LOADING & SYNC (OFFLINE-FIRST)
    ========================================= */
+/* =========================================
+   DATA LOADING & SYNC (OFFLINE-FIRST + DELTA SYNC)
+   ========================================= */
 async function loadContextData() {
    if (isSyncing) {
         console.warn("⏳ [SYNC] Ήδη σε εξέλιξη. Ακύρωση διπλής κλήσης.");
         return; 
     }
     isSyncing = true; // Κλείδωμα
-    console.log(`🔍 [SYNC] Εκκίνηση συγχρονισμού για Context: ${currentGroupId}`);
+    console.log(`🔍 [SYNC] Εκκίνηση Delta Sync για Context: ${currentGroupId}`);
     const listEl = document.getElementById('songList');
     if (typeof showLoader === 'function') showLoader('syncing_data', 'Συγχρονισμός...');
 
     try {
         let currentLibrary = []; 
         let storageKey = currentGroupId === 'personal' ? 'mnotes_data' : `mnotes_band_${currentGroupId}`;
+        let syncTimeKey = `mnotes_last_sync_${currentGroupId}`; // ✨ Το ρολόι συγχρονισμού
 
         // --- ΒΗΜΑ 1: ΦΟΡΤΩΣΗ ΚΑΙ ΚΑΘΑΡΙΣΜΟΣ ΤΟΠΙΚΗΣ ΜΝΗΜΗΣ ---
         const localDataRaw = localStorage.getItem(storageKey);
         if (localDataRaw) {
             let parsed = JSON.parse(localDataRaw);
-            
-            // STRICT ISOLATION: Κρατάμε μόνο όσα ανήκουν πραγματικά σε αυτό το context
             currentLibrary = parsed.filter(s => {
-                if (currentGroupId === 'personal') return !s.group_id; // Στα προσωπικά ΔΕΝ έχει group_id
-                return s.group_id === currentGroupId; // Στη μπάντα ΠΡΕΠΕΙ να έχει ΑΥΤΟ το group_id
+                if (currentGroupId === 'personal') return !s.group_id; 
+                return s.group_id === currentGroupId; 
             }).map(ensureSongStructure);
         }
 
-        // --- ΒΗΜΑ 2: CLOUD SYNC ---
+        // --- ΒΗΜΑ 2: CLOUD SYNC (DELTA) ---
         if (navigator.onLine && typeof canUserPerform === 'function' && canUserPerform('USE_SUPABASE')) {
             if (typeof processSyncQueue === 'function') await processSyncQueue();
 
+            // Διαβάζουμε πότε κάναμε τελευταία φορά επιτυχές sync
+            const lastSyncISO = localStorage.getItem(syncTimeKey) || null;
+            const syncAttemptTime = new Date().toISOString(); 
+
             if (currentGroupId === 'personal') {
                 // ==========================================
-                // ΛΟΓΙΚΗ ΠΡΟΣΩΠΙΚΟΥ ΣΥΓΧΡΟΝΙΣΜΟΥ (SSOT)
+                // ΠΡΟΣΩΠΙΚΟ ΣΥΓΧΡΟΝΙΣΜΟ (ΔΙΑΦΟΡΕΣ)
                 // ==========================================
-                const cloudSongs = await fetchPrivateSongs();
-                const cloudMap = new Map(cloudSongs.map(s => [s.id, s]));
-                const localMap = new Map(currentLibrary.map(s => [s.id, s]));
-                const resolvedMap = new Map();
+                const cloudDeltas = await fetchPrivateSongs(lastSyncISO);
+                
+                if (cloudDeltas.length > 0) {
+                    console.log(`🔄 [SYNC] Βρέθηκαν ${cloudDeltas.length} αλλαγές στην Προσωπική Βιβλιοθήκη.`);
+                    const localMap = new Map(currentLibrary.map(s => [s.id, s]));
 
-                // Φάση Α: Επεξεργασία δεδομένων Cloud εναντίον Τοπικών
-                for (const [id, cloudSong] of cloudMap) {
-                    if (cloudSong.is_deleted) {
-                        localMap.delete(id); // Αν το έχουμε τοπικά, το πετάμε.
-                        continue; 
-                    }
-
-                    const localSong = localMap.get(id);
-                    if (localSong) {
-                        // Επίλυση σύγκρουσης με βάση το Timestamp
-                        const localTime = new Date(localSong.updated_at || 0).getTime();
-                        const cloudTime = new Date(cloudSong.updated_at || 0).getTime();
-
-                        if (localTime > cloudTime) {
-                            // Τοπικό πιο νέο (το στέλνουμε στο Cloud)
-                            resolvedMap.set(id, localSong);
-                            await supabaseClient.from('songs').upsert(window.sanitizeForDatabase(localSong, currentUser.id, null));
-                            console.log(`⬆️ [SYNC] Ενημέρωση Cloud: ${localSong.title}`);
+                    for (const cloudSong of cloudDeltas) {
+                        if (cloudSong.is_deleted) {
+                            localMap.delete(cloudSong.id); 
                         } else {
-                            // Cloud πιο νέο ή ίδιο (το κρατάμε)
-                            resolvedMap.set(id, cloudSong);
+                            const localSong = localMap.get(cloudSong.id);
+                            // Κρατάμε το πιο πρόσφατο
+                            if (!localSong || new Date(cloudSong.updated_at).getTime() > new Date(localSong.updated_at || 0).getTime()) {
+                                localMap.set(cloudSong.id, cloudSong);
+                            } else if (localSong && new Date(localSong.updated_at).getTime() > new Date(cloudSong.updated_at).getTime()) {
+                                // Αν το τοπικό μας είναι πιο φρέσκο, το στέλνουμε!
+                                await supabaseClient.from('songs').upsert(window.sanitizeForDatabase(localSong, currentUser.id, null));
+                            }
                         }
-                        localMap.delete(id); // Το επεξεργαστήκαμε, το βγάζουμε από τη λίστα
-                    } else {
-                        // Υπάρχει στο Cloud αλλά όχι τοπικά -> Κατέβασμα
-                        resolvedMap.set(id, cloudSong);
                     }
+                    currentLibrary = Array.from(localMap.values());
                 }
-
-                // Φάση Β: Όσα τοπικά ΔΕΝ υπήρχαν καν στο Cloud (Νέα offline τραγούδια)
-                for (const [id, localSong] of localMap) {
-                    if (String(id).startsWith('demo')) {
-                        resolvedMap.set(id, localSong);
-                        continue;
-                    }
-                    // Αφού δεν υπάρχει στο Cloud και δεν είναι Demo, είναι ολοκαίνουργιο τοπικό
-                    resolvedMap.set(id, localSong);
-                    await supabaseClient.from('songs').upsert(window.sanitizeForDatabase(localSong, currentUser.id, null));
-                    console.log(`🚀 [SYNC] Ανέβασμα νέου: ${localSong.title}`);
-                }
-
-                currentLibrary = Array.from(resolvedMap.values());
 
             } else {
                 // ==========================================
-                // ΛΟΓΙΚΗ ΣΥΓΧΡΟΝΙΣΜΟΥ ΜΠΑΝΤΑΣ
+                // ΣΥΓΧΡΟΝΙΣΜΟΣ ΜΠΑΝΤΑΣ (ΔΙΑΦΟΡΕΣ + ΔΙΑΣΩΣΗ)
                 // ==========================================
-                const cloudBandSongs = await fetchBandSongs(currentGroupId);
+                const cloudDeltas = await fetchBandSongs(currentGroupId, lastSyncISO);
+                
+                // Τα Overrides τα φέρνουμε πάντα, είναι ελάχιστα δεδομένα
                 const { data: overrides } = await supabaseClient
                     .from('personal_overrides')
                     .select('*')
                     .eq('user_id', currentUser.id)
                     .eq('group_id', currentGroupId);
 
-                if (cloudBandSongs) {
-                    const activeCloudSongs = cloudBandSongs.filter(s => !s.is_deleted);
-                    const activeCloudIds = activeCloudSongs.map(s => s.id);
+                if (cloudDeltas.length > 0) {
+                    console.log(`🔄 [SYNC] Βρέθηκαν ${cloudDeltas.length} αλλαγές στη Μπάντα.`);
+                    const localMap = new Map(currentLibrary.map(s => [s.id, s]));
+                    let myPersonalData = JSON.parse(localStorage.getItem('mnotes_data') || "[]");
+                    let personalDataChanged = false;
 
-           // Μηχανισμός Διάσωσης (Όταν ο Leader διαγράφει τραγούδι)
-                    for (let localSong of currentLibrary) {
-                        if (!activeCloudIds.includes(localSong.id) && !String(localSong.id).startsWith('demo')) {
-                            
-                            // 1. Ψάχνουμε στα Προσωπικά μας αν έχουμε ΗΔΗ αυτό το τραγούδι (βάσει DNA/parent_id ή Τίτλου)
-                            let myPersonalData = JSON.parse(localStorage.getItem('mnotes_data') || "[]");
-                            
-                            // Έλεγχος αν υπάρχει Κλώνος (Σενάριο 2)
-                            let existingClone = myPersonalData.find(s => s.parent_id === localSong.id);
-                            
-                            // Έλεγχος αν υπάρχει το ίδιο τραγούδι ανεξάρτητα (Σενάριο 3)
-                            let existingIndependent = myPersonalData.find(s => s.title === localSong.title && s.parent_id !== localSong.id);
+                    // ✨ Ο ΝΕΟΣ ΑΣΦΑΛΗΣ ΜΗΧΑΝΙΣΜΟΣ ΔΙΑΣΩΣΗΣ
+                    for (const cloudSong of cloudDeltas) {
+                        if (cloudSong.is_deleted) {
+                            // Η Μπάντα το διέγραψε! Ενεργοποιούμε τη διάσωση ΜΟΝΟ γι' αυτό
+                            if (!String(cloudSong.id).startsWith('demo') && localMap.has(cloudSong.id)) {
+                                let existingClone = myPersonalData.find(s => s.parent_id === cloudSong.id);
+                                let existingIndependent = myPersonalData.find(s => s.title === cloudSong.title && s.parent_id !== cloudSong.id);
 
-                            if (existingClone) {
-                                // ΣΕΝΑΡΙΟ 2: Υπάρχει ήδη Κλώνος!
-                                const updateClone = confirm(`📢 Η μπάντα διέγραψε το "${localSong.title}".\nΈχεις ήδη έναν Κλώνο στα Προσωπικά σου.\nΘέλεις να τον ενημερώσεις με την τελευταία έκδοση της μπάντας; (Το δικό σου ID διατηρείται)`);
-                                if (updateClone) {
-                                    existingClone.body = localSong.body;
-                                    existingClone.key = localSong.key;
-                                    existingClone.updated_at = new Date().toISOString();
-                                    localStorage.setItem('mnotes_data', JSON.stringify(myPersonalData));
-                                    await
-                                    supabaseClient.from('songs').upsert(window.sanitizeForDatabase(existingClone, currentUser.id, null));
-                                    console.log("✅ Ο κλώνος ενημερώθηκε με το τελικό Master.");
-                                }
-                            } 
-                            else if (existingIndependent) {
-                                // ΣΕΝΑΡΙΟ 3: Υπάρχει ανεξάρτητο ίδιο τραγούδι!
-                                const updateIndep = confirm(`📢 Η μπάντα διέγραψε το "${localSong.title}".\nΒρέθηκε τραγούδι με ίδιο τίτλο στα Προσωπικά σου.\nΘέλεις να αντικαταστήσεις τους δικούς σου στίχους/συγχορδίες με αυτούς της μπάντας; (Το δικό σου ID διατηρείται)`);
-                                if (updateIndep) {
-                                    existingIndependent.body = localSong.body;
-                                    existingIndependent.key = localSong.key;
-                                    existingIndependent.updated_at = new Date().toISOString();
-                                    localStorage.setItem('mnotes_data', JSON.stringify(myPersonalData));
-                                    await
-                                    supabaseClient.from('songs').upsert(window.sanitizeForDatabase(existingIndependent, currentUser.id, null));
-                                }
-                            } 
-                            else {
-                                // ΣΕΝΑΡΙΟ 1: Δεν υπάρχει πουθενά. Το σώζουμε ως νέο Κλώνο στα προσωπικά.
-                                const wantsToKeep = confirm(`📢 Ο διαχειριστής διέγραψε το τραγούδι "${localSong.title}".\nΔεν βρέθηκε στα Προσωπικά σου. Θέλετε να κρατήσετε ένα αντίγραφο ασφαλείας;`);
-                                if (wantsToKeep) {
-                                    const personalCopy = { 
-                                        ...localSong,
-                                        id: "s_" + Date.now() + Math.random().toString(16).slice(2),
-                                        group_id: null,
-                                        user_id: currentUser.id,
-                                        is_clone: true,                 // Μαρκάρεται ως κλώνος
-                                        parent_id: localSong.id,        // Κρατάμε το DNA
-                                        conductorNotes: "", recordings: [], attachments: [], is_deleted: false,
-                                        updated_at: new Date().toISOString()
-                                    };
-                                    
-                                    myPersonalData.push(personalCopy);
-                                    localStorage.setItem('mnotes_data', JSON.stringify(myPersonalData));
-                                    await 
-                                    supabaseClient.from('songs').insert([window.sanitizeForDatabase(personalCopy, currentUser.id, null)]);
+                                if (existingClone) {
+                                    if (confirm(`📢 Η μπάντα διέγραψε το "${cloudSong.title}".\nΈχεις ήδη έναν Κλώνο στα Προσωπικά σου.\nΘέλεις να τον ενημερώσεις με την τελευταία έκδοση;`)) {
+                                        existingClone.body = cloudSong.body; existingClone.key = cloudSong.key; existingClone.updated_at = new Date().toISOString();
+                                        personalDataChanged = true;
+                                        await supabaseClient.from('songs').upsert(window.sanitizeForDatabase(existingClone, currentUser.id, null));
+                                    }
+                                } else if (existingIndependent) {
+                                    if (confirm(`📢 Η μπάντα διέγραψε το "${cloudSong.title}".\nΒρέθηκε ίδιο στα Προσωπικά. Να αντικατασταθούν οι στίχοι σου;`)) {
+                                        existingIndependent.body = cloudSong.body; existingIndependent.key = cloudSong.key; existingIndependent.updated_at = new Date().toISOString();
+                                        personalDataChanged = true;
+                                        await supabaseClient.from('songs').upsert(window.sanitizeForDatabase(existingIndependent, currentUser.id, null));
+                                    }
+                                } else {
+                                    if (confirm(`📢 Διεγράφη το "${cloudSong.title}". Θέλετε να κρατήσετε ένα προσωπικό αντίγραφο;`)) {
+                                        const personalCopy = { ...cloudSong, id: "s_" + Date.now() + Math.random().toString(16).slice(2), group_id: null, user_id: currentUser.id, is_clone: true, parent_id: cloudSong.id, conductorNotes: "", is_deleted: false, updated_at: new Date().toISOString() };
+                                        myPersonalData.push(personalCopy);
+                                        personalDataChanged = true;
+                                        await supabaseClient.from('songs').insert([window.sanitizeForDatabase(personalCopy, currentUser.id, null)]);
+                                    }
                                 }
                             }
+                            localMap.delete(cloudSong.id); // Το αφαιρούμε από τα τοπικά της μπάντας
+                        } else {
+                            localMap.set(cloudSong.id, cloudSong); // Το προσθέτουμε/ενημερώνουμε
                         }
                     }
-                    // Εφαρμογή των Overrides στα ενεργά τραγούδια
-                    currentLibrary = activeCloudSongs.map(song => {
-                        const userOverride = overrides?.find(o => o.song_id === song.id);
-                        if (userOverride) {
-                            song.personal_notes = userOverride.personal_notes;
-                            song.personal_transpose = userOverride.local_transpose || 0;
-                            song.personal_capo = userOverride.local_capo || 0; 
-                            song.has_override = true;
-                        }
-                        return song;
-                    });
+                    currentLibrary = Array.from(localMap.values());
+                    if (personalDataChanged) localStorage.setItem('mnotes_data', JSON.stringify(myPersonalData));
                 }
+
+                // Εφαρμογή των Overrides (όπως το είχες, άθικτο)
+                currentLibrary = currentLibrary.map(song => {
+                    const userOverride = overrides?.find(o => o.song_id === song.id);
+                    if (userOverride) {
+                        song.personal_notes = userOverride.personal_notes;
+                        song.personal_transpose = userOverride.local_transpose || 0;
+                        song.personal_capo = userOverride.local_capo || 0; 
+                        song.has_override = true;
+                    }
+                    return song;
+                });
             }
+            
+            // ⏱️ Ανανεώνουμε το Ρολόι Συγχρονισμού μόνο αν όλα πήγαν καλά!
+            localStorage.setItem(syncTimeKey, syncAttemptTime);
         }
 
         // --- ΒΗΜΑ 3: ΑΠΟΘΗΚΕΥΣΗ ΚΑΙ ΑΝΑΝΕΩΣΗ UI ---
@@ -627,7 +591,6 @@ async function loadContextData() {
         window.library = currentLibrary;
         library = window.library;
 
-        // ✨ Αρχικά ταξινομούμε και ΜΕΤΑ ζωγραφίζουμε τη λίστα
         if (typeof applySortAndRender === 'function') {
             applySortAndRender(); 
         } else if (typeof renderSidebar === 'function') {
@@ -638,19 +601,16 @@ async function loadContextData() {
             const songStillExists = currentSongId ? library.find(s => s.id === currentSongId) : null;
             if (!songStillExists) currentSongId = library[0].id;
             
-        if (window.innerWidth > 1024) {
+            if (window.innerWidth > 1024) {
                 if (typeof toViewer === 'function') toViewer(true);
             } else {
-                // Κινητές συσκευές: Εξαναγκασμός προβολής της Βιβλιοθήκης στην εκκίνηση
                 if (typeof switchDrawerTab === 'function') {
                     switchDrawerTab('library');
                 } else {
-                    // Fallback σε περίπτωση που η συνάρτηση έχει άλλο όνομα
                     const sidebar = document.getElementById('sidebar');
                     if (sidebar) sidebar.classList.add('active');
                 }
             }
-        
         } else {
             if (typeof toEditor === 'function') toEditor();
         }
@@ -658,8 +618,7 @@ async function loadContextData() {
     } catch (err) { 
         console.error("❌ [SYNC FATAL ERROR]:", err);
     } finally {
-        // ✨ ΞΕΚΛΕΙΔΩΜΑ: Είτε πετύχει, είτε αποτύχει, ελευθερώνουμε το φρένο
-        setTimeout(() => { isSyncing = false; }, 500); // 500ms cooldown
+        setTimeout(() => { isSyncing = false; }, 500); 
         if (typeof hideLoader === 'function') hideLoader(); 
     }
 }
@@ -888,7 +847,7 @@ async function saveAsOverride(songData) {
 
     let s = window.library.find(x => x.id === currentSongId);
 
-   //  Διαβάζουμε από τον Editor, ή (αν είναι κλειστός) κρατάμε τις παλιές σημειώσεις
+    // Διαβάζουμε από τον Editor, ή (αν είναι κλειστός) κρατάμε τις παλιές σημειώσεις
     const pNotesEl = document.getElementById('inpPersonalNotes');
     const pNotes = (pNotesEl && pNotesEl.offsetParent !== null) ? pNotesEl.value.trim() : (s ? s.personal_notes || s.notes || "" : "");
     
@@ -901,8 +860,7 @@ async function saveAsOverride(songData) {
         pCapo = state.c || 0;
     } 
     
-       //  1. OFFLINE FIRST: Ενημέρωση της τρέχουσας βιβλιοθήκης και αποθήκευση τοπικά!
-    
+    // 1. OFFLINE FIRST: Ενημέρωση της τρέχουσας βιβλιοθήκης και αποθήκευση τοπικά!
     if (s) {
         s.personal_transpose = pTrans;
         s.personal_capo = pCapo;
@@ -917,16 +875,18 @@ async function saveAsOverride(songData) {
     const payload = {
         user_id: currentUser.id,
         song_id: currentSongId,
-        group_id: currentGroupId,
+        // ✨ ΔΙΟΡΘΩΣΗ 1: Αν είμαστε στα προσωπικά στέλνουμε NULL, όχι τη λέξη 'personal'
+        group_id: currentGroupId === 'personal' ? null : currentGroupId,
         local_transpose: pTrans,
         local_capo: pCapo,
         personal_notes: pNotes 
     };
 
     if (navigator.onLine) {
+        // ✨ ΔΙΟΡΘΩΣΗ 2: Χρήση του σωστού UNIQUE constraint της βάσης
         const { error } = await supabaseClient
             .from('personal_overrides')
-            .upsert(payload, { onConflict: 'user_id, song_id, group_id' });
+            .upsert(payload, { onConflict: 'user_id, song_id' });
 
         if (error) {
             console.error("Override Save Error:", error);
@@ -940,50 +900,37 @@ async function saveAsOverride(songData) {
 }
 
 /**
- * Ανάκτηση προσωπικών τραγουδιών από το Cloud.
- * Φέρνει ΚΑΙ τα is_deleted για να ενημερώσει σωστά την τοπική μνήμη.
- */
-async function fetchPrivateSongs() {
-    console.log("📥 [FETCH] Ανάκτηση Προσωπικής Βιβλιοθήκης από το Cloud...");
-    
-    // Φέρνουμε ΜΟΝΟ τα προσωπικά (group_id is null) του χρήστη. 
-    const { data, error } = await supabaseClient
-        .from('songs')
-        .select('*')
-        .eq('user_id', currentUser.id)
-        .is('group_id', null);
-
-    if (error) {
-        console.error("❌ [FETCH ERROR]:", error);
-        return [];
-    }
-
-    return data.map(s => ensureSongStructure(s));
-}
-/**
  * Ανάκτηση κοινών τραγουδιών (Master) ΚΑΙ των δικών σου Κλώνων για τη Μπάντα
  */
-async function fetchBandSongs(groupId) {
-    console.log(`📥 [FETCH] Ανάκτηση τραγουδιών μπάντας: ${groupId}`);
-    const { data, error } = await supabaseClient
+async function fetchBandSongs(groupId, lastSyncISO) {
+    console.log(`📥 [FETCH] Ανάκτηση τραγουδιών μπάντας: ${groupId} ${lastSyncISO ? '(Μόνο Αλλαγές)' : '(Πλήρης)'}`);
+    
+    let query = supabaseClient
         .from('songs')
         .select('*')
         .eq('group_id', groupId)
         .order('title', { ascending: true });
+
+    // ✨ Η ΝΕΑ ΠΡΟΣΘΗΚΗ: Αν υπάρχει ρολόι, φέρε μόνο τα πιο πρόσφατα!
+    if (lastSyncISO) {
+        query = query.gt('updated_at', lastSyncISO);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
         console.error("❌ Error fetching band songs:", error);
         return [];
     }
 
-    // ✨ ΦΙΛΤΡΑΡΙΣΜΑ ΑΣΦΑΛΕΙΑΣ: Κρατάμε τα Master ΚΑΙ μόνο τους δικούς ΜΑΣ κλώνους
+    // ✨ ΦΙΛΤΡΑΡΙΣΜΑ ΑΣΦΑΛΕΙΑΣ: Κρατάμε τα Master ΚΑΙ μόνο τους δικούς ΜΑΣ κλώνους (ΑΘΙΚΤΟ!)
     const filteredData = data.filter(s => {
         if (!s.is_clone) return true; // Είναι Master, το κρατάμε
         if (s.is_clone && s.user_id === currentUser.id) return true; // Είναι δικός μου κλώνος, το κρατάμε
         return false; // Είναι κλώνος αλλουνού, το κόβουμε!
     });
 
-    console.log(`📥 [FETCH] Βρέθηκαν ${filteredData.length} τραγούδια για τη μπάντα (Master + Οι κλώνοι μου)`);
+    console.log(`📥 [FETCH] Βρέθηκαν ${filteredData.length} τραγούδια/αλλαγές για τη μπάντα (Master + Οι κλώνοι μου)`);
     return filteredData.map(s => ensureSongStructure(s));
 }
 /**

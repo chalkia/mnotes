@@ -335,7 +335,7 @@ window.sanitizeForDatabase = function(song, userId, groupId = null) {
         recordings: Array.isArray(song.recordings) ? song.recordings : [],
         attachments: Array.isArray(song.attachments) ? song.attachments : [],
         user_id: userId,
-        group_id: groupId,
+        group_id: (groupId === 'personal') ? null : (groupId || null),
         
         is_clone: !!song.is_clone,
         parent_id: song.parent_id || null,

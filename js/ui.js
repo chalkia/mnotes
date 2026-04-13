@@ -3028,7 +3028,7 @@ function openSettings() {
         'langSelect': userSettings.lang || 'el',
         'setChordSize': userSettings.chordSize || 1,
         'setChordDist': userSettings.chordDist || 0,
-        'setScrollSpeed': userSettings.scrollSpeed || 50
+        'setScrollSpeed': userSettings.scrollSpeed || 50,
         'setRefFreq': userSettings.refFreq || 440 // ✨ ΝΕΟ: Φόρτωση της συχνότητας αναφοράς
     };
     };

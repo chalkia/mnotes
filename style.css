@@ -58,7 +58,7 @@ body { background: var(--bg-main); color: var(--text-main); font-family: var(--f
 .logo-text { font-size: 1.3rem; font-weight: bold; color: var(--accent); letter-spacing: 1px; }
 .sidebar-actions { display: flex; gap: 10px; }
 .sidebar-search { padding: 10px; border-bottom: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px; background: rgba(255,255,255,0.02); flex-shrink: 0; }
-.sidebar-search input, .sidebar-search select { background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-main); padding: 8px; border-radius: 4px; font-family: var(--font-ui); font-size: 0.95rem; }
+.sidebar-search input, .sidebar-search select { background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-main); padding: 8px; border-radius: 4px; font-family: var(--font-ui); font-size: 0.95rem; width: 100%; box-sizing: border-box; }
 
 .song-list { 
     list-style: none; padding: 0; margin: 0; 
@@ -132,7 +132,7 @@ body { background: var(--bg-main); color: var(--text-main); font-family: var(--f
 .line-row { display: flex; flex-wrap: wrap; align-items: flex-end; margin-bottom: 5px; line-height: 1.1; }
 .token { display: flex; flex-direction: column; margin-right: 1px; align-items: flex-start; }
 .chord {color: var(--chord-color); font-size: calc((var(--lyric-size) * 0.85) * var(--chord-scale, 1)); font-weight: bold; margin-bottom: calc(-2px + var(--chord-mb, 0px)); line-height: 1; min-height: 1em;}
-.lyric { color: var(--text-main); font-size: var(--lyric-size); white-space: pre; line-height: 1; padding-top: 2px; }
+.lyric { color: var(--text-main); font-size: var(--lyric-size); white-space: pre-wrap; word-wrap: break-word; line-height: 1; padding-top: 2px; }
 
 body.lyrics-mode .chord { display: none !important; }
 body.lyrics-mode .token { margin-right: 5px; }

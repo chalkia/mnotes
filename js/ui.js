@@ -3031,7 +3031,7 @@ function openSettings() {
         'setScrollSpeed': userSettings.scrollSpeed || 50,
         'setRefFreq': userSettings.refFreq || 440 // ✨ ΝΕΟ: Φόρτωση της συχνότητας αναφοράς
     };
-    };
+    
 
     for (let id in values) {
         const el = document.getElementById(id);

@@ -1914,3 +1914,23 @@ select option {
     color: #222222 !important;
     border: 1px solid #cccccc;
 }
+/* Deep Night */
+body.theme-dark {
+    --tuner-perfect: #00e676; /* Πράσινο */
+    --tuner-warning: #ffb300; /* Κίτρινο */
+    --tuner-danger: #ff4757;  /* Κόκκινο */
+}
+
+/* Slate Gray */
+body.theme-slate {
+    --tuner-perfect: #20c997;
+    --tuner-warning: #f6ad55;
+    --tuner-danger: #fc8181;
+}
+
+/* Paper Light */
+body.theme-light {
+    --tuner-perfect: #198754;
+    --tuner-warning: #d97706;
+    --tuner-danger: #dc3545;
+}

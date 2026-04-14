@@ -1,5 +1,5 @@
 /* ===========================================================
-   CHROMATIC TUNER MODULE - mNotes Pro
+   CHROMATIC & INSTRUMENT TUNER MODULE - mNotes Pro
    =========================================================== */
 
 window.ChromaticTuner = {
@@ -14,17 +14,24 @@ window.ChromaticTuner = {
     freqBuffer: [],    
     bufferSize: 5,     
 
-    // ✨ Λεξικό Ορίων Συχνοτήτων ανά Όργανο (Φίλτρο Αρμονικών)
+    // ✨ Λεξικό Ορίων & Στόχων Συχνοτήτων ανά Όργανο (Μαγνητικό Κλείδωμα)
     currentInstrument: 'chromatic',
     RANGES: {
         'chromatic': { min: 30, max: 4000 },
-        'guitar': { min: 70, max: 1200 },    // E2 (~82Hz) - Υψηλές αρμονικές
-        'bass': { min: 30, max: 500 },       // E1 (~41Hz) - G4 (~392Hz)
-        'bouzouki': { min: 120, max: 1500 }, // C3 (~130Hz) - D6
-        'lyra': { min: 180, max: 1500 },     // G3 (~196Hz) και πάνω
-        'violin': { min: 180, max: 3500 },   // G3 (~196Hz) - E7
-        'mandolin': { min: 180, max: 1500 }, // G3 (~196Hz) και πάνω
-        'oud': { min: 50, max: 800 }         // C2 (~65Hz) - C5
+        // E2, A2, D3, G3, B3, E4
+        'guitar': { min: 70, max: 1200, targets: [40, 45, 50, 55, 59, 64] }, 
+        // E1, A1, D2, G2
+        'bass': { min: 30, max: 500, targets: [28, 33, 38, 43] },
+        // C3, F3, A3, D4
+        'bouzouki': { min: 120, max: 1500, targets: [48, 53, 57, 62] }, 
+        // G3, D4, A4 (Κρητική Λύρα)
+        'lyra': { min: 180, max: 1500, targets: [55, 62, 69] },
+        // G3, D4, A4, E5
+        'violin': { min: 180, max: 3500, targets: [55, 62, 69, 76] },
+        // G3, D4, A4, E5
+        'mandolin': { min: 180, max: 1500, targets: [55, 62, 69, 76] },
+        // C2, F2, A2, D3, G3, C4
+        'oud': { min: 50, max: 800, targets: [36, 41, 45, 50, 55, 60] }
     },
 
     NOTES: ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'],
@@ -112,13 +119,12 @@ window.ChromaticTuner = {
         const rawFreq = this.autoCorrelate(buffer, this.audioCtx.sampleRate);
 
         if (rawFreq !== -1) {
-            // ✨ Smoothing: Κυλιόμενος Μέσος Όρος (Sliding Window)
+            // ✨ Smoothing: Κυλιόμενος Μέσος Όρος 
             this.freqBuffer.push(rawFreq);
             if (this.freqBuffer.length > this.bufferSize) {
-                this.freqBuffer.shift(); // Πετάμε την παλαιότερη μέτρηση
+                this.freqBuffer.shift(); 
             }
 
-            // Υπολογισμός μέσου όρου
             let sum = 0;
             for (let i = 0; i < this.freqBuffer.length; i++) {
                 sum += this.freqBuffer[i];
@@ -126,26 +132,67 @@ window.ChromaticTuner = {
             const activeFreq = sum / this.freqBuffer.length;
 
             const n = 12 * Math.log2(activeFreq / this.refFreq) + 69;
-            const midi = Math.round(n);
-            
-            // ✨ Υπολογισμός Νότας ΚΑΙ Οκτάβας
-            const noteIndex = ((midi % 12) + 12) % 12;
-            const octave = Math.floor(midi / 12) - 1; // Ο υπολογισμός για C4 = Middle C
-            const noteName = `${this.NOTES[noteIndex]}${octave}`; // Εμφάνιση π.χ. E2, G4, A4
+            let targetMidi = Math.round(n);
+            let isOutOfRange = false;
 
-            const expected = this.refFreq * Math.pow(2, (midi - 69) / 12);
-            const cents = 1200 * Math.log2(activeFreq / expected);
-            
-            this.updateUI(noteName, activeFreq, cents);
+            // ✨ ΕΞΥΠΝΟ ΚΛΕΙΔΩΜΑ ΣΤΙΣ ΑΝΟΙΧΤΕΣ ΧΟΡΔΕΣ
+            const rangeParams = this.RANGES[this.currentInstrument];
+            if (rangeParams.targets) {
+                let closestString = rangeParams.targets[0];
+                let minDiff = Math.abs(n - closestString);
+                
+                // Εύρεση της πιο κοντινής επιτρεπτής χορδής
+                for (let i = 1; i < rangeParams.targets.length; i++) {
+                    let diff = Math.abs(n - rangeParams.targets[i]);
+                    if (diff < minDiff) {
+                        minDiff = diff;
+                        closestString = rangeParams.targets[i];
+                    }
+                }
+                
+                // Αν απέχει >2.5 ημιτόνια, η νότα είναι "Εκτός Κλίμακας"
+                if (minDiff > 2.5) {
+                    isOutOfRange = true;
+                } else {
+                    targetMidi = closestString; 
+                }
+            }
+
+            if (isOutOfRange) {
+                this.updateUI("-", activeFreq, 0, true);
+            } else {
+                const noteIndex = ((targetMidi % 12) + 12) % 12;
+                const octave = Math.floor(targetMidi / 12) - 1;
+                const noteName = `${this.NOTES[noteIndex]}${octave}`;
+
+                // Υπολογισμός απόκλισης βάσει του ΣΤΟΧΟΥ (χορδής)
+                const expected = this.refFreq * Math.pow(2, (targetMidi - 69) / 12);
+                const cents = 1200 * Math.log2(activeFreq / expected);
+                
+                this.updateUI(noteName, activeFreq, cents, false);
+            }
         } else {
-            // Απόλυτη ησυχία -> Αδειάζουμε το "καλάθι" του μέσου όρου
+            // Ησυχία -> Αδειάζουμε το "καλάθι" για να μην επηρεάσει την επόμενη χορδή
             this.freqBuffer = [];
         }
 
         this.rafId = requestAnimationFrame(this.detect.bind(this));
     },
 
-    updateUI: function(note, hz, cents) {
+    updateUI: function(note, hz, cents, outOfRange) {
+        // ✨ Ένδειξη Εκτός Κλίμακας (Γκριζάρισμα)
+        if (outOfRange) {
+            this.elNote.innerText = "-";
+            this.elHz.innerText = hz.toFixed(1) + " Hz";
+            this.elBar.style.width = "50%";
+            this.elBar.style.backgroundColor = "var(--text-muted)";
+            this.elNote.style.color = "var(--text-muted)";
+            this.elHz.style.color = "var(--text-muted)";
+            this.elStatus.innerText = "Εκτός Κλίμακας";
+            this.elStatus.style.color = "var(--text-muted)";
+            return; 
+        }
+
         this.elNote.innerText = note;
         this.elHz.innerText = hz.toFixed(1) + " Hz";
         
@@ -180,24 +227,57 @@ window.ChromaticTuner = {
         for (let i = 0; i < buffer.length; i++) sum += buffer[i] * buffer[i];
         if (Math.sqrt(sum / buffer.length) < 0.01) return -1; // Σιωπή
 
-        let bestOffset = -1, maxCorr = 0;
-        
-        // ✨ Φίλτρο Αρμονικών βάσει επιλεγμένου Οργάνου
         const range = this.RANGES[this.currentInstrument];
         const minOffset = Math.floor(sampleRate / range.max); 
         const maxOffset = Math.floor(sampleRate / range.min); 
 
-        // Ψάχνει συχνότητες ΜΟΝΟ μέσα στα όρια που του έχουμε θέσει
-        for (let offset = minOffset; offset < maxOffset; offset++) {
+        let c = new Array(maxOffset + 1).fill(0);
+        let maxCorr = 0;
+
+        // 1. Υπολογισμός ενέργειας (Συσχέτιση)
+        for (let i = minOffset; i < maxOffset; i++) {
             let corr = 0;
-            for (let i = 0; i < buffer.length - offset; i++) {
-                corr += buffer[i] * buffer[i + offset];
+            for (let j = 0; j < buffer.length - i; j++) {
+                corr += buffer[j] * buffer[j + i];
             }
-            if (corr > maxCorr) { 
-                maxCorr = corr; 
-                bestOffset = offset; 
+            c[i] = corr;
+            if (corr > maxCorr) maxCorr = corr;
+        }
+
+        // ✨ ΛΥΣΗ ΓΙΑ ΤΟ ΚΑΝΤΙΝΙ: Ψάχνουμε την ΠΡΩΤΗ ισχυρή κορυφή 
+        // Ξεκινάμε από τα μικρά offsets (υψηλές συχνότητες) για να αποφύγουμε την ηχώ του ηχείου.
+        let bestOffset = -1;
+        let threshold = maxCorr * 0.85; 
+
+        for (let i = minOffset + 1; i < maxOffset - 1; i++) {
+            if (c[i] > threshold && c[i] > c[i-1] && c[i] > c[i+1]) {
+                bestOffset = i;
+                break; // Κλειδώσαμε τη χορδή!
             }
         }
-        return bestOffset !== -1 ? sampleRate / bestOffset : -1;
+
+        if (bestOffset === -1) {
+            for (let i = minOffset; i < maxOffset; i++) {
+                if (c[i] === maxCorr) {
+                    bestOffset = i;
+                    break;
+                }
+            }
+        }
+
+        // ✨ ΠΑΡΑΒΟΛΙΚΗ ΠΑΡΕΜΒΟΛΗ: Ακρίβεια δεκαδικών στο μικρόφωνο
+        let x1 = c[bestOffset - 1] || 0;
+        let x2 = c[bestOffset];
+        let x3 = c[bestOffset + 1] || 0;
+        
+        let a = (x1 + x3 - 2 * x2) / 2;
+        let b = (x3 - x1) / 2;
+        
+        let trueOffset = bestOffset;
+        if (a < 0) { 
+            trueOffset = bestOffset - (b / (2 * a));
+        }
+
+        return sampleRate / trueOffset;
     }
 };

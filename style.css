@@ -758,19 +758,19 @@ body.lyrics-only .line-row {line-height: 1.4; margin-bottom: 5px;}
 
 /* 1. LAYOUT ΣΤΗΛΗΣ (Για να πατάει το Footer κάτω) */
 .col-tools {
-    height: 100vh;              /* Κλειδί: Πιάνει όλο το ύψος */
-    display: flex;
-    flex-direction: column;
+    height: 100vh !important;            /* Κλειδί: Πιάνει όλο το ύψος */
+    display: flex !important;
+    flex-direction: column !important;
     background: var(--bg-sidebar);
     border-left: 1px solid var(--border-color);
-    overflow: hidden;
+    overflow: hidden !important;
     position: relative;
     box-sizing: border-box;
 }
 
 .tool-panel {
-    flex: 1;                    /* Κλειδί: Πιάνει όλο τον κενό χώρο */
-    overflow-y: auto;           /* Scroll μόνο εδώ μέσα */
+    flex: 1 1 auto ! important;                    /* Κλειδί: Πιάνει όλο τον κενό χώρο */
+    overflow-y: auto !important;           /* Scroll μόνο εδώ μέσα */
     display: flex;
     flex-direction: column;
     padding-bottom: 20px;
@@ -782,7 +782,7 @@ body.lyrics-only .line-row {line-height: 1.4; margin-bottom: 5px;}
     background: var(--bg-panel);
     border-top: 1px solid var(--border-color);
     margin-top: auto;           /* Ασφάλεια: Σπρώχνει τέρμα κάτω */
-    flex-shrink: 0;
+    flex-shrink: 0 !important;
     display: flex;
     align-items: center;
     justify-content: space-between;

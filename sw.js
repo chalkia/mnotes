@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mnotes-ver0.6.0'; // Ready For beta
+const CACHE_NAME = 'mnotes-ver0.6.1'; // Ready For beta
 const ASSETS_TO_CACHE = [
     './',
     'index.html',
@@ -22,7 +22,8 @@ const ASSETS_TO_CACHE = [
     'js/sequencer.js',
     'js/translations.js',
     'js/chords.js',
-    'js/asset-manager.js', // <-- ΠΡΟΣΤΕΘΗΚΕ!
+    'js/asset-manager.js',
+    'js/tuner.js',
     
     
     // FontAwesome

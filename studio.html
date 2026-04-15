@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>mStudio | Pro Workspace</title>
+    <link rel="stylesheet" href="fa/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    
+    <style>
+        /* Εξειδικευμένο Layout μόνο για το Desktop Studio */
+        body { 
+            display: flex; 
+            height: 100vh; 
+            overflow: hidden; 
+            background: var(--bg-main); 
+        }
+        
+        /* Αριστερό Μενού (Sidebar) */
+        #studio-sidebar { 
+            width: 260px; 
+            background: var(--bg-sidebar); 
+            border-right: 1px solid var(--border-color); 
+            display: flex; 
+            flex-direction: column; 
+            z-index: 100;
+        }
+        .studio-logo { 
+            padding: 20px; 
+            font-size: 1.4rem; 
+            font-weight: bold; 
+            color: var(--accent); 
+            border-bottom: 1px solid var(--border-color); 
+            letter-spacing: 1px;
+        }
+        .studio-nav { flex: 1; padding: 15px 0; }
+        .nav-item { 
+            padding: 15px 25px; 
+            color: var(--text-muted); 
+            cursor: pointer; 
+            display: flex; 
+            align-items: center; 
+            gap: 12px; 
+            transition: all 0.2s ease; 
+            font-size: 1.1rem;
+        }
+        .nav-item:hover { color: var(--text-main); background: rgba(255,255,255,0.02); }
+        .nav-item.active { 
+            background: var(--bg-panel); 
+            color: var(--text-main); 
+            border-left: 4px solid var(--accent); 
+            font-weight: bold;
+        }
+        
+        /* Κεντρικός Χώρος Εργασίας (Workspace) */
+        #studio-main { 
+            flex: 1; 
+            display: flex; 
+            flex-direction: column; 
+            background: var(--bg-main); 
+            position: relative;
+        }
+        .studio-header { 
+            padding: 15px 30px; 
+            background: var(--bg-sidebar); 
+            border-bottom: 1px solid var(--border-color); 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+        }
+        .view-section { 
+            display: none; 
+            padding: 30px; 
+            flex: 1; 
+            overflow-y: auto;
+        }
+        .view-section.active { display: block; }
+        
+        /* Η Ασπίδα Προστασίας (Auth Shield) */
+        #auth-shield { 
+            position: fixed; inset: 0; 
+            background: var(--bg-main); 
+            z-index: 9999; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+        }
+    </style>
+</head>
+<body class="theme-slate">
+
+    <div id="auth-shield">
+        <div class="modal-box" style="text-align: center; max-width: 400px;">
+            <h2 style="color: var(--accent); margin-bottom: 10px;"><i class="fas fa-sliders-h"></i> mStudio</h2>
+            <p id="auth-msg" style="color: var(--text-muted);">Έλεγχος διαπιστευτηρίων...</p>
+            <div id="auth-actions" style="display: none; margin-top: 25px;">
+                <p style="margin-bottom: 15px; font-size: 0.9rem;">Ο χώρος εργασίας απαιτεί σύνδεση.</p>
+                <button onclick="window.close()" class="modal-btn">Κλείσιμο Καρτέλας</button>
+                <button onclick="window.location.href='index.html'" class="modal-btn accent">Επιστροφή στο App</button>
+            </div>
+        </div>
+    </div>
+
+    <aside id="studio-sidebar" style="display: none;">
+        <div class="studio-logo"><i class="fas fa-sliders-h"></i> mStudio</div>
+        <nav class="studio-nav">
+            <div class="nav-item active" onclick="switchView('dashboard', this)"><i class="fas fa-chart-pie"></i> Dashboard</div>
+            <div class="nav-item" onclick="switchView('editor', this)"><i class="fas fa-file-signature"></i> Song Editor</div>
+            <div class="nav-item" onclick="switchView('rhythm', this)"><i class="fas fa-drum"></i> Rhythm Editor</div>
+        </nav>
+        <div style="padding: 20px; border-top: 1px solid var(--border-color); font-size: 0.85rem; color: var(--text-muted); display: flex; align-items: center; gap: 10px;">
+            <i class="fas fa-user-circle" style="font-size: 1.2rem;"></i>
+            <span id="user-email-display" style="overflow: hidden; text-overflow: ellipsis;"></span>
+        </div>
+    </aside>
+
+    <main id="studio-main" style="display: none;">
+        <header class="studio-header">
+            <h2 id="view-title" style="margin: 0; font-weight: normal;">Dashboard</h2>
+            <button onclick="window.close()" class="icon-btn ghost" title="Κλείσιμο mStudio"><i class="fas fa-sign-out-alt"></i></button>
+        </header>
+
+        <section id="view-dashboard" class="view-section active">
+            <h3 style="color: var(--accent); margin-bottom: 20px;">Σύνοψη Λογαριασμού</h3>
+            <div class="tool-panel" style="padding: 25px; border-radius: 8px; border: 1px solid var(--border-color);">
+                <p style="color: var(--text-muted);">Εδώ θα διαβάζουμε το Tier του χρήστη (Free, Solo, Band) από τη Supabase και θα δείχνουμε τα στατιστικά χρήσης (MBs).</p>
+            </div>
+        </section>
+
+        <section id="view-editor" class="view-section">
+            <h3 style="color: var(--accent); margin-bottom: 20px;">Επεξεργαστής Τραγουδιού</h3>
+            <div id="editor-container" class="tool-panel" style="padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); min-height: 400px;">
+                <p style="color: var(--text-muted);">Εδώ θα φορτώσουμε τον μηχανισμό Tokenizer. Θα φτιάξουμε έναν φάκελο `studio-editor/` και θα συνδέσουμε τα scripts του.</p>
+            </div>
+        </section>
+
+        <section id="view-rhythm" class="view-section">
+            <h3 style="color: var(--accent); margin-bottom: 20px;">Μηχανή Ρυθμών (Drum Sequencer)</h3>
+            <div id="rhythm-container" style="border: 1px solid var(--border-color); border-radius: 8px; height: 100%; overflow: hidden;">
+                <p style="padding: 25px; color: var(--text-muted);">Εδώ θα κάνουμε μεταμόσχευση το `shell.html` της άλλης ομάδας, τραβώντας τα αρχεία από τον φάκελο `rhythm-engine/`.</p>
+            </div>
+        </section>
+    </main>
+
+    <script src="js/supabase.min.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/supabase-client.js"></script>
+    
+    <script>
+        // Λογική εναλλαγής των Views (Tabs)
+        function switchView(viewId, element) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById('view-' + viewId).classList.add('active');
+            element.classList.add('active');
+            
+            const titles = { 'dashboard': 'Dashboard', 'editor': 'Song Editor', 'rhythm': 'Rhythm Editor' };
+            document.getElementById('view-title').innerText = titles[viewId];
+        }
+
+        // Έλεγχος Συνεδρίας (Session Check) κατά την εκκίνηση
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log("🛠️ [mStudio] Booting...");
+            
+            const { data: { session }, error } = await supabaseClient.auth.getSession();
+            const shield = document.getElementById('auth-shield');
+            const msg = document.getElementById('auth-msg');
+            const actions = document.getElementById('auth-actions');
+
+            if (error || !session) {
+                console.warn("🔒 [mStudio] No active session. Locking workspace.");
+                msg.innerText = "Αποτυχία σύνδεσης. Παρακαλώ συνδεθείτε στο mNotes πρώτα.";
+                actions.style.display = "block";
+                return;
+            }
+
+            console.log("✅ [mStudio] Session Valid. Welcome:", session.user.email);
+            
+            // Ενημέρωση UI με τα στοιχεία του χρήστη
+            document.getElementById('user-email-display').innerText = session.user.email;
+            
+            // Ξεκλείδωμα του UI
+            shield.style.display = "none";
+            document.getElementById('studio-sidebar').style.display = "flex";
+            document.getElementById('studio-main').style.display = "flex";
+        });
+    </script>
+</body>
+</html>

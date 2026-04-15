@@ -3071,11 +3071,31 @@ function openSettings() {
         const el = document.getElementById(id);
         if (el) el.value = values[id];
     }
+// ✨ ΝΕΟ: Ανάγνωση της έκδοσης απευθείας από το Service Worker (sw.js)
+    // Βάζουμε ?t=Date.now() για να μην διαβάσει παλιά έκδοση από την cache του browser
+    fetch('sw.js?t=' + Date.now())
+        .then(response => response.text())
+        .then(text => {
+            // Η Regex ψάχνει για λέξεις όπως CACHE_NAME, version, VERSION ακολουθούμενες από ' ή "
+            const match = text.match(/(?:CACHE_NAME|version|VERSION)\s*[:=]\s*['"]([^'"]+)['"]/i);
+            const verDisplay = document.getElementById('appVersionDisplay');
+            
+            if (match && verDisplay) {
+                verDisplay.innerText = "Build: " + match[1];
+                console.log("ℹ️ [SETTINGS] Η τρέχουσα έκδοση διαβάστηκε από το sw.js:", match[1]);
+            } else {
+                if (verDisplay) verDisplay.innerText = "Build: Unknown";
+                console.warn("⚠️ [SETTINGS] Το sw.js φορτώθηκε, αλλά δεν βρέθηκε μεταβλητή έκδοσης (CACHE_NAME/version).");
+            }
+        })
+        .catch(err => {
+            console.error("❌ [SETTINGS] Αποτυχία ανάγνωσης του sw.js:", err);
+            const verDisplay = document.getElementById('appVersionDisplay');
+            if (verDisplay) verDisplay.innerText = "Build: Offline";
+        });
 
-    // ✨ ΤΟ ΣΚΟΥΠΙΣΜΑ: 
-    // Αφαιρέθηκε όλο το μπλοκ if(colInp && chkDef) { ... } 
-   
-   modal.style.display = 'flex';
+    modal.style.display = 'flex';
+    console.log("⚙️ [SETTINGS] Clean Settings Modal Opened.");
 }
 
 function closeSettings() {

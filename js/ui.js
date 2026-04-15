@@ -1207,12 +1207,14 @@ function printSetlistPDF() {
 
     var currentSettings = JSON.parse(localStorage.getItem('mnotes_settings')) || {};
     var showToC = currentSettings.pdfTableOfContents !== false; // Default true
-    var showPageNumbers = currentSettings.pdfPageNumbers !== false; // Default true
+    
+    // Κρατάμε το ίδιο κλειδί ρυθμίσεων (pdfPageNumbers) αλλά το χρησιμοποιούμε για την αρίθμηση τραγουδιών
+    var showSongNumbers = currentSettings.pdfPageNumbers !== false; // Default true
 
     var fullHtmlBody = "";
     const chordRxForTranspose = new RegExp("([A-G][b#]?[a-zA-Z0-9#\\/+-]*|[a-g][b#]?)(?![a-z])", "g");
 
-    // ✨ ΝΕΟ: Δημιουργία Πίνακα Περιεχομένων (ToC)
+    // ✨ Δημιουργία Πίνακα Περιεχομένων (ToC) με τη σειρά της λίστας
     if (showToC) {
         let tocHtml = `
             <div class="song-page page-break">
@@ -1362,10 +1364,13 @@ function printSetlistPDF() {
         // ✨ 5. Σύνθεση του τραγουδιού
         let pageBreakClass = index < liveSetlist.length - 1 ? 'page-break' : '';
         
+        // Αν είναι ενεργή η αρίθμηση, βάζουμε τον αριθμό (βάσει index) δίπλα στον τίτλο
+        let songNumberHtml = showSongNumbers ? `<span style="color: #666; margin-right: 8px;">${index + 1}.</span>` : "";
+        
         fullHtmlBody += `
             <div class="song-page ${pageBreakClass}">
                 <img src="icon-192.png" class="logo" alt="Logo">
-                <h1>${title}</h1>
+                <h1>${songNumberHtml}${title}</h1>
                 <h2>${artist}</h2>
                 
                 <div class="meta-container">
@@ -1388,27 +1393,12 @@ function printSetlistPDF() {
         .strum-inline { display: none !important; }
     ` : "";
 
-    // ✨ ΝΕΟ: CSS Λογική για Αρίθμηση Σελίδων (Αυτόματος Μετρητής)
-    var pageNumbersCSS = showPageNumbers ? `
-        body { counter-reset: page-counter; }
-        .song-page { counter-increment: page-counter; padding-bottom: 30px; }
-        .song-page::after {
-            content: "- Σελίδα " counter(page-counter) " -";
-            display: block;
-            text-align: center;
-            margin-top: 40px;
-            font-size: 13px;
-            color: #888;
-            page-break-inside: avoid;
-        }
-    ` : "";
-
     var css = `
         body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 0; margin: 0; color: #111; }
         .song-page { position: relative; padding: 40px; box-sizing: border-box; }
         .page-break { page-break-after: always; break-after: page; }
         .logo { position: absolute; top: 20px; right: 30px; width: 50px; height: auto; opacity: 0.9; z-index: 10; }
-        h1 { font-size: 26px; margin: 0 0 5px 0; border-bottom: 2px solid #000; padding-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; margin-right: 60px; }
+        h1 { font-size: 26px; margin: 0 0 5px 0; border-bottom: 2px solid #000; padding-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; margin-right: 60px; display: flex; align-items: baseline; }
         h2 { font-size: 16px; color: #444; margin: 0 0 20px 0; font-weight: normal; font-style: italic; }
         .meta-container { margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap; }
         .meta { font-size: 13px; color: #333; font-weight: bold; border: 1px solid #ddd; display: inline-block; padding: 4px 8px; border-radius: 4px; }
@@ -1439,7 +1429,6 @@ function printSetlistPDF() {
             <style>
                 ${css}
                 ${lyricsOnlyCSS}
-                ${pageNumbersCSS}
             </style>
         </head>
         <body>

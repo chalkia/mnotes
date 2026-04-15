@@ -1205,8 +1205,37 @@ function printSetlistPDF() {
         return;
     }
 
+    var currentSettings = JSON.parse(localStorage.getItem('mnotes_settings')) || {};
+    var showToC = currentSettings.pdfTableOfContents !== false; // Default true
+    var showPageNumbers = currentSettings.pdfPageNumbers !== false; // Default true
+
     var fullHtmlBody = "";
     const chordRxForTranspose = new RegExp("([A-G][b#]?[a-zA-Z0-9#\\/+-]*|[a-g][b#]?)(?![a-z])", "g");
+
+    // ✨ ΝΕΟ: Δημιουργία Πίνακα Περιεχομένων (ToC)
+    if (showToC) {
+        let tocHtml = `
+            <div class="song-page page-break">
+                <img src="icon-192.png" class="logo" alt="Logo">
+                <h1>ΠΙΝΑΚΑΣ ΠΕΡΙΕΧΟΜΕΝΩΝ</h1>
+                <ul style="font-size: 18px; line-height: 1.6; margin-top: 40px; list-style-type: none; padding-left: 0;">
+        `;
+        
+        liveSetlist.forEach((item, index) => {
+            let songId = typeof item === 'object' ? item.id : item;
+            let s = library.find(x => x.id === songId);
+            if (s) {
+                let sTitle = s.title || "Untitled";
+                let sArtist = s.artist ? `<span style="color:#666; font-size:14px;"> - ${s.artist}</span>` : "";
+                tocHtml += `<li style="margin-bottom: 10px; border-bottom: 1px dashed #ccc; padding-bottom: 5px;">
+                                <strong>${index + 1}.</strong> ${sTitle} ${sArtist}
+                            </li>`;
+            }
+        });
+        
+        tocHtml += `</ul></div>`;
+        fullHtmlBody += tocHtml; // Το βάζουμε πρώτο στο έγγραφο
+    }
 
     // Κάνουμε Loop σε όλα τα τραγούδια της τρέχουσας λίστας
     liveSetlist.forEach((item, index) => {
@@ -1227,29 +1256,22 @@ function printSetlistPDF() {
             key = getNote(key, transposeVal); 
         }
         
-         // ✨ Επεξεργασία Intro/Interlude (Απλό κείμενο, όχι ChordPro)
+         // ✨ Επεξεργασία Intro/Interlude
         var introRaw = s.intro || "";
         var interRaw = s.interlude || "";
         var introSectionHtml = "";
 
-        // Νέα, έξυπνη συνάρτηση που καθαρίζει τα ! και [] ΚΑΙ κάνει transpose
         function formatIntroText(text) {
             if (!text) return "";
-            
             const chordRxStr = "([A-G][b#]?[a-zA-Z0-9#\\/+-]*|[a-g][b#]?)(?![a-z])";
-            
-            // 1. Ομογενοποίηση: Κάνουμε τα [Am] -> !Am για να τα πιάσουμε όλα μαζί
             const bracketRegex = new RegExp(`\\[${chordRxStr}\\]`, 'g');
             text = text.replace(bracketRegex, "!$1 ");
-
-            // 2. Εντοπισμός !Am, Transpose και καθαρισμός συμβόλου
             const bangRegex = new RegExp(`!${chordRxStr}`, 'g');
             return text.replace(bangRegex, (match, chord) => {
                 let noteDisp = chord;
                 if (transposeVal !== 0 && typeof getNote === 'function') {
                     try { noteDisp = getNote(chord, transposeVal); } catch(e) {}
                 }
-                // Επιστρέφουμε τη συγχορδία καθαρή, χωρίς σύμβολα
                 return `<span class="chord inline-chord" style="margin-right: 5px;">${noteDisp}</span>`;
             });
         }
@@ -1266,8 +1288,9 @@ function printSetlistPDF() {
         title = title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
 
         // 3. Προετοιμασία κειμένου (ChordPro) 
-        
-        bodyRaw = formatStrumming(bodyRaw);
+        if (typeof formatStrumming === 'function') {
+            bodyRaw = formatStrumming(bodyRaw);
+        }
         const chordRx = "([A-G][b#]?[a-zA-Z0-9#\\/+-]*|[a-g][b#]?)(?![a-z])";
         bodyRaw = bodyRaw.replace(new RegExp(`\\[${chordRx}\\]`, 'g'), "!$1 ");
         bodyRaw = bodyRaw.replace(new RegExp(`!${chordRx}!`, 'g'), "!$1 ");
@@ -1356,8 +1379,6 @@ function printSetlistPDF() {
         `;
     });
 
-    var currentSettings = JSON.parse(localStorage.getItem('mnotes_settings')) || {};
-    
     // ✨ Αν είναι Lyrics Only, κρύβουμε τις συγχορδίες κλπ.
     var lyricsOnlyCSS = currentSettings.printLyricsOnly ? `
         .chord { display: none !important; }
@@ -1365,6 +1386,21 @@ function printSetlistPDF() {
         .meta-container { display: none !important; } 
         .intro-section { display: none !important; } 
         .strum-inline { display: none !important; }
+    ` : "";
+
+    // ✨ ΝΕΟ: CSS Λογική για Αρίθμηση Σελίδων (Αυτόματος Μετρητής)
+    var pageNumbersCSS = showPageNumbers ? `
+        body { counter-reset: page-counter; }
+        .song-page { counter-increment: page-counter; padding-bottom: 30px; }
+        .song-page::after {
+            content: "- Σελίδα " counter(page-counter) " -";
+            display: block;
+            text-align: center;
+            margin-top: 40px;
+            font-size: 13px;
+            color: #888;
+            page-break-inside: avoid;
+        }
     ` : "";
 
     var css = `
@@ -1396,7 +1432,6 @@ function printSetlistPDF() {
         }
     `;
 
-    // ⚠️ ΑΦΑΙΡΕΘΗΚΕ ΤΟ ΕΝΣΩΜΑΤΩΜΕΝΟ <script> ΑΠΟ ΤΟ HTML
     var htmlContent = `
         <html>
         <head>
@@ -1404,6 +1439,7 @@ function printSetlistPDF() {
             <style>
                 ${css}
                 ${lyricsOnlyCSS}
+                ${pageNumbersCSS}
             </style>
         </head>
         <body>
@@ -1412,7 +1448,7 @@ function printSetlistPDF() {
         </html>
     `;
 
-    // --- ΕΞΥΠΝΗ ΕΚΤΥΠΩΣΗ (MOBILE VS DESKTOP) ---
+    // --- ΕΞΥΠΝΗ ΕΚΤΥΠΩΣΗ ---
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
     if (isMobile) {
@@ -1444,7 +1480,6 @@ function printSetlistPDF() {
             win.document.write(htmlContent);
             win.document.close();
             
-            // ⚠️ Η ΕΚΤΥΠΩΣΗ ΕΚΤΕΛΕΙΤΑΙ ΜΕΣΑ ΑΠΟ ΤΗ JAVASCRIPT ΤΩΡΑ
             setTimeout(function() {
                 win.focus();
                 win.print();
@@ -1455,7 +1490,6 @@ function printSetlistPDF() {
         }
     }
 }
-
 // ===========================================================
 // 6. EDITOR LOGIC
 // ===========================================================

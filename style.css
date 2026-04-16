@@ -466,9 +466,9 @@ body.theme-light .modal-btn {
 
     /* 2. ΚΡΥΨΙΜΟ ΣΤΗΛΩΝ (Default State) */
     /* Όλες οι βασικές στήλες είναι κρυμμένες αρχικά */
-    .col-nav, 
-    .col-stage, 
-    .col-tools { 
+     .col-nav, #sidebar, 
+     .col-stage, #mainZone, 
+     .col-tools, #rhythmTools { 
         display: none !important; /* Force hide */
         position: absolute; 
         top: 0; 

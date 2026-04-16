@@ -129,10 +129,35 @@
         </section>
 
         <section id="view-editor" class="view-section">
-            <h3 style="color: var(--accent); margin-bottom: 20px;">Επεξεργαστής Τραγουδιού</h3>
-            <div id="editor-container" class="tool-panel" style="padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); min-height: 400px;">
-                <p style="color: var(--text-muted);">Εδώ θα φορτώσουμε τον μηχανισμό Tokenizer. Θα φτιάξουμε έναν φάκελο `studio-editor/` και θα συνδέσουμε τα scripts του.</p>
+            <h3 style="color: var(--accent); margin-bottom: 15px;">Επεξεργαστής Τραγουδιού</h3>
+            
+            <div class="editor-toolbar" style="margin-bottom: 15px; display: flex; gap: 10px; background: var(--bg-sidebar); padding: 10px; border-radius: 8px; border: 1px solid var(--border-color);">
+                
+                <button onclick="EditorToolbar.insertElement('chord', 'Am')" class="modal-btn" style="padding: 6px 12px; font-size: 0.9rem;">
+                    <i class="fas fa-music"></i> Am
+                </button>
+                <button onclick="EditorToolbar.insertElement('chord', 'Dm')" class="modal-btn" style="padding: 6px 12px; font-size: 0.9rem;">
+                    <i class="fas fa-music"></i> Dm
+                </button>
+                
+                <div style="border-left: 1px solid var(--border-color); margin: 0 5px;"></div>
+
+                <button onclick="EditorToolbar.insertElement('rhythm', '8-Beat')" class="modal-btn" style="padding: 6px 12px; font-size: 0.9rem;">
+                    <i class="fas fa-drum"></i> 8-Beat
+                </button>
+
+                <div style="border-left: 1px solid var(--border-color); margin: 0 5px;"></div>
+
+                <button onclick="EditorToolbar.insertElement('strum', 'd-du-u')" class="modal-btn" style="padding: 6px 12px; font-size: 0.9rem;">
+                    <i class="fas fa-arrows-alt-v"></i> d-du-u
+                </button>
+                
             </div>
+
+            <div id="editor-container" contenteditable="true" spellcheck="false">
+                Γράψε τους στίχους σου εδώ και δοκίμασε να βάλεις συγχορδίες...
+            </div>
+            
         </section>
 
         <section id="view-rhythm" class="view-section">

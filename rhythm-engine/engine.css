@@ -1,1 +1,65 @@
+/* =========================================
+   mStudio Rhythm Editor (Grid Styles)
+   ========================================= */
 
+/* Κεφαλίδα Grid (Αριθμοί μέτρων) */
+#grid-header .step-header-cell {
+    background: var(--bg-sidebar);
+    color: var(--text-muted);
+    font-size: 0.75em;
+    text-align: center;
+    padding: 4px 0;
+    border-radius: 2px;
+}
+
+/* Κελιά Ρυθμού (Τα τετραγωνάκια) */
+.cell {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    height: 35px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.1s ease;
+}
+
+.cell:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+/* Ενεργό κελί (Χτύπημα) */
+.cell.active {
+    background: var(--accent); /* Πορτοκαλί */
+    border-color: var(--accent);
+    box-shadow: 0 0 8px rgba(211, 84, 0, 0.6); /* d35400 με διαφάνεια */
+}
+
+/* Εφέ κατά την αναπαραγωγή (Playhead) */
+.cell.playing {
+    background: #ecf0f1;
+    border-color: #fff;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+}
+.cell.active.playing {
+    background: #f1c40f; /* Κίτρινο αν χτυπάει */
+    box-shadow: 0 0 15px rgba(241, 196, 15, 0.8);
+}
+
+/* Γραμμή Οργάνου (Voice Row) */
+.voice-row {
+    display: flex;
+    align-items: center;
+}
+.voice-label {
+    width: 100px;
+    font-size: 0.85em;
+    color: var(--text-main);
+    text-align: right;
+    padding-right: 15px;
+    font-weight: bold;
+    flex-shrink: 0;
+}
+.voice-grid {
+    flex: 1;
+    display: grid;
+    gap: 2px;
+}

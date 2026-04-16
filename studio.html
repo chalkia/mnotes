@@ -161,80 +161,74 @@
             
         </section>
 
-         <section id="view-rhythm" class="view-section">
+        <section id="view-rhythm" class="view-section">
             <h3 style="color: var(--accent); margin-bottom: 20px;"><i class="fas fa-drum"></i> Μηχανή Ρυθμών</h3>
             
             <div style="background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column;">
                 
                 <div style="background: var(--bg-sidebar); padding: 15px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
-                    
                     <div style="display: flex; gap: 10px;">
                         <button id="btn-play" class="modal-btn accent" style="width: 100px;"><i class="fas fa-play"></i> Play</button>
                         <button id="btn-stop" class="modal-btn" style="width: 100px;"><i class="fas fa-stop"></i> Stop</button>
                     </div>
-
                     <div style="display: flex; align-items: center; gap: 10px; border-left: 1px solid var(--border-strong); padding-left: 20px;">
                         <label style="color: var(--text-muted); font-size: 0.9em;">Τέμπο:</label>
                         <input type="range" id="rng-bpm" min="60" max="200" value="100" style="width: 120px;">
                         <output id="bpm-output" style="font-weight: bold; color: var(--accent); width: 30px;">100</output>
                     </div>
-
-                    <div style="display: flex; align-items: center; gap: 10px; border-left: 1px solid var(--border-strong); padding-left: 20px;">
-                        <label style="color: var(--text-muted); font-size: 0.9em;">Ήχος (Kit):</label>
-                        <select id="kit-select" class="modal-input" style="padding: 4px 8px; border-radius: 4px;">
-                            <option value="standard">Standard Synth</option>
-                            <option value="eastern">Eastern Synth</option>
-                            <option value="eastern-real-v1" selected>Eastern Real (Samples)</option>
-                        </select>
-                    </div>
-
                     <div style="margin-left: auto; display: flex; gap: 10px;">
                         <button id="btn-clear" class="modal-btn" title="Καθαρισμός (Clear)"><i class="fas fa-trash"></i></button>
                     </div>
                 </div>
 
-                <div style="display: flex; min-height: 400px;">
+                <div style="width: 100%; padding: 30px; overflow-x: auto; background: var(--bg-main); border-bottom: 1px solid var(--border-color);">
+                    <div id="grid-header" style="display: grid; gap: 4px; margin-bottom: 8px;"></div>
+                    <div id="voice-rows" style="display: flex; flex-direction: column; gap: 4px;"></div>
+                </div>
+
+                <div style="background: var(--bg-sidebar); padding: 20px; display: flex; flex-wrap: wrap; gap: 40px; align-items: flex-start;">
                     
-                    <div style="flex: 1; padding: 20px; overflow-x: auto; border-right: 1px solid var(--border-color); background: var(--bg-main);">
-                        <div id="grid-header" style="display: grid; gap: 2px; margin-bottom: 5px;"></div>
-                        <div id="voice-rows" style="display: flex; flex-direction: column; gap: 2px;"></div>
+                    <div>
+                        <h4 style="margin: 0 0 10px 0; font-size: 0.8em; text-transform: uppercase; color: var(--accent);">Μέτρο (Time Signature)</h4>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <input type="number" id="beat-count" value="4" class="modal-input" style="width: 60px; text-align: center;">
+                            <span>/</span>
+                            <select id="steps-per-beat" class="modal-input">
+                                <option value="2">8</option>
+                                <option value="4" selected>4</option>
+                            </select>
+                            <button id="btn-apply-grid" class="modal-btn accent">Ορισμός</button>
+                        </div>
                     </div>
-
-                    <aside style="width: 300px; padding: 20px; background: var(--bg-sidebar); display: flex; flex-direction: column; gap: 25px;">
-                        
-                        <div>
-                            <h4 style="margin: 0 0 10px 0; font-size: 0.9em; text-transform: uppercase; color: var(--accent);">Μέτρο (Time Signature)</h4>
-                            <div style="display: flex; gap: 10px; align-items: center;">
-                                <input type="number" id="beat-count" value="4" min="1" max="16" class="modal-input" style="width: 60px; text-align: center;">
-                                <span>/</span>
-                                <select id="steps-per-beat" class="modal-input" style="width: 60px;">
-                                    <option value="2">8</option>
-                                    <option value="4" selected>4</option>
-                                </select>
-                                <button id="btn-apply-grid" class="modal-btn accent" style="flex: 1;">Ορισμός</button>
-                            </div>
+                    
+                    <div>
+                        <h4 style="margin: 0 0 10px 0; font-size: 0.8em; text-transform: uppercase; color: var(--accent);">Δυναμικές (Accent)</h4>
+                        <label style="font-size: 0.9em; display: block; margin-bottom: 8px;">
+                            <input type="checkbox" id="accent-enabled" checked> Ενεργό στο 1ο beat
+                        </label>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <input type="range" id="accent-strength" min="0" max="100" value="55" style="width: 120px;">
+                            <output id="accent-strength-out" style="font-weight: bold; color: var(--accent); width: 35px; text-align: right;">55%</output>
                         </div>
-
-                        <div>
-                            <h4 style="margin: 0 0 10px 0; font-size: 0.9em; text-transform: uppercase; color: var(--accent);">Δυναμικές (Accent)</h4>
-                            <label style="display: flex; align-items: center; gap: 10px; font-size: 0.9em; margin-bottom: 10px;">
-                                <input type="checkbox" id="accent-enabled" checked> Ενεργό στο 1ο beat
-                            </label>
-                            <div style="display: flex; align-items: center; gap: 10px;">
-                                <input type="range" id="accent-strength" min="0" max="100" value="55" style="flex: 1;">
-                                <output id="accent-strength-out" style="font-weight: bold; color: var(--accent); width: 35px; text-align: right;">55%</output>
-                            </div>
+                    </div>
+                    
+                    <div style="flex: 1; min-width: 250px;">
+                        <h4 style="margin: 0 0 10px 0; font-size: 0.8em; text-transform: uppercase; color: var(--accent);">Ήχος (Kit) & Διαχείριση</h4>
+                        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                            <select id="kit-select" class="modal-input" style="flex: 1;">
+                                <option value="standard">Standard Synth</option>
+                                <option value="eastern">Eastern Synth</option>
+                                <option value="eastern-real-v1" selected>Eastern Real (Samples)</option>
+                            </select>
                         </div>
-
-                        <div style="margin-top: auto;">
-                            <h4 style="margin: 0 0 10px 0; font-size: 0.9em; text-transform: uppercase; color: var(--text-main);">Αποθήκευση</h4>
-                            <input type="text" id="asset-name" class="modal-input" placeholder="Όνομα Ρυθμού..." style="width: 100%; margin-bottom: 10px;" value="Νέος Ρυθμός">
-                            <button id="btn-export-mnr-top" class="modal-btn accent" style="width: 100%; margin-bottom: 10px;"><i class="fas fa-download"></i> Λήψη (.mnr)</button>
-                            
-                            <button id="btn-import-mnr" class="modal-btn" style="width: 100%;"><i class="fas fa-upload"></i> Φόρτωση (.mnr)</button>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="text" id="asset-name" class="modal-input" placeholder="Όνομα Ρυθμού..." style="flex: 1;" value="Νέος Ρυθμός">
+                            <button id="btn-export-mnr-top" class="modal-btn accent" title="Λήψη (.mnr)"><i class="fas fa-download"></i></button>
+                            <button id="btn-import-mnr" class="modal-btn" title="Φόρτωση (.mnr)"><i class="fas fa-upload"></i></button>
                             <input type="file" id="file-import-mnr" accept=".mnr,.json" style="display: none;">
                         </div>
-                    </aside>
+                    </div>
+
                 </div>
             </div>
 
@@ -243,7 +237,6 @@
                 <button id="btn-load-demo"></button>
                 <button id="btn-push-pattern"></button>
                 <button id="btn-reset-engine"></button>
-                
                 <span id="status-engine"></span>
                 <span id="status-playing"></span>
                 <span id="status-bpm"></span>
@@ -252,19 +245,15 @@
                 <span id="status-steps"></span>
                 <span id="status-active-cells"></span>
                 <span id="status-accent"></span>
-                
                 <pre id="pattern-preview"></pre>
                 <span id="badge-grid"></span>
                 <span id="badge-meter"></span>
-                
                 <div id="toast-host"></div>
                 <div id="event-log"></div>
             </div>
-       
-         </section>
+        </section>
 
-    
-    
+        
     </main>
 
     <script src="js/supabase.min.js"></script>

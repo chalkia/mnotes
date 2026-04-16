@@ -1,65 +1,107 @@
 /* =========================================
-   mStudio Rhythm Editor (Grid Styles)
+   mStudio Rhythm Engine - UI Styling
    ========================================= */
 
-/* Κεφαλίδα Grid (Αριθμοί μέτρων) */
-#grid-header .step-header-cell {
-    background: var(--bg-sidebar);
-    color: var(--text-muted);
-    font-size: 0.75em;
-    text-align: center;
-    padding: 4px 0;
-    border-radius: 2px;
+/* Η δομή του Grid (Σέβεται το δυναμικό πλάτος της JS) */
+#grid-header, .voice-row {
+    display: grid !important; 
+    gap: 4px;
+    align-items: stretch;
+    margin-bottom: 8px;
 }
 
-/* Κελιά Ρυθμού (Τα τετραγωνάκια) */
+/* Αριθμοί Μέτρων (Η πάνω σειρά) */
+.step-label {
+    background: #1f1f1f;
+    color: #888;
+    text-align: center;
+    font-size: 0.8rem;
+    padding: 8px 0;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+}
+.step-label.beat-start {
+    border-color: #666;
+    color: #ddd;
+    font-weight: bold;
+}
+
+/* Πάνελ ελέγχου κάθε οργάνου (Αριστερή Στήλη) */
+.voice-label {
+    background: #191919;
+    padding: 8px 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+}
+.voice-strip-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+}
+.voice-strip-head strong {
+    color: var(--text-main);
+    letter-spacing: 1px;
+}
+.voice-strip-head span {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+/* Ρυθμιστικά (Level & Tail) */
+.voice-controls {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 6px;
+}
+.voice-control {
+    display: grid;
+    grid-template-columns: 40px 1fr 30px;
+    gap: 6px;
+    align-items: center;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+.voice-control input[type="range"] {
+    width: 100%;
+    accent-color: var(--accent);
+}
+.voice-control output {
+    text-align: right;
+    color: var(--accent);
+}
+
+/* Τα Κουτάκια του Ρυθμού (Cells) */
 .cell {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    height: 35px;
+    background: #272727;
+    border: 1px solid var(--border-color);
     border-radius: 4px;
     cursor: pointer;
     transition: all 0.1s ease;
 }
 
 .cell:hover {
-    background: rgba(255, 255, 255, 0.15);
+    filter: brightness(1.3);
 }
 
-/* Ενεργό κελί (Χτύπημα) */
+.cell.beat-start {
+    border-left: 2px solid #555;
+}
+
+/* Ενεργό (πατημένο) κουτάκι */
 .cell.active {
-    background: var(--accent); /* Πορτοκαλί */
-    border-color: var(--accent);
-    box-shadow: 0 0 8px rgba(211, 84, 0, 0.6); /* d35400 με διαφάνεια */
+    background-color: var(--active-color, #fff) !important;
+    border-color: rgba(255,255,255,0.6);
+    box-shadow: 0 0 10px rgba(255,255,255,0.2);
 }
 
-/* Εφέ κατά την αναπαραγωγή (Playhead) */
-.cell.playing {
-    background: #ecf0f1;
-    border-color: #fff;
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
-}
-.cell.active.playing {
-    background: #f1c40f; /* Κίτρινο αν χτυπάει */
-    box-shadow: 0 0 15px rgba(241, 196, 15, 0.8);
-}
-
-/* Γραμμή Οργάνου (Voice Row) */
-.voice-row {
-    display: flex;
-    align-items: center;
-}
-.voice-label {
-    width: 100px;
-    font-size: 0.85em;
-    color: var(--text-main);
-    text-align: right;
-    padding-right: 15px;
-    font-weight: bold;
-    flex-shrink: 0;
-}
-.voice-grid {
-    flex: 1;
-    display: grid;
-    gap: 2px;
+/* Εφέ Playhead (Όταν παίζει ο ήχος) */
+.cell.highlight {
+    background-color: #ffffff !important;
+    box-shadow: 0 0 16px rgba(255,255,255,0.9);
+    transform: scale(1.05);
+    z-index: 10;
 }

@@ -164,8 +164,8 @@
             <div class="seq-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h3 style="color: var(--accent); margin: 0;">Μηχανή Ρυθμών (Drum Sequencer)</h3>
                 <div class="header-badges" style="display: flex; gap: 10px; font-size: 0.85em; color: var(--text-muted);">
-                    <div class="badge" id="badge-grid" style="background: rgba(255,255,255,0.05); padding: 4px 8px; border-radius: 4px;">Grid: 6 voices × 16 steps</div>
-                    <div class="badge" id="badge-meter" style="background: rgba(255,255,255,0.05); padding: 4px 8px; border-radius: 4px;">Meter: 4/4</div>
+                    <div class="badge" id="badge-grid" style="background: rgba(255,255,255,0.05); padding: 4px 8px; border-radius: 4px;">Grid: -</div>
+                    <div class="badge" id="badge-meter" style="background: rgba(255,255,255,0.05); padding: 4px 8px; border-radius: 4px;">Meter: -</div>
                 </div>
             </div>
 
@@ -179,7 +179,7 @@
                     
                     <div class="toolbar-group" style="display: flex; align-items: center; gap: 10px; border-left: 1px solid var(--border-strong); padding-left: 15px;">
                         <label>Kit:</label>
-                        <select id="sel-kit" class="modal-input" style="width: auto; padding: 4px 8px;">
+                        <select id="kit-select" class="modal-input" style="width: auto; padding: 4px 8px;">
                             <option value="standard">Standard (Synth)</option>
                             <option value="eastern">Eastern (Synth)</option>
                             <option value="eastern_real_v1" selected>Eastern Real (Samples)</option>
@@ -189,11 +189,15 @@
 
                     <div class="toolbar-group" style="display: flex; align-items: center; gap: 10px; border-left: 1px solid var(--border-strong); padding-left: 15px;">
                         <label>Tempo:</label>
-                        <input type="range" id="tempo-slider" min="60" max="200" value="100" style="width: 100px;">
-                        <span id="tempo-out" style="font-family: monospace; font-weight: bold; color: var(--accent);">100</span>
+                        <input type="range" id="rng-bpm" min="60" max="200" value="100" style="width: 100px;">
+                        <output id="bpm-output" style="font-family: monospace; font-weight: bold; color: var(--accent);">100</output>
                     </div>
 
-                    <div style="margin-left: auto;">
+                    <div style="margin-left: auto; display: flex; gap: 10px;">
+                        <select id="demo-select" style="display:none;"><option value="standard">std</option></select>
+                        <button id="btn-load-demo" style="display:none;">Demo</button>
+                        <button id="btn-push-pattern" style="display:none;">Push</button>
+                        
                         <button class="icon-btn ghost" id="btn-reset-engine" title="Reset Engine"><i class="fas fa-sync-alt"></i></button>
                         <button id="btn-clear" class="modal-btn" title="Καθαρισμός Grid"><i class="fas fa-trash-alt"></i></button>
                     </div>
@@ -201,17 +205,30 @@
 
                 <div class="seq-shell-body" style="display: flex;">
                     <div class="seq-grid-area" style="flex: 1; padding: 20px; overflow-x: auto;">
-                        <div id="grid-container">
-                            </div>
+                        <div id="grid-header" style="display: grid; gap: 2px; margin-bottom: 5px;"></div>
+                        <div id="voice-rows" style="display: flex; flex-direction: column; gap: 2px;"></div>
                     </div>
 
                     <aside class="side-panel" style="width: 280px; background: var(--bg-sidebar); border-left: 1px solid var(--border-color); padding: 15px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; max-height: 500px;">
                         
                         <section class="side-card">
+                            <h4 style="margin: 0 0 10px 0; color: var(--accent); font-size: 0.9em; text-transform: uppercase;">Time Signature</h4>
+                            <div style="display: flex; gap: 5px; margin-bottom: 10px;">
+                                <input type="number" id="beat-count" value="4" min="1" max="16" class="modal-input" style="width: 50px;">
+                                <span style="line-height: 30px;">/</span>
+                                <select id="steps-per-beat" class="modal-input" style="width: 50px;">
+                                    <option value="2">8</option>
+                                    <option value="4" selected>4</option>
+                                </select>
+                                <button id="btn-apply-grid" class="modal-btn accent">Ορισμός</button>
+                            </div>
+                        </section>
+
+                        <section class="side-card">
                             <h4 style="margin: 0 0 10px 0; color: var(--accent); font-size: 0.9em; text-transform: uppercase;">Metric Accent</h4>
                             <div style="display: flex; flex-direction: column; gap: 10px; font-size: 0.9em;">
                                 <label class="inline-check">
-                                    <input type="checkbox" id="chk-metric-accent" checked> 
+                                    <input type="checkbox" id="accent-enabled" checked> 
                                     Ενεργό (1ο beat)
                                 </label>
                                 <div style="display: flex; align-items: center; gap: 10px;">
@@ -222,15 +239,25 @@
                         </section>
 
                         <section class="side-card">
-                            <h4 style="margin: 0 0 10px 0; color: var(--accent); font-size: 0.9em; text-transform: uppercase;">Αποθήκευση Cloud</h4>
+                            <h4 style="margin: 0 0 10px 0; color: var(--accent); font-size: 0.9em; text-transform: uppercase;">Αρχείο & Cloud</h4>
                             <div style="display: flex; flex-direction: column; gap: 10px;">
                                 <input type="text" id="asset-name" class="modal-input" placeholder="Όνομα Ρυθμού..." value="Νέος Ρυθμός">
-                                <button id="btn-save-cloud" class="modal-btn accent" style="width: 100%;"><i class="fas fa-cloud-upload-alt"></i> Αποθήκευση στο mNotes</button>
+                                
+                                <button id="btn-export-mnr-top" class="modal-btn" style="width: 100%;"><i class="fas fa-download"></i> Αποθήκευση Τοπικά (.mnr)</button>
+                                <button id="btn-import-mnr" class="modal-btn" style="width: 100%;"><i class="fas fa-upload"></i> Φόρτωση (.mnr)</button>
+                                <input type="file" id="file-import-mnr" accept=".mnr,.json" style="display: none;">
                             </div>
                         </section>
                         
                     </aside>
                 </div>
+            </div>
+            
+            <div style="display:none;">
+                <span id="status-engine"></span><span id="status-playing"></span><span id="status-bpm"></span>
+                <span id="status-kit"></span><span id="status-meter"></span><span id="status-steps"></span>
+                <span id="status-active-cells"></span><span id="status-accent"></span><pre id="pattern-preview"></pre>
+                <div id="toast-host"></div><div id="event-log"></div>
             </div>
         </section>
     

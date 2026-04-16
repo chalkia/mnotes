@@ -1,0 +1,35 @@
+{
+  "kitId": "eastern_real_v1",
+  "name": "Eastern Real Kit v1",
+  "sampleRate": 44100,
+  "format": "wav",
+  "channels": "mono",
+  "voices": {
+    "v1": [
+      "v1_doum_main.wav"
+    ],
+    "v2": [
+      "v2_mid_body.wav"
+    ],
+    "v3": [
+      "v3_mute_dry.wav"
+    ],
+    "v4": [
+      "v4_tek_main.wav",
+      "v4_tek_hi_alt.wav"
+    ],
+    "v5": [
+      "v5_tambourine_accent.wav"
+    ],
+    "v6": [
+      "v6_jingle_short_a.wav",
+      "v6_jingle_short_b.wav"
+    ]
+  },
+  "notes": [
+    "All files converted to mono PCM16 WAV at 44.1 kHz.",
+    "Leading/trailing silence trimmed and peak-normalized.",
+    "v6 currently uses short tambourine/jingle material as high percussion.",
+    "A dedicated shaker sample can be added later as an alternate v6 layer."
+  ]
+}

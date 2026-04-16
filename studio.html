@@ -103,6 +103,51 @@
         </div>
     </div>
 
+    <div id="modal-kit-builder" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 9999; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
+        <div class="modal-box" style="background: var(--bg-panel); padding: 30px; border-radius: 8px; border: 1px solid var(--border-color); width: 450px; max-width: 95%; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="color: var(--accent); margin: 0;"><i class="fas fa-tools"></i> Δημιουργία Custom Kit</h3>
+                <button onclick="document.getElementById('modal-kit-builder').style.display='none'" style="background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.2rem;"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <label style="display: block; margin-bottom: 20px;">
+                <span style="color: var(--text-muted); font-size: 0.85em; text-transform: uppercase;">Όνομα του Kit:</span>
+                <input type="text" id="custom-kit-name" class="modal-input" placeholder="π.χ. My Live Darbuka" style="width: 100%; margin-top: 5px; padding: 8px;">
+            </label>
+
+            <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 25px;">
+                <div style="color: var(--text-muted); font-size: 0.8em; text-transform: uppercase; border-bottom: 1px solid var(--border-color); padding-bottom: 5px;">Αρχεία Ήχου (.wav, .mp3)</div>
+                
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="width: 30px; font-weight: bold; color: var(--text-main);">V1</span>
+                    <input type="file" id="file-v1" accept="audio/*" class="modal-input" style="flex: 1; font-size: 0.8em; padding: 4px;">
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="width: 30px; font-weight: bold; color: var(--text-main);">V2</span>
+                    <input type="file" id="file-v2" accept="audio/*" class="modal-input" style="flex: 1; font-size: 0.8em; padding: 4px;">
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="width: 30px; font-weight: bold; color: var(--text-main);">V3</span>
+                    <input type="file" id="file-v3" accept="audio/*" class="modal-input" style="flex: 1; font-size: 0.8em; padding: 4px;">
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="width: 30px; font-weight: bold; color: var(--text-main);">V4</span>
+                    <input type="file" id="file-v4" accept="audio/*" class="modal-input" style="flex: 1; font-size: 0.8em; padding: 4px;">
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="width: 30px; font-weight: bold; color: var(--text-main);">V5</span>
+                    <input type="file" id="file-v5" accept="audio/*" class="modal-input" style="flex: 1; font-size: 0.8em; padding: 4px;">
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="width: 30px; font-weight: bold; color: var(--text-main);">V6</span>
+                    <input type="file" id="file-v6" accept="audio/*" class="modal-input" style="flex: 1; font-size: 0.8em; padding: 4px;">
+                </div>
+            </div>
+
+            <button id="btn-save-custom-kit" class="modal-btn accent" style="width: 100%; padding: 10px; font-size: 1rem;"><i class="fas fa-save"></i> Αποθήκευση στη Συλλογή</button>
+        </div>
+    </div>
     <aside id="studio-sidebar" style="display: none;">
         <div class="studio-logo"><i class="fas fa-sliders-h"></i> mStudio</div>
         <nav class="studio-nav">
@@ -171,11 +216,13 @@
                         <button id="btn-play" class="modal-btn accent" style="width: 100px;"><i class="fas fa-play"></i> Play</button>
                         <button id="btn-stop" class="modal-btn" style="width: 100px;"><i class="fas fa-stop"></i> Stop</button>
                     </div>
+
                     <div style="display: flex; align-items: center; gap: 10px; border-left: 1px solid var(--border-strong); padding-left: 20px;">
                         <label style="color: var(--text-muted); font-size: 0.9em;">Τέμπο:</label>
                         <input type="range" id="rng-bpm" min="60" max="200" value="100" style="width: 120px;">
                         <output id="bpm-output" style="font-weight: bold; color: var(--accent); width: 30px;">100</output>
                     </div>
+
                     <div style="margin-left: auto; display: flex; gap: 10px;">
                         <button id="btn-clear" class="modal-btn" title="Καθαρισμός (Clear)"><i class="fas fa-trash"></i></button>
                     </div>
@@ -220,6 +267,9 @@
                                 <option value="eastern">Eastern Synth</option>
                                 <option value="eastern-real-v1" selected>Eastern Real (Samples)</option>
                             </select>
+                            <button id="btn-open-kit-builder" class="icon-btn" style="background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 4px; padding: 6px 12px; cursor: pointer; color: var(--accent);" title="Δημιουργία Custom Kit">
+                                <i class="fas fa-plus"></i>
+                            </button>
                         </div>
                         <div style="display: flex; gap: 10px;">
                             <input type="text" id="asset-name" class="modal-input" placeholder="Όνομα Ρυθμού..." style="flex: 1;" value="Νέος Ρυθμός">
@@ -259,7 +309,8 @@
     <script src="js/supabase.min.js"></script>
     <script src="js/config.js"></script>
     <script src="js/supabase-client.js"></script>
-    <script src="rhythm-engine/universal-percussion-engine.js"></script>
+    <script src="rhythm-engine/universal-percussion-engine.js"></script> 
+    <script src="rhythm-engine/custom-kit-db.js"></script>
     <script src="rhythm-engine/audio-bridge.js"></script>
     <script src="rhythm-engine/shell.js"></script>
     <script src="studio-editor/toolbar.js"></script>
@@ -302,6 +353,89 @@
             shield.style.display = "none";
             document.getElementById('studio-sidebar').style.display = "flex";
             document.getElementById('studio-main').style.display = "flex";
+        });
+
+        // ==========================================
+        // CUSTOM KIT BUILDER LOGIC
+        // ==========================================
+        
+        // 1. Άνοιγμα του Παραθύρου
+        document.getElementById('btn-open-kit-builder').addEventListener('click', () => {
+            document.getElementById('modal-kit-builder').style.display = 'flex';
+            document.getElementById('custom-kit-name').value = '';
+            for(let i=1; i<=6; i++) document.getElementById(`file-v${i}`).value = '';
+        });
+
+        // 2. Αποθήκευση του Kit
+        document.getElementById('btn-save-custom-kit').addEventListener('click', async () => {
+            const kitName = document.getElementById('custom-kit-name').value.trim();
+            if (!kitName) {
+                alert("Παρακαλώ δώστε ένα όνομα για το Kit.");
+                return;
+            }
+
+            const voiceBlobs = {};
+            let hasFiles = false;
+
+            // Συλλογή των αρχείων
+            for (let i = 1; i <= 6; i++) {
+                const fileInput = document.getElementById(`file-v${i}`);
+                if (fileInput.files && fileInput.files[0]) {
+                    voiceBlobs[`v${i}`] = fileInput.files[0];
+                    hasFiles = true;
+                }
+            }
+
+            if (!hasFiles) {
+                alert("Παρακαλώ επιλέξτε τουλάχιστον ένα αρχείο ήχου.");
+                return;
+            }
+
+            const btn = document.getElementById('btn-save-custom-kit');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Αποθήκευση...';
+
+            try {
+                const kitId = 'custom_' + Date.now().toString(36);
+                await CustomKitDB.saveKit(kitId, kitName, voiceBlobs);
+
+                const select = document.getElementById('kit-select');
+                const newOption = document.createElement('option');
+                newOption.value = kitId;
+                newOption.textContent = kitName + ' (Custom)';
+                select.appendChild(newOption);
+                
+                select.value = kitId;
+                select.dispatchEvent(new Event('change'));
+
+                document.getElementById('modal-kit-builder').style.display = 'none';
+                if (typeof showToast === 'function') showToast("Το Custom Kit αποθηκεύτηκε!", "success");
+
+            } catch (err) {
+                console.error("Σφάλμα αποθήκευσης Kit:", err);
+                alert("Υπήρξε πρόβλημα κατά την αποθήκευση: " + err);
+            } finally {
+                btn.innerHTML = originalText;
+            }
+        });
+
+        // 3. Φόρτωση των Custom Kits κατά την εκκίνηση
+        window.addEventListener('load', async () => {
+            if (typeof CustomKitDB !== 'undefined') {
+                try {
+                    const kits = await CustomKitDB.getAllKitsMetadata();
+                    const select = document.getElementById('kit-select');
+                    
+                    kits.forEach(kit => {
+                        const option = document.createElement('option');
+                        option.value = kit.id;
+                        option.textContent = kit.name + ' (Custom)';
+                        select.appendChild(option);
+                    });
+                } catch(e) {
+                    console.warn("Δεν ήταν δυνατή η φόρτωση των Custom Kits από τη βάση.", e);
+                }
+            }
         });
     </script>
 </body>

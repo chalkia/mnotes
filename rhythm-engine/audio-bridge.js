@@ -50,8 +50,37 @@ class MNotesAudioBridge {
         if (this.engine) this.engine.setBpm(bpm);
     }
 
-    loadKit(kitId) {
+    async loadKit(kitId) {
         console.log(`🗂️ [AudioBridge] Αίτημα φόρτωσης Kit: ${kitId}`);
+        
+        // 1. ΕΛΕΓΧΟΣ: Είναι Custom Kit από τον χρήστη;
+        if (kitId && kitId.startsWith('custom_')) {
+            if (typeof CustomKitDB === 'undefined') throw new Error("Η βάση CustomKitDB δεν βρέθηκε.");
+            const customKit = await CustomKitDB.getKit(kitId);
+            if (!customKit) throw new Error(`Το Custom Kit '${kitId}' δεν βρέθηκε.`);
+
+            // Φτιάχνουμε το "εικονικό" manifest
+            const manifest = { name: customKit.name, voices: {}, defaultVoiceSettings: {} };
+            const audioUrls = {};
+            
+            for (const v of ['v1', 'v2', 'v3', 'v4', 'v5', 'v6']) {
+                if (customKit.voices[v]) {
+                    // Μετατρέπουμε το Blob σε URL μνήμης για να το διαβάσει η μηχανή
+                    audioUrls[v] = URL.createObjectURL(customKit.voices[v]);
+                    manifest.voices[v] = customKit.name + '_' + v; // Απλά ένα label
+                }
+            }
+            
+            // Επειδή οι ήχοι είναι Blobs, τους περνάμε απευθείας στη μηχανή
+            if (this.engine && typeof this.engine.loadCustomKit === 'function') {
+                return this.engine.loadCustomKit(kitId, manifest, audioUrls);
+            } else {
+                console.warn("⚠️ Η εξωτερική μηχανή δεν υποστηρίζει loadCustomKit ακόμα.");
+                return Promise.resolve();
+            }
+        }
+
+        // 2. Διαφορετικά, είναι έτοιμο Kit (standard, eastern κλπ)
         if (this.engine) return this.engine.loadKit(kitId);
         return Promise.resolve();
     }

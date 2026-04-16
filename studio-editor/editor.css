@@ -1,0 +1,66 @@
+/* =========================================================
+   mStudio - WYSIWYG Editor Styles (studio-editor/editor.css)
+   Περιέχει αποκλειστικά την εμφάνιση του καμβά και των Tokens
+   ========================================================= */
+
+/* Ο Καμβάς */
+#editor-container {
+    font-size: 18px;
+    line-height: 2.5; /* Απαραίτητο μεγάλο διάστιχο για να χωράνε οι συγχορδίες από πάνω */
+    padding: 20px;
+    outline: none;
+    background: #fff;
+    color: #111;
+    border: 1px solid var(--border-color); /* Κληρονομεί από το κεντρικό style.css */
+    border-radius: 8px;
+    min-height: 500px;
+    white-space: pre-wrap;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* Συγχορδία: Πάνω από τη λέξη/συλλαβή */
+.wb-chord {
+    ruby-align: center;
+    ruby-position: over;
+    font-size: 1em;
+}
+.wb-chord rt {
+    font-weight: 900;
+    color: #d35400;
+    font-size: 0.85em;
+    font-family: 'Arial', sans-serif;
+    transform: translateY(6px);
+    user-select: all;
+    cursor: default;
+}
+
+/* Ρυθμός: Inline Πλήκτρο */
+.wb-rhythm {
+    display: inline-block;
+    background: #e3f2fd;
+    color: #1976d2;
+    border: 1px solid #90caf9;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    font-family: monospace;
+    font-weight: bold;
+    margin: 0 4px;
+    vertical-align: middle;
+    user-select: all;
+}
+
+/* Strumming: Ξεχωριστή γραμμή */
+.wb-strum {
+    display: block; 
+    background: #e8f8f5;
+    color: #1abc9c;
+    border-left: 4px solid #1abc9c;
+    padding: 4px 10px;
+    font-family: monospace;
+    font-weight: bold;
+    font-size: 0.9em;
+    margin-top: 10px; 
+    margin-bottom: -15px; 
+    user-select: all;
+}

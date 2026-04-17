@@ -234,117 +234,125 @@
             </div>
         </main>
         <div class="resizer" id="dragMeRight"></div>
-        <aside class="col-tools" id="rhythmTools">
-            <div class="sidebar-header-tools">
-                <span data-i18n="title_tools" style="font-weight:bold; color:var(--text-muted); font-size:0.9rem;">TOOLS & ASSETS</span>
-            </div>
         
-            <div id="video-sidebar-container" style="display:none; padding: 10px; border-bottom: 1px solid var(--border-color); background: rgba(0,0,0,0.1);">
-                <div id="video-embed-box" class="video-responsive" style="position:relative; padding-bottom:56.25%; height:0; overflow:hidden; border-radius:8px; background:transparent;">
-                </div>
-            </div>
-        
-            <div class="tool-panel">
+    <aside class="col-tools" id="rhythmTools">
+        <div class="sidebar-header-tools">
+            <span data-i18n="title_tools" style="font-weight:bold; color:var(--text-muted); font-size:0.9rem;">TOOLS & ASSETS</span>
+        </div>
                 
-                <div class="tool-section">
-            <div class="section-title">
-                <i class="fas fa-microphone-alt" style="color:var(--accent);"></i> 
-                <span data-i18n="title_audio_hub">AUDIO HUB</span>
-            </div>
+        <div class="col-content tool-panel" style="padding: 10px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto;">
             
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
-                
-                <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 5px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all 0.2s;">
-                    <span id="recTimer" class="rec-timer" style="font-size: 0.85rem; margin-bottom: 8px; color: var(--text-muted); font-family: monospace;">00:00</span>
-                    <div style="display: flex; gap: 8px;">
-                       <div style="display: flex; gap: 8px;">
-                            <button id="btnRecord" onclick="toggleRecording()" class="action-btn-circle" title="Record" style="background: var(--bg-main); color: #ff4757; border: 1px solid #ff4757; width: 38px; height: 38px; border-radius: 50%; cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
-                                <i class="fas fa-circle"></i>
-                            </button>
-                            
-                            <button id="btnDiscardRec" onclick="discardCurrentRecording()" class="action-btn-circle" style="display:none; background: #dc3545; color: #fff; border: none; width: 38px; height: 38px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;" title="Ακύρωση Εγγραφής">
-                                <i class="fas fa-trash-alt"></i>
-                            </button>
-                        
-                            <button id="btnLinkRec" onclick="uploadAndLinkCurrent()" class="action-btn-circle" style="display:none; background: #4db6ac; color: #000; border: none; width: 38px; height: 38px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;" title="Save to Song">
-                                <i class="fas fa-cloud-upload-alt"></i>
-                            </button>
+            <div id="video-sidebar-container" style="display:none;">
+                <details class="tool-group" id="drawerVideo" open>
+                    <summary class="drawer-header">
+                        <span><i class="fab fa-youtube" style="color:#ff0000;"></i> <span data-i18n="title_video">VIDEO LINK</span></span>
+                        <i class="fas fa-chevron-down toggle-icon"></i>
+                    </summary>
+                    <div class="group-content drawer-content" style="padding:0;">
+                        <div id="video-embed-box" class="video-responsive" style="position:relative; padding-bottom:56.25%; height:0; overflow:hidden; border-radius:0 0 8px 8px; background:transparent;">
+                        </div>
+                    </div>
+                </details>
+            </div>
+
+            <details class="tool-group" id="drawerAudioHub">
+                <summary class="drawer-header">
+                    <span><i class="fas fa-microphone-alt" style="color:var(--accent);"></i> <span data-i18n="title_audio_hub">AUDIO HUB</span></span>
+                    <i class="fas fa-chevron-down toggle-icon"></i>
+                </summary>
+                <div class="group-content drawer-content">
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                        <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 5px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all 0.2s;">
+                            <span id="recTimer" class="rec-timer" style="font-size: 0.85rem; margin-bottom: 8px; color: var(--text-muted); font-family: monospace;">00:00</span>
+                            <div style="display: flex; gap: 8px;">
+                                <button id="btnRecord" onclick="toggleRecording()" class="action-btn-circle" title="Record" style="background: var(--bg-main); color: #ff4757; border: 1px solid #ff4757; width: 38px; height: 38px; border-radius: 50%; cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+                                    <i class="fas fa-circle"></i>
+                                </button>
+                                <button id="btnDiscardRec" onclick="discardCurrentRecording()" class="action-btn-circle" style="display:none; background: #dc3545; color: #fff; border: none; width: 38px; height: 38px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;" title="Ακύρωση Εγγραφής">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                                <button id="btnLinkRec" onclick="uploadAndLinkCurrent()" class="action-btn-circle" style="display:none; background: #4db6ac; color: #000; border: none; width: 38px; height: 38px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;" title="Save to Song">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div onclick="openAssetManager('audio')" style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 5px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='rgba(255,255,255,0.03)'">
+                            <i class="fas fa-folder-open" style="font-size: 1.6rem; color: var(--accent); margin-bottom: 8px;"></i>
+                            <span data-i18n="btn_manage_audio" style="font-size: 0.8rem; font-weight: bold; color: var(--text-main);">Audio Library</span>
+                        </div>
+                    </div>
+
+                    <div id="uploadProgressBox" style="display:none; margin-bottom: 15px;">
+                        <div class="prog-bg"><div id="uploadBar" class="prog-fill"></div></div>
+                        <span id="uploadText" data-i18n="msg_uploading" style="font-size:0.7rem; color:#888;">Uploading...</span>
+                    </div>
+
+                    <audio id="masterAudio"></audio>
+                    
+                    <div id="customPlayerUI" style="display: none; align-items: center; gap: 8px; background: var(--bg-panel, rgba(0,0,0,0.2)); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; width: 100%; box-sizing: border-box; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                        <button id="cpPlayBtn" onclick="toggleCustomPlayer()" style="background: var(--accent); color: #000; border: none; width: 35px; height: 35px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem; transition: 0.2s transform;">
+                            <i class="fas fa-play" id="cpPlayIcon"></i>
+                        </button>
+                        <span id="cpCurrentTime" style="font-size: 0.75rem; color: var(--text-main); font-family: monospace; min-width: 35px;">0:00</span>
+                        <input type="range" id="cpSeekbar" value="0" max="100" oninput="seekCustomPlayer(this.value)" style="flex: 1; accent-color: var(--accent); height: 4px; cursor: pointer;">
+                        <span id="cpDuration" style="font-size: 0.75rem; color: var(--text-muted); font-family: monospace; min-width: 35px;">0:00</span>
+                    </div>
+                    
+                    <div id="audio-tools-panel" style="display:none; margin-bottom:15px; padding: 10px; background: rgba(0,0,0,0.1); border-radius: 8px; border: 1px solid var(--border-color);">
+                        <div style="font-size: 0.8rem; font-weight: bold; margin-bottom: 10px; color: var(--text-muted);">
+                            <i class="fas fa-sliders-h"></i> <span data-i18n="lbl_audio_tools">AUDIO TOOLS</span>
+                        </div>
+
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                            <span style="font-size: 0.85rem;" data-i18n="lbl_pitch">Pitch:</span>
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <button id="btnAudioPitchDown" class="play-mini-btn" style="width: 28px; height: 28px; padding: 0;">-</button>
+                                <span id="audioPitchDisplay" style="width: 24px; text-align: center; font-weight: bold; font-size: 0.9rem;">0</span>
+                                <button id="btnAudioPitchUp" class="play-mini-btn" style="width: 28px; height: 28px; padding: 0;">+</button>
+                            </div>
+                            <button id="btnAudioPitchReset" class="add-mini-btn" style="padding: 2px 8px; font-size: 0.75rem;" data-i18n="btn_reset">Reset</button>
+                        </div>
+
+                        <button id="btnDetectKey" class="add-mini-btn" style="width: 100%; justify-content: center; background-color: rgba(40, 167, 69, 0.15); border-color: rgba(40, 167, 69, 0.4);">
+                            <i class="fas fa-magic"></i> <span data-i18n="btn_detect_key">Detect Key</span>
+                        </button>
+                        <div id="keyDetectResult" style="display: none; text-align: center; font-weight: bold; margin-top: 8px; font-size: 1.1rem; color: #28a745;">
+                        </div>
+                    </div>
+
+                    <div class="audio-list-container" style="background: rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 10px;">
+                        <label class="list-label" data-i18n="lbl_tracks" style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 8px; display: block; letter-spacing: 1px;">TRACKS:</label>
+                        <div id="sideRecList" class="compact-list">
+                            <div class="empty-state" data-i18n="msg_no_recordings" style="text-align: center; color: #666; font-size: 0.85rem; padding: 10px 0; font-style: italic;">No recordings yet</div> 
                         </div>
                     </div>
                 </div>
+            </details>
 
-                <div onclick="openAssetManager('audio')" style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 5px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='rgba(255,255,255,0.03)'">
-                    <i class="fas fa-folder-open" style="font-size: 1.6rem; color: var(--accent); margin-bottom: 8px;"></i>
-                    <span data-i18n="btn_manage_audio" style="font-size: 0.8rem; font-weight: bold; color: var(--text-main);">Audio Library</span>
-                </div>
-
-            </div>
-
-            <div id="uploadProgressBox" style="display:none; margin-bottom: 15px;">
-                <div class="prog-bg"><div id="uploadBar" class="prog-fill"></div></div>
-                <span id="uploadText" data-i18n="msg_uploading" style="font-size:0.7rem; color:#888;">Uploading...</span>
-            </div>
-
-            <audio id="masterAudio"></audio>
-           <div id="customPlayerUI" style="display: none; align-items: center; gap: 8px; background: var(--bg-panel, rgba(0,0,0,0.2)); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; width: 100%; box-sizing: border-box; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                <button id="cpPlayBtn" onclick="toggleCustomPlayer()" style="background: var(--accent); color: #000; border: none; width: 35px; height: 35px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem; transition: 0.2s transform;">
-                    <i class="fas fa-play" id="cpPlayIcon"></i>
-                </button>
-                <span id="cpCurrentTime" style="font-size: 0.75rem; color: var(--text-main); font-family: monospace; min-width: 35px;">0:00</span>
-                <input type="range" id="cpSeekbar" value="0" max="100" oninput="seekCustomPlayer(this.value)" style="flex: 1; accent-color: var(--accent); height: 4px; cursor: pointer;">
-                <span id="cpDuration" style="font-size: 0.75rem; color: var(--text-muted); font-family: monospace; min-width: 35px;">0:00</span>
-            </div>
-            
-            <div id="audio-tools-panel" style="display:none; margin-bottom:15px; padding: 10px; background: rgba(0,0,0,0.1); border-radius: 8px; border: 1px solid var(--border-color);">
-                <div style="font-size: 0.8rem; font-weight: bold; margin-bottom: 10px; color: var(--text-muted);">
-                    <i class="fas fa-sliders-h"></i> <span data-i18n="lbl_audio_tools">AUDIO TOOLS</span>
-                </div>
-
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-                    <span style="font-size: 0.85rem;" data-i18n="lbl_pitch">Pitch:</span>
-                    <div style="display: flex; gap: 8px; align-items: center;">
-                        <button id="btnAudioPitchDown" class="play-mini-btn" style="width: 28px; height: 28px; padding: 0;">-</button>
-                        <span id="audioPitchDisplay" style="width: 24px; text-align: center; font-weight: bold; font-size: 0.9rem;">0</span>
-                        <button id="btnAudioPitchUp" class="play-mini-btn" style="width: 28px; height: 28px; padding: 0;">+</button>
+            <details class="tool-group" id="drawerFiles">
+                <summary class="drawer-header">
+                    <span><i class="fas fa-folder-open" style="color:var(--accent);"></i> <span data-i18n="sum_files">FILES & SHEETS</span></span>
+                    <i class="fas fa-chevron-down toggle-icon"></i>
+                </summary>
+                <div class="group-content drawer-content">
+                    <div id="list-sheets" class="file-list compact" style="margin-bottom: 10px;">
+                        <div class="empty-state" data-i18n="msg_no_attachments">No attachments</div>
                     </div>
-                    <button id="btnAudioPitchReset" class="add-mini-btn" style="padding: 2px 8px; font-size: 0.75rem;" data-i18n="btn_reset">Reset</button>
+                    <button class="add-mini-btn" onclick="openAssetManager('document')" style="width: 100%; justify-content: center; padding: 8px;">
+                        <i class="fas fa-folder-open"></i> <span data-i18n="btn_manage_files">Files Library</span>
+                    </button>
                 </div>
-
-                <button id="btnDetectKey" class="add-mini-btn" style="width: 100%; justify-content: center; background-color: rgba(40, 167, 69, 0.15); border-color: rgba(40, 167, 69, 0.4);">
-                    <i class="fas fa-magic"></i> <span data-i18n="btn_detect_key">Detect Key</span>
-                </button>
-                <div id="keyDetectResult" style="display: none; text-align: center; font-weight: bold; margin-top: 8px; font-size: 1.1rem; color: #28a745;">
-                </div>
-            </div>
-
-            <div class="audio-list-container" style="background: rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 10px;">
-                <label class="list-label" data-i18n="lbl_tracks" style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 8px; display: block; letter-spacing: 1px;">TRACKS:</label>
-                <div id="sideRecList" class="compact-list">
-                    <div class="empty-state" data-i18n="msg_no_recordings" style="text-align: center; color: #666; font-size: 0.85rem; padding: 10px 0; font-style: italic;">No recordings yet</div> 
-                </div>
-            </div>
-        
-
-        <hr class="sep">
-
-        <details id="filesGroup" class="tool-group">
-            <summary><i class="fas fa-folder-open" style="color:var(--accent);"></i> <span data-i18n="sum_files">FILES & SHEETS</span></summary>
-            <div class="group-content">
-                <div id="list-sheets" class="file-list compact" style="margin-bottom: 10px;">
-                    <div class="empty-state" data-i18n="msg_no_attachments">No attachments</div>
-                </div>
-                <button class="add-mini-btn" onclick="openAssetManager('document')" style="width: 100%; justify-content: center; padding: 8px;">
-                    <i class="fas fa-folder-open"></i> <span data-i18n="btn_manage_files">Files Library</span>
-                </button>
-            </div>
-        </details>
-        
-         <hr class="sep">
-            <details class="tool-group" id="tunerGroup">
-                 <summary><i class="fas fa-wave-square" style="color:var(--accent);"></i> <span data-i18n="sum_tuner">CHROMATIC TUNER</span></summary>
-                <div class="group-content">
+            </details>
+                
+            <details class="tool-group" id="drawerTuner">
+                <summary class="drawer-header">
+                    <span><i class="fas fa-wave-square" style="color:var(--accent);"></i> <span data-i18n="sum_tuner">CHROMATIC TUNER</span></span>
+                    <i class="fas fa-chevron-down toggle-icon"></i>
+                </summary>
+                <div class="group-content drawer-content">
                     <div style="background: var(--bg-panel); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color); text-align: center;">
-                        
                         <div style="margin-bottom: 20px;">
                             <select id="tunerInstrument" onchange="ChromaticTuner.setInstrument(this.value)" style="width: 100%; padding: 8px; border-radius: 6px; background: rgba(0,0,0,0.2); color: var(--text-main); border: 1px solid var(--border-color); font-size: 0.85rem; text-align: center; cursor: pointer;">
                                 <option value="chromatic">🎛️ Χρωματικό (Όλες οι συχνότητες)</option>
@@ -375,13 +383,13 @@
                     </div>
                 </div>
             </details>    
-           
-       
-        <hr class="sep">
-        <details class="tool-group" id="rhythmsMetronomeGroup" open>
-                <summary><i class="fas fa-drum"></i> <span data-i18n="sum_rhythms">RHYTHMS & METRONOME</span></summary>
-                <div class="group-content">
-                    
+                
+            <details class="tool-group" id="drawerRhythms">
+                <summary class="drawer-header">
+                    <span><i class="fas fa-drum"></i> <span data-i18n="sum_rhythms">RHYTHMS & METRONOME</span></span>
+                    <i class="fas fa-chevron-down toggle-icon"></i>
+                </summary>
+                <div class="group-content drawer-content">
                     <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 20px; gap: 20px; padding-top: 5px;">
                         <button id="btnPlayRhythm" onclick="toggleMasterRhythm()" class="action-btn-circle" style="width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: var(--accent); color: #000; border: none; box-shadow: 0 4px 10px rgba(0,0,0,0.3); cursor: pointer; transition: 0.2s transform;">
                             <i class="fas fa-play" id="iconPlayRhythm"></i>
@@ -393,7 +401,6 @@
                     </div>
             
                     <div class="bpm-row" style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 15px;">
-                        
                         <div style="display: flex; flex-direction: column; gap: 5px;">
                             <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted);">
                                 <span><i class="fas fa-tachometer-alt"></i> Ταχύτητα</span>
@@ -414,7 +421,6 @@
                             </div>
                             <input type="range" id="rngPitch" min="400" max="1500" value="800" class="compact-range" style="width: 100%; height: 3px; accent-color: #888;" oninput="BasicMetronome.setPitch(this.value)" title="Ρύθμιση Συχνότητας (Pitch)">
                         </div>
-            
                     </div>
             
                     <div id="activeRhythmBox" style="position: relative; background: rgba(255,255,255,0.03); border: 1px dashed var(--border-color); border-radius: 6px; padding: 10px; text-align: center; margin-bottom: 12px;">
@@ -432,37 +438,37 @@
                         <span data-i18n="btn_manage_rhythms" style="margin-left: 8px;">Rhythms Library (.mnr)</span>
                     </button>
             
-                    <button onclick="openMStudio()" 
-                            style="width: 100%; padding: 12px; margin-bottom: 5px; font-size: 1.05rem; font-weight: bold; background: var(--bg-panel); color: var(--text-main); border: 2px solid var(--accent); border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); cursor: pointer; transition: 0.2s transform; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <button onclick="openMStudio()" style="width: 100%; padding: 12px; margin-bottom: 5px; font-size: 1.05rem; font-weight: bold; background: var(--bg-panel); color: var(--text-main); border: 2px solid var(--accent); border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); cursor: pointer; transition: 0.2s transform; display: flex; align-items: center; justify-content: center; gap: 8px;">
                         <i class="fas fa-sliders-h" style="color: var(--accent);"></i> 
                         <span>mStudio</span> 
                         <i class="fas fa-lock" id="lockStudioIcon" style="font-size: 0.8rem; color: var(--text-muted);"></i>
                     </button>
-            
                 </div>
             </details>
-                    
-         <hr class="sep" id="guitarChordsSep">
-         <details class="tool-group" id="guitarChordsGroup">
-            <summary><i class="fas fa-guitar"></i> <span data-i18n="lbl_show_chords">GUITAR CHORDS</span></summary>
-            <div class="group-content">
-                <div id="chord-charts-container" style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; padding-top:10px;">
-                    <div class="empty-state" data-i18n="msg_no_chords">Δεν βρέθηκαν συγχορδίες...</div>
+                            
+            <details class="tool-group" id="drawerChords">
+                <summary class="drawer-header">
+                    <span><i class="fas fa-guitar"></i> <span data-i18n="lbl_show_chords">GUITAR CHORDS</span></span>
+                    <i class="fas fa-chevron-down toggle-icon"></i>
+                </summary>
+                <div class="group-content drawer-content">
+                    <div id="chord-charts-container" style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; padding-top:10px;">
+                        <div class="empty-state" data-i18n="msg_no_chords">Δεν βρέθηκαν συγχορδίες...</div>
+                    </div>
                 </div>
-            </div>
-         
-         </details> 
+            </details> 
+
         </div>
-          <div class="tools-footer">
-                <button class="footer-btn" onclick="openSettings()" title="Settings">
-                    <i class="fas fa-cog"></i>
-                </button>
-                <button id="btnAuthBottom" class="footer-btn" onclick="document.getElementById('authModal').style.display='flex'">
-                    <i class="fas fa-user"></i> <span data-i18n="btn_account">Account</span> 
-                </button>
-            </div>
-        </aside>
- 
+
+        <div class="tools-footer">
+            <button class="footer-btn" onclick="openSettings()" title="Settings">
+                <i class="fas fa-cog"></i>
+            </button>
+            <button id="btnAuthBottom" class="footer-btn" onclick="document.getElementById('authModal').style.display='flex'">
+                <i class="fas fa-user"></i> <span data-i18n="btn_account">Account</span> 
+            </button>
+        </div>
+    </aside>
 
     <div id="importChoiceModal" class="modal" style="display:none;">
         <div class="modal-content">

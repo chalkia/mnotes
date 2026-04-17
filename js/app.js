@@ -167,75 +167,125 @@ window.getAppVersion = async function() {
     }
 };
 
-/* ===========================================================
-   SUPER USER / GOD MODE LOGIC
-   =========================================================== */
-
-let pressTimer;
-
-// 1. Setup Listeners στο ξεκίνημα
-document.addEventListener('DOMContentLoaded', () => {
-    // Στοχεύουμε και το κάτω κουμπί της Sidebar και του Drawer
-    const targets = ['btnAuthBottom', 'btnAuthDrawer'];
+// ==========================================
+// 1. ΛΕΙΤΟΥΡΓΙΑ ΑΠΟΜΝΗΜΟΝΕΥΣΗΣ DRAWERS
+// ==========================================
+function initDrawerPersistence() {
+    const storageKey = 'mnotes_drawer_states';
+    const savedStates = JSON.parse(localStorage.getItem(storageKey)) || {};
     
-    targets.forEach(id => {
-        const btn = document.getElementById(id);
-        if (btn) {
-            // Desktop/Mouse events
-            btn.addEventListener('mousedown', startPressTimer);
-            btn.addEventListener('mouseup', cancelPressTimer);
-            btn.addEventListener('mouseleave', cancelPressTimer);
-            
-            // Mobile/Touch events
-            btn.addEventListener('touchstart', startPressTimer);
-            btn.addEventListener('touchend', cancelPressTimer);
-        }
-    });
+    document.querySelectorAll('details.tool-group').forEach(drawer => {
+        const id = drawer.id;
+        if (!id) return;
 
-    // Δημιουργία του Panel στο DOM (κρυφό)
-    createDebugPanel();
-});
+        // Επαναφορά κατάστασης
+        if (savedStates[id] !== undefined) {
+            if (savedStates[id] === true) {
+                drawer.setAttribute('open', '');
+            } else {
+                drawer.removeAttribute('open');
+            }
+        }
+
+        // Αποθήκευση αλλαγών
+        drawer.addEventListener('toggle', () => {
+            const currentStates = JSON.parse(localStorage.getItem(storageKey)) || {};
+            currentStates[id] = drawer.open; 
+            localStorage.setItem(storageKey, JSON.stringify(currentStates));
+        });
+    });
+}
+
+// ==========================================
+// 2. ΦΟΡΤΩΣΗ ΒΙΒΛΙΟΘΗΚΗΣ (ΚΑΘΑΡΗ)
+// ==========================================
+function loadLibrary() {
+    initSetlists();
+    populateTags();
+   
+    library = window.library;
+
+    if (library && library.length > 0) {
+        renderSidebar();
+        return;
+    }
+
+    const saved = localStorage.getItem('mnotes_data');
+    if (saved !== null) {
+        const parsed = JSON.parse(saved);
+        window.library = Array.isArray(parsed) ? parsed.map(ensureSongStructure) : [];
+        library = window.library;
+    } else {
+        if (typeof DEFAULT_DEMO_SONGS !== 'undefined') {
+            window.library = DEFAULT_DEMO_SONGS.map((ds, idx) => ({ ...ds, id: "demo_" + Date.now() + idx }));
+            library = window.library;
+            saveData();
+        }
+    }
+
+    if (typeof sortLibrary === 'function') sortLibrary(userSettings.sortMethod || 'alpha');
+    renderSidebar();
+}
+
+// ==========================================
+// 3. GOD MODE / SUPER USER (Μόνο για Desktop)
+// ==========================================
+let debugPressTimer;
 
 function startPressTimer(e) {
-    console.log("⏳ Starting Super User Timer...");
-    pressTimer = setTimeout(async () => {
-        // --- ΝΕΑ ΑΣΠΙΔΑ ΑΣΦΑΛΕΙΑΣ ---
-        // 1. Έλεγχος αν υπάρχει συνδεδεμένος χρήστης
-        if (typeof currentUser === 'undefined' || !currentUser) {
-            console.log("God Mode: Access denied (Not logged in)");
-            return; 
-        }
-        
-        // 2. Έλεγχος αν το email είναι το δικό σου (ΒΑΛΕ ΕΔΩ ΤΟ ΠΡΑΓΜΑΤΙΚΟ ΣΟΥ EMAIL!)
-        if (currentUser.email !== 'chalkia.duck@gmail.com') {
-            console.log("God Mode: Access denied (Unauthorized email)");
-            return; 
-        }
-        // ------------------------------
+    debugPressTimer = setTimeout(async () => {
+        if (typeof currentUser === 'undefined' || !currentUser) return; 
+        if (currentUser.email !== 'chalkia.duck@gmail.com') return; 
 
         const pass = prompt("🔐 SUPER USER ACCESS\nEnter Password:");
-        if (!pass) return; // Αν πατήσει ακύρωση, σταματάμε
+        if (!pass) return;
 
         try {
-            // Ρωτάμε τη Supabase (το Backend) αν ο κωδικός είναι σωστός
             const { data: isCorrect, error } = await supabaseClient.rpc('verify_god_mode', { pass_attempt: pass });
-            
             if (error) throw error;
 
             if (isCorrect) {
-                activateGodMode();
+                if (typeof activateGodMode === 'function') activateGodMode();
             } else {
                 alert("Access Denied");
             }
         } catch (err) {
             console.error("Auth Error:", err);
-            alert("Σφάλμα επαλήθευσης! Έχει δημιουργηθεί το RPC 'verify_god_mode' στη Supabase;");
+            alert("Σφάλμα επαλήθευσης!");
         }
-    }, 5000); // 5 δευτερόλεπτα
+    }, 5000);
 }
+
 function cancelPressTimer() {
-    clearTimeout(pressTimer);
+    clearTimeout(debugPressTimer);
 }
+
+// ==========================================
+// 4. ΚΕΝΤΡΙΚΗ ΕΚΚΙΝΗΣΗ (Όταν φορτώνει η σελίδα)
+// ==========================================
+document.addEventListener('DOMContentLoaded', () => {
+    
+    // 4.1 Ξεκινάμε τα Drawers
+    if (typeof initDrawerPersistence === 'function') initDrawerPersistence();
+
+    // 4.2 Στήνουμε την παγίδα για το God Mode στα κουμπιά Account
+    const targets = ['btnAuthBottom', 'btnAuthDrawer'];
+    targets.forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) {
+            btn.addEventListener('mousedown', startPressTimer);
+            btn.addEventListener('mouseup', cancelPressTimer);
+            btn.addEventListener('mouseleave', cancelPressTimer);
+            btn.addEventListener('contextmenu', (e) => e.preventDefault());
+        }
+    });
+
+    // 4.3 Δημιουργία του Debug Panel
+    if (typeof createDebugPanel === 'function') {
+        createDebugPanel();
+    }
+});
+
 
 function createDebugPanel() {
     // Αν υπάρχει ήδη, μην το ξαναφτιάξεις

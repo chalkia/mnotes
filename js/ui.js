@@ -94,36 +94,6 @@ function loadLibrary() {
     initSetlists();
     populateTags();
    
-   function applyDrawerStates() {
-   const savedStates = JSON.parse(localStorage.getItem('mnotes_drawer_states')) || {};
-       
-       // Ψάχνουμε όλα τα details με κλάση tool-group
-       document.querySelectorAll('details.tool-group').forEach(details => {
-           const id = details.id;
-           if (id && savedStates[id] !== undefined) {
-               details.open = savedStates[id];
-           }
-       });
-       console.log("📂 [UI] Η κατάσταση των Drawers αποκαταστάθηκε.");
-   }
-   
-   // 2. Παρακολούθηση των αλλαγών (Event Listener)
-   function setupDrawerPersistence() {
-       document.querySelectorAll('details.tool-group').forEach(details => {
-           details.addEventListener('toggle', () => {
-               // Διαβάζουμε το τρέχον map από το localStorage
-               const states = JSON.parse(localStorage.getItem('mnotes_drawer_states')) || {};
-               
-               // Ενημερώνουμε την τιμή για το συγκεκριμένο ID
-               if (details.id) {
-                   states[details.id] = details.open;
-                   localStorage.setItem('mnotes_drawer_states', JSON.stringify(states));
-               }
-           });
-       });
-   }
-
-   
     // 1. Συγχρονισμός με το window
     library = window.library;
 
@@ -150,6 +120,35 @@ function loadLibrary() {
 
     if (typeof sortLibrary === 'function') sortLibrary(userSettings.sortMethod || 'alpha');
     renderSidebar();
+}
+// --- ΑΥΤΟΝΟΜΗ ΛΕΙΤΟΥΡΓΙΑ ΑΠΟΜΝΗΜΟΝΕΥΣΗΣ DRAWERS ---
+function initDrawerPersistence() {
+    const storageKey = 'mnotes_drawer_states';
+    const savedStates = JSON.parse(localStorage.getItem(storageKey)) || {};
+    
+    document.querySelectorAll('details.tool-group').forEach(drawer => {
+        const id = drawer.id;
+        if (!id) return;
+
+        // 1. ΔΙΑΒΑΣΜΑ: Αν το βρίσκουμε στη μνήμη, το εφαρμόζουμε
+        if (savedStates[id] !== undefined) {
+            // Ο σωστός τρόπος για να ανοιγοκλείνεις το HTML <details> μέσω JS
+            if (savedStates[id] === true) {
+                drawer.setAttribute('open', '');
+            } else {
+                drawer.removeAttribute('open');
+            }
+        }
+
+        // 2. ΓΡΑΨΙΜΟ: Ακούμε τις αλλαγές και ενημερώνουμε το LocalStorage
+        drawer.addEventListener('toggle', () => {
+            const currentStates = JSON.parse(localStorage.getItem(storageKey)) || {};
+            currentStates[id] = drawer.open; 
+            localStorage.setItem(storageKey, JSON.stringify(currentStates));
+            // console.log(`[Drawers] Το ${id} είναι πλέον: ${drawer.open}`);
+        });
+    });
+    console.log("📂 [UI] Η παρακολούθηση των Drawers ξεκίνησε.");
 }
 function populateTags() {
     const select = document.getElementById('tagFilter');
@@ -205,28 +204,46 @@ function applyFilters() {
 function sortLibrary(method) {
     if (!method) method = 'alpha';
     
+    // --- ΒΟΗΘΗΤΙΚΗ 1: Εξαγωγή Χρόνου Δημιουργίας (Ασφαλής για Κλώνους/Παλιά IDs) ---
+    const getCreationTime = (s) => {
+        if (s.created_at) return new Date(s.created_at).getTime();
+        if (!s.id) return 0;
+        
+        // Το parseInt στη Javascript είναι έξυπνο:
+        // Στο "1768857410620a3f9b2" σταματάει στο πρώτο γράμμα και παίρνει καθαρό το 1768857410620!
+        let parts = String(s.id).split('_');
+        if (parts.length > 1) {
+            let ts = parseInt(parts[1], 10);
+            if (!isNaN(ts) && ts > 1000000000000) return ts; // Είναι έγκυρο timestamp
+        }
+        return 0; // Για demo songs
+    };
+
+    // --- ΒΟΗΘΗΤΙΚΗ 2: Εξαγωγή Χρόνου Τροποποίησης (Με Fallback) ---
+    const getModifiedTime = (s) => {
+        if (s.updated_at) return new Date(s.updated_at).getTime();
+        if (s.updatedAt) return new Date(s.updatedAt).getTime();
+        
+        // Το "μαγικό" δίχτυ ασφαλείας για τα ΠΑΛΙΑ τραγούδια:
+        // Αν δεν έχει ενημερωθεί ποτέ (ή λείπει το updated_at), πάρε τον χρόνο δημιουργίας!
+        return getCreationTime(s); 
+    };
+
+    // --- ΕΚΤΕΛΕΣΗ ΤΑΞΙΝΟΜΗΣΗΣ ---
     if (method === 'alpha') {
-        // Ασφαλής Ελληνική Ταξινόμηση (αγνοεί τόνους και κεφαλαία/μικρά)
+        // Ασφαλής Ελληνική Ταξινόμηση
         library.sort((a, b) => String(a.title).localeCompare(String(b.title), 'el', { sensitivity: 'base' }));
     } 
     else if (method === 'created') {
-        // Υβριδικός έλεγχος: Πρώτα Supabase, μετά το ID τρικ
-        library.sort((a, b) => {
-            let timeA = a.created_at ? new Date(a.created_at).getTime() : (parseInt(String(a.id).split('_')[1]) || 0);
-            let timeB = b.created_at ? new Date(b.created_at).getTime() : (parseInt(String(b.id).split('_')[1]) || 0);
-            return timeB - timeA;
-        });
+        // Ταξινόμηση: Νεώτερα -> Παλαιότερα
+        library.sort((a, b) => getCreationTime(b) - getCreationTime(a));
     } 
     else if (method === 'modified') {
-        //  Έλεγχος updated_at
-        library.sort((a, b) => {
-            let timeA = new Date(a.updated_at || a.updatedAt || 0).getTime();
-            let timeB = new Date(b.updated_at || b.updatedAt || 0).getTime();
-            return timeB - timeA;
-        });
+        // Ταξινόμηση: Πρόσφατα Ενημερωμένα -> Παλαιότερα
+        library.sort((a, b) => getModifiedTime(b) - getModifiedTime(a));
     }
     
-    // Αποθήκευση και Ανανέωση UI
+    // --- ΑΠΟΘΗΚΕΥΣΗ & ΑΝΑΝΕΩΣΗ UI ---
     if (typeof userSettings !== 'undefined') {
         userSettings.sortMethod = method;
         localStorage.setItem('mnotes_settings', JSON.stringify(userSettings));
@@ -234,7 +251,6 @@ function sortLibrary(method) {
     
     if (typeof renderSidebar === 'function') renderSidebar();
 }
-    
 
 function applySortAndRender() {
     const sortSel = document.getElementById('sortFilter');
@@ -3036,8 +3052,10 @@ function getNote(note, semitones) {
         
         let newIndex = (index + semitones) % 12;
         if (newIndex < 0) newIndex += 12;
+
+        // ✨ ΝΕΟ: Αν το forceSharps είναι true, χρησιμοποιούμε ΠΑΝΤΑ τον πίνακα SHARP!
+        let outScale = forceSharps ? SHARP : ((semitones < 0) ? FLAT : SHARP);
         
-        let outScale = (semitones < 0) ? FLAT : SHARP;
         let transposedNote = outScale[newIndex];
         
         // 3. Αν η αρχική νότα ήταν μικρή, επιστρέφουμε μικρή νότα!
@@ -3289,13 +3307,21 @@ function transDown() {
 
 function capoUp() {
     if (typeof state === 'undefined') return;
-    // Παίρνουμε το όριο από τις ρυθμίσεις (αν υπάρχουν)
-    const max = (typeof userSettings !== 'undefined' && userSettings.maxCapo) ? parseInt(userSettings.maxCapo) : 12;
+    
+    // Παίρνουμε το όριο από τις ρυθμίσεις (fallback στο 12 αν δεν βρεθεί)
+    let max = 12;
+    if (typeof userSettings !== 'undefined' && userSettings.maxCapo) {
+        max = parseInt(userSettings.maxCapo);
+    }
     
     if (state.c < max) {
         state.c = (state.c || 0) + 1;
-        refreshPlayerUI();
+    } else {
+        // Αν φτάσει στο Max, το μηδενίζουμε (Loop) για πιο γρήγορη χρήση!
+        state.c = 0; 
     }
+    
+    refreshPlayerUI();
 }
 
 function capoDown() {

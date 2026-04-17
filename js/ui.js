@@ -2789,22 +2789,12 @@ function switchMobileTab(tabName) {
     }
 }*/
 function switchMobileTab(tabName) {
-    // 1. Ορίζουμε ΞΕΚΑΘΑΡΑ ποιο ID αντιστοιχεί σε κάθε tab (Βιβλιοθήκη, Σκηνή, Εργαλεία)
-    const viewMap = {
-        'library': 'sidebar',        // Η αριστερή στήλη
-        'stage': 'mainZone',         // Η μεσαία στήλη
-        'tools': 'rhythmTools'       // Η δεξιά στήλη (εκεί που βάλαμε το Rhythm Engine)
-    };
-
-    // 2. Καθαρίζουμε την κλάση εμφάνισης (mobile-view-active) και από τα 3
-    ['sidebar', 'mainZone', 'rhythmTools'].forEach(id => { 
-        const el = document.getElementById(id); 
-        if (el) {
-            el.classList.remove('mobile-view-active'); 
-        }
-    });
-    
-    // 3. Δίνουμε την κλάση εμφάνισης ΣΤΟΧΕΥΜΕΝΑ σε αυτό που πάτησε ο χρήστης
+    const map = { 'library': 'sidebar', 'stage': 'mainZone', 'tools': 'rhythmTools' };
+        ['sidebar', 'mainZone', 'rhythmTools'].forEach(id => { 
+            const el = document.getElementById(id); 
+            if (el) el.classList.remove('mobile-view-active'); 
+        });
+    // Δίνουμε την κλάση εμφάνισης ΣΤΟΧΕΥΜΕΝΑ σε αυτό που πάτησε ο χρήστης
     const targetId = viewMap[tabName]; 
     const targetEl = document.getElementById(targetId);
     
@@ -2815,25 +2805,25 @@ function switchMobileTab(tabName) {
         console.error(`❌ [MOBILE UI] Το στοιχείο με ID '${targetId}' ΔΕΝ βρέθηκε στο HTML! Ελέγξτε το index.html σας.`);
     }
     
-    // 4. Ενημέρωση των χρωμάτων στα κουμπιά της κάτω μπάρας
+    // Ενημέρωση των χρωμάτων στα κουμπιά της κάτω μπάρας
     const btns = document.querySelectorAll('.tab-btn-mob'); 
     btns.forEach(b => b.classList.remove('active'));
     if (tabName === 'library' && btns[0]) btns[0].classList.add('active');
     if (tabName === 'stage' && btns[1]) btns[1].classList.add('active');
     if (tabName === 'tools' && btns[2]) btns[2].classList.add('active');
 
-    // 5. Συγχρονισμός των κουμπιών του Μενού (Drawer)
+    //  Συγχρονισμός των κουμπιών του Μενού (Drawer)
     document.querySelectorAll('.drawer-btn').forEach(btn => btn.classList.remove('active'));
     const drawerBtn = document.querySelector(`.drawer-btn[onclick*="'${tabName}'"]`);
     if (drawerBtn) drawerBtn.classList.add('active');
     
-    // 6. Εμφάνιση/Απόκρυψη των Player Controls μέσα στο Drawer
+    //  Εμφάνιση/Απόκρυψη των Player Controls μέσα στο Drawer
     const controlsDiv = document.getElementById('drawer-player-controls');
     if (controlsDiv) {
         controlsDiv.style.display = (tabName === 'stage') ? 'block' : 'none';
     }
 
-    // 7. Κρύβουμε το PDF (Αν είναι ανοιχτό) όταν φεύγουμε από το Stage στα κινητά!
+    // Κρύβουμε το PDF (Αν είναι ανοιχτό) όταν φεύγουμε από το Stage στα κινητά!
     if (typeof FloatingTools !== 'undefined' && FloatingTools.isOpen) {
         const fw = document.getElementById('floating-viewer');
         if (fw) {

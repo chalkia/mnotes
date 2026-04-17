@@ -466,9 +466,9 @@ body.theme-light .modal-btn {
 
     /* 2. ΚΡΥΨΙΜΟ ΣΤΗΛΩΝ (Default State) */
     /* Όλες οι βασικές στήλες είναι κρυμμένες αρχικά */
-     .col-nav, #sidebar, 
-     .col-stage, #mainZone, 
-     .col-tools, #rhythmTools { 
+     /*.col-nav,*/ #sidebar, 
+     /*.col-stage,*/ #mainZone, 
+     /*.col-tools,*/ #rhythmTools { 
         display: none !important; /* Force hide */
         position: absolute; 
         top: 0; 
@@ -481,13 +481,23 @@ body.theme-light .modal-btn {
     }
 
     /* 3. ΕΝΕΡΓΗ ΟΘΟΝΗ (Αυτή που εμφανίζεται) */
-    /* Το JavaScript προσθέτει αυτή την κλάση σε όποια στήλη επιλέξεις */
+    /* Το JavaScript προσθέτει αυτή την κλάση σε όποια στήλη επιλέξεις
     .mobile-view-active { 
         display: flex !important; /* Force show */
         flex-direction: column; 
-        z-index: 20; /* Πάνω από τα άλλα */
-    }
+        z-index: 20; Πάνω από τα άλλα 
+    }*/
 
+    /* 3. ΕΝΕΡΓΗ ΟΘΟΝΗ (Αυτή που εμφανίζεται) */
+    /* Όταν η Javascript δώσει αυτή την κλάση, το στοιχείο ΕΜΦΑΝΙΖΕΤΑΙ */
+    #sidebar.mobile-view-active, 
+    #mainZone.mobile-view-active, 
+    #rhythmTools.mobile-view-active { 
+        display: flex !important; 
+        flex-direction: column; 
+        z-index: 20; 
+    }
+    
     /* 4. NAVBAR ΚΑΤΩ (Mobile Navigation Bar) */
     .mobile-nav { 
         display: flex !important; /* Σιγουρεύουμε ότι φαίνεται */

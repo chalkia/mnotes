@@ -43,7 +43,25 @@ var userSettings = JSON.parse(localStorage.getItem('mnotes_settings')) || {
 var tempIntroScale = 0; 
 
 function toggleLanguage() { currentLang = (currentLang === 'en') ? 'el' : 'en'; localStorage.setItem('mnotes_lang', currentLang); applyTranslations(); renderSidebar(); populateTags(); if(currentSongId && currentSongId.includes('demo')) loadSong(currentSongId); }
-function applyTranslations() { if(typeof TRANSLATIONS === 'undefined') return; document.querySelectorAll('[data-i18n]').forEach(el => { var key = el.getAttribute('data-i18n'); if (TRANSLATIONS[currentLang][key]) el.innerText = TRANSLATIONS[currentLang][key]; }); var btn = document.getElementById('btnLang'); if(btn) btn.innerHTML = (currentLang === 'en') ? '<i class="fas fa-globe"></i> EN' : '<i class="fas fa-globe"></i> EL'; }
+function applyTranslations() { 
+    if(typeof TRANSLATIONS === 'undefined') return; 
+    
+    document.querySelectorAll('[data-i18n]').forEach(el => { 
+        var key = el.getAttribute('data-i18n'); 
+        if (TRANSLATIONS[currentLang][key]) {
+            // Αν το στοιχείο είναι πεδίο εισαγωγής (input), αλλάζουμε το placeholder
+            if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+                el.placeholder = TRANSLATIONS[currentLang][key];
+            } else {
+                // Για όλα τα άλλα (κουμπιά, div, span) αλλάζουμε το κείμενο
+                el.innerText = TRANSLATIONS[currentLang][key];
+            }
+        } 
+    }); 
+    
+    var btn = document.getElementById('btnLang'); 
+    if(btn) btn.innerHTML = (currentLang === 'en') ? '<i class="fas fa-globe"></i> EN' : '<i class="fas fa-globe"></i> EL'; 
+}
 function applyTheme() { 
     // 1. Εφαρμογή της κλάσης του θέματος
     document.body.className = userSettings.theme || 'theme-slate'; 
@@ -785,24 +803,28 @@ function renderPlayer(s) {
       // --- PLAYER HEADER ---
           const headerContainer = document.querySelector('.player-header-container');
           if (headerContainer) {
-              headerContainer.innerHTML = `
-              <div class="player-header" style="position: relative;">
-                   
-                   <div class="mobile-nav-buttons" style="position: absolute; top: 0; right: 0; display: flex; gap: 8px; z-index: 10;">
-                       <button onclick="navSetlist(-1)" class="round-btn" style="width: 38px; height: 38px; font-size: 1rem; padding: 0; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"><i class="fas fa-step-backward"></i></button>
-                       <button onclick="navSetlist(1)" class="round-btn" style="width: 38px; height: 38px; font-size: 1rem; padding: 0; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"><i class="fas fa-step-forward"></i></button>
-                   </div>
-      
-                   <h2 id="mainAppTitle" style="margin:0 0 5px 0; font-size:1.2rem; color:var(--text-main); display:flex; align-items:center; flex-wrap:wrap; padding-right:95px;">
-                         <span>${s.title} ${s.artist ? `<span style="font-size:0.9rem; opacity:0.6;">- ${s.artist}</span>` : ''}</span>
-                         ${noteBtnHtml}
-                   </h2>
+             headerContainer.innerHTML = `
+             <div class="player-header" style="position: relative;">
+                  
+                  <div class="stage-nav-buttons" style="position: absolute; top: 0; right: 0; display: flex; gap: 8px; z-index: 10;">
+                      <button onclick="navSetlist(-1)" class="round-btn" title="Προηγούμενο" style="width: 42px; height: 42px; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                         <i class="fas fa-step-backward"></i>
+                      </button>
+                      <button onclick="navSetlist(1)" class="round-btn" title="Επόμενο" style="width: 42px; height: 42px; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                         <i class="fas fa-step-forward"></i>
+                      </button>
+                  </div>
+             
+                  <h2 id="mainAppTitle" style="margin:0 0 5px 0; font-size:1.2rem; color:var(--text-main); display:flex; align-items:center; flex-wrap:wrap; padding-right:100px;">
+                       <span>${s.title} ${s.artist ? `<span style="font-size:0.9rem; opacity:0.6;">- ${s.artist}</span>` : ''}</span>
+                       ${noteBtnHtml}
+                  </h2>
                    
                    <div style="margin-bottom: 8px;">${tagsHtml}</div>
                    
                    <div style="display:flex; justify-content:space-between; align-items:center;">
                        <div style="display:flex; align-items:center; gap: 10px;">
-                          <span class="key-badge" style="color: var(--accent); font-size: 1.8rem; font-weight: 900; text-shadow: 0 2px 5px rgba(0,0,0,0.4); border: 2px solid var(--accent); padding: 4px 12px; border-radius: 8px; background: rgba(0,0,0,0.2);">${typeof getNote === 'function' ? getNote(s.key || "-", state.t) : s.key}</span>
+                          <button class="key-badge" onclick="transUp()" title="Αλλαγή Τονικότητας (+1 Ημιτόνιο)" style="color: var(--accent); font-size: 1.8rem; font-weight: 900; text-shadow: 0 2px 5px rgba(0,0,0,0.4); border: 2px solid var(--accent); padding: 4px 12px; border-radius: 8px; background: rgba(0,0,0,0.2); cursor: pointer; transition: transform 0.1s; display: inline-flex; align-items: center; justify-content: center; line-height: 1;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">${typeof getNote === 'function' ? getNote(s.key || "-", state.t) : s.key}</button>
                            
                            <span id="stageCapoInfo" style="display:${state.c > 0 ? 'inline-block' : 'none'}; background-color:#e74c3c; color:#fff; padding:2px 6px; border-radius:4px; font-size:0.8rem; font-weight:bold; letter-spacing: 0.5px;">CAPO ${state.c}</span>
                            

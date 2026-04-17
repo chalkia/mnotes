@@ -1969,4 +1969,21 @@ body.theme-light {
     --tuner-warning: #d97706;
     --tuner-danger: #dc3545;
 }
+/* Διασφάλιση ότι τα κουμπιά πλοήγησης της σκηνής φαίνονται παντού */
+.stage-nav-buttons {
+    display: flex !important;
+}
 
+/* Στο Desktop τα θέλουμε λίγο πιο διακριτικά αλλά πάντα εκεί */
+@media (min-width: 1025px) {
+    .stage-nav-buttons .round-btn {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--border-color);
+        color: var(--text-muted);
+    }
+    .stage-nav-buttons .round-btn:hover {
+        background: var(--accent);
+        color: #000;
+        border-color: var(--accent);
+    }
+}

@@ -4386,3 +4386,62 @@ window.addEventListener('resize', () => {
             }
         }
     });
+// ===========================================================
+// STAGE ANTI-EMPTY SHIELD (Εγγύηση Γεμάτης Σκηνής)
+// ===========================================================
+
+// Αναβάθμιση της Mobile πλοήγησης
+window.switchDrawerTab = function(tabName) {
+    if (window.innerWidth > 1024) return;
+    
+    // ✨ Ο ΑΠΟΛΥΤΟΣ ΕΛΕΓΧΟΣ ΓΙΑ ΤΟ STAGE ΣΤΑ ΚΙΝΗΤΑ
+    if (tabName === 'stage') {
+        const titleEl = document.getElementById('mainAppTitle');
+        // Ελέγχουμε αν το stage είναι εντελώς άδειο ή έχει ξεμείνει στο default
+        const isStageEmpty = !titleEl || titleEl.innerText.trim() === '' || titleEl.innerText.trim() === 'mNotes';
+        
+        if (isStageEmpty) {
+            console.log("🛡️ [Anti-Empty] Το Stage ήταν άδειο. Φόρτωση τραγουδιού...");
+            if (currentSongId) {
+                if (typeof loadSong === 'function') loadSong(currentSongId);
+            } else if (typeof visiblePlaylist !== 'undefined' && visiblePlaylist.length > 0) {
+                if (typeof loadSong === 'function') loadSong(visiblePlaylist[0].id);
+            } else if (typeof library !== 'undefined' && library.length > 0) {
+                if (typeof loadSong === 'function') loadSong(library[0].id);
+            }
+        }
+    }
+    
+    if (typeof switchMobileTab === 'function') switchMobileTab(tabName);
+    if (typeof toggleRightDrawer === 'function') toggleRightDrawer();
+};
+
+// Επανεγγραφή (Patch) του κλεισίματος της renderSidebar για το Auto-Load
+const originalRenderSidebar = window.renderSidebar || renderSidebar;
+window.renderSidebar = function() {
+    // Τρέχουμε την κανονική σου renderSidebar που φτιάχνει τη λίστα
+    originalRenderSidebar();
+    
+    // ✨ ΜΟΛΙΣ ΤΕΛΕΙΩΣΕΙ, ΚΑΝΟΥΜΕ ΤΟΝ ΕΛΕΓΧΟ ΓΙΑ ΑΔΕΙΟ STAGE!
+    setTimeout(() => {
+        if (typeof visiblePlaylist !== 'undefined' && visiblePlaylist.length > 0) {
+            const isEditing = document.getElementById('view-editor')?.classList.contains('active-view');
+            const isCurrentVisible = visiblePlaylist.find(s => s.id === currentSongId);
+            
+            // Αν ΔΕΝ είμαστε στον editor, ΚΑΙ (δεν υπάρχει επιλεγμένο ή αυτό που επιλέξαμε κόπηκε από το φίλτρο)
+            if (!isEditing && (!currentSongId || !isCurrentVisible)) {
+                
+                const lastSavedId = localStorage.getItem('mnotes_last_song');
+                const isLastSavedVisible = lastSavedId ? visiblePlaylist.find(s => s.id === lastSavedId) : null;
+
+                console.log("🛡️ [Auto-Load] Αναγκαστική φόρτωση τραγουδιού στη σκηνή.");
+                // Φορτώνουμε αυτό που είχε ανοιχτό πριν, ΑΛΛΙΩΣ το 1ο της τρέχουσας λίστας
+                if (isLastSavedVisible) {
+                    if (typeof loadSong === 'function') loadSong(lastSavedId);
+                } else {
+                    if (typeof loadSong === 'function') loadSong(visiblePlaylist[0].id);
+                }
+            }
+        }
+    }, 200); // 200ms δίνουν τον χρόνο στη DOM να ενημερωθεί πριν πυροδοτήσει το loadSong
+};

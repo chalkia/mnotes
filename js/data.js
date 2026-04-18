@@ -5,6 +5,13 @@
 const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 const NOTES_FLAT = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
 
+/ ==========================================/
+// ΜΟΥΣΙΚΗ ΘΕΩΡΙΑ (ΚΥΚΛΟΣ ΤΩΝ ΠΕΜΠΤΩΝ)
+// ==========================================
+// Pitch Classes: 0=C, 1=Db/C#, 2=D, 3=Eb, 4=E, 5=F, 6=F#/Gb, 7=G, 8=Ab/G#, 9=A, 10=Bb, 11=B
+const THEORY_MAJOR_PREF = ['sharp', 'flat', 'sharp', 'flat', 'sharp', 'flat', 'sharp', 'sharp', 'flat', 'sharp', 'flat', 'sharp'];
+const THEORY_MINOR_PREF = ['flat', 'sharp', 'flat', 'sharp', 'sharp', 'flat', 'sharp', 'flat', 'sharp', 'sharp', 'flat', 'sharp'];
+
 var currentLang = localStorage.getItem('mnotes_lang') || 'en'; 
 
 function t(key) { 

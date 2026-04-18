@@ -343,16 +343,15 @@ function applySortAndRender() {
             // Αν πατήσουμε το κυκλάκι ή το κουμπί του τόνου, δεν ανοίγει το τραγούδι
             if(e.target.classList.contains('song-action') || e.target.classList.contains('song-key-badge')) return;
             
+            const isEditorOpen = document.getElementById('view-editor')?.classList.contains('active-view');
+                        if (isEditorOpen && currentSongId !== s.id) {
+                            // Αλλάζουμε την κατάσταση σε "Player" ΠΡΙΝ φορτώσει το νέο τραγούδι
+                            localStorage.setItem('mnotes_view_state', 'player');
+                            console.log("🚪 Αυτόματη έξοδος από τον Editor λόγω επιλογής νέου τραγουδιού.");
+                        }
+            
             if (typeof loadSong === 'function') loadSong(s.id);
-            
-            // ✨ ΝΕΟ 1: Αλλαγή "φωτισμού" στη Δεξιά Μπάρα (Από Library -> Stage)
-            // (Θα χρειαστεί να βάλεις τα σωστά ID των κουμπιών σου εδώ αν διαφέρουν)
-            const btnLibrary = document.getElementById('btnTabLibrary'); // Βάλε το ID του κουμπιού Library
-            const btnStage = document.getElementById('btnTabStage');     // Βάλε το ID του κουμπιού Stage
-            
-            if (btnLibrary) btnLibrary.classList.remove('active');
-            if (btnStage) btnStage.classList.add('active');
-            
+                                
             // Κλείσιμο Drawer σε κινητά
             if(window.innerWidth <= 1024) {
                 // ✨ ΝΕΟ 2: Διόρθωσα το rightDrawer σε leftDrawer (Η λίστα συνήθως είναι αριστερά!)
@@ -445,9 +444,7 @@ function applySortAndRender() {
                     if (typeof saveSetlists === 'function') saveSetlists();
                     
                     // 4. Εξαναγκάζουμε τη λίστα να "κλειδώσει" οπτικά με βάση τη μνήμη
-                    setTimeout(() => {
-                        renderSidebar();
-                    }, 50);
+                    setTimeout(() => {renderSidebar(); }, 50);
                 }
             }
         });
@@ -476,6 +473,14 @@ function applySortAndRender() {
             }
         }
     }
+    // Κάνε Scroll στο φωτισμένο τραγούδι ώστε να φαίνεται πάντα!
+        setTimeout(() => {
+          const activeItem = list.querySelector('.song-item.active');
+            if (activeItem) {
+                // Το 'nearest' διασφαλίζει ότι δεν θα σκρολάρει αν φαίνεται ήδη
+                activeItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }, 100); // 100ms καθυστέρηση για να προλάβει να "ζωγραφιστεί" το DOM
  }
 
 // ===========================================================
@@ -1635,6 +1640,7 @@ function switchToEditor() {
         createNewSong(); 
     }
 }
+
  function renderSidebar() {
     var list = document.getElementById('songList');
     if(!list) return;
@@ -1792,9 +1798,9 @@ function switchToEditor() {
         list.appendChild(li);  
     });
 
-    // --- 3. SORTABLE JS RE-INIT ---
-    if (sortableInstance) sortableInstance.destroy();
-    if(typeof Sortable !== 'undefined') {
+     // --- 3. SORTABLE JS RE-INIT ---
+     if (sortableInstance) sortableInstance.destroy();
+     if(typeof Sortable !== 'undefined') {
         sortableInstance = new Sortable(list, {
             animation: 150,
             handle: '.song-handle', 
@@ -1810,7 +1816,19 @@ function switchToEditor() {
             }
         });
     }
+       // ========================================================
+        // ✨ ΑΥΤΟ ΠΟΥ ΛΕΙΠΕΙ: ΑΥΤΟΜΑΤΟ SCROLL ΣΤΟ ΕΝΕΡΓΟ ΤΡΑΓΟΥΔΙ
+        // ========================================================
+        setTimeout(() => {
+            const activeItem = list.querySelector('.song-item.active');
+            if (activeItem) {
+                // Αν το τραγούδι δεν φαίνεται ήδη στην οθόνη, σκρολάρει ομαλά σε αυτό!
+                activeItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }, 150); // Δίνουμε 150ms για να σιγουρευτούμε ότι η λίστα έχει ζωγραφιστεί πλήρως
+  
 }
+
 function refreshSyncButtonVisibility(song) {
     const btnSync = document.getElementById('btnSyncFromBand');
     if (!btnSync) return;
@@ -3017,60 +3035,80 @@ function splitSongBody(body) {
     }
 }
 
-/* ΔΙΟΡΘΩΣΗ: Χρήση των μεταβλητών όπως ορίζονται στο data.js 
-   NOTES = Διέσεις
-   NOTES_FLAT = Υφέσεις
-*/
-function getNote(note, semitones) {
-    if (!note || note === "-" || note === "") return note;
-    if (semitones === 0) return note;
+/* ===========================================================
+   THEORY-AWARE TRANSPOSER (Διαβάζει τον Κύκλο των Πέμπτων από το data.js)
+   =========================================================== */
 
-    const transposePart = (part) => {
-        // Τώρα η μηχανή επιτρέπει και μικρά a-g στην αρχή
-        let match = part.match(/^[A-Ga-g][#b]?/);
-        if (!match) return part; 
-        
-        let root = match[0];
-        let suffix = part.substring(root.length);
-        
-        // 1. Κρατάμε "σημείωση" αν ο χρήστης έγραψε μικρό γράμμα
-        let isLower = (root === root.toLowerCase());
-        
-        // 2. Το κάνουμε προσωρινά κεφαλαίο μόνο για την αναζήτηση στους πίνακες
-        let searchRoot = root.toUpperCase();
-        
-        const SHARP = (typeof NOTES !== 'undefined') ? NOTES : ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-        const FLAT  = (typeof NOTES_FLAT !== 'undefined') ? NOTES_FLAT : ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
-        
-        let index = SHARP.indexOf(searchRoot);
-        if (index === -1) index = FLAT.indexOf(searchRoot);
-        
-        if (index === -1) {
-            console.warn(`[TRANSPOSE] Άγνωστη ρίζα: ${root}`);
-            return part; 
-        }
-        
-        let newIndex = (index + semitones) % 12;
-        if (newIndex < 0) newIndex += 12;
+   function getNote(note, semitones) {
+        if (!note || note === "-" || note === "") return note;
+        if (semitones === 0) return note;
 
-        // ✨ ΝΕΟ: Αν το forceSharps είναι true, χρησιμοποιούμε ΠΑΝΤΑ τον πίνακα SHARP!
-        let outScale = forceSharps ? SHARP : ((semitones < 0) ? FLAT : SHARP);
-        
-        let transposedNote = outScale[newIndex];
-        
-        // 3. Αν η αρχική νότα ήταν μικρή, επιστρέφουμε μικρή νότα!
-        if (isLower) transposedNote = transposedNote.toLowerCase();
-        
-        return transposedNote + suffix;
-    };
+        // 1. ΡΥΘΜΙΣΗ ΧΡΗΣΤΗ: Διαβάζουμε αν έχει επιλέξει ρητά "Μόνο Διέσεις" στα Settings
+        const isForceSharps = (typeof userSettings !== 'undefined' && userSettings.forceSharps === true);
 
-    if (note.includes('/')) {
-        let parts = note.split('/');
-        return `${transposePart(parts[0])}/${transposePart(parts[1])}`;
+        const transposePart = (part) => {
+            // Επιτρέπουμε και μικρά a-g στην αρχή
+            let match = part.match(/^[A-Ga-g][#b]?/);
+            if (!match) return part; 
+            
+            let root = match[0];
+            let suffix = part.substring(root.length);
+            
+            // Κρατάμε "σημείωση" αν ήταν μικρό (π.χ. am)
+            let isLower = (root === root.toLowerCase());
+            let searchRoot = root.toUpperCase();
+            
+            // Διαβάζουμε τις κλίμακες από το data.js
+            const SHARP = (typeof NOTES !== 'undefined') ? NOTES : ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+            const FLAT  = (typeof NOTES_FLAT !== 'undefined') ? NOTES_FLAT : ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
+            
+            let index = SHARP.indexOf(searchRoot);
+            if (index === -1) index = FLAT.indexOf(searchRoot);
+            
+            if (index === -1) {
+                console.warn(`[TRANSPOSE] Άγνωστη ρίζα: ${root}`);
+                return part; 
+            }
+            
+            // Υπολογίζουμε το νέο ημιτόνιο (Pitch Class: 0-11)
+            let newIndex = (index + semitones) % 12;
+            if (newIndex < 0) newIndex += 12;
+            
+            let outScale;
+            
+            if (isForceSharps) {
+                // Ο χρήστης είναι το αφεντικό: Επιβάλλουμε Διέσεις παντού
+                outScale = SHARP;
+            } else {
+                // ΑΛΗΘΙΝΗ ΜΟΥΣΙΚΗ ΘΕΩΡΙΑ
+                // Ελέγχουμε αν η συγχορδία είναι Μινόρε (π.χ. m, min, -, m7)
+                let isMinor = (suffix.startsWith('m') && !suffix.startsWith('maj')) || suffix.startsWith('-');
+                
+                // Διαβάζουμε τον κανόνα από το data.js (με ασφάλεια)
+                const majorPref = (typeof THEORY_MAJOR_PREF !== 'undefined') ? THEORY_MAJOR_PREF : ['sharp','flat','sharp','flat','sharp','flat','sharp','sharp','flat','sharp','flat','sharp'];
+                const minorPref = (typeof THEORY_MINOR_PREF !== 'undefined') ? THEORY_MINOR_PREF : ['flat','sharp','flat','sharp','sharp','flat','sharp','flat','sharp','sharp','flat','sharp'];
+                
+                // Επιλέγουμε τη θεωρητικά ορθή κλίμακα
+                let theoryPreference = isMinor ? minorPref[newIndex] : majorPref[newIndex];
+                outScale = (theoryPreference === 'sharp') ? SHARP : FLAT;
+            }
+        
+            let transposedNote = outScale[newIndex];
+            
+            // Επαναφορά μικρού γράμματος (am -> bm)
+            if (isLower) transposedNote = transposedNote.toLowerCase();
+            
+            return transposedNote + suffix;
+            };
+
+            // Διαχείριση σύνθετων συγχορδιών (π.χ. D/F#) - Κάνει transpose και τα δύο μέρη ξεχωριστά!
+            if (note.includes('/')) {
+                let parts = note.split('/');
+                return `${transposePart(parts[0])}/${transposePart(parts[1])}`;
+            }
+
+            return transposePart(note);
     }
-
-    return transposePart(note);
-}
 //function parseSongLogic(s) { /* Logic to prepare chords */ }
 
 //function calculateOptimalCapo(originalKey, body) {
@@ -3131,7 +3169,8 @@ function openSettings() {
         'setDisableSplit': userSettings.disableSplit,
         'setPrintLyricsOnly': userSettings.printLyricsOnly,
         'chkAutoSaveCapo': userSettings.autoSaveCapo,
-        'setShowScrollBtn': (typeof userSettings.showScrollBtn !== 'undefined') ? userSettings.showScrollBtn : true
+        'setShowScrollBtn': (typeof userSettings.showScrollBtn !== 'undefined') ? userSettings.showScrollBtn : true,
+        'setOnlySharps': userSettings.forceSharps 
     };
 
     for (let id in checkboxes) {
@@ -3191,6 +3230,7 @@ async function saveSettings() {
     userSettings.disableSplit = document.getElementById('setDisableSplit')?.checked || false;
     userSettings.printLyricsOnly = document.getElementById('setPrintLyricsOnly')?.checked || false;
     userSettings.autoSaveCapo = document.getElementById('chkAutoSaveCapo')?.checked || false;
+    userSettings.forceSharps = document.getElementById('setOnlySharps')?.checked || false;
     
     const btnChk = document.getElementById('setShowScrollBtn');
     if (btnChk) userSettings.showScrollBtn = btnChk.checked;
@@ -4266,3 +4306,51 @@ function clearActiveRhythm() {
 
     console.log("🧹 [RHYTHM] Ο ρυθμός αποφορτώθηκε. Επιστροφή στον μετρονόμο.");
 }
+// ==========================================
+// ΠΑΡΑΚΟΛΟΥΘΗΣΗ ΠΕΡΙΣΤΡΟΦΗΣ ΟΘΟΝΗΣ (Resize / Orientation)
+// ==========================================
+let isCurrentlyMobile = window.innerWidth <= 1024;
+
+window.addEventListener('resize', () => {
+    const isNowMobile = window.innerWidth <= 1024;
+
+    // Ελέγχουμε αν περάσαμε το "σύνορο" των 1024px (Άλλαξε το mode;)
+    if (isCurrentlyMobile !== isNowMobile) {
+        isCurrentlyMobile = isNowMobile; // Ενημέρωση της κατάστασης
+
+        if (isNowMobile) {
+            // 📱 ΠΕΡΑΣΑΜΕ ΣΕ MOBILE (ή Κάθετο Tablet)
+            console.log("📱 Μετάβαση σε Mobile View");
+            
+            // Κρύβουμε Λίστα και Εργαλεία, Δείχνουμε Σκηνή
+            const colNav = document.querySelector('.col-nav');
+            if (colNav) colNav.classList.remove('mobile-view-active');
+            
+            const colTools = document.querySelector('.col-tools');
+            if (colTools) colTools.classList.remove('mobile-view-active');
+            
+            const colStage = document.querySelector('.col-stage');
+            if (colStage) colStage.classList.add('mobile-view-active');
+
+            // Ενημερώνουμε την κάτω μπάρα να δείχνει το "Stage"
+            if (typeof switchDrawerTab === 'function') switchDrawerTab('stage');
+            
+        } else {
+            // 💻 ΠΕΡΑΣΑΜΕ ΣΕ DESKTOP (ή Οριζόντιο Tablet)
+            console.log("💻 Μετάβαση σε Desktop View");
+            
+            // Αφαιρούμε τις mobile κλάσεις για να αναλάβει το CSS Grid!
+            const colNav = document.querySelector('.col-nav');
+            if (colNav) colNav.classList.remove('mobile-view-active');
+            
+            const colTools = document.querySelector('.col-tools');
+            if (colTools) colTools.classList.remove('mobile-view-active');
+            
+            const colStage = document.querySelector('.col-stage');
+            if (colStage) colStage.classList.remove('mobile-view-active');
+
+            // Επαναφέρουμε τη Σκηνή σε κανονική προβολή (κλείνουμε τυχόν ανοιχτό editor)
+            if (typeof toViewer === 'function') toViewer(true);
+        }
+    }
+});

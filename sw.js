@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mnotes-ver0.6.1'; // Ready For beta
+const CACHE_NAME = 'mnotes-ver0.7.0'; // Ready For beta
 const ASSETS_TO_CACHE = [
     './',
     'index.html',

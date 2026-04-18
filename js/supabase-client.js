@@ -414,3 +414,97 @@ async function updateStorageUI() {
         if (storageText) storageText.innerText = "Σφάλμα υπολογισμού";
     }
 }
+// ===========================================================
+// CONCURRENCY MONITOR (1 Mobile + 1 Desktop Limit)
+// ===========================================================
+const myDeviceInstanceId = Math.random().toString(36).substring(2, 15);
+const myConnectionTime = Date.now();
+
+// Έξυπνος έλεγχος αν είναι Κινητό/Tablet ή Υπολογιστής
+const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+const myDeviceType = isMobileDevice ? 'mobile' : 'desktop';
+
+let userPresenceChannel = null;
+
+function startConcurrencyMonitor() {
+    if (typeof currentUser === 'undefined' || !currentUser || !supabaseClient) return;
+
+    if (userPresenceChannel) {
+        supabaseClient.removeChannel(userPresenceChannel);
+    }
+
+    userPresenceChannel = supabaseClient.channel('presence_' + currentUser.id);
+
+    userPresenceChannel
+        .on('presence', { event: 'sync' }, () => {
+            const state = userPresenceChannel.presenceState();
+            let allDevices = [];
+
+            // Συλλέγουμε όλες τις συσκευές που βρίσκονται στο "δωμάτιο"
+            for (const key in state) {
+                allDevices.push(...state[key]);
+            }
+
+            // Φιλτράρουμε για να δούμε πόσες είναι του ΙΔΙΟΥ τύπου με εμάς
+            const myTypeDevices = allDevices.filter(d => d.device_type === myDeviceType);
+
+            // Αν υπάρχουν πάνω από 1 (π.χ. 2 κινητά ή 2 υπολογιστές)
+            if (myTypeDevices.length > 1) {
+                // Βρίσκουμε ποια μπήκε τελευταία (βάσει του online_at)
+                myTypeDevices.sort((a, b) => b.online_at - a.online_at);
+                const newestDevice = myTypeDevices[0];
+
+                // Αν ΕΓΩ ΔΕΝ είμαι η νεότερη συσκευή, τρώω μπλοκ!
+                if (newestDevice.device_id !== myDeviceInstanceId) {
+                    showConcurrencyBlocker(myDeviceType);
+                } else {
+                    // Εγώ είμαι ο νέος, άρα παίζω κανονικά
+                    hideConcurrencyBlocker();
+                }
+            } else {
+                hideConcurrencyBlocker();
+            }
+        })
+        .subscribe(async (status) => {
+            if (status === 'SUBSCRIBED') {
+                // Δηλώνουμε την παρουσία μας και τον τύπο της συσκευής μας
+                await userPresenceChannel.track({
+                    device_id: myDeviceInstanceId,
+                    device_type: myDeviceType,
+                    online_at: myConnectionTime
+                });
+            }
+        });
+}
+
+// --- ΟΠΤΙΚΟ ΜΠΛΟΚΑΡΙΣΜΑ (Προσαρμοσμένο) ---
+function showConcurrencyBlocker(deviceType) {
+    let blocker = document.getElementById('concurrencyBlocker');
+    const typeText = deviceType === 'mobile' ? 'άλλη κινητή συσκευή/tablet' : 'άλλον υπολογιστή';
+    
+    if (!blocker) {
+        blocker = document.createElement('div');
+        blocker.id = 'concurrencyBlocker';
+        blocker.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:99999; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; text-align:center; padding:20px; backdrop-filter: blur(10px);';
+        document.body.appendChild(blocker);
+    }
+    
+    blocker.innerHTML = `
+        <i class="fas fa-ban" style="font-size:4rem; color:var(--danger, #ff4444); margin-bottom:20px;"></i>
+        <h2 style="margin-bottom:10px;">Όριο Συσκευών</h2>
+        <p style="max-width:400px; color:#aaa; line-height:1.5; margin-bottom:30px;">
+            Εντοπίσαμε ότι συνδεθήκατε από <b>${typeText}</b>.<br><br>
+            Το mNotes Pro επιτρέπει ταυτόχρονη χρήση μόνο σε 1 Υπολογιστή και 1 Κινητό/Tablet.<br><br>
+            Η συνεδρία σε αυτή τη συσκευή τέθηκε σε αναμονή.
+        </p>
+        <button onclick="window.location.reload()" style="padding: 10px 20px; background: var(--accent); color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1rem;">
+            <i class="fas fa-sync-alt"></i> Επανασύνδεση Εδώ
+        </button>
+    `;
+    blocker.style.display = 'flex';
+}
+
+function hideConcurrencyBlocker() {
+    const blocker = document.getElementById('concurrencyBlocker');
+    if (blocker) blocker.style.display = 'none';
+}

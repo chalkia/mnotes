@@ -835,8 +835,17 @@ body.lyrics-only .line-row {line-height: 1.4; margin-bottom: 5px;}
 }
 .empty-state { font-style: italic; color: var(--text-muted); font-size: 0.8rem; padding: 5px; }
 
-/* 3. ACCORDION (Πτυσσόμενα) */
-details.tool-group { padding: 0; transition: 0.3s; }
+
+/* 3. ACCORDION (Πτυσσόμενα) - Η ΟΜΟΡΦΙΑ */
+details.tool-group { 
+    padding: 0; 
+    transition: 0.3s; 
+    /* Βάζουμε και το flex εδώ για να είναι έτοιμο να τεντώσει */
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+}
+
 details.tool-group summary {
     padding: 12px 15px; cursor: pointer; font-size: 0.85rem; font-weight: bold; color: var(--text-muted);
     list-style: none; display: flex; align-items: center; gap: 8px;
@@ -849,9 +858,36 @@ details.tool-group summary::after {
     margin-left: auto; font-size: 0.7rem; transition: transform 0.2s;
 }
 details[open] summary::after { transform: rotate(180deg); color: var(--accent); }
+
 .group-content { padding: 0 15px 15px 15px; animation: fadeIn 0.3s ease; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 
+
+/* =========================================
+   FLEX DRAWERS (Το νέο κομμάτι για το Ύψος & το Scroll)
+   ========================================= */
+details.tool-group[open] {
+    flex: 1; 
+    min-height: 0; 
+}
+
+/* Το εσωτερικό div που έχει το περιεχόμενο */
+details.tool-group[open] > *:not(summary) {
+    flex: 1;
+    overflow-y: auto; 
+    min-height: 0;
+    
+    /* Όμορφη λεπτή μπάρα κύλισης */
+    scrollbar-width: thin;
+}
+
+details.tool-group[open] > *:not(summary)::-webkit-scrollbar {
+    width: 4px;
+}
+details.tool-group[open] > *:not(summary)::-webkit-scrollbar-thumb {
+    background: var(--accent);
+    border-radius: 4px;
+}
 /* 4. METRONOME & EXTRAS */
 .bpm-row { display: flex; align-items: center; gap: 15px; margin-bottom: 5px; }
 .play-mini-btn {

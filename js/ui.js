@@ -2270,8 +2270,13 @@ async function initSetlists() {
             console.error("[SETLISTS] Σφάλμα κατά το συγχρονισμό:", err); 
         }
     }
-
-    // 3. Δημιουργία προεπιλεγμένης λίστας αν όλα είναι άδεια
+        
+    // 3.ΔΗΜΙΟΥΡΓΙΑ ΜΟΝΙΜΟΥ ΚΑΔΟΥ ΑΠΟΡΡΙΜΜΑΤΩΝ
+    if (!allSetlists["🗑️ Κάδος"]) {
+        allSetlists["🗑️ Κάδος"] = { type: 'local', songs: [] 
+    };
+    
+    // 4. Δημιουργία προεπιλεγμένης λίστας αν όλα είναι άδεια
     if (Object.keys(allSetlists).length === 0) { 
         allSetlists["Default Setlist"] = { type: 'local', songs: [] }; 
     }
@@ -2284,7 +2289,7 @@ async function initSetlists() {
     var currentSetlistName = localStorage.getItem(activeNameKey) || Object.keys(allSetlists)[0];
     if (!allSetlists[currentSetlistName]) currentSetlistName = Object.keys(allSetlists)[0];
     
-    // ✨ ΔΙΟΡΘΩΣΗ & ΚΑΘΑΡΙΣΜΟΣ SETLIST: 
+    // 5. ΔΙΟΡΘΩΣΗ & ΚΑΘΑΡΙΣΜΟΣ SETLIST: 
     // Μετατρέπουμε τυχόν παλιά αποθηκευμένα objects σε καθαρά IDs (Strings)
     let rawSongs = allSetlists[currentSetlistName].songs || [];
     liveSetlist = rawSongs.map(item => {
@@ -2307,12 +2312,29 @@ function updateSetlistDropdown() {
     Object.keys(allSetlists).forEach(name => {
         const listObj = allSetlists[name];
         const opt = document.createElement('option'); opt.value = name;
-        const icon = (currentGroupId !== 'personal') ? '👥' : '📝';
-        opt.innerText = `${icon} ${name} (${listObj.songs.length})`;
+        
+        // Βάζουμε το σωστό εικονίδιο. Αν είναι ο Κάδος, βάζουμε κάδο!
+        let icon = (currentGroupId !== 'personal') ? '👥' : '📝';
+        if (name === "🗑️ Κάδος") icon = '🗑️';
+        
+        // Ο Κάδος δεν χρειάζεται το εικονίδιο δίπλα στο όνομά του αν το έχει ήδη στο όνομα, αλλά το αφήνουμε για ομοιομορφία ή το αφαιρούμε. Ας το αφήσουμε.
+        opt.innerText = name === "🗑️ Κάδος" ? `${name} (${listObj.songs.length})` : `${icon} ${name} (${listObj.songs.length})`;
+        
         if(name === currentSetlistName) opt.selected = true;
         sel.appendChild(opt);
     });
+    
     updateSetlistButtons();
+
+    // ✨ ΝΕΟΣ ΕΛΕΓΧΟΣ: Εμφάνιση του κουμπιού Διαγραφής ΜΟΝΟ αν είμαστε στον Κάδο
+    const btnEmptyTrash = document.getElementById('btnEmptyTrash');
+    if (btnEmptyTrash) {
+        if (viewMode === 'setlist' && currentSetlistName === "🗑️ Κάδος") {
+            btnEmptyTrash.style.display = 'inline-flex'; // Εμφάνιση
+        } else {
+            btnEmptyTrash.style.display = 'none'; // Απόκρυψη σε όλες τις άλλες λίστες
+        }
+    }
 }
 
 function updateSetlistButtons() {
@@ -2340,11 +2362,10 @@ function createSetlist() {
         return;
     }
 
-    // ✨ 2. ΕΛΕΓΧΟΣ ΟΡΙΩΝ PAYWALL (Μόνο για την Προσωπική Βιβλιοθήκη)
+    // 2. ΕΛΕΓΧΟΣ ΟΡΙΩΝ PAYWALL (Μόνο για την Προσωπική Βιβλιοθήκη)
     if (currentGroupId === 'personal') {
         // Υπολογίζουμε πόσες CUSTOM λίστες έχει (αφαιρούμε 1 για τη "Default Setlist" που έχουν όλοι)
         const customListsCount = Object.keys(allSetlists).length - 1; 
-        
         // Ρωτάμε τον Πορτιέρη αν δικαιούται κι άλλη (χρησιμοποιώντας το νέο όνομα currentCount)
         if (typeof canUserPerform === 'function' && !canUserPerform('CREATE_SETLIST', customListsCount)) {
             if (typeof promptUpgrade === 'function') {
@@ -2363,6 +2384,8 @@ function createSetlist() {
         liveSetlist = []; 
         switchSetlist(name);
         saveSetlists(name);
+        updateSetlistDropdown();
+        
     } else if (allSetlists[name]) {
         alert("Υπάρχει ήδη λίστα με αυτό το όνομα!");
     }
@@ -2445,10 +2468,16 @@ function switchSidebarTab(mode) {
     document.getElementById(`tab-${mode}`).classList.add('active');
     if (mode === 'setlist') {
         document.getElementById('library-controls').style.display = 'none';
-        const setCtrl = document.getElementById('setlist-controls'); if(setCtrl) { setCtrl.style.display = 'flex'; updateSetlistDropdown(); }
+        const setCtrl = document.getElementById('setlist-controls'); 
+        if(setCtrl) { setCtrl.style.display = 'flex'; updateSetlistDropdown(); }
     } else {
         document.getElementById('library-controls').style.display = 'flex';
-        const setCtrl = document.getElementById('setlist-controls'); if(setCtrl) setCtrl.style.display = 'none';
+        const setCtrl = document.getElementById('setlist-controls'); 
+        if(setCtrl) setCtrl.style.display = 'none';
+        
+        // ✨ ΝΕΟ: Αν φύγουμε από τα Setlists, κρύβουμε τον Κάδο!
+        const btnEmptyTrash = document.getElementById('btnEmptyTrash');
+        if (btnEmptyTrash) btnEmptyTrash.style.display = 'none';
     }
     renderSidebar();
 }
@@ -4312,45 +4341,46 @@ function clearActiveRhythm() {
 let isCurrentlyMobile = window.innerWidth <= 1024;
 
 window.addEventListener('resize', () => {
-    const isNowMobile = window.innerWidth <= 1024;
+        const isNowMobile = window.innerWidth <= 1024;
 
-    // Ελέγχουμε αν περάσαμε το "σύνορο" των 1024px (Άλλαξε το mode;)
-    if (isCurrentlyMobile !== isNowMobile) {
-        isCurrentlyMobile = isNowMobile; // Ενημέρωση της κατάστασης
+        // Ελέγχουμε αν περάσαμε το "σύνορο" των 1024px (Άλλαξε το mode;)
+        if (isCurrentlyMobile !== isNowMobile) {
+            isCurrentlyMobile = isNowMobile; // Ενημέρωση της κατάστασης
 
-        if (isNowMobile) {
-            // 📱 ΠΕΡΑΣΑΜΕ ΣΕ MOBILE (ή Κάθετο Tablet)
-            console.log("📱 Μετάβαση σε Mobile View");
-            
-            // Κρύβουμε Λίστα και Εργαλεία, Δείχνουμε Σκηνή
-            const colNav = document.querySelector('.col-nav');
-            if (colNav) colNav.classList.remove('mobile-view-active');
-            
-            const colTools = document.querySelector('.col-tools');
-            if (colTools) colTools.classList.remove('mobile-view-active');
-            
-            const colStage = document.querySelector('.col-stage');
-            if (colStage) colStage.classList.add('mobile-view-active');
+            if (isNowMobile) {
+                // 📱 ΠΕΡΑΣΑΜΕ ΣΕ MOBILE (ή Κάθετο Tablet)
+                console.log("📱 Μετάβαση σε Mobile View");
+                
+                // Κρύβουμε Λίστα και Εργαλεία, Δείχνουμε Σκηνή
+                const colNav = document.querySelector('.col-nav');
+                if (colNav) colNav.classList.remove('mobile-view-active');
+                
+                const colTools = document.querySelector('.col-tools');
+                if (colTools) colTools.classList.remove('mobile-view-active');
+                
+                const colStage = document.querySelector('.col-stage');
+                if (colStage) colStage.classList.add('mobile-view-active');
 
-            // Ενημερώνουμε την κάτω μπάρα να δείχνει το "Stage"
-            if (typeof switchDrawerTab === 'function') switchDrawerTab('stage');
-            
-        } else {
-            // 💻 ΠΕΡΑΣΑΜΕ ΣΕ DESKTOP (ή Οριζόντιο Tablet)
-            console.log("💻 Μετάβαση σε Desktop View");
-            
-            // Αφαιρούμε τις mobile κλάσεις για να αναλάβει το CSS Grid!
-            const colNav = document.querySelector('.col-nav');
-            if (colNav) colNav.classList.remove('mobile-view-active');
-            
-            const colTools = document.querySelector('.col-tools');
-            if (colTools) colTools.classList.remove('mobile-view-active');
-            
-            const colStage = document.querySelector('.col-stage');
-            if (colStage) colStage.classList.remove('mobile-view-active');
+                // Ενημερώνουμε την κάτω μπάρα να δείχνει το "Stage"
+                if (typeof switchDrawerTab === 'function') switchDrawerTab('stage');
+                
+            } else {
+                // 💻 ΠΕΡΑΣΑΜΕ ΣΕ DESKTOP (ή Οριζόντιο Tablet)
+                console.log("💻 Μετάβαση σε Desktop View");
+                
+                // Αφαιρούμε τις mobile κλάσεις για να αναλάβει το CSS Grid!
+                const colNav = document.querySelector('.col-nav');
+                if (colNav) colNav.classList.remove('mobile-view-active');
+                
+                const colTools = document.querySelector('.col-tools');
+                if (colTools) colTools.classList.remove('mobile-view-active');
+                
+                const colStage = document.querySelector('.col-stage');
+                if (colStage) colStage.classList.remove('mobile-view-active');
 
-            // Επαναφέρουμε τη Σκηνή σε κανονική προβολή (κλείνουμε τυχόν ανοιχτό editor)
-            if (typeof toViewer === 'function') toViewer(true);
+                // Επαναφέρουμε τη Σκηνή σε κανονική προβολή (κλείνουμε τυχόν ανοιχτό editor)
+                if (typeof toViewer === 'function') toViewer(true);
+            }
         }
-    }
-});
+    });
+}

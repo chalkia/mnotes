@@ -115,11 +115,12 @@
                 <button onclick="exportJSON()" class="footer-btn icon-only" title="Export / Εξαγωγή">
                     <i class="fas fa-file-export"></i>
                 </button>
-                <button onclick="clearPersonalLibrary()" class="footer-btn icon-only danger">
-                    <i class="fas fa-trash"></i>
+                <button id="btnEmptyTrash" onclick="emptyTrashSetlist()" class="footer-btn icon-only danger" style="display: none;" title="Εκκαθάριση Κάδου / Απόσυρση">
+                    <i class="fas fa-trash-alt"></i>
                 </button>
             </div>
         </aside>
+        
         <div class="resizer" id="dragMeLeft"></div>
         <main class="col-stage" id="mainZone">
             <div id="view-player" class="view-section active-view">
@@ -240,7 +241,7 @@
             <span data-i18n="title_tools" style="font-weight:bold; color:var(--text-muted); font-size:0.9rem;">TOOLS & ASSETS</span>
         </div>
                 
-        <div class="col-content tool-panel" style="padding: 10px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto;">
+        <div class="col-content tool-panel" style="padding: 10px; display: flex; flex-direction: column; gap: 10px; flex:1; min-height:0;">
             
             <div id="video-sidebar-container" style="display:none;">
                 <details class="tool-group" id="drawerVideo" open>

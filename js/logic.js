@@ -2042,3 +2042,96 @@ async function transferBandLeadership(targetUserId) {
         showToast("Σφάλμα κατά τη μεταβίβαση.", "error");
     }
 }
+// ===========================================================
+// BULK DELETE & WITHDRAWAL (Μαζική Διαγραφή / Απόσυρση)
+// ===========================================================
+async function emptyTrashSetlist() {
+    const trashKey = "🗑️ Κάδος";
+    const trashList = allSetlists[trashKey]?.songs || [];
+
+    if (trashList.length === 0) {
+        if (typeof showToast === 'function') showToast("Ο κάδος είναι ήδη άδειος!", "warning");
+        return;
+    }
+
+    const isBandContext = (currentGroupId !== 'personal');
+    const isGod = (typeof currentRole !== 'undefined') && (currentRole === 'admin' || currentRole === 'owner' || currentRole === 'maestro');
+
+    // 1. ΕΛΕΓΧΟΣ ΔΙΚΑΙΩΜΑΤΩΝ ΓΙΑ ΜΠΑΝΤΕΣ
+    if (isBandContext && !isGod) {
+        if (typeof showToast === 'function') showToast("Μόνο οι διαχειριστές μπορούν να αποσύρουν τραγούδια από τη μπάντα.", "error");
+        return;
+    }
+
+    // 2. ΔΥΝΑΜΙΚΑ ΜΗΝΥΜΑΤΑ ΠΡΟΕΙΔΟΠΟΙΗΣΗΣ
+    let confirmMsg = "";
+    if (!isBandContext) {
+        confirmMsg = `ΠΡΟΣΟΧΗ: Θα διαγραφούν ΟΡΙΣΤΙΚΑ ${trashList.length} τραγούδια από την προσωπική σας βιβλιοθήκη.\n\nΑυτή η ενέργεια ΔΕΝ αναιρείται. Είστε σίγουροι;`;
+    } else {
+        confirmMsg = `ΑΠΟΣΥΡΣΗ ΤΡΑΓΟΥΔΙΩΝ:\nΘα αποσύρετε ${trashList.length} τραγούδια από το κοινό ρεπερτόριο της μπάντας.\n\n(Όσα μέλη έχουν δημιουργήσει προσωπικούς κλώνους αυτών των τραγουδιών, θα τους διατηρήσουν στην προσωπική τους βιβλιοθήκη). Συμφωνείτε;`;
+    }
+
+    if (!confirm(confirmMsg)) return;
+
+    try {
+        console.log(`🗑️ [BULK DELETE] Ξεκινάει ο καθαρισμός ${trashList.length} τραγουδιών...`);
+
+        // 3. ΕΚΤΕΛΕΣΗ ΣΤΟ CLOUD (Αν είμαστε online)
+        if (canUserPerform('USE_SUPABASE') && navigator.onLine) {
+            
+            if (isBandContext) {
+                // Στη Μπάντα κάνουμε SOFT DELETE (όπως η deleteCurrentSong)
+                const payload = { is_deleted: true, updated_at: new Date().toISOString() };
+                const { error } = await supabaseClient.from('songs').update(payload).in('id', trashList);
+                if (error) throw error;
+                
+                // Σβήνουμε και τα σχετικά overrides
+                await supabaseClient.from('personal_overrides').delete().in('song_id', trashList);
+            } else {
+                // Στα Προσωπικά κάνουμε HARD DELETE
+                const { error } = await supabaseClient.from('songs').delete().in('id', trashList);
+                if (error) throw error;
+            }
+        } else if (!navigator.onLine) {
+            // Αν είμαστε offline, τα βάζουμε στην ουρά ένα-ένα
+            const payload = { is_deleted: true, updated_at: new Date().toISOString() };
+            trashList.forEach(id => {
+                 addToSyncQueue('SAVE_SONG', { id: id, ...payload });
+            });
+        }
+
+        // 4. ΚΑΘΑΡΙΣΜΟΣ ΤΟΠΙΚΗΣ ΜΝΗΜΗΣ (RAM & Storage)
+        let storageKey = currentGroupId === 'personal' ? 'mnotes_data' : 'mnotes_band_' + currentGroupId;
+        window.library = window.library.filter(s => !trashList.includes(s.id));
+        library = window.library;
+        localStorage.setItem(storageKey, JSON.stringify(window.library));
+
+        // 5. ΑΔΕΙΑΣΜΑ ΤΟΥ ΚΑΔΟΥ & ΑΝΑΝΕΩΣΗ UI
+        allSetlists[trashKey].songs = [];
+        liveSetlist = []; // Κλείνουμε την προβολή του Κάδου
+        
+        if (typeof saveSetlists === 'function') saveSetlists(trashKey);
+        
+        if (typeof showToast === 'function') {
+            showToast(isBandContext ? "Τα τραγούδια αποσύρθηκαν επιτυχώς." : "Η διαγραφή ολοκληρώθηκε.", "success");
+        }
+
+        // 6. ΑΣΦΑΛΗΣ ΠΛΟΗΓΗΣΗ (Αν το τραγούδι που βλέπαμε σβήστηκε)
+        if (trashList.includes(currentSongId)) {
+            currentSongId = null;
+            if (library.length > 0) {
+                 if (typeof loadSong === 'function') loadSong(library[0].id);
+            } else {
+                 if (typeof toEditor === 'function') toEditor();
+            }
+        }
+
+        // 7. ΑΝΑΝΕΩΣΗ ΤΗΣ ΛΙΣΤΑΣ
+        if (typeof updateSetlistDropdown === 'function') updateSetlistDropdown();
+        if (typeof renderSidebar === 'function') renderSidebar();
+
+    } catch (err) {
+        console.error("❌ [BULK DELETE ERROR]:", err);
+        if (typeof showToast === 'function') showToast("Προέκυψε σφάλμα. Προσπαθήστε ξανά.", "error");
+    }
+}

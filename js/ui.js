@@ -1639,9 +1639,9 @@ function switchToEditor() {
     } else { 
         createNewSong(); 
     }
-}
+ }
 
- function renderSidebar() {
+/*  function renderSidebar() {
     var list = document.getElementById('songList');
     if(!list) return;
     
@@ -1826,10 +1826,11 @@ function switchToEditor() {
                 activeItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }
         }, 150); // Δίνουμε 150ms για να σιγουρευτούμε ότι η λίστα έχει ζωγραφιστεί πλήρως
-  
-}
+    }
 
-function refreshSyncButtonVisibility(song) {
+    
+*/
+ function refreshSyncButtonVisibility(song) {
     const btnSync = document.getElementById('btnSyncFromBand');
     if (!btnSync) return;
 
@@ -1839,10 +1840,10 @@ function refreshSyncButtonVisibility(song) {
         btnSync.style.display = 'inline-block';
         btnSync.title = "Συγχρονισμός Κλώνου με Προσωπική Βιβλιοθήκη 🏠";
     }
-}
+    }
 
-// Σώζει αυτόματα ένα προσωρινό αντίγραφο καθώς πληκτρολογείς
-function autoSaveDraft() {
+  // Σώζει αυτόματα ένα προσωρινό αντίγραφο καθώς πληκτρολογείς
+  function autoSaveDraft() {
     if (!currentSongId) return;
     
     const draft = {
@@ -1858,8 +1859,8 @@ function autoSaveDraft() {
     
     localStorage.setItem('mnotes_draft_' + currentSongId, JSON.stringify(draft));
     console.log(`[Auto-Save] Το draft για το ${currentSongId} ενημερώθηκε (Size: ${JSON.stringify(draft).length} bytes)`);
-}
-async function saveEdit() { 
+    }
+  async function saveEdit() { 
     let bodyArea = document.getElementById('inpBody'); 
     if (bodyArea) bodyArea.value = fixTrailingChords(bodyArea.value); 
     
@@ -1873,9 +1874,11 @@ async function saveEdit() {
     if (oldId) localStorage.removeItem('mnotes_draft_' + oldId);
     if (currentSongId) localStorage.removeItem('mnotes_draft_' + currentSongId);
     console.log("[SaveEdit] Τα προσωρινά Drafts καθαρίστηκαν.");
-}
-function fixTrailingChords(text) { let lines = text.split('\n'); return lines.map(line => { const trailingChordRegex = /![A-G][b#]?[m]?[maj7|sus4|7|add9|dim|0-9]*(\/[A-G][b#]?)?\s*$/; if (line.match(trailingChordRegex)) return line.trimEnd() + "    "; return line; }).join('\n'); }
-function createNewSong() { 
+   }
+
+   function fixTrailingChords(text) { let lines = text.split('\n'); return lines.map(line => { const trailingChordRegex = /![A-G][b#]?[m]?[maj7|sus4|7|add9|dim|0-9]*(\/[A-G][b#]?)?\s*$/; if (line.match(trailingChordRegex)) return line.trimEnd() + "    "; return line; }).join('\n'); }
+
+   function createNewSong() { 
       if (typeof currentUser === 'undefined' || !currentUser) {
         const userSongs = library.filter(s => !String(s.id).includes('demo'));
         
@@ -1910,7 +1913,7 @@ function createNewSong() {
         switchMobileTab('stage');
         console.log("📱 [Mobile] Αυτόματη μεταφορά στον Editor (Stage)");
     }
-}
+    }
 function exitEditor() { 
    // 0. Αποθήκευση κατάστασης: Γυρίσαμε στον Player
     localStorage.setItem('mnotes_view_state', 'player');
@@ -2385,7 +2388,7 @@ function createSetlist() {
         switchSetlist(name);
         saveSetlists(name);
         updateSetlistDropdown();
-        
+
     } else if (allSetlists[name]) {
         alert("Υπάρχει ήδη λίστα με αυτό το όνομα!");
     }

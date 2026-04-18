@@ -1641,7 +1641,7 @@ function switchToEditor() {
     }
  }
 
-/*  function renderSidebar() {
+  function renderSidebar() {
     var list = document.getElementById('songList');
     if(!list) return;
     
@@ -1829,7 +1829,7 @@ function switchToEditor() {
     }
 
     
-*/
+
  function refreshSyncButtonVisibility(song) {
     const btnSync = document.getElementById('btnSyncFromBand');
     if (!btnSync) return;
@@ -2276,8 +2276,8 @@ async function initSetlists() {
         
     // 3.ΔΗΜΙΟΥΡΓΙΑ ΜΟΝΙΜΟΥ ΚΑΔΟΥ ΑΠΟΡΡΙΜΜΑΤΩΝ
     if (!allSetlists["🗑️ Κάδος"]) {
-        allSetlists["🗑️ Κάδος"] = { type: 'local', songs: [] 
-    };
+        allSetlists["🗑️ Κάδος"] = { type: 'local', songs: [] };
+    }
     
     // 4. Δημιουργία προεπιλεγμένης λίστας αν όλα είναι άδεια
     if (Object.keys(allSetlists).length === 0) { 
@@ -4386,144 +4386,3 @@ window.addEventListener('resize', () => {
             }
         }
     });
-}
-// ===========================================================
-// REQUIRED PLAYER FUNCTIONS (parseMetaLine & updateToggleButton)
-// Τοποθετημένες στο τέλος του αρχείου για αποφυγή Scope Issues
-// ===========================================================
-
-// --- FORMAT INTRO/INTERLUDE ---
-window.parseMetaLine = function(text) {
-    if (!text) return "";
-    
-    // Μετατροπή ChordPro on-the-fly για τα Intro/Interlude
-    text = text.replace(/\[([a-zA-G][b#]?[m]?[maj7|sus4|7|add9|dim|0-9|\/]*)\]/g, "!$1 ");
-    
-    // Regex που δέχεται και μικρά [a-zA-G]
-    return text.replace(/!([a-zA-G][b#]?[m]?[maj7|sus4|7|add9|dim|0-9|\/]*)/g, (match, chord) => {
-        // 1. Προσωρινό κεφαλαίο για τον υπολογισμό
-        let firstChar = chord.charAt(0).toUpperCase();
-        let restOfChord = chord.slice(1);
-        let calculationChord = firstChar + restOfChord;
-
-        // 2. Transpose (χρησιμοποιεί την getNote που ήδη έχεις)
-        let translated = (typeof getNote === 'function') ? getNote(calculationChord, state.t - state.c) : chord;
-        
-        // 3. Αν το αρχικό ήταν μικρό (π.χ. am), ξανακάνε το αποτέλεσμα μικρό (π.χ. bm)
-        if (chord.charAt(0) === chord.charAt(0).toLowerCase()) {
-            translated = translated.charAt(0).toLowerCase() + translated.slice(1);
-        }
-
-        // Επιστροφή με την κλάση .chord και αναγκαστικό χρώμα από τις ρυθμίσεις!
-        return `<span class="chord" style="display:inline; position:static; font-size:inherit; color: var(--chord-color);">${translated}</span>`;
-    });
-};
-
-// --- TOGGLE BUTTON (My View / Band View) ---
-window.updateToggleButton = function(s) {
-    const btn = document.getElementById('btnToggleView');
-    if (!btn) return;
-
-    // Κρύβουμε το κουμπί από προεπιλογή. Θα το εμφανίσουμε ΜΟΝΟ αν βρούμε διαφορές.
-    btn.style.display = 'none'; 
-
-    const isCloneObj = s.is_clone || !!s.parent_id;
-    const isBandMaster = !!s.group_id && !isCloneObj;
-
-    // Βοηθητική συνάρτηση για να σχεδιάσει/εμφανίσει το κουμπί
-    const showButton = () => {
-        btn.style.display = 'inline-flex';
-        
-        if (isCloneObj) {
-            if (showingOriginal) {
-                btn.innerHTML = `<i class="fas fa-user"></i> My Version`;
-                btn.classList.add('active-mode');
-                btn.style.background = "var(--accent)";
-                btn.style.color = "#000";
-            } else {
-                btn.innerHTML = `<i class="fas fa-users"></i> Band Version`;
-                btn.classList.remove('active-mode');
-                btn.style.background = "transparent";
-                btn.style.color = "var(--text-main)";
-            }
-            
-            // Κουμπί Ακύρωσης Κλώνου (Κόκκινο σκουπιδάκι)
-            let revertBtn = document.getElementById('btnRevertClone');
-            if (!revertBtn && !showingOriginal) {
-                revertBtn = document.createElement('button');
-                revertBtn.id = 'btnRevertClone';
-                revertBtn.innerHTML = `<i class="fas fa-trash-restore"></i>`;
-                revertBtn.title = "Ακύρωση Κλώνου & Επιστροφή στο Κοινό";
-                revertBtn.style.cssText = "margin-left:5px; background:var(--danger); color:#fff; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:0.9rem;";
-                revertBtn.onclick = () => { if(typeof revertClone === 'function') revertClone(s); };
-                btn.parentNode.appendChild(revertBtn);
-            } else if (revertBtn && showingOriginal) {
-                revertBtn.style.display = 'none';
-            } else if (revertBtn) {
-                revertBtn.style.display = 'inline-block';
-            }
-        } else {
-            // Για απλά overrides της μπάντας (Transpose/Notes)
-            const revertBtn = document.getElementById('btnRevertClone');
-            if (revertBtn) revertBtn.style.display = 'none';
-
-            if (showingOriginal) {
-                btn.innerHTML = '<i class="fas fa-user"></i> My Settings';
-                btn.classList.add('active-mode');
-                btn.style.background = "var(--accent)";
-                btn.style.color = "#000";
-            } else {
-                btn.innerHTML = '<i class="fas fa-users"></i> Band Version';
-                btn.classList.remove('active-mode');
-                btn.style.background = "transparent";
-                btn.style.color = "var(--text-main)";
-            }
-        }
-    };
-
-    // --- ΠΕΡΙΠΤΩΣΗ Α: Τραγούδι Μπάντας με Transpose/Notes ---
-    if (isBandMaster) {
-        const hasOverrides = s.has_override || (s.personal_notes && s.personal_notes.trim() !== "") || (s.personal_transpose && s.personal_transpose !== 0);
-        if (hasOverrides || showingOriginal) {
-            showButton();
-        }
-        return;
-    }
-
-    // --- ΠΕΡΙΠΤΩΣΗ Β: Προσωπικός Κλώνος ---
-    if (isCloneObj && s.parent_id) {
-        if (showingOriginal) {
-            showButton(); 
-            return;
-        }
-
-        const compareWithMaster = (master) => {
-            const isDifferent = (master.body !== s.body) || 
-                                (master.title !== s.title) || 
-                                (master.key !== s.key) || 
-                                (master.notes !== s.notes);
-            
-            if (isDifferent) showButton();
-        };
-
-        // 1. Ψάχνουμε το Master τραγούδι τοπικά 
-        let master = window.library.find(x => x.id === s.parent_id);
-        
-        if (master) {
-            compareWithMaster(master);
-        } 
-        // 2. Αν δεν υπάρχει τοπικά, το ρωτάμε αθόρυβα από το Cloud 
-        else if (navigator.onLine && typeof supabaseClient !== 'undefined') {
-            supabaseClient.from('songs')
-                .select('body, title, key, notes')
-                .eq('id', s.parent_id)
-                .maybeSingle()
-                .then(({data}) => {
-                    if (data && currentSongId === s.id) { 
-                        compareWithMaster(data);
-                    }
-                })
-                .catch(e => console.log("Αποτυχία σύγκρισης κλώνου:", e));
-        }
-    }
-};

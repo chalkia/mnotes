@@ -46,7 +46,7 @@ const TIER_CONFIG = {
         canJoinBands: false,       
         maxBandsOwned: 0,
         maxBandsJoined: 0,
-        maxSetlists: 10, 
+        maxSetlists: 3, 
         canSaveAttachments: true,
         use_audio: true,
         use_sequencer: false,
@@ -185,9 +185,9 @@ function canUserPerform (action, currentCount=0) {
         case 'ADD_BAND_MATE':
             return currentCount < limits.includedBandMates; 
         case 'USE_RHYTHMS':
-            return limits.useRhythms;  
+            return limits.hasAdvancedDrums;  
         case 'USE_MSTUDIO':
-            return limits.useMStudio;  
+            return limits.hasAdvancedDrums;  
           
         // --- ✨ ΝΕΑ ΔΙΚΑΙΩΜΑΤΑ (Guest & Όρια Μπάντας) ---
         

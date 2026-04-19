@@ -42,8 +42,21 @@ var userSettings = JSON.parse(localStorage.getItem('mnotes_settings')) || {
 };
 var tempIntroScale = 0; 
 
-function toggleLanguage() { currentLang = (currentLang === 'en') ? 'el' : 'en'; localStorage.setItem('mnotes_lang', currentLang); applyTranslations(); renderSidebar(); populateTags(); if(currentSongId && currentSongId.includes('demo')) loadSong(currentSongId); }
-function applyTranslations() { 
+window.currentLang = localStorage.getItem('mnotes_lang') || (navigator.language.toLowerCase().startsWith('el') ? 'el' : 'en');
+var currentLang = window.currentLang;
+
+function toggleLanguage() { 
+    currentLang = (currentLang === 'en') ? 'el' : 'en'; 
+    window.currentLang = currentLang; // Συγχρονίζουμε και την global μεταβλητή
+    localStorage.setItem('mnotes_lang', currentLang); 
+    applyTranslations(); 
+    renderSidebar(); 
+    if (typeof populateTags === 'function') populateTags(); 
+    if(currentSongId && currentSongId.includes('demo')) loadSong(currentSongId); 
+}
+
+function applyTranslations() {
+
     if(typeof TRANSLATIONS === 'undefined') return; 
     
     document.querySelectorAll('[data-i18n]').forEach(el => { 

@@ -33,9 +33,10 @@ const TIER_CONFIG = {
         canPrint: false,           
         storageLimitMB: 0,
         includedBandMates: 0,
+        maxSongs: 40 ,
         // ✨ ΝΕΟ: Όρια Επισκέπτη (Guest)
         maxGuestSongs: 5,        
-        canGuestExport: false 
+        canGuestExport: false  
     },
     solo_plus: { 
         label: "Plus",
@@ -46,7 +47,8 @@ const TIER_CONFIG = {
         canJoinBands: false,       
         maxBandsOwned: 0,
         maxBandsJoined: 0,
-        maxSetlists: 3, 
+        maxSetlists: 3,
+        maxSongs: 999,
         canSaveAttachments: true,
         use_audio: true,
         use_sequencer: false,
@@ -64,7 +66,8 @@ const TIER_CONFIG = {
         canJoinBands: true,        
         maxBandsOwned: 1,        // ✨ Μπορεί να ιδρύσει 1 μπάντα
         maxBandsJoined: 2,       // ✨ Μπορεί να συμμετέχει σε έως 2
-        maxSetlists: 20, 
+        maxSongs: 9999,
+        maxSetlists: 99, 
         canSaveAttachments: true,
         use_audio: true,
         use_sequencer: false,
@@ -82,7 +85,8 @@ const TIER_CONFIG = {
         canJoinBands: true,        
         maxBandsOwned: 5,        
         maxBandsJoined: 10,
-        maxSetlists: 999, 
+        maxSetlists: 999,
+        maxSongs: 99999,
         canSaveAttachments: true,
         use_audio: true,
         use_sequencer: false,
@@ -100,7 +104,8 @@ const TIER_CONFIG = {
         canJoinBands: true,        
         maxBandsOwned: 15,       
         maxBandsJoined: 20,
-        maxSetlists: 999, 
+        maxSetlists: 99999,
+        maxSongs: 99999,
         canSaveAttachments: true,
         use_audio: true,
         use_sequencer: false,
@@ -194,6 +199,10 @@ function canUserPerform (action, currentCount=0) {
         case 'JOIN_BAND_LIMIT': 
             // 🌟 ΝΕΟ: Ελέγχει αν έχει ξεπεράσει τον αριθμό των bands που μπορεί να συμμετέχει (π.χ. 2 για Mate)
             return currentCount < (limits.maxBandsJoined || 0);
+
+            // ✨ ΝΕΟΣ ΚΑΝΟΝΑΣ: Έλεγχος ορίου τραγουδιών
+        case 'CREATE_SONG':
+            return currentCount < (limits.maxSongs || 99999);
 
         case 'CREATE_GUEST_SONG': 
             // 🌟 ΝΕΟ: Ελέγχει αν ο επισκέπτης ξεπέρασε τα 5 δωρεάν τραγούδια
@@ -692,27 +701,39 @@ async function loadContextData() {
 // IMPORT ΛΕΙΤΟΥΡΓΙΑ (SMART MERGE ΜΕ ΕΓΚΡΙΣΗ ΧΡΗΣΤΗ)
 // ==========================================
 window.processImportedData = async function(data) {
-    console.log("📥 Import Started (Forced Personal Context)...");
+   console.log("📥 Import Started (Forced Personal Context)...");
     if (!data) return;
     
     let newSongs = Array.isArray(data) ? data : (data.songs ? data.songs : [data]);
+    const userSongs = (window.library || []).filter(s => !String(s.id).includes('demo'));
+    const currentCount = userSongs.length;
+    const newCount = newSongs.length;
+    
+    // ✨ ΔΥΝΑΜΙΚΗ ΑΝΑΚΤΗΣΗ ΟΡΙΩΝ
+    const limits = typeof getUserLimits === 'function' ? getUserLimits() : { maxGuestSongs: 5, maxSongs: 40 };
 
     if (typeof currentUser === 'undefined' || !currentUser) {
-        const userSongs = (window.library || []).filter(s => !String(s.id).includes('demo'));
-        const guestLimit = typeof getUserLimits === 'function' ? (getUserLimits().maxGuestSongs || 5) : 5;
-        
-        if (userSongs.length + newSongs.length > guestLimit) {
-            if (typeof showToast === 'function') showToast("Η εισαγωγή ξεπερνάει το όριο επισκεπτών! (5/5)", "warning");
-            
+        // 🔒 Έλεγχος Import για Επισκέπτες
+        if (currentCount + newCount > limits.maxGuestSongs) {
+            if (typeof showToast === 'function') showToast(`Η εισαγωγή ξεπερνάει το όριο επισκεπτών! (Max: ${limits.maxGuestSongs})`, "warning");
             const authMsg = document.getElementById('authMsg');
             if (authMsg) authMsg.innerText = "Δημιουργήστε έναν ΔΩΡΕΑΝ λογαριασμό για να εισάγετε απεριόριστα τραγούδια!";
-            
             const authModal = document.getElementById('authModal');
             if (authModal) authModal.style.display = 'flex';
-            
             return; 
         }
+    } else {
+        // 🔒 Έλεγχος Import για Συνδεδεμένους Χρήστες
+        if (currentCount + newCount > limits.maxSongs) {
+            if (typeof promptUpgrade === 'function') {
+                promptUpgrade('Απεριόριστα Τραγούδια');
+            } else {
+                alert(`Η εισαγωγή απορρίφθηκε: Ξεπερνάει το όριο του πακέτου σας (Επιτρέπονται έως ${limits.maxSongs} τραγούδια συνολικά).`);
+            }
+            return;
+        }
     }
+
 
     if (typeof currentGroupId !== 'undefined' && currentGroupId !== 'personal') {
         console.log("🔄 Context Switch: Μεταφορά στην Προσωπική Βιβλιοθήκη για την εισαγωγή.");

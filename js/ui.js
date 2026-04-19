@@ -1879,19 +1879,32 @@ function switchToEditor() {
    function fixTrailingChords(text) { let lines = text.split('\n'); return lines.map(line => { const trailingChordRegex = /![A-G][b#]?[m]?[maj7|sus4|7|add9|dim|0-9]*(\/[A-G][b#]?)?\s*$/; if (line.match(trailingChordRegex)) return line.trimEnd() + "    "; return line; }).join('\n'); }
 
    function createNewSong() { 
-      if (typeof currentUser === 'undefined' || !currentUser) {
-        const userSongs = library.filter(s => !String(s.id).includes('demo'));
-        
-        if (typeof canUserPerform === 'function' && !canUserPerform('CREATE_GUEST_SONG', userSongs.length)) {
-            if (typeof showToast === 'function') showToast("Φτάσατε το όριο επισκεπτών! (5/5)", "warning");
-            
+    // Μετράμε τα πραγματικά τραγούδια (χωρίς τα demo)
+    const userSongs = library.filter(s => !String(s.id).includes('demo'));
+    const currentCount = userSongs.length;
+    
+    // ✨ ΔΥΝΑΜΙΚΗ ΑΝΑΚΤΗΣΗ ΟΡΙΩΝ ΑΠΟ ΤΟ TIER_CONFIG
+    const limits = typeof getUserLimits === 'function' ? getUserLimits() : { maxGuestSongs: 5, maxSongs: 40 };
+
+    if (typeof currentUser === 'undefined' || !currentUser) {
+        // 🔒 ΕΛΕΓΧΟΣ 1: Επισκέπτες (Guest)
+        if (typeof canUserPerform === 'function' && !canUserPerform('CREATE_GUEST_SONG', currentCount)) {
+            if (typeof showToast === 'function') showToast(`Φτάσατε το όριο επισκεπτών! (${limits.maxGuestSongs}/${limits.maxGuestSongs})`, "warning");
             const authMsg = document.getElementById('authMsg');
             if (authMsg) authMsg.innerText = "Δημιουργήστε έναν ΔΩΡΕΑΝ λογαριασμό για να προσθέσετε απεριόριστα τραγούδια και να μην τα χάσετε!";
-            
             const authModal = document.getElementById('authModal');
             if (authModal) authModal.style.display = 'flex';
-            
-            return; // ⛔ Μπλοκάρουμε την είσοδο στον editor
+            return; // ⛔ Μπλοκάρουμε την είσοδο
+        }
+    } else {
+        // 🔒 ΕΛΕΓΧΟΣ 2: Συνδεδεμένοι Χρήστες (Free / Pro)
+        if (typeof canUserPerform === 'function' && !canUserPerform('CREATE_SONG', currentCount)) {
+            if (typeof promptUpgrade === 'function') {
+                promptUpgrade('Απεριόριστα Τραγούδια');
+            } else {
+                alert(`Έχετε φτάσει το όριο των ${limits.maxSongs} τραγουδιών για το πακέτο σας. Αναβαθμίστε για απεριόριστα!`);
+            }
+            return; // ⛔ Μπλοκάρουμε την είσοδο
         }
     }
     // 1. Καθαρισμός δεδομένων

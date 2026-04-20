@@ -867,18 +867,14 @@ details[open] summary::after { transform: rotate(180deg); color: var(--accent); 
    FLEX DRAWERS (Το νέο κομμάτι για το Ύψος & το Scroll)
    ========================================= */
 details.tool-group[open] {
-    flex: 1; 
+    flex: none; /* Αφήνουμε το drawer να πάρει το φυσικό του ύψος */
     min-height: 0; 
 }
 
 /* Το εσωτερικό div που έχει το περιεχόμενο */
 details.tool-group[open] > *:not(summary) {
-    flex: 1;
-    overflow-y: auto; 
+    overflow-y: visible; /* Όχι εσωτερικό scroll, κάνει scroll όλο το panel */
     min-height: 0;
-    
-    /* Όμορφη λεπτή μπάρα κύλισης */
-    scrollbar-width: thin;
 }
 
 details.tool-group[open] > *:not(summary)::-webkit-scrollbar {

@@ -2064,9 +2064,10 @@ details[open] .drawer-header .toggle-icon {
 .col-tools {
     display: flex !important;
     flex-direction: column !important;
-    height: 100vh !important; 
-    max-height: 100vh !important; /* Απαγορεύεται να ξεχειλώσει */
-    overflow: hidden !important;  /* Κρύβει οτιδήποτε πάει να βγει έξω από τη στήλη */
+    height: 100vh !important; /* Fallback για παλιούς browsers */
+    height: 100dvh !important; /* ✨ ΤΟ ΜΥΣΤΙΚΟ ΓΙΑ ΤΑ ΣΥΓΧΡΟΝΑ ΚΙΝΗΤΑ ✨ */
+    max-height: 100dvh !important; 
+    overflow: hidden !important;  
     box-sizing: border-box;
 }
 
@@ -2079,15 +2080,14 @@ details[open] .drawer-header .toggle-icon {
 
 /* 3. Η Περιοχή των Drawers (Ο πρωταγωνιστής) */
 .tool-panel {
-    flex: 1 !important; /* Απλώνεται για να γεμίσει τον κενό χώρο ανάμεσα σε header και footer */
-    overflow-y: auto !important; /* Βγάζει εσωτερική μπάρα κύλισης ΜΟΝΟ όταν ανοίγουν πολλά drawers */
-    overflow-x: hidden !important; /* Κρύβει τυχόν οριζόντιο ξεχείλωμα */
+    flex: 1 !important; 
+    overflow-y: auto !important; 
+    overflow-x: hidden !important; 
     padding: 10px;
+    padding-bottom: 25px; /* ✨ Μικρό μαξιλαράκι αναπνοής πριν το footer */
     display: flex;
     flex-direction: column;
     gap: 10px;
-    
-    /* Για να είναι "βουτυρένιο" το scroll στα κινητά/tablet */
     -webkit-overflow-scrolling: touch; 
 }
 

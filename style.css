@@ -63,6 +63,7 @@ body { background: var(--bg-main); color: var(--text-main); font-family: var(--f
 .song-list { 
     list-style: none; padding: 0; margin: 0; 
     flex: 1; /* Αυτό σπρώχνει το footer κάτω */
+    min-height: 0; /* Fix: χωρίς αυτό, το song-list υπερχειλίζει το flex container και κρύβει το footer */
     overflow-y: auto; 
     -webkit-overflow-scrolling: touch; 
 }
@@ -877,13 +878,20 @@ details.tool-group[open] > *:not(summary) {
     min-height: 0;
 }
 
-details.tool-group[open] > *:not(summary)::-webkit-scrollbar {
+/* Όμορφη λεπτή μπάρα κύλισης για τη δεξιά στήλη */
+.tool-panel {
+    scrollbar-width: thin; /* Για Firefox */
+}
+
+.tool-panel::-webkit-scrollbar {
     width: 4px;
 }
-details.tool-group[open] > *:not(summary)::-webkit-scrollbar-thumb {
+
+.tool-panel::-webkit-scrollbar-thumb {
     background: var(--accent);
     border-radius: 4px;
 }
+
 /* 4. METRONOME & EXTRAS */
 .bpm-row { display: flex; align-items: center; gap: 15px; margin-bottom: 5px; }
 .play-mini-btn {

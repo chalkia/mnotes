@@ -1526,7 +1526,12 @@ async function redeemGiftCode() {
                  updatePayload.tier_expires_at = null;
             }
 
-            await supabaseClient.from('profiles').update(updatePayload).eq('id', currentUser.id);
+            // ✨ ΔΙΟΡΘΩΣΗ 1: ΕΛΕΓΧΟΣ ΣΦΑΛΜΑΤΟΣ ΣΤΗ ΒΑΣΗ
+            const { error: profileErr } = await supabaseClient.from('profiles').update(updatePayload).eq('id', currentUser.id);
+            if (profileErr) {
+                console.error("❌ Σφάλμα κατά την αναβάθμιση του προφίλ:", profileErr);
+                throw new Error("Το Supabase απέρριψε την αναβάθμιση. Ελέγξτε τα RLS Policies.");
+            }
             
             if (typeof showToast === 'function') {
                 if (codeObj.duration_days && parseInt(codeObj.duration_days, 10) > 0) {
@@ -1547,8 +1552,14 @@ async function redeemGiftCode() {
             if (typeof showToast === 'function') showToast(t('msg_gift_rhythm', `Κερδίσατε ${codeObj.reward_value} δωρεάν ρυθμούς (Beats) για το Drum Store! 🥁`));
         }
 
-        await supabaseClient.from('profiles').update({ special_unlocks: currentUnlocks }).eq('id', currentUser.id);
+        // ✨ ΔΙΟΡΘΩΣΗ 2: Έλεγχος σφάλματος και στα special_unlocks
+        const { error: unlocksErr } = await supabaseClient.from('profiles').update({ special_unlocks: currentUnlocks }).eq('id', currentUser.id);
+        if (unlocksErr) {
+            console.error("❌ Σφάλμα κατά την ενημέρωση των special unlocks:", unlocksErr);
+            throw new Error("Αποτυχία ενημέρωσης επιπλέον παροχών.");
+        }
         
+        // Καίμε τον κωδικό ΜΟΝΟ αν έχουν πετύχει όλα τα παραπάνω
         await supabaseClient.from('gift_codes').update({ 
             is_used: true, 
             used_by: currentUser.id, 
@@ -1556,11 +1567,16 @@ async function redeemGiftCode() {
         }).eq('id', codeObj.id);
         
         userProfile.special_unlocks = currentUnlocks;
+        
+        // ✨ ΔΙΟΡΘΩΣΗ 3: Ενημέρωση της Τοπικής Μνήμης (για να μη χάνεται στο Refresh)
+        const cacheKey = `mnotes_user_profile_${currentUser.id}`;
+        localStorage.setItem(cacheKey, JSON.stringify(userProfile));
+
         if (typeof updateUIForRole === 'function') updateUIForRole();
 
     } catch (err) {
         console.error("Gift Code Error:", err);
-        alert(t('msg_err_redeem', "Προέκυψε σφάλμα κατά την εξαργύρωση."));
+        alert(t('msg_err_redeem', "Προέκυψε σφάλμα κατά την εξαργύρωση: ") + err.message);
     }
 }
 

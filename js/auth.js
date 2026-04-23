@@ -508,3 +508,110 @@ function hideConcurrencyBlocker() {
     const blocker = document.getElementById('concurrencyBlocker');
     if (blocker) blocker.style.display = 'none';
 }
+// ===========================================================
+// mNotes - DEVICE LOCK & ANTI-FRAUD SYSTEM
+// Αρχείο: deviceAuth.js
+// ===========================================================
+
+const DEVICE_KEY = 'mnotes_device_id';
+
+// 1. Εντοπισμός τύπου συσκευής (βάσει πλάτους οθόνης, όπως κάνουμε στο UI)
+function getDeviceType() {
+    return window.innerWidth <= 1024 ? 'mobile' : 'desktop';
+}
+
+// 2. Ανάκτηση ή Δημιουργία Μοναδικού ID Συσκευής
+function getOrCreateDeviceId() {
+    let id = localStorage.getItem(DEVICE_KEY);
+    if (!id) {
+        // Δημιουργία τυχαίου αλφαριθμητικού (π.χ. dev_a8f9b2_171300000)
+        id = 'dev_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+        localStorage.setItem(DEVICE_KEY, id);
+        console.log(`🔒 [Device Auth] Δημιουργήθηκε νέο Device ID: ${id}`);
+    }
+    return id;
+}
+
+// 3. Εγγραφή της συσκευής στη Βάση Δεδομένων (Κατά το Login / Εκκίνηση)
+async function registerDevice(userId) {
+    if (!userId || !navigator.onLine) return;
+    
+    const deviceId = getOrCreateDeviceId();
+    const deviceType = getDeviceType();
+    const column = deviceType === 'mobile' ? 'active_mobile_id' : 'active_desktop_id';
+
+    console.log(`🔒 [Device Auth] Εγγραφή συσκευής (${deviceType}): ${deviceId}`);
+
+    try {
+        const { error } = await supabaseClient
+            .from('profiles')
+            .update({ [column]: deviceId })
+            .eq('id', userId);
+
+        if (error) throw error;
+        console.log(`🔒 [Device Auth] Η συσκευή καταχωρήθηκε επιτυχώς στο Cloud.`);
+    } catch (err) {
+        console.error("❌ [Device Auth] Σφάλμα εγγραφής συσκευής:", err);
+    }
+}
+
+// 4. Έλεγχος Νομιμότητας Συσκευής
+async function checkDeviceLock(userId) {
+    if (!userId || !navigator.onLine) return true; // Offline λειτουργία: τον αφήνουμε να παίξει
+
+    const deviceId = getOrCreateDeviceId();
+    const deviceType = getDeviceType();
+    const column = deviceType === 'mobile' ? 'active_mobile_id' : 'active_desktop_id';
+
+    try {
+        const { data, error } = await supabaseClient
+            .from('profiles')
+            .select(column)
+            .eq('id', userId)
+            .single();
+
+        if (error) throw error;
+
+        // Αν υπάρχει ID στη βάση και ΔΕΝ ταιριάζει με το δικό μας...
+        if (data && data[column] !== null && data[column] !== deviceId) {
+            console.warn(`🚨 [Device Auth] ΑΝΙΧΝΕΥΤΗΚΕ ΣΥΓΚΡΟΥΣΗ! DB: ${data[column]} !== Local: ${deviceId}`);
+            return false; 
+        }
+
+        return true; // Είμαστε νόμιμοι
+    } catch (err) {
+        console.error("❌ [Device Auth] Σφάλμα ελέγχου κλειδώματος:", err);
+        return true; // Fallback ασφαλείας σε περίπτωση σφάλματος δικτύου
+    }
+}
+
+// 5. Το Heartbeat (Σφυγμός) που τρέχει αθόρυβα
+let heartbeatInterval = null;
+
+function startDeviceHeartbeat() {
+    if (heartbeatInterval) clearInterval(heartbeatInterval);
+    
+    console.log("⏱️ [Device Auth] Ο έλεγχος συσκευών ξεκίνησε.");
+    
+    heartbeatInterval = setInterval(async () => {
+        if (typeof currentUser !== 'undefined' && currentUser) {
+            
+            const isAuthorized = await checkDeviceLock(currentUser.id);
+            
+            if (!isAuthorized) {
+                console.error("🛑 [Device Auth] ΑΠΟΒΟΛΗ: Έγινε σύνδεση από άλλη συσκευή της ίδιας κατηγορίας.");
+                clearInterval(heartbeatInterval); // Σταματάμε το heartbeat
+                
+                alert(typeof t === 'function' ? t('msg_device_conflict', "Ο λογαριασμός σας συνδέθηκε σε άλλη συσκευή. Αποσυνδέεστε για λόγους ασφαλείας.") : "Ο λογαριασμός σας συνδέθηκε σε άλλη συσκευή.");
+                
+                // Πέταγμα έξω (Προϋποθέτει ότι υπάρχει συνάρτηση logout στο auth.js/logic.js)
+                if (typeof handleLogout === 'function') {
+                    handleLogout();
+                } else if (typeof supabaseClient !== 'undefined') {
+                    await supabaseClient.auth.signOut();
+                    window.location.reload();
+                }
+            }
+        }
+    }, 60000); // Έλεγχος κάθε 1 λεπτό (60000 ms)
+}

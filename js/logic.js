@@ -301,6 +301,15 @@ async function initUserData() {
         if (typeof updateGroupDropdown === 'function') updateGroupDropdown();
         await switchContext('personal');
 
+        // ==========================================
+        // 🔒 [ΝΕΟ] Έναρξη του "Πορτιέρη" (Device Lock)
+        // Εγγραφή της συσκευής και έναρξη ελέγχου παραβιάσεων
+        // ==========================================
+        if (typeof registerDevice === 'function') {
+            await registerDevice(currentUser.id);
+            startDeviceHeartbeat();
+        }
+
     } catch (err) {
         console.error("❌ Critical Init Error:", err);
         if (typeof showToast === 'function') showToast(t('msg_offline_mode', "Λειτουργία Offline."), "error");

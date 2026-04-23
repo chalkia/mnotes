@@ -532,7 +532,7 @@ function getOrCreateDeviceId() {
     return id;
 }
 
-// 3. Εγγραφή της συσκευής στη Βάση Δεδομένων (Κατά το Login / Εκκίνηση)
+// 3. Εγγραφή της συσκευής & Έλεγχος Συγκρούσεων κατά την είσοδο
 async function registerDevice(userId) {
     if (!userId || !navigator.onLine) return;
     
@@ -540,18 +540,47 @@ async function registerDevice(userId) {
     const deviceType = getDeviceType();
     const column = deviceType === 'mobile' ? 'active_mobile_id' : 'active_desktop_id';
 
-    console.log(`🔒 [Device Auth] Εγγραφή συσκευής (${deviceType}): ${deviceId}`);
-
     try {
-        const { error } = await supabaseClient
+        // ΒΗΜΑ Α: Ελέγχουμε ποιος είναι ήδη συνδεδεμένος στη βάση
+        const { data: profile, error: fetchErr } = await supabaseClient
+            .from('profiles').select(column).eq('id', userId).single();
+
+        if (fetchErr) throw fetchErr;
+
+        // Αν υπάρχει ΗΔΗ άλλο ID καταχωρημένο, σημαίνει ότι κάποιος άλλος (ή εσύ από αλλού) είναι μέσα
+        if (profile && profile[column] && profile[column] !== deviceId) {
+            
+            // Ρωτάμε τον χρήστη τι θέλει να κάνει
+            const confirmMsg = typeof t === 'function' 
+                ? t('msg_device_in_use', "Ο λογαριασμός σας χρησιμοποιείται ήδη σε άλλη συσκευή. Θέλετε να την αποσυνδέσετε για να μπείτε εσείς;")
+                : "Ο λογαριασμός σας χρησιμοποιείται ήδη σε άλλη συσκευή. Θέλετε να την αποσυνδέσετε για να μπείτε εσείς;";
+                
+            const stealSession = confirm(confirmMsg);
+
+            if (!stealSession) {
+                // Ο χρήστης πάτησε Ακύρωση. Τον πετάμε ΑΜΕΣΩΣ από το νέο παράθυρο.
+                console.warn("🛑 [Device Auth] Είσοδος ακυρώθηκε από τον χρήστη. Γίνεται Logout.");
+                if (typeof handleLogout === 'function') {
+                    handleLogout();
+                } else {
+                    await supabaseClient.auth.signOut();
+                    window.location.reload();
+                }
+                return; // Σταματάμε τον κώδικα εδώ!
+            }
+        }
+
+        // ΒΗΜΑ Β: Αν ήταν κενό Ή αν ο χρήστης πάτησε "ΟΚ (Κλέψε τη συνεδρία)"
+        const { error: updateErr } = await supabaseClient
             .from('profiles')
             .update({ [column]: deviceId })
             .eq('id', userId);
 
-        if (error) throw error;
-        console.log(`🔒 [Device Auth] Η συσκευή καταχωρήθηκε επιτυχώς στο Cloud.`);
+        if (updateErr) throw updateErr;
+        console.log(`🔒 [Device Auth] Η συσκευή (${deviceType}) πήρε τον έλεγχο επιτυχώς!`);
+        
     } catch (err) {
-        console.error("❌ [Device Auth] Σφάλμα εγγραφής συσκευής:", err);
+        console.error("❌ [Device Auth] Σφάλμα κατά την εγγραφή της συσκευής:", err);
     }
 }
 

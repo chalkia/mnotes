@@ -557,12 +557,31 @@ async function registerDevice(userId) {
         // Αν υπάρχει ΗΔΗ άλλο ID καταχωρημένο, σημαίνει ότι κάποιος άλλος (ή εσύ από αλλού) είναι μέσα
         if (profile && profile[column] && profile[column] !== deviceId) {
             
-            // Ρωτάμε τον χρήστη τι θέλει να κάνει
-            const confirmMsg = typeof t === 'function' 
-                ? t('msg_device_in_use', "Ο λογαριασμός σας χρησιμοποιείται ήδη σε άλλη συσκευή. Θέλετε να την αποσυνδέσετε για να μπείτε εσείς;")
-                : "Ο λογαριασμός σας χρησιμοποιείται ήδη σε άλλη συσκευή. Θέλετε να την αποσυνδέσετε για να μπείτε εσείς;";
+            // ΝΕΟ: Χρήση του custom Modal αντί για native confirm() που μπλοκάρεται
+            const stealSession = await new Promise((resolve) => {
+                const modal = document.getElementById('deviceConflictModal');
+                if (!modal) {
+                    resolve(confirm("Ο λογαριασμός σας χρησιμοποιείται ήδη σε άλλη συσκευή. Θέλετε να την αποσυνδέσετε για να μπείτε εσείς;"));
+                    return;
+                }
                 
-            const stealSession = confirm(confirmMsg);
+                modal.style.display = 'flex';
+                
+                const btnCancel = document.getElementById('btnDeviceCancel');
+                const btnSteal = document.getElementById('btnDeviceSteal');
+                
+                const cleanup = () => {
+                    modal.style.display = 'none';
+                    btnCancel.removeEventListener('click', onCancel);
+                    btnSteal.removeEventListener('click', onSteal);
+                };
+                
+                const onCancel = () => { cleanup(); resolve(false); };
+                const onSteal = () => { cleanup(); resolve(true); };
+                
+                btnCancel.addEventListener('click', onCancel);
+                btnSteal.addEventListener('click', onSteal);
+            });
 
             if (!stealSession) {
                 // Ο χρήστης πάτησε Ακύρωση. Τον πετάμε ΑΜΕΣΩΣ από το νέο παράθυρο.
@@ -577,7 +596,7 @@ async function registerDevice(userId) {
             }
         }
 
-        // ΒΗΜΑ Β: Αν ήταν κενό Ή αν ο χρήστης πάτησε "ΟΚ (Κλέψε τη συνεδρία)"
+        // ΒΗΜΑ Β: Αν ήταν κενό Ή αν ο χρήστης πάτησε "Είσοδος Εδώ"
         const { error: updateErr } = await supabaseClient
             .from('profiles')
             .update({ [column]: deviceId })

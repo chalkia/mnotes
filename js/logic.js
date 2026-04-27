@@ -483,6 +483,82 @@ async function switchContext(targetId) {
     }
 }
 
+/**
+ * [ΝΕΟ] Αυτόματη Εισαγωγή Τραγουδιών Μπάντας στα Προσωπικά
+ * Όταν ο χρήστης μπαίνει στη μπάντα, τα Master τραγούδια 
+ * αντιγράφονται αυτόματα (χωρίς τα overrides τους) αν δεν υπάρχουν.
+ */
+async function autoImportBandSongs(groupId) {
+    if (!currentUser || groupId === 'personal') return;
+
+    try {
+        console.log(`📥 [AUTO-IMPORT] Έλεγχος αυτόματης εισαγωγής τραγουδιών μπάντας...`);
+        let bandDataRaw = localStorage.getItem(`mnotes_band_${groupId}`);
+        let personalDataRaw = localStorage.getItem('mnotes_data');
+
+        if (!bandDataRaw) return;
+        
+        let bandSongs = JSON.parse(bandDataRaw);
+        let myPersonalData = personalDataRaw ? JSON.parse(personalDataRaw) : [];
+        let personalDataChanged = false;
+        let importedCount = 0;
+
+        // Φιλτράρουμε ΜΟΝΟ τα αυθεντικά Master τραγούδια της μπάντας
+        let masterSongs = bandSongs.filter(s => !s.is_clone);
+
+        for (const song of masterSongs) {
+            // 1. Υπάρχει ήδη κλώνος αυτού του parent_id;
+            let existingClone = myPersonalData.find(s => s.parent_id === song.id);
+            // 2. Υπάρχει ήδη με το ίδιο όνομα; (για αποφυγή διπλότυπων)
+            let existingIndependent = myPersonalData.find(s => s.title === song.title);
+
+            if (!existingClone && !existingIndependent) {
+                const newId = "s_" + Date.now() + Math.random().toString(16).slice(2);
+                
+                // Δημιουργούμε ένα καθαρό αντίγραφο (χωρίς overrides)
+                const personalCopy = { 
+                    ...song, 
+                    id: newId, 
+                    group_id: null, 
+                    user_id: currentUser.id, 
+                    is_clone: true, 
+                    parent_id: song.id, 
+                    conductorNotes: "", 
+                    is_deleted: false, 
+                    updated_at: new Date().toISOString() 
+                };
+                
+                // Αφαιρούμε τυχόν personal overrides που "κόλλησαν" στο αντικείμενο
+                delete personalCopy.has_override;
+                delete personalCopy.personal_transpose;
+                delete personalCopy.personal_notes;
+
+                myPersonalData.push(personalCopy);
+                personalDataChanged = true;
+                importedCount++;
+
+                // Αποθήκευση στο Cloud
+                if (navigator.onLine && typeof supabaseClient !== 'undefined') {
+                    supabaseClient.from('songs').insert([window.sanitizeForDatabase(personalCopy, currentUser.id, null)])
+                        .then(({error}) => { if (error) console.error("AutoImport Cloud Error:", error); });
+                } else if (typeof addToSyncQueue === 'function') {
+                    addToSyncQueue('SAVE_SONG', personalCopy);
+                }
+            }
+        }
+
+        if (personalDataChanged) {
+            localStorage.setItem('mnotes_data', JSON.stringify(myPersonalData));
+            console.log(`✅ [AUTO-IMPORT] Εισήχθησαν ${importedCount} τραγούδια στην Προσωπική Βιβλιοθήκη.`);
+            if (typeof showToast === 'function' && importedCount > 0) {
+                showToast(`Αυτόματη Εισαγωγή: ${importedCount} τραγούδια της μπάντας προστέθηκαν στα Προσωπικά σας! 🎵`, "success");
+            }
+        }
+    } catch (err) {
+        console.error("❌ [AUTO-IMPORT] Σφάλμα:", err.message);
+    }
+}
+
 function updateUIForRole() {
     const btnDel = document.getElementById('btnDelSetlist'); 
     const btnAdd = document.getElementById('btnAddSong');
@@ -735,8 +811,32 @@ async function loadContextData() {
                                 }
                             }
                             localMap.delete(cloudSong.id);
-                        } else {
                             localMap.set(cloudSong.id, cloudSong);
+
+                            // Ενημέρωση Κλώνων αν το Master είναι νεότερο
+                            if (!String(cloudSong.id).startsWith('demo')) {
+                                let existingClone = myPersonalData.find(s => s.parent_id === cloudSong.id);
+                                if (existingClone) {
+                                    const masterTime = new Date(cloudSong.updated_at || 0).getTime();
+                                    const cloneTime = new Date(existingClone.updated_at || 0).getTime();
+                                    
+                                    if (masterTime > cloneTime) {
+                                        const diffMsg = `📢 Το κοινό τραγούδι "${cloudSong.title}" ενημερώθηκε από τη μπάντα.\nΈχετε έναν παλαιότερο προσωπικό κλώνο.\n\nΘέλετε να τον αντικαταστήσετε με τη νέα έκδοση της μπάντας;`;
+                                        const updateClone = await promptSongDiff(existingClone, cloudSong, diffMsg);
+                                        if (updateClone) {
+                                            existingClone.body = cloudSong.body;
+                                            existingClone.key = cloudSong.key;
+                                            existingClone.intro = cloudSong.intro;
+                                            existingClone.interlude = cloudSong.interlude;
+                                            existingClone.updated_at = new Date().toISOString();
+                                            personalDataChanged = true;
+                                            if (navigator.onLine && typeof supabaseClient !== 'undefined') {
+                                                await supabaseClient.from('songs').upsert(window.sanitizeForDatabase(existingClone, currentUser.id, null));
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                     currentLibrary = Array.from(localMap.values());
@@ -797,6 +897,48 @@ async function loadContextData() {
 // ==========================================
 // IMPORT ΛΕΙΤΟΥΡΓΙΑ 
 // ==========================================
+
+// -----------------------------------------------------------
+// ΝΕΟ: Εμφάνιση Παραθύρου Σύγκρισης (Preview Diff Modal)
+// -----------------------------------------------------------
+function promptSongDiff(localSong, newSong, message) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('diffModal');
+        if (!modal) {
+            resolve(confirm(message));
+            return;
+        }
+        
+        document.getElementById('diffMessage').innerText = message;
+        
+        const localTimeStr = localSong.updated_at ? new Date(localSong.updated_at).toLocaleString() : 'Άγνωστο';
+        const newTimeStr = newSong.updated_at ? new Date(newSong.updated_at).toLocaleString() : 'Άγνωστο';
+        
+        document.getElementById('diffLocalTime').innerText = localTimeStr;
+        document.getElementById('diffNewTime').innerText = newTimeStr;
+        
+        document.getElementById('diffLocalBody').value = localSong.body || "";
+        document.getElementById('diffNewBody').value = newSong.body || "";
+        
+        modal.style.display = 'flex';
+        
+        const btnSkip = document.getElementById('btnDiffSkip');
+        const btnReplace = document.getElementById('btnDiffReplace');
+        
+        const cleanup = () => {
+            modal.style.display = 'none';
+            btnSkip.removeEventListener('click', onSkip);
+            btnReplace.removeEventListener('click', onReplace);
+        };
+        
+        const onSkip = () => { cleanup(); resolve(false); };
+        const onReplace = () => { cleanup(); resolve(true); };
+        
+        btnSkip.addEventListener('click', onSkip);
+        btnReplace.addEventListener('click', onReplace);
+    });
+}
+
 window.processImportedData = async function(data) {
    console.log("📥 Import Started (Forced Personal Context)...");
     if (!data) return;
@@ -864,7 +1006,9 @@ window.processImportedData = async function(data) {
             }
 
             const ageStatus = importedTime > localTime ? t('msg_newer', "ΝΕΟΤΕΡΗ") : t('msg_older', "ΠΑΛΑΙΟΤΕΡΗ");
-            const userAgrees = confirm(t('msg_import_conflict', `Στη βιβλιοθήκη σας βρέθηκε μια ${ageStatus} έκδοση του τραγουδιού με τίτλο "${cleanSong.title}".\n\nΝα γίνει αντικατάσταση;`));
+            const msg = t('msg_import_conflict', `Στη βιβλιοθήκη σας βρέθηκε μια ${ageStatus} έκδοση του τραγουδιού με τίτλο "${cleanSong.title}".\n\nΝα γίνει αντικατάσταση;`);
+            
+            const userAgrees = await promptSongDiff(existingSong, cleanSong, msg);
 
             if (userAgrees) {
                 cleanSong.recordings = existingSong.recordings || [];

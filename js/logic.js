@@ -1938,8 +1938,11 @@ async function deleteCurrentSong() {
         
         showToast(isBandMaster ? t('msg_master_deleted', "Το κεντρικό τραγούδι διαγράφηκε από τη μπάντα.") : t('msg_song_deleted', "Το τραγούδι διαγράφηκε."));
 
-        if (library.length > 0) loadSong(library[0].id);
-        else if (typeof toEditor === 'function') toEditor();
+        // Πάντα επιστροφή στον Viewer μετά τη διαγραφή
+        if (library.length > 0) {
+            loadSong(library[0].id);
+        }
+        if (typeof toViewer === 'function') toViewer(false);
 
     } catch (err) {
         console.error("❌ [DELETE ERROR]:", err);

@@ -776,7 +776,7 @@ async function loadContextData() {
                                 let existingIndependent = myPersonalData.find(s => s.title === cloudSong.title && s.parent_id !== cloudSong.id);
 
                                 if (existingClone) {
-                                    if (confirm(t('msg_master_deleted_clone', `📢 Η μπάντα διέγραψε το "${cloudSong.title}".\nΈχεις ήδη έναν Κλώνο στα Προσωπικά σου.\nΘέλεις να τον ενημερώσεις με την τελευταία έκδοση;`))) {
+                                    if (await mConfirm(t('msg_master_deleted_clone', `📢 Η μπάντα διέγραψε το "${cloudSong.title}".\nΈχεις ήδη έναν Κλώνο στα Προσωπικά σου.\nΘέλεις να τον ενημερώσεις με την τελευταία έκδοση;`))) {
                                         existingClone.body = cloudSong.body; 
                                         existingClone.key = cloudSong.key; 
                                         existingClone.updated_at = new Date().toISOString();
@@ -784,7 +784,7 @@ async function loadContextData() {
                                         await supabaseClient.from('songs').upsert(window.sanitizeForDatabase(existingClone, currentUser.id, null));
                                     }
                                 } else if (existingIndependent) {
-                                    if (confirm(t('msg_master_deleted_indep', `📢 Η μπάντα διέγραψε το "${cloudSong.title}".\nΒρέθηκε ίδιο στα Προσωπικά. Να αντικατασταθούν οι στίχοι σου;`))) {
+                                    if (await mConfirm(t('msg_master_deleted_indep', `📢 Η μπάντα διέγραψε το "${cloudSong.title}".\nΒρέθηκε ίδιο στα Προσωπικά. Να αντικατασταθούν οι στίχοι σου;`))) {
                                         existingIndependent.body = cloudSong.body; 
                                         existingIndependent.key = cloudSong.key; 
                                         existingIndependent.updated_at = new Date().toISOString();
@@ -792,7 +792,7 @@ async function loadContextData() {
                                         await supabaseClient.from('songs').upsert(window.sanitizeForDatabase(existingIndependent, currentUser.id, null));
                                     }
                                 } else {
-                                    if (confirm(t('msg_master_deleted_keep', `📢 Διεγράφη το "${cloudSong.title}". Θέλετε να κρατήσετε ένα προσωπικό αντίγραφο;`))) {
+                                    if (await mConfirm(t('msg_master_deleted_keep', `📢 Διεγράφη το "${cloudSong.title}". Θέλετε να κρατήσετε ένα προσωπικό αντίγραφο;`))) {
                                         const personalCopy = { 
                                             ...cloudSong, 
                                             id: "s_" + Date.now() + Math.random().toString(16).slice(2), 
@@ -905,7 +905,7 @@ function promptSongDiff(localSong, newSong, message) {
     return new Promise((resolve) => {
         const modal = document.getElementById('diffModal');
         if (!modal) {
-            resolve(confirm(message));
+            mConfirm(message).then(resolve);
             return;
         }
         
@@ -1334,7 +1334,7 @@ async function cloneToPersonal() {
                          (sourceSong.personal_notes && sourceSong.personal_notes.trim() !== "");
 
     if (isClone || hasOverrides) {
-        const wantsPersonal = confirm(t('msg_clone_choice', "Βρέθηκαν προσωπικές ρυθμίσεις/στίχοι για αυτό το τραγούδι.\n\n[ΟΚ] = Αντιγραφή της ΔΙΚΗΣ ΣΟΥ εκδοχής\n[ΑΚΥΡΩΣΗ] = Αντιγραφή του ΚΟΙΝΟΥ Master της μπάντας"));
+        const wantsPersonal = await mConfirm(t('msg_clone_choice', "Βρέθηκαν προσωπικές ρυθμίσεις/στίχοι για αυτό το τραγούδι.\n\n[ΟΚ] = Αντιγραφή της ΔΙΚΗΣ ΣΟΥ εκδοχής\n[ΑΚΥΡΩΣΗ] = Αντιγραφή του ΚΟΙΝΟΥ Master της μπάντας"));
         
         if (!wantsPersonal) {
             isMasterChosen = true;
@@ -1398,7 +1398,7 @@ async function cloneToPersonal() {
 
         showToast(t('msg_cloned_success', "Το τραγούδι προστέθηκε στα Προσωπικά σας! 🏠"));
         
-        if (confirm(t('msg_clone_go_personal', "Το τραγούδι αντιγράφηκε επιτυχώς! Θέλετε να μεταβείτε στην Προσωπική σας Βιβλιοθήκη τώρα;"))) {
+        if (await mConfirm(t('msg_clone_go_personal', "Το τραγούδι αντιγράφηκε επιτυχώς! Θέλετε να μεταβείτε στην Προσωπική σας Βιβλιοθήκη τώρα;"))) {
             if (typeof switchContext === 'function') await switchContext('personal');
         }
 
@@ -1604,7 +1604,7 @@ async function transferSong(targetContext) {
         const existingMaster = bandSongs.find(s => s.id === sourceSong.parent_id && !s.is_clone);
 
         if (existingMaster) {
-            if (confirm(t('msg_overwrite_master_confirm', `Το τραγούδι "${sourceSong.title}" υπάρχει ήδη ως κεντρικό (Master) στη μπάντα.\n\nΘέλετε να το ΑΝΤΙΚΑΤΑΣΤΗΣΕΤΕ με τη δική σας προσωπική έκδοση;`))) {
+            if (await mConfirm(t('msg_overwrite_master_confirm', `Το τραγούδι "${sourceSong.title}" υπάρχει ήδη ως κεντρικό (Master) στη μπάντα.\n\nΘέλετε να το ΑΝΤΙΚΑΤΑΣΤΗΣΕΤΕ με τη δική σας προσωπική έκδοση;`), true)) {
                 newSongData.id = existingMaster.id; 
                 console.log("🔄 [TRANSFER] Επιλέχθηκε αντικατάσταση Master.");
             }
@@ -1912,7 +1912,7 @@ async function deleteCurrentSong() {
         confirmMsg = t('msg_confirm_delete_clone', `Οριστική διαγραφή του προσωπικού σας κλώνου για το "${s.title}";`);
     }
 
-    if (!confirm(confirmMsg)) return;
+    if (!(await mConfirm(confirmMsg, true))) return;
 
     try {
         console.log(`🗑️ [DELETE] Εκκίνηση διαγραφής για: ${s.title}`);
@@ -2032,7 +2032,7 @@ async function createOrUpdateClone(songData, originalSong) {
 }
 
 async function revertClone(cloneSong) {
-    if (!confirm(typeof t === 'function' ? t('msg_confirm_revert', "Είστε σίγουροι; Οι δικοί σας στίχοι...") : "Είστε σίγουροι; Οι δικοί σας στίχοι...")) return;
+    if (!(await mConfirm(typeof t === 'function' ? t('msg_confirm_revert', "Είστε σίγουροι; Οι δικοί σας στίχοι...") : "Είστε σίγουροι; Οι δικοί σας στίχοι...", true))) return;
 
     try {
         if (typeof canUserPerform === 'function' && canUserPerform('USE_SUPABASE')) {
@@ -2123,7 +2123,7 @@ async function transferBandLeadership(targetUserId) {
         return;
     }
 
-    if (!confirm(t('msg_confirm_transfer_lead', `👑 ΜΕΤΑΒΙΒΑΣΗ ΗΓΕΣΙΑΣ\n\nΘα παραδώσετε την ηγεσία στον/στην ${successor.profiles.full_name}.\nΤα αρχεία σας θα παραμείνουν στη μπάντα υπό τη διαχείριση του νέου Leader.\n\nΕίστε σίγουροι;`))) return;
+    if (!(await mConfirm(t('msg_confirm_transfer_lead', `👑 ΜΕΤΑΒΙΒΑΣΗ ΗΓΕΣΙΑΣ\n\nΘα παραδώσετε την ηγεσία στον/στην ${successor.profiles.full_name}.\nΤα αρχεία σας θα παραμείνουν στη μπάντα υπό τη διαχείριση του νέου Leader.\n\nΕίστε σίγουροι;`), true))) return;
 
     try {
         showToast(t('msg_transferring_lead', "Εκτέλεση μεταβίβασης..."), "info");

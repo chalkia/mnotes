@@ -4,6 +4,77 @@
 // ===========================================================
 // 1. GLOBALS & INITIALIZATION (CLEANED UP)
 
+// --- CUSTOM MODALS UI ---
+window.mConfirm = function(msg, isDanger = false) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('mConfirmModal');
+        if (!modal) { resolve(confirm(msg)); return; }
+        
+        document.getElementById('mConfirmMsg').innerText = msg;
+        const icon = document.getElementById('mConfirmIcon');
+        const okBtn = document.getElementById('btnMConfirmOk');
+        
+        if (isDanger) {
+            icon.className = 'fas fa-exclamation-triangle';
+            icon.style.color = 'var(--danger, #ff4444)';
+            okBtn.style.background = 'var(--danger, #ff4444)';
+            okBtn.style.color = '#fff';
+        } else {
+            icon.className = 'fas fa-question-circle';
+            icon.style.color = 'var(--accent, #ff9800)';
+            okBtn.style.background = 'var(--accent, #ff9800)';
+            okBtn.style.color = '#000';
+        }
+        
+        modal.style.display = 'flex';
+        
+        const btnCancel = document.getElementById('btnMConfirmCancel');
+        
+        const cleanup = () => {
+            modal.style.display = 'none';
+            btnCancel.removeEventListener('click', onCancel);
+            okBtn.removeEventListener('click', onOk);
+        };
+        const onCancel = () => { cleanup(); resolve(false); };
+        const onOk = () => { cleanup(); resolve(true); };
+        
+        btnCancel.addEventListener('click', onCancel);
+        okBtn.addEventListener('click', onOk);
+    });
+};
+
+window.mPrompt = function(msg, defaultVal = '') {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('mPromptModal');
+        if (!modal) { resolve(prompt(msg, defaultVal)); return; }
+        
+        document.getElementById('mPromptMsg').innerText = msg;
+        const input = document.getElementById('mPromptInput');
+        input.value = defaultVal;
+        
+        modal.style.display = 'flex';
+        input.focus();
+        
+        const btnCancel = document.getElementById('btnMPromptCancel');
+        const btnOk = document.getElementById('btnMPromptOk');
+        
+        const cleanup = () => {
+            modal.style.display = 'none';
+            btnCancel.removeEventListener('click', onCancel);
+            btnOk.removeEventListener('click', onOk);
+            input.removeEventListener('keyup', onEnter);
+        };
+        
+        const onCancel = () => { cleanup(); resolve(null); };
+        const onOk = () => { cleanup(); resolve(input.value); };
+        const onEnter = (e) => { if (e.key === 'Enter') onOk(); };
+        
+        btnCancel.addEventListener('click', onCancel);
+        btnOk.addEventListener('click', onOk);
+        input.addEventListener('keyup', onEnter);
+    });
+};
+
 if (typeof window.library === 'undefined') window.library = [];
 window.library = window.library || [];
 var library = window.library; 

@@ -256,7 +256,7 @@ async function toggleMemberRole(targetUserId, currentMemberRole) {
     const newRole = currentMemberRole === 'admin' ? 'member' : 'admin';
     const msg = newRole === 'admin' ? "Το μέλος έγινε Leader! ⭐" : "Το μέλος επέστρεψε σε απλό ρόλο. 🎸";
     
-    if (!confirm(currentLang === 'en' ? `Change role to ${newRole.toUpperCase()}?` : `Αλλαγή ρόλου σε ${newRole.toUpperCase()};`)) return;
+    if (!(await mConfirm(currentLang === 'en' ? `Change role to ${newRole.toUpperCase()}?` : `Αλλαγή ρόλου σε ${newRole.toUpperCase()};`))) return;
 
     try {
         console.log(`⭐ [ROLES] Ενημέρωση μέλους ${targetUserId} σε ρόλο: ${newRole}`);
@@ -278,7 +278,7 @@ async function toggleMemberRole(targetUserId, currentMemberRole) {
  * 4. Αποβολή Μέλους (Blacklisting)
  */
 async function expelMember(groupId, userIdToKick) {
-    if (!confirm(currentLang === 'en' ? "Are you sure you want to ban this member?" : "Είστε σίγουροι ότι θέλετε να αποβάλετε και να μπλοκάρετε αυτό το μέλος;")) return;
+    if (!(await mConfirm(currentLang === 'en' ? "Are you sure you want to ban this member?" : "Είστε σίγουροι ότι θέλετε να αποβάλετε και να μπλοκάρετε αυτό το μέλος;", true))) return;
 
     try {
         console.log(`🚫 [EXPEL] Εφαρμογή Ban στο μέλος: ${userIdToKick}`);
@@ -308,7 +308,7 @@ async function expelMember(groupId, userIdToKick) {
  * 4.5 Αφαίρεση Ban (Unban)
  */
 async function unbanMember(groupId, userIdToUnban) {
-    if (!confirm(currentLang === 'en' ? "Unban this member? They will become a viewer." : "Θέλετε να αφαιρέσετε το Ban; Το μέλος θα επιστρέψει ως Viewer.")) return;
+    if (!(await mConfirm(currentLang === 'en' ? "Unban this member? They will become a viewer." : "Θέλετε να αφαιρέσετε το Ban; Το μέλος θα επιστρέψει ως Viewer."))) return;
 
     try {
         console.log(`✅ [UNBAN] Εφαρμογή Unban στο μέλος: ${userIdToUnban}`);
@@ -470,7 +470,7 @@ function showBandManagerModal() {
 async function leaveBand() {
     // 1. ΑΠΛΑ ΜΕΛΗ (Members / Admins / Viewers) - Φεύγουν ελεύθερα
     if (currentRole !== 'owner') {
-        if(!confirm(currentLang === 'en' ? "Leave band permanently?" : "Θέλετε οριστικά να αποχωρήσετε από την μπάντα;")) return;
+        if(!(await mConfirm(currentLang === 'en' ? "Leave band permanently?" : "Θέλετε οριστικά να αποχωρήσετε από την μπάντα;", true))) return;
         await supabaseClient.from('group_members').delete().eq('group_id', currentGroupId).eq('user_id', currentUser.id);
         window.location.reload();
         return;
@@ -523,7 +523,7 @@ async function showLeaderExitModal() {
 }
 
 async function executeBandDisband() {
-    const conf = prompt(currentLang === 'en' ? "Type 'DELETE' to confirm disbanding the band:" : "Γράψτε 'DELETE' για να διαλύσετε τη μπάντα:");
+    const conf = await mPrompt(currentLang === 'en' ? "Type 'DELETE' to confirm disbanding the band:" : "Γράψτε 'DELETE' για να διαλύσετε τη μπάντα:");
     if (conf !== 'DELETE') return;
 
     try {
@@ -561,7 +561,7 @@ async function executeLeadershipTransfer() {
         return;
     }
 
-    if (!confirm("Είστε σίγουροι για τη μεταβίβαση της ηγεσίας;")) return;
+    if (!(await mConfirm("Είστε σίγουροι για τη μεταβίβαση της ηγεσίας;", true))) return;
 
     try {
         if (typeof showToast === 'function') showToast("Εκτέλεση μεταβίβασης... Μην κλείσετε το παράθυρο.", "info");
@@ -636,7 +636,7 @@ async function importJSON(input) {
                 ? `⚠️ ΠΡΟΣΟΧΗ! ⚠️\n\nΠάτε να εισάγετε ${importedSongs.length} τραγούδια στην ΚΟΙΝΗ βιβλιοθήκη της Μπάντας!\nΑυτό θα επηρεάσει όλα τα μέλη.\n\nΘέλετε σίγουρα να συνεχίσετε;`
                 : `Βρέθηκαν ${importedSongs.length} τραγούδια.\nΘέλετε να τα εισάγετε στην Προσωπική σας Βιβλιοθήκη;`;
 
-            if (!confirm(confirmMsg)) {
+            if (!(await mConfirm(confirmMsg, true))) {
                 input.value = ''; return;
             }
 
@@ -753,7 +753,7 @@ async function deleteMyAccount() {
     }
 
     // Το κλασικό confirm
-    if (confirm("ΠΡΟΣΟΧΗ: Είστε σίγουροι; Αυτή η ενέργεια θα διαγράψει τον λογαριασμό σας, όλα σας τα τραγούδια, τους ρυθμούς και τα αρχεία σας ΟΡΙΣΤΙΚΑ!")) {
+    if (await mConfirm("ΠΡΟΣΟΧΗ: Είστε σίγουροι; Αυτή η ενέργεια θα διαγράψει τον λογαριασμό σας, όλα σας τα τραγούδια, τους ρυθμούς και τα αρχεία σας ΟΡΙΣΤΙΚΑ!", true)) {
         
         console.log("🗑️ Εκκίνηση διαδικασίας διαγραφής λογαριασμού...");
         if (typeof showToast === 'function') showToast("Γίνεται διαγραφή δεδομένων... Παρακαλώ περιμένετε.", "info");

@@ -466,7 +466,7 @@ function renderRhythmItems(rhythms, currentTab) {
 }
 
 async function deleteRhythmFromCloud(rhythmId, tab) {
-    if (!confirm("Σίγουρα θέλεις να διαγράψεις αυτόν τον ρυθμό οριστικά;")) return;
+    if (!(await mConfirm("Σίγουρα θέλεις να διαγράψεις αυτόν τον ρυθμό οριστικά;", true))) return;
     
     console.log(`🥁 [Rhythm Library] Αίτημα διαγραφής ρυθμού με ID: ${rhythmId}`);
     try {

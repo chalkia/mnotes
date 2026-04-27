@@ -168,7 +168,7 @@ async function handleGlobalUpload(inputElement) {
 
     const assetType = document.getElementById('assetManagerCurrentType').value;
     const defaultName = file.name.replace(/\.[^/.]+$/, ""); 
-    let customTrackName = window.prompt("Όνομα Αρχείου / File Name:", defaultName);
+    let customTrackName = await window.mPrompt("Όνομα Αρχείου / File Name:", defaultName);
 
     if (customTrackName === null) {
         inputElement.value = ""; 
@@ -289,7 +289,7 @@ async function processAssetAttachment(targetSongId, type, name, url) {
 
 // 6. Διαγραφή (Με υποστήριξη κοινόχρηστων αρχείων)
 async function deleteAssetFromLibrary(assetId, fileUrl, assetName) {
-    if (!confirm(`Οριστική διαγραφή του "${assetName}"`)) return;
+    if (!(await window.mConfirm(`Οριστική διαγραφή του "${assetName}"`, true))) return;
 
     try {
         // 1. Διαγράφουμε μόνο τη δική μας "αναφορά" (link) στη βάση

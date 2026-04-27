@@ -630,38 +630,43 @@
 
   <input type="file" id="hiddenFileInput" style="display:none;" accept=".json, .mnote, .mnotes" onchange="processFileDirectly(this)" style="display: none;" >
     
-     <div id="authModal" class="modal-overlay" style="display:none;">
-        <div class="modal-box">
-            <h3 data-i18n="title_login" style="margin-bottom: 10px;"><i class="fas fa-sign-in-alt"></i> Login / Sign Up</h3>
-            
-            <div style="background: rgba(255, 193, 7, 0.1); border: 1px solid #ffc107; color: #ffbc00; padding: 10px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 15px; text-align: center; line-height: 1.4;" data-i18n-html="msg_early_access">
-                <i class="fas fa-gift"></i> <b>EARLY ACCESS</b><br>
-                Η εφαρμογή είναι σε περίοδο Early Access. Τα Premium πακέτα ξεκλειδώνονται προς το παρόν <b>μόνο με Κωδικούς Δώρου</b>.
+         <div id="authModal" class="modal-overlay" style="display:none;">
+        <div class="modal-box" style="background:#16162a; color:#e0e0e0; border:1px solid rgba(187,134,252,0.3); box-shadow:0 20px 60px rgba(0,0,0,0.8),0 0 40px rgba(187,134,252,0.1); max-width:420px; padding:30px; gap:0;">
+            <div style="text-align:center; margin-bottom:20px;">
+                <div style="font-size:2.5rem; margin-bottom:8px;">🎸</div>
+                <h3 style="margin:0; font-size:1.4rem; color:#bb86fc; letter-spacing:1px;">mNotes</h3>
+                <p style="margin:5px 0 0 0; font-size:0.85rem; color:#888;">Σύνδεση ή Δημιουργία Λογαριασμού</p>
             </div>
-            
-            <p id="authMsg" style="font-size: 0.95rem; color: #ccc; margin-bottom: 20px; line-height: 1.5; text-align: center;" data-i18n-html="msg_create_account">
-                Δημιουργήστε έναν <b>ΔΩΡΕΑΝ</b> λογαριασμό για να ξεκλειδώσετε απεριόριστα τραγούδια, να ενεργοποιήσετε το Backup Cloud και να μη χάσετε ποτέ τη δουλειά σας!
-            </p>
-            
-            <button onclick="loginWithGoogle()" class="google-btn">
-                <img src="https://www.svgrepo.com/show/475656/google-color.svg" width="25"> 
-                <span data-i18n="btn_google_login">Σύνδεση με Google</span>
-            </button>
-            
-            <div class="auth-sep"><div class="sep-line"></div><span data-i18n="lbl_or_email">Ή ΜΕ EMAIL</span><div class="sep-line"></div></div>
-            
-            <input type="email" id="authEmail" class="inp" data-i18n="ph_email" placeholder="Email">
-            <input type="password" id="authPass" class="inp" data-i18n="ph_password" placeholder="Κωδικός / Password">
-            
-            <div style="text-align: right; margin-bottom: 15px; padding-right: 5px;">
-                <a href="#" onclick="sendPasswordReset()" style="color: var(--accent); font-size: 0.85rem; text-decoration: none;" data-i18n="btn_forgot_pass">Ξεχάσατε τον κωδικό;</a>
+            <div style="background:rgba(255,193,7,0.08); border:1px solid rgba(255,193,7,0.3); color:#ffbc00; padding:10px 12px; border-radius:8px; font-size:0.8rem; margin-bottom:20px; text-align:center; line-height:1.5;" data-i18n-html="msg_early_access">
+                <i class="fas fa-gift"></i> <b>EARLY ACCESS</b> &mdash; Τα Premium πακέτα ξεκλειδώνονται με <b>Κωδικούς Δώρου</b>.
             </div>
-    
-            <button onclick="doLogin()" class="modal-btn accent" data-i18n="btn_login" style="margin-bottom: 10px; justify-content: center;"><i class="fas fa-sign-in-alt"></i> Είσοδος (Login)</button>
-            <button onclick="doSignUp()" class="modal-btn" data-i18n="btn_signup" style="margin-bottom: 10px; justify-content: center; background: transparent; border: 1px solid var(--accent); color: var(--accent);"><i class="fas fa-user-plus"></i> Εγγραφή (Sign Up)</button>
-            <button onclick="document.getElementById('authModal').style.display='none'" class="text-btn" data-i18n="btn_close" style="width: 100%; justify-content: center; color: #888;">Κλείσιμο</button>
-            
-            <div id="authStatus" style="color: var(--danger); font-size: 0.85rem; text-align: center; margin-top: 10px;"></div>
+            <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:20px;">
+                <!-- Google -->
+                <button onclick="loginWith('google')" style="display:flex; align-items:center; gap:12px; width:100%; padding:13px 16px; background:#fff; color:#333; border:none; border-radius:8px; font-size:0.95rem; font-weight:600; cursor:pointer; transition:all 0.2s; box-shadow:0 2px 8px rgba(0,0,0,0.4);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(0,0,0,0.5)'" onmouseout="this.style.transform=''; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.4)'">
+                    <img src="https://www.svgrepo.com/show/475656/google-color.svg" width="22" style="flex-shrink:0;">
+                    <span>Συνέχεια με Google</span>
+                </button>
+                <!-- Facebook -->
+                <button onclick="loginWith('facebook')" style="display:flex; align-items:center; gap:12px; width:100%; padding:13px 16px; background:#1877f2; color:#fff; border:none; border-radius:8px; font-size:0.95rem; font-weight:600; cursor:pointer; transition:all 0.2s; box-shadow:0 2px 8px rgba(0,0,0,0.4);" onmouseover="this.style.transform='translateY(-2px)'; this.style.background='#1464d3'" onmouseout="this.style.transform=''; this.style.background='#1877f2'">
+                    <i class="fab fa-facebook" style="font-size:1.3rem; flex-shrink:0;"></i>
+                    <span>Συνέχεια με Facebook</span>
+                </button>
+                <!-- Apple -->
+                <button onclick="loginWith('apple')" style="display:flex; align-items:center; gap:12px; width:100%; padding:13px 16px; background:#000; color:#fff; border:1px solid #444; border-radius:8px; font-size:0.95rem; font-weight:600; cursor:pointer; transition:all 0.2s; box-shadow:0 2px 8px rgba(0,0,0,0.4);" onmouseover="this.style.transform='translateY(-2px)'; this.style.background='#1a1a1a'" onmouseout="this.style.transform=''; this.style.background='#000'">
+                    <i class="fab fa-apple" style="font-size:1.4rem; flex-shrink:0;"></i>
+                    <span>Συνέχεια με Apple</span>
+                </button>
+                <!-- Discord -->
+                <button onclick="loginWith('discord')" style="display:flex; align-items:center; gap:12px; width:100%; padding:13px 16px; background:#5865f2; color:#fff; border:none; border-radius:8px; font-size:0.95rem; font-weight:600; cursor:pointer; transition:all 0.2s; box-shadow:0 2px 8px rgba(0,0,0,0.4);" onmouseover="this.style.transform='translateY(-2px)'; this.style.background='#4752c4'" onmouseout="this.style.transform=''; this.style.background='#5865f2'">
+                    <i class="fab fa-discord" style="font-size:1.3rem; flex-shrink:0;"></i>
+                    <span>Συνέχεια με Discord</span>
+                </button>
+            </div>
+            <div id="authMsg" style="color:#cf6679; font-size:0.85rem; text-align:center; margin-bottom:10px; min-height:18px;"></div>
+            <div id="authStatus" style="display:none;"></div>
+            <button onclick="document.getElementById('authModal').style.display='none'" style="width:100%; padding:10px; background:transparent; border:1px solid #333; color:#666; border-radius:8px; cursor:pointer; font-size:0.9rem; transition:0.2s;" onmouseover="this.style.borderColor='#555'; this.style.color='#aaa'" onmouseout="this.style.borderColor='#333'; this.style.color='#666'">Κλείσιμο</button>
+            <input type="email" id="authEmail" style="display:none;">
+            <input type="password" id="authPass" style="display:none;">
         </div>
     </div>
 

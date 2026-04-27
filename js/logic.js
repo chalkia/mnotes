@@ -1274,6 +1274,7 @@ async function saveAsOverride(songData) {
         if (typeof switchView === 'function') switchView('view-details');
         
         lastSaveTimestamp = Date.now();
+        if (typeof hasUnsavedChanges !== 'undefined') hasUnsavedChanges = false;
         console.log("🏁 [SAVE] Επιτυχής ολοκλήρωση.");
 
     } catch (err) {
@@ -1950,10 +1951,17 @@ window.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
         const editorEl = document.getElementById('view-editor');
         
+        // 🛡️ Μπλόκ αν ο editor είναι ανοιχτός
         if (editorEl && editorEl.classList.contains('active-view')) {
-            console.log("🛡️ Auto-Sync Blocked: Ο χρήστης επεξεργάζεται τραγούδι.");
+            console.log("🛡️ Auto-Sync Blocked: Ο editor είναι ανοιχτός.");
             return;
-        } 
+        }
+
+        // 🛡️ Μπλόκ αν υπάρχουν αναποθήκευτες αλλαγές (ακόμα και αν ο editor δεν φαίνεται active)
+        if (typeof hasUnsavedChanges !== 'undefined' && hasUnsavedChanges) {
+            console.log("🛡️ Auto-Sync Blocked: Υπάρχουν αναποθήκευτες αλλαγές στον editor.");
+            return;
+        }
         
         if (Date.now() - lastSaveTimestamp < 5000) {
             console.log("🛡️ Auto-Sync Blocked: Πρόσφατη αποθήκευση.");

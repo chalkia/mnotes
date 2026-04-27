@@ -13,6 +13,7 @@ let isOffline = !navigator.onLine;
 let lastImportedIds = new Set(); // Κρατάει τα IDs μόνο της τελευταίας εισαγωγής για τη συνεδρία
 let showingOriginal = false; // False = My View (Default), True = Band View
 let originalSongSnapshot = null; // Για σύγκριση αλλαγών κατά το Save
+window.isBandLocked = false; // Flag για λήξη συνδρομής του Band Owner
 
 // --- TIER CONFIGURATION (FINAL STRICT & ENTERPRISE MODEL) ---
 const TIER_CONFIG = {
@@ -240,21 +241,59 @@ if (typeof window.t === 'undefined') {
     };
 }
 /* =========================================
+   GUEST LIBRARY TRIM
+   Περικόπτει τη βιβλιοθήκη στο Guest όριο και διαγράφει band data.
+   Καλείται τόσο από handleLogout() όσο και από onAuthStateChange.
+   ========================================= */
+function trimLibraryToGuestLimit() {
+    const guestLimit = (typeof TIER_CONFIG !== 'undefined' && TIER_CONFIG['guest'])
+        ? (TIER_CONFIG['guest'].maxGuestSongs || 5) : 5;
+
+    // 1. Περικοπή προσωπικής βιβλιοθήκης στο Guest όριο
+    const existingData = localStorage.getItem('mnotes_data');
+    if (existingData) {
+        try {
+            const allSongs = JSON.parse(existingData);
+            // Αγνοούμε τα demo songs, κρατάμε μόνο τα πρώτα N πραγματικά
+            const realSongs = allSongs.filter(s => !String(s.id).startsWith('demo'));
+            const trimmed = realSongs.slice(0, guestLimit);
+            localStorage.setItem('mnotes_data', JSON.stringify(trimmed));
+            console.log(`✂️ [Guest] Βιβλιοθήκη: ${realSongs.length} → ${trimmed.length} τραγούδια (όριο: ${guestLimit}).`);
+        } catch(e) {
+            localStorage.removeItem('mnotes_data');
+        }
+    }
+
+    // 2. Διαγραφή ΟΛΩΝ των band lists και sync timestamps
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('mnotes_band_') || key.startsWith('mnotes_last_sync_'))) {
+            keysToRemove.push(key);
+        }
+    }
+    keysToRemove.forEach(k => localStorage.removeItem(k));
+    if (keysToRemove.length > 0) {
+        console.log(`🗑️ [Guest] Διαγράφηκαν ${keysToRemove.length} band keys:`, keysToRemove);
+    }
+    
+    localStorage.removeItem('mnotes_last_song');
+}
+
+/* =========================================
    SESSION MANAGEMENT & LOGOUT
    ========================================= */
 async function handleLogout() {
     console.log("🧹 [Session] Εκκίνηση αποσύνδεσης. Υποβιβασμός σε Guest...");
 
-    // 1. Σκουπίζουμε τη μνήμη της συνεδρίας (προφίλ)
+    // 1. Σκουπίζουμε τη μνήμη της συνεδρίας (προφίλ cache)
     if (typeof currentUser !== 'undefined' && currentUser) {
         localStorage.removeItem(`mnotes_user_profile_${currentUser.id}`);
     }
 
-    // 2. ΣΚΟΥΠΙΖΟΥΜΕ ΤΗΝ ΤΟΠΙΚΗ ΒΙΒΛΙΟΘΗΚΗ (Critical)
-    // Αν δεν το σβήσουμε, ο Guest θα βλέπει τα 40+ τραγούδια του προηγούμενου χρήστη!
-    localStorage.removeItem('mnotes_data');
-    localStorage.removeItem('mnotes_last_song');
-    
+    // 2. Περικοπή βιβλιοθήκης στο Guest όριο + διαγραφή band data
+    trimLibraryToGuestLimit();
+
     try {
         // 3. Τερματισμός συνεδρίας στο Cloud (Supabase)
         if (typeof supabaseClient !== 'undefined') {
@@ -263,13 +302,14 @@ async function handleLogout() {
     } catch (e) {
         console.error("❌ Σφάλμα κατά την αποσύνδεση Supabase:", e);
     }
-    
+
     // 4. Επαναφόρτωση Σελίδας
-    // Ο κώδικας θα ξεκινήσει, η getUserLimits() θα δει ότι δεν υπάρχει currentUser,
-    // θα φορτώσει το TIER_CONFIG['guest'], και ο "Πορτιέρης" (canUserPerform) θα 
-    // του επιβάλει αυτόματα το όριο των 5 τραγουδιών.
+    // Η getUserLimits() θα δει ότι δεν υπάρχει currentUser,
+    // θα φορτώσει το TIER_CONFIG['guest'], και ο "Πορτιέρης" θα επιβάλει
+    // αυτόματα το όριο των 5 τραγουδιών.
     window.location.reload();
 }
+
 /* =========================================
    USER & CONTEXT MANAGEMENT 
    ========================================= */
@@ -375,6 +415,8 @@ async function initUserData() {
 async function switchContext(targetId) {
     console.log(`🔄 [CONTEXT] Αίτημα αλλαγής σε: ${targetId}`);
 
+    window.isBandLocked = false; // Αρχικοποίηση σε κάθε αλλαγή
+
     if (targetId !== 'personal') {
         const groupData = typeof myGroups !== 'undefined' ? myGroups.find(g => g.group_id === targetId) : null;
         
@@ -393,8 +435,18 @@ async function switchContext(targetId) {
                 if (sel) sel.value = 'personal';
                 targetId = 'personal'; 
             } 
-            else if (personalTier === 'solo_free' && !isSponsored && role !== 'owner' && role !== 'admin') {
-                console.log(`👁️ [VIEWER MODE] Ο Free χρήστης μπαίνει σε κατάσταση ανάγνωσης.`);
+            // Έλεγχος: Ο ιδιοκτήτης δεν έχει band tier
+            else if (!canUserPerform('JOIN_BANDS') && !isSponsored && role === 'owner') {
+                console.log(`🔒 [LOCKED OWNER] Ο ιδιοκτήτης δεν έχει band tier. Η μπάντα κλειδώνει.`);
+                if (typeof showToast === 'function') {
+                    showToast(t('msg_band_locked', "Η συνδρομή σας έληξε. Η μπάντα κλειδώθηκε σε λειτουργία Ανάγνωσης."), "error");
+                }
+                window.isBandLocked = true;
+                // ΔΕΝ του αλλάζουμε το ρόλο σε viewer, για να μπορεί να δει το Band Manager
+            }
+            // Έλεγχος: Απλό μέλος/admin χωρίς band tier
+            else if (!canUserPerform('JOIN_BANDS') && !isSponsored && role !== 'owner') {
+                console.log(`👁️ [VIEWER MODE] Ο χρήστης (tier: ${personalTier}, ρόλος: ${role}) δεν έχει band tier → Viewer.`);
                 if (typeof showToast === 'function') {
                     showToast(t('msg_viewer_mode', "Viewer Mode: Βλέπετε μόνο τα Setlists της μπάντας."), "warning");
                 }
@@ -443,8 +495,12 @@ function updateUIForRole() {
 
     const isLeader = (currentRole === 'admin' || currentRole === 'owner' || currentRole === 'maestro');
     const isViewer = (currentRole === 'viewer');
+    
+    // Αν η μπάντα είναι κλειδωμένη λόγω λήξης συνδρομής, 
+    // ο Owner συμπεριφέρεται σαν Viewer όσον αφορά την επεξεργασία.
+    const restrictEditing = isViewer || window.isBandLocked;
 
-    if (isViewer) {
+    if (restrictEditing) {
         if (btnTabLibrary) btnTabLibrary.style.display = 'none';
         if (typeof switchSidebarTab === 'function') switchSidebarTab('setlist');
     } else {
@@ -452,7 +508,7 @@ function updateUIForRole() {
     }
 
     if (btnDel) {
-        if (currentGroupId === 'personal' || isLeader) {
+        if (currentGroupId === 'personal' || (isLeader && !window.isBandLocked)) {
             btnDel.style.display = 'inline-block';
         } else {
             btnDel.style.display = 'none'; 
@@ -460,7 +516,7 @@ function updateUIForRole() {
     }
 
     if (btnAdd) {
-        if (currentGroupId === 'personal') {
+        if (currentGroupId === 'personal' || (isLeader && !window.isBandLocked)) {
             btnAdd.style.display = ''; 
         } else {
             btnAdd.style.display = 'none'; 

@@ -305,22 +305,21 @@ function createDebugPanel() {
             <select id="debugTier" class="debug-select">
                 <option value="solo_free">Solo Free</option>
                 <option value="solo_plus">Solo Plus</option>
-                <option value="band_leader">Band Leader</option>
-                <option value="band_maestro">Band Maestro</option>
-                <option value="ensemble">Ensemble</option>
-            </select>
-        </div>
-
-        <div class="debugRole">
-            <label>Current Role (Context):</label>
-            <select id="debugTier" class="debug-select">
-                <option value="solo_free">Solo Free</option>
-                <option value="solo_plus">Solo Plus</option>
                 <option value="band_mate">Band Mate</option>
                 <option value="band_leader">Band Leader</option>
                 <option value="band_maestro">Band Maestro</option>
-                <option value="ensemble">Ensemble</option>
-             </select>
+                <option value="ensemble">Ensemble (Enterprise)</option>
+            </select>
+        </div>
+
+        <div class="debug-row">
+            <label>Current Role (Context):</label>
+            <select id="debugRole" class="debug-select">
+                <option value="owner">Owner (Personal / Band)</option>
+                <option value="admin">Band Admin</option>
+                <option value="member">Band Member</option>
+                <option value="viewer">Viewer (Read Only)</option>
+            </select>
         </div>
 
         <hr style="border-color:#555; margin:15px 0 10px 0;">

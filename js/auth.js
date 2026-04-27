@@ -303,14 +303,21 @@ supabaseClient.auth.onAuthStateChange((event, session) => {
             if (typeof initUserData === 'function') initUserData();
         }
     } else {
-        // Καθαρισμός ταυτότητας
+        // Καθαρισμός ταυτότητας → υποβάθμιση σε Guest
         currentUser = null;
         userProfile = null;
         myGroups = [];
         currentGroupId = 'personal';
         updateAuthUI(false);
         
-        // Επιστροφή στα τοπικά δεδομένα (Free mode)
+        // Περικοπή βιβλιοθήκης στο Guest όριο (5) + διαγραφή band lists
+        // Καλύπτει: manual logout, token expiry, kick από άλλη συσκευή
+        if (typeof trimLibraryToGuestLimit === 'function') trimLibraryToGuestLimit();
+        
+        // Επαναφορά UI στα Guest δικαιώματα (κρύβει premium features)
+        if (typeof refreshUIByTier === 'function') refreshUIByTier();
+        
+        // Επιστροφή στα τοπικά δεδομένα (Guest mode)
         if (typeof loadContextData === 'function') loadContextData();
     }
 });

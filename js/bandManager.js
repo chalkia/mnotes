@@ -38,17 +38,17 @@ async function loadBandDashboard() {
         const { data: groupData, error: groupErr } = await supabaseClient.from('groups').select('invite_code').eq('id', currentGroupId).single();
         if (groupErr) throw groupErr;
 
-        // Φέρνουμε ΜΟΝΟ τους ενεργούς χρήστες (όχι τους is_banned)
+        // Φέρνουμε ΟΛΟΥΣ τους χρήστες (και τους banned για να τους βλέπει ο owner)
         const { data: members, error: memErr } = await supabaseClient
             .from('group_members')
             .select(`role, user_id, is_sponsored, is_banned, profiles ( username, email, subscription_tier )`)
-            .eq('group_id', currentGroupId)
-            .is('is_banned', false); 
+            .eq('group_id', currentGroupId);
 
         if (memErr) throw memErr;
 
         const isOwner = (currentRole === 'owner' || currentRole === 'admin');
-        const currentCount = members.length;
+        const activeMembers = members.filter(m => !m.is_banned);
+        const currentCount = activeMembers.length;
         
         // --- ΜΑΘΗΜΑΤΙΚΑ ΓΙΑ ΤΑ ΕΙΣΙΤΗΡΙΑ (TICKETS) ---
         let totalTickets = 0;
@@ -61,14 +61,24 @@ async function loadBandDashboard() {
             totalTickets = baseConf.includedBandMates || 0;
         }
         
-        usedTickets = members.filter(m => m.is_sponsored).length;
+        usedTickets = activeMembers.filter(m => m.is_sponsored).length;
         console.log(`📊 [TICKETS] Χρησιμοποιημένα: ${usedTickets} / ${totalTickets}`);
 
         // Δ. Χτίσιμο του HTML
         let html = `<div class="band-dashboard">`;
 
-        // --- ΝΕΟ: ΚΟΥΜΠΙ MNOTES STUDIO (Ορατό μόνο στον Owner) ---
-        if (currentRole === 'owner') {
+        // --- ΝΕΟ: ΕΙΔΟΠΟΙΗΣΗ ΚΛΕΙΔΩΜΑΤΟΣ ΜΠΑΝΤΑΣ (ΛΗΞΗ ΣΥΝΔΡΟΜΗΣ) ---
+        if (window.isBandLocked) {
+            html += `
+                <div style="background: var(--danger); color: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-weight: bold; text-align: center; border: 2px solid #b71c1c;">
+                    <i class="fas fa-lock" style="font-size: 1.5rem; display: block; margin-bottom: 5px;"></i> 
+                    ${typeof t === 'function' ? t('msg_band_locked_banner', 'Η συνδρομή σας έληξε! Η μπάντα είναι κλειδωμένη σε λειτουργία ανάγνωσης. Για να την ξεκλειδώσετε, ανανεώστε τη συνδρομή σας ή μεταβιβάστε την ηγεσία σε άλλο μέλος.') : 'Η συνδρομή σας έληξε! Η μπάντα είναι κλειδωμένη σε λειτουργία ανάγνωσης. Για να την ξεκλειδώσετε, ανανεώστε τη συνδρομή σας ή μεταβιβάστε την ηγεσία σε άλλο μέλος.'}
+                </div>
+            `;
+        }
+
+        // --- ΝΕΟ: ΚΟΥΜΠΙ MNOTES STUDIO (Ορατό μόνο στον Owner, αν δεν είναι κλειδωμένη) ---
+        if (currentRole === 'owner' && !window.isBandLocked) {
             html += `
                 <button onclick="showToast(currentLang === 'en' ? 'mNotes Studio: Coming Soon for Pro Users!' : 'mNotes Studio: Έρχεται σύντομα για Pro χρήστες!', 'info')" 
                         style="width: 100%; padding: 12px; margin-bottom: 15px; font-size: 1.05rem; font-weight: bold; background: var(--bg-panel); color: var(--text-main); border: 2px solid var(--accent); border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); cursor: pointer; transition: 0.2s transform; display: flex; align-items: center; justify-content: center; gap: 8px;">
@@ -94,62 +104,78 @@ async function loadBandDashboard() {
             let roleIcon = '🎸';
             
             // Γραφικά ρόλων
-            if (m.role === 'owner') roleIcon = '👑';
+            if (m.is_banned) roleIcon = '🚫';
+            else if (m.role === 'owner') roleIcon = '👑';
             else if (m.role === 'admin') roleIcon = '⭐';
             else if (m.profiles?.subscription_tier === 'solo_free' && !m.is_sponsored) roleIcon = '👁️'; // Viewer
 
             const isMe = (m.user_id === currentUser.id);
-            const ticketBadge = m.is_sponsored ? `<span style="font-size:0.7rem; background:var(--accent); color:#000; padding:2px 5px; border-radius:4px; margin-left:5px;">🎫 VIP</span>` : '';
+            const ticketBadge = (!m.is_banned && m.is_sponsored) ? `<span style="font-size:0.7rem; background:var(--accent); color:#000; padding:2px 5px; border-radius:4px; margin-left:5px;">🎫 VIP</span>` : '';
+            const bannedBadge = m.is_banned ? `<span style="font-size:0.7rem; background:var(--danger); color:#fff; padding:2px 5px; border-radius:4px; margin-left:5px;">BANNED</span>` : '';
+            
+            // Αν κάποιος είναι banned και δεν είμαστε Owner/Admin, δεν τον βλέπουμε καν
+            if (m.is_banned && !isOwner) return;
 
             html += `
-                <div id="member-card-${m.user_id}" class="member-item ${m.role}">
+                <div id="member-card-${m.user_id}" class="member-item ${m.role}" ${m.is_banned ? 'style="opacity: 0.6; background: rgba(244, 67, 54, 0.1);"' : ''}>
                     <div style="overflow:hidden; text-overflow:ellipsis; display:flex; align-items:center;">
-                        <span title="${m.role}">${roleIcon}</span> 
-                        <span style="margin-left:5px;">${isMe ? '<strong>Εσύ</strong>' : displayName}</span>
+                        <span title="${m.is_banned ? 'Banned' : m.role}">${roleIcon}</span> 
+                        <span style="margin-left:5px; ${m.is_banned ? 'text-decoration: line-through;' : ''}">${isMe ? '<strong>Εσύ</strong>' : displayName}</span>
                         ${ticketBadge}
+                        ${bannedBadge}
                     </div>
                     <div style="display:flex; gap:5px;">`;
             
             // Εργαλεία Διαχείρισης Μέλους
             if (isOwner && !isMe) {
-                const targetTier = m.profiles?.subscription_tier || 'solo_free';
-                const isSelfPaid = (targetTier !== 'solo_free');
+                if (m.is_banned) {
+                    // Κουμπί UNBAN
+                    if (currentRole === 'owner') {
+                        html += `
+                            <button onclick="unbanMember('${currentGroupId}', '${m.user_id}')" class="icon-btn" title="Αφαίρεση Ban (Unban)" style="padding:2px 6px; font-size:0.8rem; color:#4CAF50; border:1px solid #4CAF50;">
+                                <i class="fas fa-user-check"></i> Unban
+                            </button>`;
+                    }
+                } else {
+                    const targetTier = m.profiles?.subscription_tier || 'solo_free';
+                    const isSelfPaid = (targetTier !== 'solo_free');
 
-                // 1. Κουμπί Εισιτηρίου
-                if (totalTickets > 0 && !isSelfPaid) {
-                    const ticketIcon = m.is_sponsored ? 'fas fa-ticket-alt' : 'fas fa-plus';
-                    const ticketColor = m.is_sponsored ? '#ff9800' : '#4db6ac';
-                    html += `
-                        <button onclick="toggleMemberTicket('${m.user_id}', ${m.is_sponsored}, ${usedTickets}, ${totalTickets})" class="icon-btn" title="Εισιτήριο" style="padding:2px 6px; font-size:0.8rem; color:${ticketColor}; border:1px solid ${ticketColor};">
-                            <i class="${ticketIcon}"></i>
-                        </button>`;
-                } else if (isSelfPaid) {
-                    html += `<span title="Αυτοχρηματοδοτούμενο Μέλος" style="font-size:0.8rem; color:var(--text-muted); padding:0 5px;"><i class="fas fa-check-double"></i></span>`;
-                }
-                
-                // 2. Κουμπί Προαγωγής σε Leader
-                if (currentRole === 'owner' && (m.role === 'member' || m.role === 'admin')) {
-                    const promoIcon = m.role === 'admin' ? 'fas fa-arrow-down' : 'fas fa-arrow-up';
-                    const promoColor = m.role === 'admin' ? '#f44336' : '#2196f3';
-                    const promoTitle = m.role === 'admin' ? 'Υποβιβασμός' : 'Προαγωγή σε Leader';
-                    html += `
-                        <button onclick="toggleMemberRole('${m.user_id}', '${m.role}')" class="icon-btn" title="${promoTitle}" style="padding:2px 6px; font-size:0.8rem; color:${promoColor}; border:1px solid ${promoColor};">
-                            <i class="${promoIcon}"></i>
-                        </button>`;
-                }
-                // 3. Κουμπί Μεταβίβασης Ηγεσίας (Make Owner & Transfer Assets)
-                if (currentRole === 'owner' && (m.role === 'member' || m.role === 'admin')) {
-                    html += `
-                        <button onclick="transferBandLeadership('${m.user_id}')" class="icon-btn" title="Μεταβίβαση Ηγεσίας (Make Owner)" style="padding:2px 6px; font-size:0.8rem; color:#ffc107; border:1px solid #ffc107; margin-left:2px;">
-                            <i class="fas fa-crown"></i>
-                        </button>`;
-                }
-                //  4. Κουμπί Αποβολής (Blacklist)
-                if (currentRole === 'owner') {
-                    html += `
-                        <button onclick="expelMember('${currentGroupId}', '${m.user_id}')" class="icon-btn danger" title="Αποβολή" style="padding:2px 6px; font-size:0.8rem;">
-                            <i class="fas fa-user-times"></i>
-                        </button>`;
+                    // 1. Κουμπί Εισιτηρίου
+                    if (totalTickets > 0 && !isSelfPaid) {
+                        const ticketIcon = m.is_sponsored ? 'fas fa-ticket-alt' : 'fas fa-plus';
+                        const ticketColor = m.is_sponsored ? '#ff9800' : '#4db6ac';
+                        html += `
+                            <button onclick="toggleMemberTicket('${m.user_id}', ${m.is_sponsored}, ${usedTickets}, ${totalTickets})" class="icon-btn" title="Εισιτήριο" style="padding:2px 6px; font-size:0.8rem; color:${ticketColor}; border:1px solid ${ticketColor};">
+                                <i class="${ticketIcon}"></i>
+                            </button>`;
+                    } else if (isSelfPaid) {
+                        html += `<span title="Αυτοχρηματοδοτούμενο Μέλος" style="font-size:0.8rem; color:var(--text-muted); padding:0 5px;"><i class="fas fa-check-double"></i></span>`;
+                    }
+                    
+                    // 2. Κουμπί Προαγωγής σε Leader
+                    if (currentRole === 'owner' && (m.role === 'member' || m.role === 'admin')) {
+                        const promoIcon = m.role === 'admin' ? 'fas fa-arrow-down' : 'fas fa-arrow-up';
+                        const promoColor = m.role === 'admin' ? '#f44336' : '#2196f3';
+                        const promoTitle = m.role === 'admin' ? 'Υποβιβασμός' : 'Προαγωγή σε Leader';
+                        html += `
+                            <button onclick="toggleMemberRole('${m.user_id}', '${m.role}')" class="icon-btn" title="${promoTitle}" style="padding:2px 6px; font-size:0.8rem; color:${promoColor}; border:1px solid ${promoColor};">
+                                <i class="${promoIcon}"></i>
+                            </button>`;
+                    }
+                    // 3. Κουμπί Μεταβίβασης Ηγεσίας (Make Owner & Transfer Assets)
+                    if (currentRole === 'owner' && (m.role === 'member' || m.role === 'admin')) {
+                        html += `
+                            <button onclick="transferBandLeadership('${m.user_id}')" class="icon-btn" title="Μεταβίβαση Ηγεσίας (Make Owner)" style="padding:2px 6px; font-size:0.8rem; color:#ffc107; border:1px solid #ffc107; margin-left:2px;">
+                                <i class="fas fa-crown"></i>
+                            </button>`;
+                    }
+                    //  4. Κουμπί Αποβολής (Blacklist)
+                    if (currentRole === 'owner') {
+                        html += `
+                            <button onclick="expelMember('${currentGroupId}', '${m.user_id}')" class="icon-btn danger" title="Αποβολή" style="padding:2px 6px; font-size:0.8rem;">
+                                <i class="fas fa-user-times"></i>
+                            </button>`;
+                    }
                 }
             }
             html += `</div></div>`;
@@ -275,6 +301,32 @@ async function expelMember(groupId, userIdToKick) {
         loadBandDashboard();
     } catch (err) {
         console.error("❌ [EXPEL] Σφάλμα:", err.message);
+    }
+}
+
+/**
+ * 4.5 Αφαίρεση Ban (Unban)
+ */
+async function unbanMember(groupId, userIdToUnban) {
+    if (!confirm(currentLang === 'en' ? "Unban this member? They will become a viewer." : "Θέλετε να αφαιρέσετε το Ban; Το μέλος θα επιστρέψει ως Viewer.")) return;
+
+    try {
+        console.log(`✅ [UNBAN] Εφαρμογή Unban στο μέλος: ${userIdToUnban}`);
+        const { error } = await supabaseClient
+            .from('group_members')
+            .update({ 
+                is_banned: false, 
+                role: 'viewer'       
+            })
+            .eq('group_id', groupId)
+            .eq('user_id', userIdToUnban);
+
+        if (error) throw error;
+        
+        if (typeof showToast === 'function') showToast("Το ban αφαιρέθηκε. Το μέλος είναι πλέον Viewer.");
+        loadBandDashboard();
+    } catch (err) {
+        console.error("❌ [UNBAN] Σφάλμα:", err.message);
     }
 }
 
@@ -501,40 +553,6 @@ async function executeBandDisband() {
     }
 }
 
-async function executeLeadershipTransfer() {
-    const successorId = document.getElementById('selSuccessor').value;
-
-    if (!successorId) {
-        if (typeof showToast === 'function') showToast("Παρακαλώ επιλέξτε διάδοχο.", "error");
-        return;
-    }
-
-    if (!confirm("Είστε σίγουροι για τη μεταβίβαση της ηγεσίας;")) return;
-
-    try {
-        if (typeof showToast === 'function') showToast("Εκτέλεση μεταβίβασης... Μην κλείσετε το παράθυρο.", "info");
-
-        // 1. Αλλαγή Ρόλων στον πίνακα Members
-        await supabaseClient.from('group_members').update({ role: 'owner' }).eq('group_id', currentGroupId).eq('user_id', successorId);
-        await supabaseClient.from('group_members').update({ role: 'member' }).eq('group_id', currentGroupId).eq('user_id', currentUser.id);
-        
-        // 2. Αλλαγή Ιδιοκτήτη (Owner) στον πίνακα Groups
-        await supabaseClient.from('groups').update({ owner_id: successorId }).eq('id', currentGroupId);
-
-        // ✨ ΦΑΣΗ 3: ΑΠΛΟΠΟΙΗΣΗ! 
-        // Αφαιρέσαμε όλον τον παλιό κώδικα με το cbTransferAssets και το supabase.storage.move.
-        // Γιατί; Επειδή πλέον τα αρχεία ανήκουν στα μέλη που τα ανέβασαν! Ο νέος Leader 
-        // δεν χρειάζεται να "υιοθετήσει" τα δικά σου αρχεία. Απλά αναλαμβάνει τον συντονισμό.
-        console.log("🔄 Η ηγεσία μεταβιβάστηκε επιτυχώς. Τα δικαιώματα αρχείων παρέμειναν στους δημιουργούς τους.");
-
-        if (typeof showToast === 'function') showToast("Η μεταβίβαση ολοκληρώθηκε! 🤝");
-        setTimeout(() => window.location.reload(), 2000);
-
-    } catch (err) {
-        console.error("Transfer Error:", err);
-        if (typeof showToast === 'function') showToast("Σφάλμα κατά τη μεταβίβαση.", "error");
-    }
-}
 async function executeLeadershipTransfer() {
     const successorId = document.getElementById('selSuccessor').value;
 

@@ -769,8 +769,9 @@ async function loadContextData() {
                     let myPersonalData = JSON.parse(localStorage.getItem('mnotes_data') || "[]");
                     let personalDataChanged = false;
 
-                    for (const cloudSong of cloudDeltas) {
+                     for (const cloudSong of cloudDeltas) {
                         if (cloudSong.is_deleted) {
+                            // 🗑️ Διεγραμμένο τραγούδι: ρώτα για κλώνους ΜΟΝΟ αν υπήρχε τοπικά
                             if (!String(cloudSong.id).startsWith('demo') && localMap.has(cloudSong.id)) {
                                 let existingClone = myPersonalData.find(s => s.parent_id === cloudSong.id);
                                 let existingIndependent = myPersonalData.find(s => s.title === cloudSong.title && s.parent_id !== cloudSong.id);
@@ -810,7 +811,11 @@ async function loadContextData() {
                                     }
                                 }
                             }
+                            // ✅ Αφαίρεση από τον χάρτη — ΔΕΝ ξαναπροστίθεται
                             localMap.delete(cloudSong.id);
+
+                        } else {
+                            // ✅ Μη-διεγραμμένο τραγούδι: ενημέρωσε τον χάρτη με την cloud έκδοση
                             localMap.set(cloudSong.id, cloudSong);
 
                             // Ενημέρωση Κλώνων αν το Master είναι νεότερο
@@ -857,6 +862,16 @@ async function loadContextData() {
             
             localStorage.setItem(syncTimeKey, syncAttemptTime);
         }
+
+        // 🛡️ Safety net: αφαίρεση διπλότυπων βάσει id (κρατάμε το πιο πρόσφατο)
+        const dedupMap = new Map();
+        for (const song of currentLibrary) {
+            const existing = dedupMap.get(song.id);
+            if (!existing || new Date(song.updated_at || 0) > new Date(existing.updated_at || 0)) {
+                dedupMap.set(song.id, song);
+            }
+        }
+        currentLibrary = Array.from(dedupMap.values());
 
         localStorage.setItem(storageKey, JSON.stringify(currentLibrary));
         window.library = currentLibrary;

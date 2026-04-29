@@ -1447,6 +1447,7 @@ function ensureSongStructure(song) {
         
         group_id: song.group_id || null,
         parent_id: song.parent_id || null,
+        user_id: song.user_id || null,
         is_clone: !!song.is_clone,
         is_deleted: !!song.is_deleted, 
         conductorNotes: song.conductorNotes || "", 
@@ -2338,6 +2339,7 @@ window.createNewVersion = async function() {
         is_deleted: false,
         updated_at: new Date().toISOString()
     });
+    newVersion.user_id = currentUser.id; // ensure user_id is set even if ensureSongStructure overrides it
 
     library.push(newVersion);
     window.library = library;

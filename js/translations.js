@@ -1,4 +1,4 @@
-﻿const TRANSLATIONS = {
+const TRANSLATIONS = {
     en: {
         // ==========================================
         // --- GENERAL & COMMON ---
@@ -375,7 +375,7 @@
         msg_err_no_chords: "No chords!",
         msg_err_import_not_found: "Error: Import function not found.",
         msg_err_invalid_format: "Invalid mNotes format file.",
-        msg_req_upgrade: "The feature "{feature}" requires a premium account!",
+        msg_req_upgrade: "The feature '{feature}' requires a premium account!",
         lbl_active: "Active",
         lbl_inactive_local: "Inactive (Local)",
         lbl_loading_data: "Loading data...",
@@ -402,7 +402,7 @@
         msg_err_invalid_code: "Invalid invite code.",
         msg_err_banned: "🚫 You have been banned by the admin.",
         msg_already_member: "You are already a member of this band!",
-        msg_welcome_band: "Welcome to the band "{band}"! 🎉",
+        msg_welcome_band: "Welcome to the band '{band}'! 🎉",
         msg_invite_copied: "Invite Link Copied! 📋",
         msg_confirm_leave_band: "Are you sure you want to leave the band permanently?",
         prompt_disband_band: "Type 'DELETE' to confirm disbanding the band:",

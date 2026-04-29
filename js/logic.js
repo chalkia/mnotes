@@ -2300,15 +2300,23 @@ window.getCreationTimeFromId = function(id) {
 window.getVersionGroup = function(songId) {
     const song = library.find(s => s.id === songId);
     if (!song) return [];
-    const masterId = song.parent_id || song.id;
+
+    // Guard: if parent_id points to itself, treat as master
+    const masterId = (song.parent_id && song.parent_id !== song.id)
+        ? song.parent_id
+        : song.id;
+
     const master = library.find(s => s.id === masterId);
+
     // Band master songs do NOT participate in personal versioning
-    if (master && master.group_id) return [song];
+    if (master && master.group_id && master.group_id !== 'personal') return [song];
+
     return library
         .filter(s => {
             if (s.is_deleted) return false;
             if (s.id === masterId) return true;
-            if (s.parent_id === masterId && !s.group_id && s.user_id === currentUser?.id) return true;
+            // Personal clones — no user_id check needed (all personal songs belong to the user)
+            if (s.parent_id === masterId && s.id !== masterId && !s.group_id) return true;
             return false;
         })
         .sort((a, b) => window.getCreationTimeFromId(a.id) - window.getCreationTimeFromId(b.id));

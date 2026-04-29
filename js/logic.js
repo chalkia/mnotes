@@ -2285,6 +2285,58 @@ async function emptyTrashSetlist() {
 }
 
 // ============================================================
+// 🧹 DUPLICATE CLEANUP
+// ============================================================
+
+window.cleanDuplicates = async function() {
+    if (currentGroupId !== 'personal') {
+        showToast('Καθαρισμός μόνο σε Προσωπική Βιβλιοθήκη', 'info');
+        return;
+    }
+    // Group personal master songs by title (no parent, not clone)
+    const masters = library.filter(s => !s.is_clone && !s.parent_id && !s.group_id && !s.is_deleted);
+    const byTitle = {};
+    for (const s of masters) {
+        const key = (s.title || '').trim().toLowerCase();
+        if (!byTitle[key]) byTitle[key] = [];
+        byTitle[key].push(s);
+    }
+    const dupeGroups = Object.values(byTitle).filter(g => g.length > 1);
+    if (dupeGroups.length === 0) {
+        showToast(t('msg_no_dupes', '✅ Δεν βρέθηκαν διπλότυπα!'), 'success');
+        return;
+    }
+    const totalDupes = dupeGroups.reduce((acc, g) => acc + g.length - 1, 0);
+    const confirmed = await mConfirm(
+        `🧹 Βρέθηκαν ${dupeGroups.length} τραγούδια με διπλότυπα (${totalDupes} επιπλέον εγγραφές).\n\nΘα κρατηθεί μόνο το πιο πρόσφατο αντίγραφο κάθε τίτλου.\n\nΣυνέχεια;`, true
+    );
+    if (!confirmed) return;
+
+    let deleted = 0;
+    for (const group of dupeGroups) {
+        // Keep the most recently updated song
+        group.sort((a, b) => new Date(b.updated_at || 0) - new Date(a.updated_at || 0));
+        const toDelete = group.slice(1); // everything except the newest
+        for (const s of toDelete) {
+            s.is_deleted = true;
+            s.updated_at = new Date().toISOString();
+            if (canUserPerform('USE_SUPABASE') && !String(s.id).startsWith('demo') && navigator.onLine) {
+                await supabaseClient.from('songs')
+                    .update({ is_deleted: true, updated_at: s.updated_at })
+                    .eq('id', s.id);
+            }
+            deleted++;
+        }
+    }
+    window.library = library.filter(s => !s.is_deleted);
+    library = window.library;
+    localStorage.setItem('mnotes_data', JSON.stringify(library.filter(s => !s.group_id)));
+    renderSidebar();
+    if (library.length > 0) loadSong(library[0].id);
+    showToast(`🧹 Καθαρισμός: ${deleted} διπλότυπα αφαιρέθηκαν.`, 'success');
+};
+
+// ============================================================
 // 🔀 VERSIONING SYSTEM
 // ============================================================
 

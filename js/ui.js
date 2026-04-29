@@ -342,7 +342,12 @@ function renderSidebar() {
         
         visiblePlaylist = library.filter(s => {
             if (currentGroupId === 'personal') {
-                if (s.group_id) return false; 
+                if (s.group_id) return false;
+                // Hide personal versions — show only their master
+                if (s.is_clone && s.parent_id && !s.group_id) {
+                    const parent = library.find(m => m.id === s.parent_id);
+                    if (parent && !parent.group_id && !parent.is_deleted) return false;
+                }
             } else {
                 if (s.group_id !== currentGroupId) return false; 
                 if (s.is_clone && s.user_id !== currentUser?.id) return false; 
@@ -795,6 +800,25 @@ function renderPlayer(s) {
             </span>`).join('');
     }
 
+    // Version badge (compact, inline)
+    let versionBadgeHtml = '';
+    if (typeof window.getVersionGroup === 'function') {
+        const vGroup = window.getVersionGroup(s.id);
+        if (vGroup.length > 1) {
+            const vIdx = vGroup.findIndex(v => v.id === s.id) + 1;
+            const isMaster = !s.parent_id && !s.is_clone;
+            const label = isMaster ? 'M' : `v${vIdx}`;
+            const ts = window.getCreationTimeFromId(s.id);
+            const dateStr = ts ? new Date(ts).toLocaleDateString('el-GR', {day:'2-digit', month:'short'}) : '';
+            versionBadgeHtml = `
+                <span style="display:inline-flex;align-items:center;gap:0;margin-left:8px;vertical-align:middle;">
+                    <button onclick="window.switchVersion(-1)" style="background:none;border:1px solid rgba(255,255,255,0.25);border-right:none;color:var(--text-muted);border-radius:4px 0 0 4px;padding:1px 5px;cursor:pointer;font-size:0.65rem;line-height:1.6;" title="Προηγούμενη">◀</button>
+                    <span title="${dateStr}" style="background:rgba(255,152,0,0.15);border:1px solid rgba(255,152,0,0.35);border-left:none;border-right:none;padding:1px 6px;font-size:0.65rem;font-weight:bold;color:var(--accent);white-space:nowrap;cursor:default;line-height:1.6;">${label}/${vGroup.length}</span>
+                    <button onclick="window.switchVersion(1)" style="background:none;border:1px solid rgba(255,255,255,0.25);border-left:none;color:var(--text-muted);border-radius:0 4px 4px 0;padding:1px 5px;cursor:pointer;font-size:0.65rem;line-height:1.6;" title="Επόμενη">▶</button>
+                </span>`;
+        }
+    }
+
     const headerContainer = document.querySelector('.player-header-container');
     if (headerContainer) {
         headerContainer.innerHTML = `
@@ -804,7 +828,7 @@ function renderPlayer(s) {
                 <button onclick="navSetlist(1)" class="round-btn" title="Επόμενο" style="width: 42px; height: 42px; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; cursor: pointer;"><i class="fas fa-step-forward"></i></button>
             </div>
             <h2 id="mainAppTitle" style="margin:0 0 5px 0; font-size:1.2rem; color:var(--text-main); display:flex; align-items:center; flex-wrap:wrap; padding-right:100px;">
-                 <span>${s.title} ${s.artist ? `<span style="font-size:0.9rem; opacity:0.6;">- ${s.artist}</span>` : ''}</span>
+                 <span>${s.title} ${s.artist ? `<span style="font-size:0.9rem; opacity:0.6;">- ${s.artist}</span>` : ''}${versionBadgeHtml}</span>
                  ${noteBtnHtml}
             </h2>
              <div style="margin-bottom: 8px;">${tagsHtml}</div>
@@ -1528,11 +1552,45 @@ function switchToEditor() {
             } else {
                 console.warn("[Editor] Σφάλμα: Η συνάρτηση renderTags() δεν βρέθηκε!");
             }
+            updateEditorVersionUI(s);
         } 
     } else { 
         createNewSong(); 
     }
 }
+function updateEditorVersionUI(s) {
+    const bar   = document.getElementById('editorVersionBar');
+    const label = document.getElementById('editorVersionLabel');
+    const btnNV = document.getElementById('btnNewVersion');
+    if (!bar || !label) return;
+
+    // Show New Version button only in personal context
+    if (btnNV) btnNV.style.display = (currentGroupId === 'personal') ? 'inline-flex' : 'none';
+
+    if (typeof window.getVersionGroup !== 'function') { bar.style.display = 'none'; return; }
+    const group = window.getVersionGroup(s.id);
+    if (group.length <= 1) { bar.style.display = 'none'; return; }
+
+    const isMaster = !s.parent_id && !s.is_clone;
+    const vIdx    = group.findIndex(v => v.id === s.id) + 1;
+    const lbl     = isMaster ? 'Master' : `Έκδοση ${vIdx}/${group.length}`;
+    label.textContent = lbl;
+
+    // Show promote button only for non-master versions
+    const promoteBtn = bar.querySelector('button');
+    if (promoteBtn) promoteBtn.style.display = isMaster ? 'none' : 'inline-block';
+
+    bar.style.display = 'flex';
+}
+
+function showPromoteDialog() {
+    if (typeof mConfirm !== 'function') return;
+    const msg = 'Θέλεις να ορίσεις αυτή την έκδοση ως Master;\n\n[Ναι / Κράτησε τις παλιές εκδόσεις] ή [Οχι / Διάγραψε όλες]';
+    mConfirm('Κράτησε τις παλιές εκδόσεις;').then(keepOthers => {
+        if (typeof window.promoteToMaster === 'function') window.promoteToMaster(keepOthers);
+    });
+}
+
 function refreshSyncButtonVisibility(song) {
     const btnSync = document.getElementById('btnSyncFromBand');
     if (!btnSync) return;

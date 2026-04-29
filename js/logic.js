@@ -1919,6 +1919,12 @@ async function deleteCurrentSong() {
         showToast(t('msg_err_delete_other_clone', "Δεν μπορείτε να διαγράψετε τον κλώνο άλλου χρήστη."), "error");
         return;
     }
+
+    // Έλεγχος αν είναι personal master με versions
+    const isPersonalMaster = currentGroupId === 'personal' && !s.parent_id && !s.is_clone;
+    const personalVersions = isPersonalMaster
+        ? library.filter(v => v.parent_id === s.id && !v.is_deleted && !v.group_id)
+        : [];
     
     let confirmMsg = t('msg_confirm_delete', `Οριστική διαγραφή του "${s.title}";`);
     
@@ -1926,6 +1932,8 @@ async function deleteCurrentSong() {
         confirmMsg = t('msg_critical_delete_master', `⚠️ ΚΡΙΣΙΜΗ ΠΡΟΕΙΔΟΠΟΙΗΣΗ ⚠️\n\nΠρόκειται να διαγράψετε το κεντρικό τραγούδι "${s.title}" από την ΚΟΙΝΗ βιβλιοθήκη της Μπάντας!\n\nΑυτό θα αφαιρέσει το τραγούδι από όλα τα μέλη. Είστε ΑΠΟΛΥΤΑ σίγουροι;`);
     } else if (isMyClone) {
         confirmMsg = t('msg_confirm_delete_clone', `Οριστική διαγραφή του προσωπικού σας κλώνου για το "${s.title}";`);
+    } else if (isPersonalMaster && personalVersions.length > 0) {
+        confirmMsg = `⚠️ Το τραγούδι "${s.title}" έχει ${personalVersions.length} εκδόσεις.\n\nΗ διαγραφή θα αφαιρέσει ΚΑΙ τις ${personalVersions.length} εκδόσεις μαζί.\n\nΕίστε σίγουροι;`;
     }
 
     if (!(await mConfirm(confirmMsg, true))) return;
@@ -1939,13 +1947,19 @@ async function deleteCurrentSong() {
              if (navigator.onLine) {
                  await supabaseClient.from('songs').update(payload).eq('id', currentSongId);
                  await supabaseClient.from('personal_overrides').delete().eq('song_id', currentSongId);
+                 // Cascade delete personal versions
+                 if (personalVersions.length > 0) {
+                     const vIds = personalVersions.map(v => v.id);
+                     await supabaseClient.from('songs').update(payload).in('id', vIds);
+                 }
              } else {
                  addToSyncQueue('SAVE_SONG', { id: currentSongId, ...payload });
              }
         }
 
+        const allToRemove = new Set([currentSongId, ...personalVersions.map(v => v.id)]);
         let storageKey = currentGroupId === 'personal' ? 'mnotes_data' : 'mnotes_band_' + currentGroupId;
-        window.library = window.library.filter(x => x.id !== currentSongId);
+        window.library = window.library.filter(x => !allToRemove.has(x.id));
         localStorage.setItem(storageKey, JSON.stringify(window.library));
 
         currentSongId = null;
@@ -2268,3 +2282,126 @@ async function emptyTrashSetlist() {
         if (typeof showToast === 'function') showToast(t('msg_err_generic_retry', "Προέκυψε σφάλμα. Προσπαθήστε ξανά."), "error");
     }
 }
+
+// ============================================================
+// 🔀 VERSIONING SYSTEM
+// ============================================================
+
+window.getCreationTimeFromId = function(id) {
+    const parts = String(id).split('_');
+    if (parts.length > 1) {
+        const ts = parseInt(parts[1], 10);
+        if (!isNaN(ts) && ts > 1000000000000) return ts;
+    }
+    return 0;
+};
+
+window.getVersionGroup = function(songId) {
+    const song = library.find(s => s.id === songId);
+    if (!song) return [];
+    const masterId = song.parent_id || song.id;
+    const master = library.find(s => s.id === masterId);
+    // Band master songs do NOT participate in personal versioning
+    if (master && master.group_id) return [song];
+    return library
+        .filter(s => {
+            if (s.is_deleted) return false;
+            if (s.id === masterId) return true;
+            if (s.parent_id === masterId && !s.group_id && s.user_id === currentUser?.id) return true;
+            return false;
+        })
+        .sort((a, b) => window.getCreationTimeFromId(a.id) - window.getCreationTimeFromId(b.id));
+};
+
+window.switchVersion = function(dir) {
+    const group = window.getVersionGroup(currentSongId);
+    if (group.length <= 1) return;
+    const idx = group.findIndex(s => s.id === currentSongId);
+    let newIdx = (idx + dir + group.length) % group.length;
+    loadSong(group[newIdx].id);
+};
+
+window.createNewVersion = async function() {
+    if (!currentSongId) return;
+    const song = library.find(s => s.id === currentSongId);
+    if (!song) return;
+    if (!currentUser) { showToast(t('msg_login_required', 'Πρέπει να είστε συνδεδεμένος'), 'error'); return; }
+
+    const masterId = song.parent_id || song.id;
+    const newVersion = ensureSongStructure({
+        ...song,
+        id: 's_' + Date.now() + Math.random().toString(16).slice(2),
+        parent_id: masterId,
+        is_clone: true,
+        group_id: null,
+        user_id: currentUser.id,
+        is_deleted: false,
+        updated_at: new Date().toISOString()
+    });
+
+    library.push(newVersion);
+    window.library = library;
+    localStorage.setItem('mnotes_data', JSON.stringify(library.filter(s => !s.group_id)));
+
+    if (canUserPerform('USE_SUPABASE') && navigator.onLine) {
+        await supabaseClient.from('songs').insert([window.sanitizeForDatabase(newVersion, currentUser.id, null)]);
+    }
+
+    currentSongId = newVersion.id;
+    window.currentSongId = newVersion.id;
+    renderSidebar();
+    loadSong(newVersion.id);
+    showToast(t('msg_version_created', '🔀 Νέα έκδοση δημιουργήθηκε'));
+};
+
+window.promoteToMaster = async function(keepOthers) {
+    if (!currentSongId) return;
+    const version = library.find(s => s.id === currentSongId);
+    if (!version || (!version.parent_id && !version.is_clone)) {
+        showToast(t('msg_already_master', 'Αυτό είναι ήδη το Master'), 'info');
+        return;
+    }
+    const group = window.getVersionGroup(currentSongId);
+    const versionId = currentSongId;
+    const deletedAt = new Date().toISOString();
+
+    if (keepOthers) {
+        for (const s of group) {
+            s.parent_id = (s.id === versionId) ? null : versionId;
+            s.is_clone  = (s.id !== versionId);
+            s.updated_at = deletedAt;
+            if (canUserPerform('USE_SUPABASE') && navigator.onLine) {
+                await supabaseClient.from('songs')
+                    .update({ parent_id: s.parent_id, is_clone: s.is_clone, updated_at: s.updated_at })
+                    .eq('id', s.id);
+            }
+        }
+        localStorage.setItem('mnotes_data', JSON.stringify(library.filter(s => !s.group_id)));
+        renderSidebar();
+        loadSong(versionId);
+        showToast(t('msg_promoted_kept', '⭐ Ορίστηκε ως Master. Εκδόσεις διατηρήθηκαν.'));
+    } else {
+        const toDelete = group.filter(s => s.id !== versionId);
+        for (const s of toDelete) {
+            s.is_deleted = true;
+            s.updated_at = deletedAt;
+            if (canUserPerform('USE_SUPABASE') && !String(s.id).startsWith('demo') && navigator.onLine) {
+                await supabaseClient.from('songs').update({ is_deleted: true, updated_at: s.updated_at }).eq('id', s.id);
+            }
+        }
+        version.parent_id = null;
+        version.is_clone  = false;
+        version.updated_at = deletedAt;
+        if (canUserPerform('USE_SUPABASE') && navigator.onLine) {
+            await supabaseClient.from('songs')
+                .update({ parent_id: null, is_clone: false, updated_at: version.updated_at })
+                .eq('id', versionId);
+        }
+        window.library = library.filter(s => !s.is_deleted);
+        library = window.library;
+        localStorage.setItem('mnotes_data', JSON.stringify(library.filter(s => !s.group_id)));
+        renderSidebar();
+        loadSong(versionId);
+        showToast(t('msg_promoted_clean', '⭐ Master ενημερώθηκε. Παλιές εκδόσεις διαγράφηκαν.'));
+    }
+};

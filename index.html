@@ -193,10 +193,20 @@
                        <button id="btnSyncFromBand" onclick="syncEditorFromBand()" class="tool-btn highlight-btn" title="Sync from Band" style="display:none;">
                             <i class="fas fa-sync-alt"></i>
                         </button>
+                        <button id="btnNewVersion" onclick="window.createNewVersion()" class="icon-btn" title="Νέα Έκδοση" style="display:none; opacity:0.85;">
+                            <i class="fas fa-code-branch"></i>
+                        </button>
                         <button onclick="saveEdit()" class="icon-btn accent" title="Save Changes">
                             <i class="fas fa-save"></i>
                         </button>
                     </div>
+                </div>
+
+                <!-- Version indicator (shown only when editing a non-master version) -->
+                <div id="editorVersionBar" style="display:none; padding:3px 14px; font-size:0.72rem; background:rgba(255,152,0,0.08); border-bottom:1px solid rgba(255,152,0,0.2); color:var(--accent); display:flex; align-items:center; gap:8px;">
+                    <i class="fas fa-code-branch" style="font-size:0.65rem;"></i>
+                    <span id="editorVersionLabel"></span>
+                    <button onclick="showPromoteDialog()" style="margin-left:auto; background:none; border:1px solid rgba(255,152,0,0.4); color:var(--accent); border-radius:4px; padding:1px 8px; font-size:0.68rem; cursor:pointer;" title="Ορισμός ως Master">⭐ Master</button>
                 </div>
 
                <div class="editor-body">

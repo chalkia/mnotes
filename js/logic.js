@@ -2336,6 +2336,50 @@ window.cleanDuplicates = async function() {
     showToast(`🧹 Καθαρισμός: ${deleted} διπλότυπα αφαιρέθηκαν.`, 'success');
 };
 
+window.resetCloud = async function() {
+    if (!currentUser) { showToast('Πρέπει να είσαι συνδεδεμένος', 'error'); return; }
+    if (!navigator.onLine) { showToast('Χρειάζεται σύνδεση internet', 'error'); return; }
+
+    // Step 1: Clean local duplicates first
+    console.log('🧹 [RESET] Step 1: Local cleanup...');
+    await window.cleanDuplicates();
+
+    const localSongs = library.filter(s => !s.group_id && !s.is_deleted);
+    const confirmed = await mConfirm(
+        `☁️ ΕΠΑΝΑΦΟΡΤΩΣΗ CLOUD\n\nΘα σβηστούν ΟΛΕΣ οι εγγραφές σου από τη Supabase\nκαι θα ανεβούν εκ νέου ${localSongs.length} τραγούδια.\n\nΣυνέχεια;`, true
+    );
+    if (!confirmed) return;
+
+    showToast('☁️ Εκκαθάριση Supabase...', 'info');
+
+    // Step 2: Soft-delete ALL user songs in Supabase
+    const { error: delError } = await supabaseClient
+        .from('songs')
+        .update({ is_deleted: true, updated_at: new Date().toISOString() })
+        .eq('user_id', currentUser.id)
+        .is('group_id', null);
+
+    if (delError) { console.error('Delete error:', delError); showToast('Σφάλμα διαγραφής cloud', 'error'); return; }
+
+    // Step 3: Re-upload all local songs in batches of 20
+    console.log(`☁️ [RESET] Ανέβασμα ${localSongs.length} τραγουδιών...`);
+    const batchSize = 20;
+    let uploaded = 0;
+    for (let i = 0; i < localSongs.length; i += batchSize) {
+        const batch = localSongs.slice(i, i + batchSize).map(s => window.sanitizeForDatabase(s, currentUser.id, null));
+        const { error: upError } = await supabaseClient.from('songs').upsert(batch);
+        if (upError) { console.error('Upload error batch', i, upError); }
+        else { uploaded += batch.length; }
+        showToast(`☁️ Ανέβασμα... ${Math.min(i + batchSize, localSongs.length)}/${localSongs.length}`, 'info');
+    }
+
+    // Step 4: Reset sync timestamps so next sync fetches everything fresh
+    Object.keys(localStorage).filter(k => k.startsWith('mnotes_last_sync')).forEach(k => localStorage.removeItem(k));
+
+    showToast(`✅ Ολοκληρώθηκε! Ανέβηκαν ${uploaded}/${localSongs.length} τραγούδια.`, 'success');
+    console.log('✅ [RESET] Cloud reset complete!');
+};
+
 // ============================================================
 // 🔀 VERSIONING SYSTEM
 // ============================================================

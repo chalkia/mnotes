@@ -2458,6 +2458,11 @@ window.createNewVersion = async function() {
     renderSidebar();
     loadSong(newVersion.id);
     showToast(t('msg_version_created', '🔀 Νέα έκδοση δημιουργήθηκε'));
+    
+    // Redirect to viewer
+    if (typeof toViewer === 'function') {
+        toViewer(true);
+    }
 };
 
 window.promoteToMaster = async function(keepOthers) {
